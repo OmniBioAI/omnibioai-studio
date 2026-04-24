@@ -1,0 +1,49 @@
+{
+  "appId": "com.omnibioai.studio",
+  "productName": "OmniBioAI Studio",
+  "copyright": "Copyright © 2026 OmniBioAI",
+
+  "asar": true,
+
+  "directories": {
+    "output": "release"
+  },
+
+  "files": [
+    "electron/**/*",
+    "dist/**/*",
+    "backend/**/*",
+    "scripts/**/*",
+    "package.json"
+  ],
+
+  "extraResources": [
+    {
+      "from": "docker",
+      "to": "docker"
+    }
+  ],
+
+  "mac": {
+    "target": "dmg",
+    "category": "public.app-category.developer-tools",
+    "icon": "build/icon.icns"
+  },
+
+  "dmg": {
+    "title": "OmniBioAI Studio",
+    "icon": "build/icon.icns",
+    "format": "ULFO"
+  },
+
+  "compression": "maximum",
+
+  "publish": {
+    "provider": "generic",
+    "url": "https://updates.omnibioai.com/"
+  },
+
+  "asarUnpack": [
+    "backend/**"
+  ]
+}
