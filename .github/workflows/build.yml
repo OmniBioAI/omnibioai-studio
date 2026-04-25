@@ -16,7 +16,10 @@ jobs:
         with:
           node-version: 18
       - run: npm install
-      - run: npm run build:linux
+      - name: Build Linux
+        run: npx electron-builder --linux AppImage --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
       - uses: actions/upload-artifact@v4
         with:
           name: linux-appimage
@@ -30,7 +33,10 @@ jobs:
         with:
           node-version: 18
       - run: npm install
-      - run: npm run build:mac
+      - name: Build UI first
+        run: npm run build:ui
+      - name: Build macOS DMG
+        run: npx electron-builder --mac dmg --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
       - uses: actions/upload-artifact@v4
