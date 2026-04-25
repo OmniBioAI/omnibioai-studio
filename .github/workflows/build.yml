@@ -4,71 +4,50 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:  # allow manual trigger
+  workflow_dispatch:
 
 jobs:
 
-  # ─────────────────────────────
-  # LINUX BUILD
-  # ─────────────────────────────
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build Linux AppImage
-        run: npm run build:linux
-
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
+      - run: npm install
+      - run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISH: never
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-appimage
           path: release/*.AppImage
 
-  # ─────────────────────────────
-  # MACOS BUILD
-  # ─────────────────────────────
   build-mac:
     runs-on: macos-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build macOS DMG
-        run: npm run build:mac
+      - run: npm install
+      - run: npx electron-builder --mac dmg --publish never
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false  # skip code signing for beta
-
-      - name: Upload macOS artifact
-        uses: actions/upload-artifact@v4
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
         with:
           name: mac-dmg
           path: release/*.dmg
 
-  # ─────────────────────────────
-  # GITHUB RELEASE
-  # ─────────────────────────────
   release:
     needs: [build-linux, build-mac]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
     steps:
       - name: Download Linux artifact
         uses: actions/download-artifact@v4
@@ -86,25 +65,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: "OmniBioAI Studio ${{ github.ref_name }}"
+          prerelease: true
           body: |
             ## OmniBioAI Studio ${{ github.ref_name }}
 
             ### Downloads
-            - **Linux** — AppImage (works on any Linux distro)
-            - **macOS** — DMG (Intel + Apple Silicon)
-
-            ### What's New
-            - Enterprise dark UI
-            - 8-page wizard (Mode, LLM, Cloud, HPC, Launch, Services, Logs, Settings)
-            - Live Docker health monitoring
-            - Real-time log streaming
-            - Boot/Stop system controls
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | Linux    | `.AppImage` | Works on any Linux distro |
+            | macOS    | `.dmg` | Intel + Apple Silicon |
 
             ### Requirements
             - Docker + Docker Compose
             - 8GB RAM minimum
-          draft: false
-          prerelease: true
+
+            ### What's New
+            - Enterprise dark UI
+            - Mode / LLM / Cloud / HPC / Launch / Services / Logs / Settings
+            - Live Docker health monitoring
+            - Real-time log streaming
           files: |
             artifacts/linux/*.AppImage
             artifacts/mac/*.dmg
