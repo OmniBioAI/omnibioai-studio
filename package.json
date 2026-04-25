@@ -1,6 +1,6 @@
 {
   "name": "omnibioai-studio",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "productName": "OmniBioAI Studio",
   "description": "AI-powered bioinformatics orchestration desktop platform",
   "main": "electron/main.js",
@@ -8,14 +8,16 @@
     "dev": "concurrently \"npm run vite\" \"electron .\"",
     "vite": "vite",
     "build:ui": "vite build",
-    "build:electron": "electron-builder",
-    "build": "npm run build:ui && npm run build:electron",
+    "build:linux": "npm run build:ui && electron-builder --linux",
+    "build:mac": "npm run build:ui && electron-builder --mac",
+    "build:all": "npm run build:ui && electron-builder --linux --mac",
+    "build": "npm run build:linux",
     "dist": "npm run build"
   },
   "dependencies": {
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "zustand": "^5.0.12"
+    "zustand": "^4.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",
@@ -27,38 +29,5 @@
     "tailwindcss": "^3.4.19",
     "vite": "^5.0.0"
   },
-  "build": {
-  "appId": "com.omnibioai.studio",
-  "productName": "OmniBioAI Studio",
-
-  "directories": {
-    "output": "release"
-  },
-
-  "files": [
-    "electron/**/*",
-    "dist/**/*",
-    "backend/**/*",
-    "scripts/**/*",
-    "package.json"
-  ],
-
-  "mac": {
-    "target": "dmg",
-    "category": "public.app-category.developer-tools"
-  },
-
-  "linux": {
-    "target": ["AppImage"],
-    "category": "Development"
-  },
-
-  "dmg": {
-    "title": "OmniBioAI Studio"
-  },
-
-  "asar": true,
-  "compression": "maximum",
-  "removePackageScripts": true
-}
+  "author": "Manish Kumar <mandecent.gupta@gmail.com>"
 }

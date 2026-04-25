@@ -2,8 +2,8 @@
   "appId": "com.omnibioai.studio",
   "productName": "OmniBioAI Studio",
   "copyright": "Copyright © 2026 OmniBioAI",
-
   "asar": true,
+  "compression": "maximum",
 
   "directories": {
     "output": "release"
@@ -18,32 +18,33 @@
   ],
 
   "extraResources": [
-    {
-      "from": "docker",
-      "to": "docker"
-    }
+    { "from": "docker", "to": "docker" }
   ],
 
+  "linux": {
+    "target": [
+      { "target": "AppImage", "arch": ["x64"] }
+    ],
+    "category": "Science",
+    "icon": "build/icon.png",
+    "description": "AI-powered bioinformatics orchestration platform"
+  },
+
   "mac": {
-    "target": "dmg",
+    "target": [
+      { "target": "dmg", "arch": ["x64", "arm64"] }
+    ],
     "category": "public.app-category.developer-tools",
     "icon": "build/icon.icns"
   },
 
   "dmg": {
-    "title": "OmniBioAI Studio",
-    "icon": "build/icon.icns",
-    "format": "ULFO"
+    "title": "OmniBioAI Studio"
   },
-
-  "compression": "maximum",
 
   "publish": {
-    "provider": "generic",
-    "url": "https://updates.omnibioai.com/"
-  },
-
-  "asarUnpack": [
-    "backend/**"
-  ]
+    "provider": "github",
+    "owner": "man4ish",
+    "repo": "omnibioai-studio"
+  }
 }
