@@ -1,10 +1,4 @@
-version: "3.9"
-
 services:
-
-  # ─────────────────────────────
-  # CORE DATA LAYER
-  # ─────────────────────────────
 
   mysql:
     image: mysql:8.0
@@ -23,12 +17,8 @@ services:
     volumes:
       - redis_data:/data
 
-  # ─────────────────────────────
-  # CONTROL PLANE
-  # ─────────────────────────────
-
   workbench:
-    image: ghcr.io/omnibioai/omnibioai-workbench:beta
+    image: ghcr.io/man4ish/omnibioai:latest
     ports:
       - "8000:8000"
     environment:
@@ -39,7 +29,7 @@ services:
       - redis
 
   tes:
-    image: ghcr.io/omnibioai/omnibioai-tes:beta
+    image: ghcr.io/man4ish/omnibioai-tes:latest
     ports:
       - "8081:8081"
     environment:
@@ -50,14 +40,14 @@ services:
       - mysql
 
   toolserver:
-    image: ghcr.io/omnibioai/omnibioai-toolserver:beta
+    image: ghcr.io/man4ish/omnibioai-toolserver:latest
     ports:
       - "9090:9090"
     depends_on:
       - mysql
 
   model-registry:
-    image: ghcr.io/omnibioai/omnibioai-model-registry:beta
+    image: ghcr.io/man4ish/omnibioai-model-registry:latest
     ports:
       - "8095:8095"
     environment:
@@ -66,7 +56,7 @@ services:
       - mysql
 
   lims:
-    image: ghcr.io/omnibioai/omnibioai-lims:beta
+    image: ghcr.io/man4ish/omnibioai-lims-x:latest
     ports:
       - "7000:7000"
     environment:
@@ -75,7 +65,7 @@ services:
       - mysql
 
   control-center:
-    image: ghcr.io/omnibioai/omnibioai-control-center:beta
+    image: ghcr.io/man4ish/omnibioai-control-center:latest
     ports:
       - "7070:7070"
     depends_on:
@@ -83,45 +73,16 @@ services:
       - tes
       - toolserver
 
-  # ─────────────────────────────
-  # AI LAYER
-  # ─────────────────────────────
-
   ollama:
     image: ollama/ollama
     ports:
       - "11434:11434"
-
-  rag:
-    image: ghcr.io/omnibioai/omnibioai-rag:beta
-    ports:
-      - "8500:8500"
-    environment:
-      OLLAMA_URL: http://ollama:11434
-    depends_on:
-      - ollama
-
-  # ─────────────────────────────
-  # POLICY ENGINE (CRITICAL FOR ENTERPRISE)
-  # ─────────────────────────────
 
   opa:
     image: openpolicyagent/opa:latest
     ports:
       - "8181:8181"
     command: ["run", "--server"]
-
-  # ─────────────────────────────
-  # OPTIONAL SDK SERVICE (IMPORTANT CLARITY)
-  # ─────────────────────────────
-  sdk-service:
-    image: ghcr.io/omnibioai/omnibioai-sdk:beta
-    ports:
-      - "9000:9000"
-    environment:
-      WORKBENCH_URL: http://workbench:8000
-    depends_on:
-      - workbench
 
 volumes:
   mysql_data:

@@ -1,0 +1,16 @@
+data/
+work/
+out/
+tmpdata/
+images/
+node_modules/
+.git/
+__pycache__/
+*.log
+*.sqlite
+*.h5
+*.ckpt
+*.pt
+install/
+build/
+dist/
