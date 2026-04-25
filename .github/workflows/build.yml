@@ -17,9 +17,6 @@ jobs:
           node-version: 18
       - run: npm install
       - run: npm run build:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLISH: never
       - uses: actions/upload-artifact@v4
         with:
           name: linux-appimage
@@ -33,10 +30,9 @@ jobs:
         with:
           node-version: 18
       - run: npm install
-      - run: npx electron-builder --mac dmg --publish never
+      - run: npm run build:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: mac-dmg
@@ -49,19 +45,19 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download Linux artifact
+      - name: Download Linux
         uses: actions/download-artifact@v4
         with:
           name: linux-appimage
           path: artifacts/linux
 
-      - name: Download macOS artifact
+      - name: Download macOS
         uses: actions/download-artifact@v4
         with:
           name: mac-dmg
           path: artifacts/mac
 
-      - name: Create GitHub Release
+      - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
           name: "OmniBioAI Studio ${{ github.ref_name }}"
@@ -69,21 +65,14 @@ jobs:
           body: |
             ## OmniBioAI Studio ${{ github.ref_name }}
 
-            ### Downloads
-            | Platform | File | Notes |
-            |----------|------|-------|
-            | Linux    | `.AppImage` | Works on any Linux distro |
-            | macOS    | `.dmg` | Intel + Apple Silicon |
+            | Platform | Download |
+            |----------|----------|
+            | Linux    | `.AppImage` — works on any Linux distro |
+            | macOS    | `.dmg` — Apple Silicon + Intel |
 
             ### Requirements
             - Docker + Docker Compose
             - 8GB RAM minimum
-
-            ### What's New
-            - Enterprise dark UI
-            - Mode / LLM / Cloud / HPC / Launch / Services / Logs / Settings
-            - Live Docker health monitoring
-            - Real-time log streaming
           files: |
             artifacts/linux/*.AppImage
             artifacts/mac/*.dmg

@@ -40,11 +40,5 @@
 
   "dmg": {
     "title": "OmniBioAI Studio"
-  },
-
-  "publish": {
-    "provider": "github",
-    "owner": "man4ish",
-    "repo": "omnibioai-studio"
   }
 }
