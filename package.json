@@ -28,27 +28,37 @@
     "vite": "^5.0.0"
   },
   "build": {
-    "appId": "com.omnibioai.studio",
-    "productName": "OmniBioAI Studio",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "electron/**/*",
-      "dist/**/*",
-      "backend/**/*",
-      "scripts/**/*",
-      "package.json"
-    ],
-    "mac": {
-      "target": "dmg",
-      "category": "public.app-category.developer-tools"
-    },
-    "dmg": {
-      "title": "OmniBioAI Studio"
-    },
-    "asar": true,
-    "compression": "maximum",
-    "removePackageScripts": true
-  }
+  "appId": "com.omnibioai.studio",
+  "productName": "OmniBioAI Studio",
+
+  "directories": {
+    "output": "release"
+  },
+
+  "files": [
+    "electron/**/*",
+    "dist/**/*",
+    "backend/**/*",
+    "scripts/**/*",
+    "package.json"
+  ],
+
+  "mac": {
+    "target": "dmg",
+    "category": "public.app-category.developer-tools"
+  },
+
+  "linux": {
+    "target": ["AppImage"],
+    "category": "Development"
+  },
+
+  "dmg": {
+    "title": "OmniBioAI Studio"
+  },
+
+  "asar": true,
+  "compression": "maximum",
+  "removePackageScripts": true
+}
 }
