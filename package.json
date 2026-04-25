@@ -3,41 +3,36 @@
   "version": "0.1.0",
   "productName": "OmniBioAI Studio",
   "description": "AI-powered bioinformatics orchestration desktop platform",
-
   "main": "electron/main.js",
-
   "scripts": {
-    "dev": "concurrently \"vite\" \"electron .\"",
-
+    "dev": "concurrently \"npm run vite\" \"electron .\"",
+    "vite": "vite",
     "build:ui": "vite build",
-
     "build:electron": "electron-builder",
-
     "build": "npm run build:ui && npm run build:electron",
-
     "dist": "npm run build"
   },
-
   "dependencies": {
     "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react-dom": "^18.3.0",
+    "zustand": "^5.0.12"
   },
-
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.5.0",
+    "concurrently": "^8.2.2",
     "electron": "^28.0.0",
     "electron-builder": "^24.6.0",
-    "vite": "^5.0.0",
-    "concurrently": "^8.2.0"
+    "postcss": "^8.5.10",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.0.0"
   },
-
   "build": {
     "appId": "com.omnibioai.studio",
     "productName": "OmniBioAI Studio",
-
     "directories": {
       "output": "release"
     },
-
     "files": [
       "electron/**/*",
       "dist/**/*",
@@ -45,18 +40,15 @@
       "scripts/**/*",
       "package.json"
     ],
-
     "mac": {
       "target": "dmg",
       "category": "public.app-category.developer-tools"
     },
-
     "dmg": {
       "title": "OmniBioAI Studio"
     },
-
     "asar": true,
-
-    "compression": "maximum"
+    "compression": "maximum",
+    "removePackageScripts": true
   }
 }

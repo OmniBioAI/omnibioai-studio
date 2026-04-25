@@ -1,144 +1,131 @@
 import React from "react";
+import { Panel, PanelHeader, PanelBody, HealthCard } from "../components/UI";
+
+const MODES = [
+  {
+    id: "local",
+    title: "Local",
+    desc: "Docker + local GPU/CPU\nOffline-first, Ollama support",
+  },
+  {
+    id: "hpc",
+    title: "HPC",
+    desc: "Slurm / PBS / LSF\nApptainer + remote execution",
+  },
+  {
+    id: "cloud",
+    title: "Cloud",
+    desc: "AWS Batch / Azure Batch\nElastic auto-scaling compute",
+  },
+  {
+    id: "hybrid",
+    title: "Hybrid",
+    desc: "Multi-backend orchestration\nPolicy-driven scheduling",
+  },
+];
+
+const HEALTH = [
+  { label: "MySQL",    status: "up",   port: ":3306"  },
+  { label: "Redis",    status: "up",   port: ":6379"  },
+  { label: "TES",      status: "up",   port: ":8081"  },
+  { label: "Ollama",   status: "warn", port: ":11434" },
+  { label: "RAG",      status: "down", port: ":8500"  },
+];
 
 export default function Mode({ config, setConfig }) {
-
-  const selectMode = (mode) => {
-    setConfig({
-      ...config,
-      mode
-    });
-  };
-
-  const cardStyle = (active) => ({
-    border: active
-      ? "3px solid #2563eb"
-      : "1px solid #d1d5db",
-
-    borderRadius: "12px",
-    padding: "20px",
-    marginBottom: "20px",
-    cursor: "pointer",
-    background: active ? "#eff6ff" : "white"
-  });
+  const selected = config.mode;
 
   return (
-    <div style={{ padding: "20px" }}>
-
-      <h2>Runtime Mode</h2>
-
-      <p>
-        Select how OmniBioAI Studio will execute
-        workflows and AI workloads.
-      </p>
-
-      {/* ───────────────────────────── */}
-      {/* LOCAL */}
-      {/* ───────────────────────────── */}
-
-      <div
-        style={cardStyle(config.mode === "local")}
-        onClick={() => selectMode("local")}
-      >
-        <h3>Local Mode</h3>
-
-        <p>
-          Execute workflows directly on this machine
-          using Docker containers and local AI models.
-        </p>
-
-        <ul>
-          <li>Offline-first</li>
-          <li>Uses local CPU/GPU</li>
-          <li>Ideal for development and small labs</li>
-          <li>Supports Ollama local models</li>
-        </ul>
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
+          Runtime Mode
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--mono)" }}>
+          select execution backend for workflow orchestration
+        </div>
       </div>
 
-      {/* ───────────────────────────── */}
-      {/* HPC */}
-      {/* ───────────────────────────── */}
-
-      <div
-        style={cardStyle(config.mode === "hpc")}
-        onClick={() => selectMode("hpc")}
-      >
-        <h3>HPC Mode</h3>
-
-        <p>
-          Submit workflows to institutional HPC clusters
-          using Slurm, PBS, or LSF schedulers.
-        </p>
-
-        <ul>
-          <li>Remote workflow execution</li>
-          <li>Apptainer/Singularity support</li>
-          <li>GPU cluster integration</li>
-          <li>Large-scale genomics workflows</li>
-        </ul>
-      </div>
-
-      {/* ───────────────────────────── */}
-      {/* CLOUD */}
-      {/* ───────────────────────────── */}
-
-      <div
-        style={cardStyle(config.mode === "cloud")}
-        onClick={() => selectMode("cloud")}
-      >
-        <h3>Cloud Mode</h3>
-
-        <p>
-          Execute workflows on cloud infrastructure
-          using your own AWS or Azure account.
-        </p>
-
-        <ul>
-          <li>AWS Batch support</li>
-          <li>Azure Batch integration</li>
-          <li>Elastic compute scaling</li>
-          <li>Cloud object storage support</li>
-        </ul>
-      </div>
-
-      {/* ───────────────────────────── */}
-      {/* HYBRID */}
-      {/* ───────────────────────────── */}
-
-      <div
-        style={cardStyle(config.mode === "hybrid")}
-        onClick={() => selectMode("hybrid")}
-      >
-        <h3>Hybrid Mode</h3>
-
-        <p>
-          Combine local, HPC, Kubernetes, and cloud
-          execution into a single orchestration layer.
-        </p>
-
-        <ul>
-          <li>Multi-backend execution</li>
-          <li>Policy-driven scheduling</li>
-          <li>Enterprise-scale orchestration</li>
-          <li>Recommended for production deployments</li>
-        </ul>
-      </div>
-
-      {/* ───────────────────────────── */}
-      {/* CURRENT SELECTION */}
-      {/* ───────────────────────────── */}
-
+      {/* Mode Cards */}
       <div
         style={{
-          marginTop: "30px",
-          padding: "15px",
-          background: "#f3f4f6",
-          borderRadius: "10px"
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 8,
+          marginBottom: 14,
         }}
       >
-        <strong>Selected Mode:</strong>{" "}
-        {config.mode || "none"}
+        {MODES.map((m) => {
+          const isSelected = selected === m.id;
+          return (
+            <div
+              key={m.id}
+              onClick={() => setConfig((p) => ({ ...p, mode: m.id }))}
+              style={{
+                background: isSelected ? "rgba(0,229,160,0.04)" : "var(--bg2)",
+                border: isSelected
+                  ? "1px solid rgba(0,229,160,0.4)"
+                  : "1px solid var(--border)",
+                borderRadius: 8,
+                padding: "10px 12px",
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: isSelected ? "var(--accent)" : "var(--text)",
+                  marginBottom: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                {m.title}
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    border: isSelected ? "none" : "1px solid var(--muted)",
+                    background: isSelected ? "var(--accent)" : "transparent",
+                    transition: "all 0.15s",
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontFamily: "var(--mono)",
+                  color: "var(--muted)",
+                  lineHeight: 1.6,
+                  whiteSpace: "pre-line",
+                }}
+              >
+                {m.desc}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
+      {/* Health Grid */}
+      <Panel>
+        <PanelHeader title="Service Health" icon iconColor="teal">
+          <span style={{ fontSize: 10, fontFamily: "var(--mono)", color: "var(--muted)" }}>
+            last check: 2s ago
+          </span>
+        </PanelHeader>
+        <PanelBody style={{ padding: "10px 16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
+            {HEALTH.map((h) => (
+              <HealthCard key={h.label} {...h} />
+            ))}
+          </div>
+        </PanelBody>
+      </Panel>
     </div>
   );
 }
