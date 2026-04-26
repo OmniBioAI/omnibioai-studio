@@ -13,6 +13,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
+      webviewTag: true,
     },
   });
   const isDev = !app.isPackaged;

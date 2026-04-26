@@ -1,79 +1,79 @@
 #!/bin/bash
-
 set -e
 
 echo "======================================"
 echo " OmniBioAI Studio Startup"
 echo "======================================"
 
-CONFIG_FILE="$HOME/Library/Application Support/OmniBioAI/config.json"
+# ─── Read config ──────────────────────────
+CONFIG_FILE="$HOME/.config/omnibioai/omnibioai.config.json"
 
-MODE=$(jq -r '.mode // "local"' "$CONFIG_FILE" 2>/dev/null || echo "local")
-
-echo "Detected mode: $MODE"
-
-# ─────────────────────────────
-# LOCAL MODE
-# ─────────────────────────────
-
-if [ "$MODE" = "local" ]; then
-  echo "[LOCAL] Starting full local stack..."
-
-  docker compose \
-    -f docker/docker-compose.yml \
-    up -d
-
+if [ ! -f "$CONFIG_FILE" ]; then
+  CONFIG_FILE="$HOME/Library/Application Support/omnibioai-studio/omnibioai.config.json"
 fi
 
-# ─────────────────────────────
-# HPC MODE
-# ─────────────────────────────
-
-if [ "$MODE" = "hpc" ]; then
-  echo "[HPC] Starting only control plane..."
-
-  docker compose \
-    -f docker/docker-compose.yml \
-    up -d mysql redis toolserver tes model-registry
-
+if [ -f "$CONFIG_FILE" ]; then
+  MODE=$(jq -r '.mode // "local"' "$CONFIG_FILE")
+  DATA_DIR=$(jq -r '.settings.data_dir // ""' "$CONFIG_FILE")
+  WORK_DIR=$(jq -r '.settings.work_dir // ""' "$CONFIG_FILE")
+else
+  echo "[WARN] No config found, using defaults"
+  MODE="local"
+  DATA_DIR=""
+  WORK_DIR=""
 fi
 
-# ─────────────────────────────
-# CLOUD MODE
-# ─────────────────────────────
+# ─── Fallback defaults ────────────────────
+DATA_DIR="${DATA_DIR:-$HOME/omnibioai/data}"
+WORK_DIR="${WORK_DIR:-$HOME/omnibioai/work}"
 
-if [ "$MODE" = "cloud" ]; then
-  echo "[CLOUD] Starting cloud orchestration layer..."
+echo "Mode:       $MODE"
+echo "Data Dir:   $DATA_DIR"
+echo "Work Dir:   $WORK_DIR"
 
-  docker compose \
-    -f docker/docker-compose.yml \
-    up -d toolserver tes control-center
+# ─── Create dirs if missing ───────────────
+mkdir -p "$DATA_DIR/PubMed/Abstracts"
+mkdir -p "$DATA_DIR/PubMed/Index"
+mkdir -p "$WORK_DIR/uploads"
+mkdir -p "$WORK_DIR/runs"
 
-fi
+# ─── Inject paths into compose ────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+COMPOSE_TEMPLATE="$SCRIPT_DIR/../docker/docker-compose.yml"
+DYNAMIC_COMPOSE="/tmp/omnibioai-compose-$(date +%s).yml"
 
-# ─────────────────────────────
-# HYBRID MODE
-# ─────────────────────────────
+sed \
+  -e "s|DATA_DIR_PLACEHOLDER|$DATA_DIR|g" \
+  -e "s|WORK_DIR_PLACEHOLDER|$WORK_DIR|g" \
+  "$COMPOSE_TEMPLATE" > "$DYNAMIC_COMPOSE"
 
-if [ "$MODE" = "hybrid" ]; then
-  echo "[HYBRID] Starting full distributed stack..."
+echo "Generated compose: $DYNAMIC_COMPOSE"
 
-  docker compose \
-    -f docker/docker-compose.yml \
-    up -d
+# ─── Start services by mode ───────────────
+case "$MODE" in
+  local)
+    docker compose -f "$DYNAMIC_COMPOSE" up -d
+    ;;
+  hpc)
+    docker compose -f "$DYNAMIC_COMPOSE" up -d \
+      mysql redis toolserver tes model-registry rag ollama
+    ;;
+  cloud)
+    docker compose -f "$DYNAMIC_COMPOSE" up -d \
+      toolserver tes control-center rag ollama
+    ;;
+  hybrid)
+    docker compose -f "$DYNAMIC_COMPOSE" up -d
+    ;;
+  *)
+    docker compose -f "$DYNAMIC_COMPOSE" up -d
+    ;;
+esac
 
-fi
-
-# ─────────────────────────────
-# HEALTH CHECK LOOP
-# ─────────────────────────────
-
-echo "Waiting for services to become healthy..."
-
+echo "Waiting for services to start..."
 sleep 5
-
-docker ps
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 echo "======================================"
-echo " OmniBioAI Studio Started"
+echo " OmniBioAI Studio is running"
 echo "======================================"
