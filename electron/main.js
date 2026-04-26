@@ -13,13 +13,13 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
+      webSecurity: false,
       webviewTag: true,
     },
   });
   const isDev = !app.isPackaged;
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173");
-    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
@@ -42,65 +42,82 @@ ipcMain.handle("reset-config", async () => resetConfig());
 // ─── DOCKER LIFECYCLE ─────────────────────────────────
 ipcMain.handle("start-docker", async () => {
   return new Promise((resolve, reject) => {
-    exec("bash scripts/start.sh", { cwd: path.join(__dirname, "..") },
-      (err, stdout, stderr) => { if (err) return reject(stderr); resolve(stdout); }
+    exec("bash scripts/start.sh",
+      { cwd: path.join(__dirname, "..") },
+      (err, stdout, stderr) => {
+        if (err) return reject(stderr);
+        resolve(stdout);
+      }
     );
   });
 });
 
 ipcMain.handle("stop-docker", async () => {
   return new Promise((resolve, reject) => {
-    exec("docker compose -f docker/docker-compose.yml down",
+    exec(
+      "docker compose -f docker/docker-compose.yml down",
       { cwd: path.join(__dirname, "..") },
-      (err, _, stderr) => { if (err) return reject(stderr); resolve("stopped"); }
+      (err, _, stderr) => {
+        if (err) return reject(stderr);
+        resolve("stopped");
+      }
     );
   });
 });
 
 ipcMain.handle("restart-docker", async () => {
   return new Promise((resolve, reject) => {
-    exec("docker compose -f docker/docker-compose.yml restart",
+    exec(
+      "docker compose -f docker/docker-compose.yml restart",
       { cwd: path.join(__dirname, "..") },
-      (err, _, stderr) => { if (err) return reject(stderr); resolve("restarted"); }
+      (err, _, stderr) => {
+        if (err) return reject(stderr);
+        resolve("restarted");
+      }
     );
   });
 });
 
 // ─── RESTART INDIVIDUAL SERVICE ───────────────────────
 ipcMain.handle("restart-service", async (_, name) => {
-  const allowed = ["mysql","redis","workbench","tes","toolserver",
-    "model-registry","lims","ollama","opa","control-center"];
+  const allowed = [
+    "mysql","redis","workbench","tes","toolserver",
+    "model-registry","lims","ollama","opa","control-center"
+  ];
   if (!allowed.includes(name)) throw new Error(`Unknown service: ${name}`);
   return new Promise((resolve, reject) => {
-    exec(`docker compose -f docker/docker-compose.yml restart ${name}`,
+    exec(
+      `docker compose -f docker/docker-compose.yml restart ${name}`,
       { cwd: path.join(__dirname, "..") },
-      (err, _, stderr) => { if (err) return reject(stderr); resolve(`${name} restarted`); }
+      (err, _, stderr) => {
+        if (err) return reject(stderr);
+        resolve(`${name} restarted`);
+      }
     );
   });
 });
 
-// ─── HEALTH CHECK — exact container names ─────────────
+// ─── HEALTH CHECK — matches real container names ───────
 ipcMain.handle("check-health", async () => {
   return new Promise((resolve) => {
     exec("docker ps --format '{{.Names}}'", (err, stdout) => {
       if (err) return resolve({
         mysql:false, redis:false, workbench:false, tes:false,
-        toolserver:false, ollama:false, rag:false, opa:false,
+        toolserver:false, ollama:false, opa:false,
         lims:false, "model-registry":false, "control-center":false,
       });
       const running = stdout.split("\n").map(s => s.trim());
       resolve({
-        mysql:            running.includes("docker-mysql-1"),
-        redis:            running.includes("docker-redis-1"),
-        workbench:        running.includes("omnibioai-workbench"),
-        tes:              running.includes("omnibioai-tes"),
-        toolserver:       running.includes("omnibioai-toolserver"),
-        ollama:           running.includes("docker-ollama-1"),
-        rag:              running.includes("omnibioai-rag"),
-        opa:              running.includes("docker-opa-1"),
-        lims:             running.includes("lims-x"),
-        "model-registry": running.includes("omnibioai-model-registry"),
-        "control-center": running.includes("omnibioai-control-center"),
+        mysql:            running.some(s => s.includes("mysql")         && !s.includes("buildx")),
+        redis:            running.some(s => s.includes("redis")         && !s.includes("buildx")),
+        workbench:        running.some(s => s.includes("workbench")     && !s.includes("buildx")),
+        tes:              running.some(s => s.includes("tes")           && !s.includes("buildx")),
+        toolserver:       running.some(s => s.includes("toolserver")    && !s.includes("buildx")),
+        ollama:           running.some(s => s.includes("ollama")        && !s.includes("buildx")),
+        opa:              running.some(s => s.includes("opa")           && !s.includes("buildx")),
+        lims:             running.some(s => s.includes("lims")          && !s.includes("buildx")),
+        "model-registry": running.some(s => s.includes("model-registry")&& !s.includes("buildx")),
+        "control-center": running.some(s => s.includes("control-center")&& !s.includes("buildx")),
       });
     });
   });
@@ -108,11 +125,18 @@ ipcMain.handle("check-health", async () => {
 
 // ─── LOG STREAMING ────────────────────────────────────
 function startLogStream() {
-  const proc = spawn("docker", [
-    "compose", "-f", "docker/docker-compose.yml", "logs", "-f", "--tail=20"
-  ], { cwd: path.join(__dirname, "..") });
-
+  const containers = [
+    "omnibioai-workbench",
+    "omnibioai-tes",
+    "omnibioai-toolserver",
+    "omnibioai-celery-worker",
+  ];
+  const proc = spawn("docker", ["logs", "-f", "--tail=20", ...containers]);
   proc.stdout.on("data", (data) => {
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send("log-stream", data.toString());
+  });
+  proc.stderr.on("data", (data) => {
     if (mainWindow && !mainWindow.isDestroyed())
       mainWindow.webContents.send("log-stream", data.toString());
   });

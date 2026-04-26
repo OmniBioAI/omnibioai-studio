@@ -10,7 +10,6 @@ const SERVICES = [
   { key:"model-registry",label:"Model Registry",port:8095,image:"omnibioai/omnibioai-model-registry:beta",group:"Control Plane"},
   { key:"lims",         label:"LIMS",          port:7000,  image:"omnibioai/omnibioai-lims:beta",       group:"Control Plane" },
   { key:"ollama",       label:"Ollama",        port:11434, image:"ollama/ollama",                      group:"AI Layer"      },
-  { key:"rag",          label:"RAG",           port:8500,  image:"omnibioai/omnibioai-rag:beta",        group:"AI Layer"      },
   { key:"opa",          label:"OPA",           port:8181,  image:"openpolicyagent/opa:latest",          group:"Policy Engine" },
 ];
 

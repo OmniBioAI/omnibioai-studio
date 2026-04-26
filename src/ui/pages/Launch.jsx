@@ -6,7 +6,6 @@ const SERVICES = [
   { key: "workbench", label: "Workbench", port: ":8000"  },
   { key: "tes",       label: "TES",       port: ":8081"  },
   { key: "ollama",    label: "Ollama",    port: ":11434" },
-  { key: "rag",       label: "RAG",       port: ":8500"  },
 ];
 
 function timestamp() {

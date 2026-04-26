@@ -26,8 +26,8 @@ services:
       REDIS_HOST: redis
       OLLAMA_BASE_URL: http://ollama:11434
     volumes:
-      - DATA_DIR_PLACEHOLDER:/workspace/data
-      - WORK_DIR_PLACEHOLDER:/workspace/work
+      - /home/manish/Desktop/machine/omnibioai/data:/workspace/data
+      - /home/manish/Desktop/machine/omnibioai/work:/workspace/work
     depends_on:
       - mysql
       - redis
@@ -39,7 +39,7 @@ services:
     environment:
       TOOLSERVER_URL: http://toolserver:9090
     volumes:
-      - WORK_DIR_PLACEHOLDER:/workspace/work
+      - /home/manish/Desktop/machine/omnibioai/work:/workspace/work
     depends_on:
       - toolserver
       - redis
@@ -50,7 +50,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - WORK_DIR_PLACEHOLDER:/workspace/work
+      - /home/manish/Desktop/machine/omnibioai/work:/workspace/work
     depends_on:
       - mysql
 
@@ -93,23 +93,6 @@ services:
     ports:
       - "8181:8181"
     command: ["run", "--server"]
-
-  rag:
-    image: ghcr.io/man4ish/omnibioai-rag:latest
-    ports:
-      - "8500:8500"
-    environment:
-      OLLAMA_BASE_URL: http://ollama:11434
-      PUBMED_BASE_PATH: /data/PubMed
-      ABSTRACT_FOLDER: /data/PubMed/Abstracts
-      INDEX_FOLDER: /data/PubMed/Index
-      MODEL_NAME: nomic-embed-text
-      CHAT_MODEL: llama3
-    volumes:
-      - DATA_DIR_PLACEHOLDER:/data
-    depends_on:
-      - ollama
-    restart: unless-stopped
 
 volumes:
   mysql_data:

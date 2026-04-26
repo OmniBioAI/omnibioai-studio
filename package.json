@@ -5,7 +5,7 @@
   "description": "AI-powered bioinformatics orchestration desktop platform",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"npm run vite\" \"electron .\"",
+    "dev": "concurrently \"npm run vite\" \"electron . --no-sandbox\"",
     "vite": "vite",
     "build:ui": "vite build",
     "build:linux": "npm run build:ui && electron-builder --linux",
