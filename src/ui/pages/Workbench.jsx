@@ -1,7 +1,66 @@
 import React, { useState, useEffect } from "react";
 
-const WORKBENCH_URL = "http://localhost:8000";
-const WORKBENCH_LOGIN = "http://localhost:8000/accounts/login/";
+const BASE = "http://localhost:8000";
+
+const CATEGORIES = [
+  {
+    name: "Core Platform",
+    color: "var(--accent)",
+    links: [
+      { label:"Home",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
+      { label:"OnboardAI",        url:`${BASE}/plugins/onboardai/`,                  icon:"🤖", desc:"AI developer tools"     },
+      { label:"Omni Assistant",   url:`${BASE}/plugins/omni_assistant/`,             icon:"💬", desc:"AI assistant"           },
+      { label:"Job Monitor",      url:`${BASE}/plugins/job_monitor/`,                icon:"📊", desc:"Monitor jobs"           },
+      { label:"Plugin Manager",   url:`${BASE}/plugins/plugin_manager/`,             icon:"🔌", desc:"Manage plugins"         },
+      { label:"Admin",            url:`${BASE}/admin/`,                              icon:"⚙️", desc:"Django admin"           },
+    ]
+  },
+  {
+    name: "Workflows",
+    color: "var(--accent2)",
+    links: [
+      { label:"Workflow Runner",  url:`${BASE}/plugins/workflow_runner/`,            icon:"⚡", desc:"Run workflows"          },
+      { label:"Workflow Builder", url:`${BASE}/plugins/workflow_builder/`,           icon:"🔧", desc:"Build workflows"        },
+      { label:"Agent Studio",     url:`${BASE}/plugins/agent-workflows/`,            icon:"🤝", desc:"Multi-agent workflows"  },
+      { label:"Pipeline",         url:`${BASE}/pipeline-dashboard/`,                 icon:"🔄", desc:"Pipeline dashboard"     },
+    ]
+  },
+  {
+    name: "Omics Analysis",
+    color: "var(--accent3)",
+    links: [
+      { label:"RNA-Seq",          url:`${BASE}/plugins/rnaseq_analysis/`,            icon:"🧬", desc:"RNA-Seq analysis"       },
+      { label:"Single Cell",      url:`${BASE}/plugins/single_cell_analysis/`,       icon:"🔬", desc:"scRNA-Seq"              },
+      { label:"Exome Analysis",   url:`${BASE}/plugins/exome_analysis/`,             icon:"🧫", desc:"Exome sequencing"       },
+      { label:"FASTQ QC",         url:`${BASE}/plugins/fastq_qc/`,                   icon:"✅", desc:"Quality control"        },
+      { label:"Proteomics",       url:`${BASE}/plugins/proteomics/`,                 icon:"⚗️", desc:"Proteomics analysis"    },
+      { label:"Metabolomics",     url:`${BASE}/plugins/metabolomics_analysis/`,      icon:"🔭", desc:"Metabolomics"           },
+    ]
+  },
+  {
+    name: "AI & Intelligence",
+    color: "#a78bfa",
+    links: [
+      { label:"Drug Target AI",   url:`${BASE}/plugins/drug_target_intelligence/`,   icon:"💊", desc:"Drug target analysis"  },
+      { label:"Literature AI",    url:`${BASE}/plugins/literature_summarizer/`,      icon:"📚", desc:"Literature summarizer" },
+      { label:"Pathway Enrichment",url:`${BASE}/plugins/pathway_enrichment/`,        icon:"🔗", desc:"Pathway analysis"      },
+      { label:"Bio Hypothesis",   url:`${BASE}/plugins/bio_hypothesis_ai/`,          icon:"🧠", desc:"Hypothesis generation" },
+    ]
+  },
+  {
+    name: "External Services",
+    color: "var(--muted)",
+    links: [
+      { label:"LIMS",             url:"http://localhost:7000",                        icon:"🧪", desc:":7000"                 },
+      { label:"Model Registry",   url:"http://localhost:5181",                        icon:"🧬", desc:"ML model versioning"   },
+      { label:"RAG / Lit AI",     url:"http://localhost:5182",                        icon:"📚", desc:"PubMed RAG + DeepSeek" },
+      { label:"Workflows",        url:"http://localhost:5183",                        icon:"⚡", desc:"WDL/NF/Snake/CWL"      },
+      { label:"Tool Images",      url:"http://localhost:5184",                        icon:"🐳", desc:"ARM64 SIF dashboard"   },
+      { label:"TES / Jobs",       url:"http://localhost:5185",                        icon:"🚀", desc:"Slurm/AWS/Azure/GCP"   },
+      { label:"Control Center",   url:"http://localhost:5186",                        icon:"🖥️", desc:"Health + Docker imgs"  },
+    ]
+  },
+];
 
 export default function Workbench() {
   const [online,   setOnline]   = useState(false);
@@ -10,13 +69,10 @@ export default function Workbench() {
   const check = async () => {
     setChecking(true);
     try {
-      await fetch(WORKBENCH_URL, { mode:"no-cors", cache:"no-cache" });
+      await fetch(BASE, { mode:"no-cors", cache:"no-cache" });
       setOnline(true);
-    } catch (_) {
-      setOnline(false);
-    } finally {
-      setChecking(false);
-    }
+    } catch (_) { setOnline(false); }
+    finally { setChecking(false); }
   };
 
   useEffect(() => {
@@ -27,179 +83,166 @@ export default function Workbench() {
 
   const open = (url) => window.open(url, "_blank");
 
-  const launch = () => {
-    if (window.api?.openWorkbench) window.api.openWorkbench();
-    else open(WORKBENCH_LOGIN);
-  };
-
-  const QUICK_LINKS = [
-    {
-      label:   "OnboardAI",
-      desc:    "AI-powered developer tools",
-      url:     `${WORKBENCH_URL}/plugins/onboardai/`,
-      icon:    "🤖",
-      color:   "var(--accent)",
-    },
-    {
-      label:   "Control Center",
-      desc:    "System orchestration",
-      url:     "http://localhost:7070",
-      icon:    "🎛",
-      color:   "var(--accent2)",
-    },
-    {
-      label:   "LIMS",
-      desc:    "Lab information system",
-      url:     "http://localhost:7000",
-      icon:    "🧪",
-      color:   "var(--accent3)",
-    },
-    {
-      label:   "Tutorials",
-      desc:    "Coming soon",
-      url:     null,
-      icon:    "📚",
-      color:   "var(--muted)",
-    },
-  ];
-
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
 
       {/* Header */}
-      <div>
-        <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
-          Workbench
-        </div>
-        <div style={{ fontSize:12, color:"var(--muted)", fontFamily:"var(--mono)" }}>
-          OmniBioAI workflow and analysis platform
-        </div>
-      </div>
-
-      {/* Main launch card */}
-      <div style={{
-        background:"var(--bg3)", border:"1px solid var(--border)",
-        borderRadius:12, padding:32,
-        display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center",
-        gap:20, minHeight:280,
-      }}>
-        {/* Hex logo */}
-        <div style={{
-          width:72, height:72,
-          background:"linear-gradient(135deg, #00e5a0, #0094ff)",
-          clipPath:"polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)",
-        }} />
-
-        <div style={{ textAlign:"center" }}>
-          <div style={{ fontSize:18, fontWeight:700, color:"#fff", marginBottom:6 }}>
-            OmniBioAI Workbench
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div>
+          <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
+            Workbench
           </div>
-          <div style={{ fontSize:12, fontFamily:"var(--mono)", color:"var(--muted)", marginBottom:8 }}>
-            {WORKBENCH_URL}
+          <div style={{ fontSize:12, color:"var(--muted)", fontFamily:"var(--mono)" }}>
+            OmniBioAI bioinformatics platform — quick access to key modules
           </div>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+        </div>
+
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
             <div style={{
               width:7, height:7, borderRadius:"50%",
               background: checking ? "var(--warn)" : online ? "var(--accent)" : "var(--danger)",
               animation: (checking || online) ? "pulse 2s infinite" : "none",
             }} />
-            <span style={{
-              fontSize:11, fontFamily:"var(--mono)",
+            <span style={{ fontSize:11, fontFamily:"var(--mono)",
               color: checking ? "var(--warn)" : online ? "var(--accent)" : "var(--danger)",
             }}>
-              {checking ? "Checking..." : online ? "Online — ready to launch" : "Offline — start the stack first"}
+              {checking ? "Checking..." : online ? "Online" : "Offline"}
             </span>
           </div>
-        </div>
 
-        <button
-          onClick={launch}
-          disabled={!online}
-          style={{
-            padding:"14px 48px", borderRadius:8, fontSize:14,
+          <button onClick={check} style={{
+            padding:"6px 10px", borderRadius:6, fontSize:11,
+            fontFamily:"var(--mono)", background:"var(--bg3)",
+            border:"1px solid var(--border2)", color:"var(--muted)", cursor:"pointer",
+          }}>↻</button>
+
+          <button onClick={() => open(`${BASE}/plugins/catalog/`)} disabled={!online} style={{
+            padding:"8px 16px", borderRadius:6, fontSize:12,
+            fontFamily:"var(--font)", fontWeight:500,
+            cursor: online ? "pointer" : "not-allowed",
+            opacity: online ? 1 : 0.4,
+            background:"rgba(0,148,255,0.12)",
+            border:"1px solid rgba(0,148,255,0.25)",
+            color:"var(--accent2)",
+          }}>📦 Catalog</button>
+
+          <button onClick={() => open(`${BASE}/`)} disabled={!online} style={{
+            padding:"8px 20px", borderRadius:6, fontSize:12,
             fontFamily:"var(--font)", fontWeight:600,
             cursor: online ? "pointer" : "not-allowed",
             opacity: online ? 1 : 0.4,
             background: online ? "var(--accent)" : "var(--bg2)",
             border: online ? "none" : "1px solid var(--border2)",
             color: online ? "#000" : "var(--muted)",
-            transition:"all 0.2s", letterSpacing:"0.02em",
-          }}
-        >
-          {online ? "↗ Launch Workbench" : "Workbench Offline"}
-        </button>
+          }}>↗ Launch Workbench</button>
+        </div>
+      </div>
 
-        {!online && (
-          <div style={{ display:"flex", gap:8 }}>
-            <button onClick={check} style={{
-              padding:"7px 16px", borderRadius:6, fontSize:11,
-              fontFamily:"var(--mono)", background:"var(--bg2)",
-              border:"1px solid var(--border2)", color:"var(--muted)", cursor:"pointer",
-            }}>↻ Check again</button>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail:4 }))}
-              style={{
-                padding:"7px 16px", borderRadius:6, fontSize:11,
-                fontFamily:"var(--mono)", background:"rgba(0,229,160,0.08)",
-                border:"1px solid rgba(0,229,160,0.2)",
-                color:"var(--accent)", cursor:"pointer",
-              }}>Go to Launch →</button>
+      {/* Offline banner */}
+      {!online && !checking && (
+        <div style={{
+          padding:"12px 16px", borderRadius:8,
+          background:"rgba(255,71,87,0.06)",
+          border:"1px solid rgba(255,71,87,0.15)",
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+        }}>
+          <span style={{ fontSize:12, fontFamily:"var(--mono)", color:"var(--danger)" }}>
+            Workbench offline — start the stack first
+          </span>
+          <button onClick={() => window.dispatchEvent(new CustomEvent("navigate",{detail:4}))} style={{
+            padding:"5px 12px", borderRadius:5, fontSize:11,
+            fontFamily:"var(--mono)", background:"rgba(0,229,160,0.08)",
+            border:"1px solid rgba(0,229,160,0.2)", color:"var(--accent)", cursor:"pointer",
+          }}>Go to Launch →</button>
+        </div>
+      )}
+
+      {/* Categories */}
+      {CATEGORIES.map(({ name, color, links }) => (
+        <div key={name} style={{
+          background:"var(--bg3)", border:"1px solid var(--border)",
+          borderRadius:10, overflow:"hidden",
+        }}>
+          <div style={{
+            padding:"10px 16px", borderBottom:"1px solid var(--border)",
+            display:"flex", alignItems:"center", gap:8,
+          }}>
+            <div style={{ width:3, height:14, borderRadius:2, background:color, flexShrink:0 }} />
+            <span style={{
+              fontSize:11, fontWeight:500, letterSpacing:"0.06em",
+              textTransform:"uppercase", color:"var(--text)",
+            }}>{name}</span>
+            <span style={{ fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)", marginLeft:4 }}>
+              {links.length} modules
+            </span>
           </div>
-        )}
+
+          <div style={{
+            display:"grid", gridTemplateColumns:"repeat(6, 1fr)",
+            gap:1, background:"var(--border)",
+          }}>
+            {links.map(({ label, url, icon, desc }) => (
+              <button
+                key={label}
+                onClick={() => online && open(url)}
+                disabled={!online}
+                style={{
+                  padding:"12px 8px", background:"var(--bg3)",
+                  cursor: online ? "pointer" : "not-allowed",
+                  opacity: online ? 1 : 0.5,
+                  border:"none", transition:"background 0.15s",
+                  display:"flex", flexDirection:"column",
+                  alignItems:"center", gap:5, textAlign:"center",
+                }}
+                onMouseEnter={e => { if(online) e.currentTarget.style.background="rgba(255,255,255,0.03)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background="var(--bg3)"; }}
+              >
+                <span style={{ fontSize:20 }}>{icon}</span>
+                <div style={{ fontSize:10, fontWeight:500, color, lineHeight:1.3 }}>{label}</div>
+                <div style={{ fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)" }}>{desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Explore more banner */}
+      <div style={{
+        padding:"16px 20px", borderRadius:10,
+        background:"linear-gradient(135deg, rgba(0,229,160,0.06), rgba(0,148,255,0.06))",
+        border:"1px solid rgba(0,229,160,0.15)",
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+      }}>
+        <div>
+          <div style={{ fontSize:13, fontWeight:600, color:"#fff", marginBottom:4 }}>
+            🚀 Explore all plugins, tools and pipelines
+          </div>
+          <div style={{ fontSize:11, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+            OmniBioAI has 80+ bioinformatics modules — browse the full catalog inside the workbench
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+          <button onClick={() => online && open(`${BASE}/plugins/catalog/`)} disabled={!online} style={{
+            padding:"9px 18px", borderRadius:6, fontSize:12,
+            fontFamily:"var(--font)", fontWeight:500,
+            cursor: online ? "pointer" : "not-allowed",
+            opacity: online ? 1 : 0.4,
+            background:"rgba(0,148,255,0.12)",
+            border:"1px solid rgba(0,148,255,0.25)",
+            color:"var(--accent2)",
+          }}>📦 Open Catalog</button>
+          <button onClick={() => online && open(`${BASE}/`)} disabled={!online} style={{
+            padding:"9px 18px", borderRadius:6, fontSize:12,
+            fontFamily:"var(--font)", fontWeight:600,
+            cursor: online ? "pointer" : "not-allowed",
+            opacity: online ? 1 : 0.4,
+            background: online ? "var(--accent)" : "var(--bg2)",
+            border:"none", color: online ? "#000" : "var(--muted)",
+          }}>↗ Launch Workbench</button>
+        </div>
       </div>
 
-      {/* Quick links */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
-        {QUICK_LINKS.map(({ label, desc, url, icon, color }) => {
-          const disabled = !online || !url;
-          return (
-            <button
-              key={label}
-              onClick={() => url && open(url)}
-              disabled={disabled}
-              style={{
-                padding:"18px 10px", borderRadius:8,
-                cursor: disabled ? "not-allowed" : "pointer",
-                opacity: disabled ? 0.4 : 1,
-                background:"var(--bg3)",
-                border:"1px solid var(--border)",
-                transition:"all 0.15s",
-                display:"flex", flexDirection:"column",
-                alignItems:"center", gap:8,
-              }}
-              onMouseEnter={e => {
-                if (!disabled) {
-                  e.currentTarget.style.borderColor = color;
-                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                }
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "var(--border)";
-                e.currentTarget.style.background = "var(--bg3)";
-              }}
-            >
-              <span style={{ fontSize:24 }}>{icon}</span>
-              <div style={{ textAlign:"center" }}>
-                <div style={{ fontSize:12, fontWeight:500, color: disabled ? "var(--muted)" : color, marginBottom:2 }}>
-                  {label}
-                </div>
-                <div style={{ fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)" }}>
-                  {desc}
-                </div>
-              </div>
-              {!url && (
-                <span style={{
-                  fontSize:9, fontFamily:"var(--mono)",
-                  padding:"2px 6px", borderRadius:3,
-                  background:"rgba(255,255,255,0.06)",
-                  color:"var(--muted)",
-                }}>COMING SOON</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

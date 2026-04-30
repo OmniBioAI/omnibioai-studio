@@ -1,7 +1,7 @@
 import React from "react";
 import {
   Panel, PanelHeader, PanelBody,
-  FormRow, Input, Select, ToggleRow,
+  FormRow, Input, Select, Textarea, ToggleRow,
 } from "../components/UI";
 
 export default function Cloud({ config, setConfig }) {
@@ -21,7 +21,7 @@ export default function Cloud({ config, setConfig }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
         {/* AWS */}
         <Panel>
           <PanelHeader title="Amazon Web Services" icon iconColor="orange">
@@ -100,13 +100,60 @@ export default function Cloud({ config, setConfig }) {
             />
           </PanelBody>
         </Panel>
+
+        {/* GCP */}
+        <Panel>
+          <PanelHeader title="Google Cloud Platform" icon iconColor="teal">
+            <button
+              className={`toggle ${cloud.enable_gcp ? "on" : "off"}`}
+              onClick={() => set("enable_gcp", !cloud.enable_gcp)}
+            />
+          </PanelHeader>
+          <PanelBody>
+            <FormRow label="Project ID">
+              <Input
+                placeholder="my-gcp-project-id"
+                value={cloud.gcp_project_id || ""}
+                onChange={(e) => set("gcp_project_id", e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Region">
+              <Select
+                value={cloud.gcp_region || "us-central1"}
+                onChange={(e) => set("gcp_region", e.target.value)}
+                options={["us-central1", "us-east1", "us-west1", "europe-west1", "asia-east1"]}
+              />
+            </FormRow>
+            <FormRow label="Service Account Key JSON">
+              <Textarea
+                placeholder={'{\n  "type": "service_account",\n  ...\n}'}
+                value={cloud.gcp_service_account_key || ""}
+                onChange={(e) => set("gcp_service_account_key", e.target.value)}
+                rows={4}
+              />
+            </FormRow>
+            <FormRow label="Cloud Storage Bucket">
+              <Input
+                placeholder="gs://my-bucket/results"
+                value={cloud.gcp_bucket || ""}
+                onChange={(e) => set("gcp_bucket", e.target.value)}
+              />
+            </FormRow>
+            <ToggleRow
+              label="Google Cloud Batch"
+              sub="managed compute environment"
+              value={cloud.enable_gcp_batch || false}
+              onChange={(v) => set("enable_gcp_batch", v)}
+            />
+          </PanelBody>
+        </Panel>
       </div>
 
       {/* Future Providers */}
       <Panel>
         <PanelHeader title="Future Providers" icon iconColor="teal" />
         <PanelBody style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["Google Cloud Batch", "Kubernetes API", "Databricks Workflows", "Slurm Cloud Bridge"].map((p) => (
+          {["Kubernetes API", "Databricks Workflows", "Slurm Cloud Bridge"].map((p) => (
             <span
               key={p}
               style={{

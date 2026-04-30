@@ -93,6 +93,32 @@ export function Input({ type = "text", placeholder, value, onChange }) {
   );
 }
 
+export function Textarea({ placeholder, value, onChange, rows = 4 }) {
+  return (
+    <textarea
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      rows={rows}
+      onFocus={(e) => (e.target.style.borderColor = "rgba(0,229,160,0.4)")}
+      onBlur={(e)  => (e.target.style.borderColor = "var(--border2)")}
+      style={{
+        width: "100%",
+        background: "var(--bg2)",
+        border: "1px solid var(--border2)",
+        borderRadius: 6,
+        padding: "7px 10px",
+        fontSize: 11,
+        fontFamily: "var(--mono)",
+        color: "var(--text)",
+        outline: "none",
+        resize: "vertical",
+        boxSizing: "border-box",
+      }}
+    />
+  );
+}
+
 export function Select({ value, onChange, options }) {
   return (
     <select

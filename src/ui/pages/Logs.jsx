@@ -11,7 +11,6 @@ const DEMO_LOGS = [
   { time:"08:14:03", source:"tes",        level:"INFO", msg:"TES initializing task scheduler" },
   { time:"08:14:04", source:"ollama",     level:"WARN", msg:"Model deepseek-coder:latest not found, pulling..." },
   { time:"08:14:05", source:"toolserver", level:"OK",   msg:"ToolServer ready, 48 tools registered" },
-  { time:"08:14:06", source:"rag",        level:"ERR",  msg:"Failed to connect to vector store" },
   { time:"08:14:07", source:"workbench",  level:"OK",   msg:"All dependencies resolved, workbench live" },
 ];
 

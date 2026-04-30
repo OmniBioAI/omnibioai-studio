@@ -39,7 +39,8 @@ const useStore = create((set, get) => ({
     cloud: {
       provider: "aws",
       aws: {},
-      azure: {}
+      azure: {},
+      gcp: {}
     },
 
     hpc: {
@@ -156,7 +157,7 @@ const useStore = create((set, get) => ({
       config: {
         mode: "local",
         llm: { claudeKey: "", ollama: false, codexKey: "" },
-        cloud: { provider: "aws", aws: {}, azure: {} },
+        cloud: { provider: "aws", aws: {}, azure: {}, gcp: {} },
         hpc: { enabled: false, host: "", user: "", scheduler: "slurm" }
       }
     })
