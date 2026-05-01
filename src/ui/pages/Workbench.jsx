@@ -23,6 +23,8 @@ const CATEGORIES = [
       { label:"Workflow Builder", url:`${BASE}/plugins/workflow_builder/`,           icon:"🔧", desc:"Build workflows"        },
       { label:"Agent Studio",     url:`${BASE}/plugins/agent-workflows/`,            icon:"🤝", desc:"Multi-agent workflows"  },
       { label:"Pipeline",         url:`${BASE}/pipeline-dashboard/`,                 icon:"🔄", desc:"Pipeline dashboard"     },
+      { label:"Multi-Agent Orchestrator", url:`${BASE}/plugins/multi_agent_bio_orchestrator/`, icon:"🤖", desc:"Multi-agent biological workflows" },
+      { label:"Workflow Compiler", url:`${BASE}/plugins/workflow_compiler/`,         icon:"⚙️", desc:"Compile and optimize workflows" },
     ]
   },
   {
@@ -45,6 +47,8 @@ const CATEGORIES = [
       { label:"Literature AI",    url:`${BASE}/plugins/literature_summarizer/`,      icon:"📚", desc:"Literature summarizer" },
       { label:"Pathway Enrichment",url:`${BASE}/plugins/pathway_enrichment/`,        icon:"🔗", desc:"Pathway analysis"      },
       { label:"Bio Hypothesis",   url:`${BASE}/plugins/bio_hypothesis_ai/`,          icon:"🧠", desc:"Hypothesis generation" },
+      { label:"Literature Summarizer", url:`${BASE}/plugins/literature_summarizer/`, icon:"📄", desc:"AI-powered paper summarization" },
+      { label:"Bio Narrator AI",  url:`${BASE}/plugins/bio_narrator_ai/`,            icon:"🧠", desc:"Biological narrative generation" },
     ]
   },
   {
@@ -58,6 +62,7 @@ const CATEGORIES = [
       { label:"Tool Images",      url:"http://localhost:5184",                        icon:"🐳", desc:"ARM64 SIF dashboard"   },
       { label:"TES / Jobs",       url:"http://localhost:5185",                        icon:"🚀", desc:"Slurm/AWS/Azure/GCP"   },
       { label:"Control Center",   url:"http://localhost:5186",                        icon:"🖥️", desc:"Health + Docker imgs"  },
+      { label:"OmniBioAI SDK",    url:"http://localhost:5190",                        icon:"🔬", desc:"Analysis Launcher · SDK tools" },
     ]
   },
 ];

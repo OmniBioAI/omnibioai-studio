@@ -12,7 +12,10 @@
     "build:mac": "npm run build:ui && electron-builder --mac",
     "build:all": "npm run build:ui && electron-builder --linux --mac",
     "build": "npm run build:linux",
-    "dist": "npm run build"
+    "dist": "npm run build",
+    "web": "vite",
+    "web:build": "vite build",
+    "web:preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.3.0",
