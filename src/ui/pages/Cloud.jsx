@@ -17,11 +17,11 @@ export default function Cloud({ config, setConfig }) {
           Cloud Configuration
         </div>
         <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--mono)" }}>
-          connect to AWS, Azure, or GCP compute backends
+          connect to AWS, Azure, GCP, or Kubernetes compute backends
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         {/* AWS */}
         <Panel>
           <PanelHeader title="Amazon Web Services" icon iconColor="orange">
@@ -147,13 +147,94 @@ export default function Cloud({ config, setConfig }) {
             />
           </PanelBody>
         </Panel>
+
+        {/* Kubernetes */}
+        <Panel>
+          <PanelHeader title="Kubernetes" icon iconColor="#326CE5">
+            <button
+              className={`toggle ${cloud.enable_kubernetes ? "on" : "off"}`}
+              onClick={() => set("enable_kubernetes", !cloud.enable_kubernetes)}
+            />
+          </PanelHeader>
+          <PanelBody>
+            <FormRow label="Kubeconfig Path">
+              <Input
+                placeholder="/home/manish/.kube/config"
+                value={cloud.k8s_kubeconfig_path || ""}
+                onChange={(e) => set("k8s_kubeconfig_path", e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Context">
+              <Input
+                placeholder="minikube"
+                value={cloud.k8s_context || ""}
+                onChange={(e) => set("k8s_context", e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Namespace">
+              <Input
+                placeholder="tes"
+                value={cloud.k8s_namespace || ""}
+                onChange={(e) => set("k8s_namespace", e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Job Name Prefix">
+              <Input
+                placeholder="tes-"
+                value={cloud.k8s_job_name_prefix || ""}
+                onChange={(e) => set("k8s_job_name_prefix", e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Service Account">
+              <Input
+                placeholder="tes-runner"
+                value={cloud.k8s_service_account || ""}
+                onChange={(e) => set("k8s_service_account", e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="SIF Base URL">
+              <Input
+                placeholder="s3://omnibioai-sif-..."
+                value={cloud.k8s_sif_base_url || ""}
+                onChange={(e) => set("k8s_sif_base_url", e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Results URI Template">
+              <Input
+                placeholder="s3://omnibioai-results-.../tes-runs/{run_id}/results.json"
+                value={cloud.k8s_results_uri_template || ""}
+                onChange={(e) => set("k8s_results_uri_template", e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Image Pull Policy">
+              <Select
+                value={cloud.k8s_image_pull_policy || "IfNotPresent"}
+                onChange={(e) => set("k8s_image_pull_policy", e.target.value)}
+                options={["IfNotPresent", "Always", "Never"]}
+              />
+            </FormRow>
+            <FormRow label="AWS Secret Name">
+              <Input
+                placeholder="aws-credentials"
+                value={cloud.k8s_aws_secret_name || ""}
+                onChange={(e) => set("k8s_aws_secret_name", e.target.value)}
+              />
+            </FormRow>
+            <ToggleRow
+              label="Kubernetes Jobs"
+              sub="submit jobs via Kubernetes API"
+              value={cloud.enable_k8s_jobs || false}
+              onChange={(v) => set("enable_k8s_jobs", v)}
+            />
+          </PanelBody>
+        </Panel>
       </div>
 
       {/* Future Providers */}
       <Panel>
         <PanelHeader title="Future Providers" icon iconColor="teal" />
         <PanelBody style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["Kubernetes API", "Databricks Workflows", "Slurm Cloud Bridge"].map((p) => (
+          {["Databricks Workflows", "Slurm Cloud Bridge"].map((p) => (
             <span
               key={p}
               style={{

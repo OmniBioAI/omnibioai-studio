@@ -55,14 +55,14 @@ const CATEGORIES = [
     name: "External Services",
     color: "var(--muted)",
     links: [
-      { label:"LIMS",             url:"http://localhost:7000",                        icon:"🧪", desc:":7000"                 },
+      { label:"LIMS",             url:"http://192.168.86.234:7000",                   icon:"🧪", desc:":7000"                 },
       { label:"Model Registry",   url:"http://localhost:5181",                        icon:"🧬", desc:"ML model versioning"   },
       { label:"RAG / Lit AI",     url:"http://localhost:5182",                        icon:"📚", desc:"PubMed RAG + DeepSeek" },
       { label:"Workflows",        url:"http://localhost:5183",                        icon:"⚡", desc:"WDL/NF/Snake/CWL"      },
       { label:"Tool Images",      url:"http://localhost:5184",                        icon:"🐳", desc:"ARM64 SIF dashboard"   },
       { label:"TES / Jobs",       url:"http://localhost:5185",                        icon:"🚀", desc:"Slurm/AWS/Azure/GCP"   },
-      { label:"Control Center",   url:"http://localhost:5186",                        icon:"🖥️", desc:"Health + Docker imgs"  },
-      { label:"OmniBioAI SDK",    url:"http://localhost:5190",                        icon:"🔬", desc:"Analysis Launcher · SDK tools" },
+      { label:"Control Center",   url:"http://127.0.0.1:7070",                        icon:"🖥️", desc:"Health + Docker imgs"  },
+      { label:"OmniBioAI SDK",    url:"http://localhost:3000",                        icon:"🔬", desc:"Analysis Launcher · SDK tools" },
     ]
   },
 ];
