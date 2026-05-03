@@ -65,6 +65,48 @@ const CATEGORIES = [
       { label:"OmniBioAI SDK",    url:"http://localhost:3000",                        icon:"🔬", desc:"Analysis Launcher · SDK tools" },
     ]
   },
+  {
+    name: "Learn",
+    color: "#f59e0b",
+    links: [
+      {
+        label:"Getting Started",
+        url:`${BASE}/docs/getting-started/`,
+        icon:"🚀",
+        desc:"Platform onboarding"
+      },
+      {
+        label:"Tutorials",
+        url:`${BASE}/docs/tutorials/`,
+        icon:"📘",
+        desc:"Step-by-step guides"
+      },
+      {
+        label:"Demo Workflows",
+        url:`${BASE}/plugins/demo_workflows/`,
+        icon:"🧪",
+        desc:"Runnable example pipelines"
+      },
+      {
+        label:"Example Pipelines",
+        url:`${BASE}/plugins/example_pipelines/`,
+        icon:"⚡",
+        desc:"Reference workflow templates"
+      },
+      {
+        label:"Documentation",
+        url:`${BASE}/docs/`,
+        icon:"📚",
+        desc:"Developer + user docs"
+      },
+      {
+        label:"Videos",
+        url:`${BASE}/videos/`,
+        icon:"🎥",
+        desc:"Platform walkthroughs"
+      },
+    ]
+  }
 ];
 
 export default function Workbench() {
