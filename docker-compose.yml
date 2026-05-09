@@ -1,0 +1,189 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  toolserver:
+    image: ghcr.io/man4ish/omnibioai-toolserver:latest
+    ports:
+      - "9090:9090"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  tes:
+    image: ghcr.io/man4ish/omnibioai-tes:latest
+    ports:
+      - "8081:8081"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8081"
+      TOOLSERVER_BASE_URL: http://toolserver:9090
+    volumes:
+      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai-tes}:/workspace
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      toolserver:
+        condition: service_started
+
+  model-registry:
+    image: ghcr.io/man4ish/omnibioai-model-registry:latest
+    ports:
+      - "8095:8095"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8095"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      DB_NAME: model_registry
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  lims:
+    image: ghcr.io/man4ish/omnibioai-lims:latest
+    ports:
+      - "7000:7000"
+    environment:
+      DJANGO_SETTINGS_MODULE: lab_data_manager.settings
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: limsdb
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-dev-secret}
+      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["bash", "-lc", "python manage.py migrate && python manage.py ensure_admin && python manage.py runserver 0.0.0.0:7000"]
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  rag:
+    image: ghcr.io/man4ish/omnibioai-rag:latest
+    ports:
+      - "8090:8096"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8096"
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on:
+      - ollama
+
+  workbench:
+    image: ghcr.io/man4ish/omnibioai-app:latest
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "1"
+      DJANGO_SETTINGS_MODULE: omnibioai.settings
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CELERY_BROKER_URL: redis://redis:6379/1
+      TES_BASE_URL: http://tes:8081
+      OLLAMA_BASE_URL: http://ollama:11434
+      TOOLSERVER_BASE_URL: http://toolserver:9090
+      MODEL_REGISTRY_BASE_URL: http://model-registry:8095
+      RAG_BASE_URL: http://rag:8096
+    volumes:
+      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tes:
+        condition: service_started
+      toolserver:
+        condition: service_started
+      model-registry:
+        condition: service_started
+    command: ["bash", "-lc", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"]
+
+  control-center:
+    image: ghcr.io/man4ish/omnibioai-control-center:latest
+    ports:
+      - "7070:7070"
+    environment:
+      WORKSPACE_ROOT: /workspace
+      OMNIBIOAI_BASE: /workspace/omnibioai
+      TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
+    volumes:
+      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace/omnibioai
+    depends_on:
+      - workbench
+      - tes
+      - toolserver
+
+  dev-hub:
+    image: ghcr.io/man4ish/omnibioai-dev-hub:latest
+    ports:
+      - "5173:5173"
+      - "8082:8082"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /app
+    depends_on:
+      - ollama
+
+  sdk:
+    image: ghcr.io/man4ish/omnibioai-sdk:latest
+    ports:
+      - "5190:5190"
+    environment:
+      OMNIBIOAI_BASE_URL: http://workbench:8000
+
+  opa:
+    image: openpolicyagent/opa:latest
+    ports:
+      - "8181:8181"
+    command: ["run", "--server"]
+
+volumes:
+  mysql_data:
+  redis_data:
+  ollama_data:
