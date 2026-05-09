@@ -128,7 +128,13 @@ export default function Workbench() {
     return () => clearInterval(id);
   }, []);
 
-  const open = (url) => window.open(url, "_blank");
+  const open = (url) => {
+    if (window.api?.openExternal) {
+      window.api.openExternal(url);
+    } else {
+      window.open(url, "_blank");
+    }
+  };
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>

@@ -25,6 +25,14 @@ function createWindow() {
   }
 }
 
+// Open all localhost URLs in system browser
+app.on("web-contents-created", (_, contents) => {
+  contents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+});
+
 app.whenReady().then(() => {
   createWindow();
   setTimeout(startLogStream, 3000);
