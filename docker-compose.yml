@@ -18,7 +18,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -49,6 +49,11 @@ services:
       TOOLSERVER_BASE_URL: http://toolserver:9090
     volumes:
       - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai-tes}:/workspace
+    command:
+      - bash
+      - -lc
+      - |
+        omnibioai-tes serve           --host 0.0.0.0           --port 8081           --tools /workspace/configs/tools.example.yaml           --servers /workspace/configs/servers.example.yaml
     depends_on:
       mysql:
         condition: service_healthy
@@ -122,7 +127,7 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       REDIS_HOST: redis
-      REDIS_PORT: "6379"
+      REDIS_PORT: "6380"
       CELERY_BROKER_URL: redis://redis:6379/1
       TES_BASE_URL: http://tes:8081
       OLLAMA_BASE_URL: http://ollama:11434
@@ -187,22 +192,3 @@ volumes:
   mysql_data:
   redis_data:
   ollama_data:
-
-  # ── Plugin image pre-pull (init containers, exit immediately) ────────────────
-  plugin-puller:
-    image: docker:cli
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: >
-      sh -c "
-        docker pull ghcr.io/man4ish/omnibioai-plugin-scanpy:latest &&
-        docker pull ghcr.io/man4ish/omnibioai-plugin-fastq-qc:latest &&
-        docker pull ghcr.io/man4ish/omnibioai-plugin-fastq-trimmer:latest &&
-        docker pull ghcr.io/man4ish/omnibioai-plugin-rnaseq-analysis:latest &&
-        docker pull ghcr.io/man4ish/omnibioai-plugin-workflow-runner:latest &&
-        docker pull ghcr.io/man4ish/omnibioai-plugin-marker-identification:latest &&
-        docker pull ghcr.io/man4ish/omnibioai-plugin-phenotype-association:latest &&
-        docker pull ghcr.io/man4ish/omnibioai-plugin-variant-annotation:latest &&
-        echo 'All plugin images pulled'
-      "
-    restart: "no"
