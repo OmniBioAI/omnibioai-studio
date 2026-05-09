@@ -187,3 +187,22 @@ volumes:
   mysql_data:
   redis_data:
   ollama_data:
+
+  # ── Plugin image pre-pull (init containers, exit immediately) ────────────────
+  plugin-puller:
+    image: docker:cli
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      sh -c "
+        docker pull ghcr.io/man4ish/omnibioai-plugin-scanpy:latest &&
+        docker pull ghcr.io/man4ish/omnibioai-plugin-fastq-qc:latest &&
+        docker pull ghcr.io/man4ish/omnibioai-plugin-fastq-trimmer:latest &&
+        docker pull ghcr.io/man4ish/omnibioai-plugin-rnaseq-analysis:latest &&
+        docker pull ghcr.io/man4ish/omnibioai-plugin-workflow-runner:latest &&
+        docker pull ghcr.io/man4ish/omnibioai-plugin-marker-identification:latest &&
+        docker pull ghcr.io/man4ish/omnibioai-plugin-phenotype-association:latest &&
+        docker pull ghcr.io/man4ish/omnibioai-plugin-variant-annotation:latest &&
+        echo 'All plugin images pulled'
+      "
+    restart: "no"
