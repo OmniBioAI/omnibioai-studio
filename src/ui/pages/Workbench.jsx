@@ -66,6 +66,8 @@ const CATEGORIES = [
       { label:"Workflows",        url:`http://${HOST}:8000/plugins/workflow_runner/`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
       { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search" },
       { label:"Video Library",    url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorials · Walkthroughs"     },
+      { label:"Notebook Hub",     url:`http://${HOST}:8888`,              icon:"📓", desc:"Jupyter · R Studio · Analysis" },
+      { label:"Data Browser",     url:`http://${HOST}:8087`,              icon:"🗄️", desc:"Omics objects · File manager"  },
     ]
   }
 ];
