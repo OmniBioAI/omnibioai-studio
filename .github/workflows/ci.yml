@@ -26,9 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - name: Lint shell scripts
         uses: ludeeus/action-shellcheck@master
@@ -70,9 +69,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - name: Build React UI
         run: npm run build:ui
@@ -102,9 +100,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - uses: actions/download-artifact@v4
         with:
@@ -145,9 +142,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - uses: actions/download-artifact@v4
         with:
@@ -182,9 +178,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - uses: actions/download-artifact@v4
         with:
