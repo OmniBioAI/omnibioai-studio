@@ -9,6 +9,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - /home/manish/Desktop/machine/db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
@@ -30,7 +31,7 @@ services:
   toolserver:
     image: ghcr.io/man4ish/omnibioai-toolserver:latest
     ports:
-      - "9090:9090"
+      - "${HOST_IP:-0.0.0.0}:9090:9090"
     environment:
       PYTHONUNBUFFERED: "1"
     volumes:
@@ -42,7 +43,7 @@ services:
   tes:
     image: ghcr.io/man4ish/omnibioai-tes:latest
     ports:
-      - "8081:8081"
+      - "${HOST_IP:-0.0.0.0}:8081:8081"
     environment:
       HOST: 0.0.0.0
       PORT: "8081"
@@ -53,7 +54,11 @@ services:
       - bash
       - -lc
       - |
-        omnibioai-tes serve           --host 0.0.0.0           --port 8081           --tools /workspace/configs/tools.example.yaml           --servers /workspace/configs/servers.example.yaml
+        omnibioai-tes serve \
+          --host 0.0.0.0 \
+          --port 8081 \
+          --tools /workspace/configs/tools.example.yaml \
+          --servers /workspace/configs/servers.example.yaml
     depends_on:
       mysql:
         condition: service_healthy
@@ -65,7 +70,7 @@ services:
   model-registry:
     image: ghcr.io/man4ish/omnibioai-model-registry:latest
     ports:
-      - "8095:8095"
+      - "${HOST_IP:-0.0.0.0}:8095:8095"
     environment:
       HOST: 0.0.0.0
       PORT: "8095"
@@ -74,6 +79,9 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       DB_NAME: model_registry
+      OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
+    volumes:
+      - /home/manish/Desktop/machine/local_registry/model_registry:/registry
     depends_on:
       mysql:
         condition: service_healthy
@@ -90,7 +98,7 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-dev-secret}
-      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims"
+      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
     depends_on:
       mysql:
         condition: service_healthy
@@ -106,7 +114,7 @@ services:
   rag:
     image: ghcr.io/man4ish/omnibioai-rag:latest
     ports:
-      - "8090:8096"
+      - "${HOST_IP:-0.0.0.0}:8090:8096"
     environment:
       HOST: 0.0.0.0
       PORT: "8096"
@@ -117,7 +125,7 @@ services:
   workbench:
     image: ghcr.io/man4ish/omnibioai-app:latest
     ports:
-      - "8000:8000"
+      - "${HOST_IP:-0.0.0.0}:8000:8000"
     environment:
       DEBUG: "1"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
@@ -136,6 +144,7 @@ services:
       RAG_BASE_URL: http://rag:8096
     volumes:
       - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace
+      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/app
     depends_on:
       mysql:
         condition: service_healthy
@@ -147,18 +156,45 @@ services:
         condition: service_started
       model-registry:
         condition: service_started
-    command: ["bash", "-lc", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"]
+    command: ["bash", "-lc", "python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate) && python manage.py runserver 0.0.0.0:8000 --noreload"]
+
+  celery-worker:
+    image: ghcr.io/man4ish/omnibioai-app:latest
+    environment:
+      DEBUG: "1"
+      DJANGO_SETTINGS_MODULE: omnibioai.settings
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      REDIS_HOST: redis
+      REDIS_PORT: "6380"
+      CELERY_BROKER_URL: redis://redis:6379/1
+      TES_BASE_URL: http://tes:8081
+      TOOLSERVER_BASE_URL: http://toolserver:9090
+      MODEL_REGISTRY_BASE_URL: http://model-registry:8095
+      RAG_BASE_URL: http://rag:8096
+    volumes:
+      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace
+      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/app
+    depends_on:
+      workbench:
+        condition: service_started
+    command: ["bash", "-lc", "celery -A omnibioai worker -l info"]
 
   control-center:
     image: ghcr.io/man4ish/omnibioai-control-center:latest
     ports:
-      - "7070:7070"
+      - "${HOST_IP:-0.0.0.0}:7070:7070"
     environment:
       WORKSPACE_ROOT: /workspace
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
     volumes:
       - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace/omnibioai
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
       - workbench
       - tes
@@ -167,26 +203,46 @@ services:
   dev-hub:
     image: ghcr.io/man4ish/omnibioai-dev-hub:latest
     ports:
-      - "5173:5173"
-      - "8082:8082"
+      - "${HOST_IP:-0.0.0.0}:5173:5173"
+      - "${HOST_IP:-0.0.0.0}:8082:8082"
     environment:
       PYTHONUNBUFFERED: "1"
       PYTHONPATH: /app
+      REPOS_ROOT: /workspace
+    volumes:
+      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine}:/workspace
     depends_on:
       - ollama
 
   sdk:
     image: ghcr.io/man4ish/omnibioai-sdk:latest
     ports:
-      - "5190:5190"
+      - "${HOST_IP:-0.0.0.0}:5190:5190"
     environment:
       OMNIBIOAI_BASE_URL: http://workbench:8000
+
+  videos:
+    image: ghcr.io/man4ish/omnibioai-videos:latest
+    ports:
+      - "8086:8086"
+    volumes:
+      - ${VIDEO_DIR:-/home/manish/Desktop/machine/omnibioai-videos/content}:/videos:ro
 
   opa:
     image: openpolicyagent/opa:latest
     ports:
       - "8181:8181"
     command: ["run", "--server"]
+
+  # Plugin images (pulled on-demand by TES, not persistent services):
+  # ghcr.io/man4ish/omnibioai-plugin-scanpy:latest
+  # ghcr.io/man4ish/omnibioai-plugin-fastq-qc:latest
+  # ghcr.io/man4ish/omnibioai-plugin-fastq-trimmer:latest
+  # ghcr.io/man4ish/omnibioai-plugin-rnaseq-analysis:latest
+  # ghcr.io/man4ish/omnibioai-plugin-workflow-runner:latest
+  # ghcr.io/man4ish/omnibioai-plugin-marker-identification:latest
+  # ghcr.io/man4ish/omnibioai-plugin-phenotype-association:latest
+  # ghcr.io/man4ish/omnibioai-plugin-variant-annotation:latest
 
 volumes:
   mysql_data:
