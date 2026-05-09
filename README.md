@@ -1,302 +1,249 @@
-# 📦 OmniBioAI Studio
+# OmniBioAI Studio
 
-**OmniBioAI Studio** is a desktop-first orchestration interface for the OmniBioAI ecosystem.
-It provides a **single-click launcher (Electron DMG / AppImage-ready)** for configuring and running:
+> Desktop orchestration platform for AI-powered bioinformatics computation
 
-* Local bioinformatics stack
-* Docker-based execution runtime
-* HPC workflows (Slurm / Apptainer via TES)
-* Cloud execution (AWS Batch / Azure Batch / Kubernetes)
-* Local + cloud LLM integration (Ollama, Claude API, Codex-style APIs)
+**OmniBioAI Studio** is an Electron desktop app that launches and manages the full OmniBioAI stack — locally, on HPC clusters, or in the cloud — with a single click.
 
 ---
 
-# 🧠 Current Status (Beta v0.1)
+## ✨ What's New in v0.1.0-beta.1
 
-This repository is currently in **Beta Prototype Stage**.
-
-## ✅ What is implemented
-
-### 🖥 Electron Desktop App
-
-* Electron main process (`electron/main.js`)
-* Secure preload bridge (`electron/preload.js`)
-* IPC communication layer
-
-### ⚛ React UI (Wizard-based setup)
-
-* Mode selection (Local / HPC / Cloud / Hybrid)
-* LLM configuration (Claude API, Ollama toggle)
-* Cloud configuration UI (AWS / Azure placeholders)
-* HPC configuration UI (Slurm / cluster placeholders)
-* Launch screen (start system button)
-
-### 🐳 Docker Runtime Integration
-
-* Docker Compose-based backend orchestration
-* `start.sh` bootstrap script
-* Service lifecycle controlled from Electron
-
-### ⚙ Backend Configuration System
-
-* Config persistence via JSON
-* Electron → Node backend config bridge
-
-### 📦 Packaging Ready
-
-* `electron-builder.json` configured for **DMG builds**
-* Vite frontend build system ready
+- Full local stack launch with 14 containerized services
+- Live service health monitoring (Control Center)
+- Docker image dashboard (platform + plugin images)
+- Dev Hub with knowledge graph + RAG UI
+- SDK Launcher for OmniBioAI Python SDK
+- Mode-aware startup: Local / HPC / Cloud / Hybrid
+- LLM configuration: Ollama (local) + Claude API (cloud)
+- AWS / Azure / GCP / HPC configuration UI
 
 ---
 
-# 🏗 Current Architecture
+## 🖥 Services
 
-```text
-┌──────────────────────────────┐
-│     OmniBioAI Studio UI      │
-│   (Electron + React Wizard)  │
-└──────────────┬───────────────┘
-               │ IPC
-               ▼
-┌──────────────────────────────┐
-│     Electron Main Process     │
-│  - Config manager             │
-│  - Docker trigger            │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│     Docker Compose Runtime    │
-│  - TES                       │
-│  - ToolServer               │
-│  - Model Registry           │
-│  - LIMS                     │
-│  - Control Center           │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│ External Execution Backends   │
-│ - HPC (Slurm / Apptainer)    │
-│ - AWS Batch                  │
-│ - Azure Batch                │
-│ - Kubernetes                 │
-│ - Local GPU / CPU           │
-└──────────────────────────────┘
+| Service | Port | Description |
+|---|---|---|
+| Workbench | :8000 | Main bioinformatics platform (Django) |
+| TES | :8081 | Task Execution Service (Slurm/AWS/Azure/K8s) |
+| ToolServer | :9090 | FastAPI bioinformatics tool server |
+| Model Registry | :8095 | ML model versioning and serving |
+| LIMS | :7000 | Lab Information Management System |
+| Control Center | :7070 | Service health + Docker image dashboard |
+| RAG | :8090 | PubMed literature AI + DeepSeek RAG |
+| Dev Hub | :5173 | Knowledge graph + embeddings UI |
+| SDK Launcher | :5190 | OmniBioAI Python SDK UI |
+| Ollama | :11434 | Local LLM inference |
+| OPA | :8181 | Open Policy Agent (access control) |
+
+### Plugin images (pulled on-demand by TES)
+
+| Image | Description |
+|---|---|
+| `omnibioai-plugin-scanpy` | Single-cell RNA-Seq analysis |
+| `omnibioai-plugin-fastq-qc` | FASTQ quality control (FastQC + MultiQC) |
+| `omnibioai-plugin-fastq-trimmer` | Read trimming (Trimmomatic) |
+| `omnibioai-plugin-rnaseq-analysis` | Bulk RNA-Seq (DESeq2/edgeR) |
+| `omnibioai-plugin-workflow-runner` | WDL/Nextflow/Snakemake execution |
+| `omnibioai-plugin-variant-annotation` | Variant annotation (SnpEff/ANNOVAR) |
+| `omnibioai-plugin-marker-identification` | Marker gene identification |
+| `omnibioai-plugin-phenotype-association` | GWAS + phenotype association |
+
+---
+
+## 📋 Requirements
+
+| Requirement | Minimum | Recommended |
+|---|---|---|
+| RAM | 16GB | 32GB |
+| Disk | 50GB free | 100GB free |
+| Docker | Engine 24+ | Docker Desktop |
+| OS | Ubuntu 20.04+ | Ubuntu 22.04+ |
+| GPU | — | NVIDIA + nvidia-container-toolkit |
+
+Also required:
+- `jq` — `sudo apt install jq` or `brew install jq`
+- Docker Compose v2 — included with Docker Engine 24+
+
+---
+
+## 🚀 Quick Start
+
+### Linux (AppImage)
+
+```bash
+chmod +x "OmniBioAI Studio-0.1.0-beta.1.AppImage"
+./"OmniBioAI Studio-0.1.0-beta.1.AppImage"
 ```
 
----
+1. Select execution mode (Local recommended for first run)
+2. Set Data Directory and Work Directory in Settings
+3. Click **Boot System** on the Launch page
+4. Open Workbench at http://localhost:8000
 
-# 🎯 Current Capability
+### Stack only (headless / no Electron)
 
-## 🟢 What users can do right now
+```bash
+bash scripts/start.sh    # start all services
+bash scripts/stop.sh     # stop all services
+```
 
-* Launch desktop app (Electron)
-* Select execution mode (Local / HPC / Cloud / Hybrid)
-* Configure LLM providers:
-
-  * Claude API key
-  * Ollama toggle
-* Trigger Docker stack startup
-* Persist configuration locally
-
----
-
-# ⚠️ Limitations (Beta scope)
-
-This version is intentionally minimal:
-
-* ❌ No authentication system
-* ❌ No RBAC / enterprise security
-* ❌ No cloud provisioning automation
-* ❌ No HPC job submission UI (only config stage)
-* ❌ No runtime orchestration engine yet
-* ❌ No live logs or monitoring dashboard
-* ❌ No auto-update system
-
----
-
-# 🚀 Future Roadmap
-
-## 🧩 Phase 1 — Runtime Intelligence Layer (Next Major Step)
-
-* Mode-aware runtime orchestrator
-* Intelligent backend routing:
-
-  * Local execution
-  * HPC submission via TES
-  * Cloud batch execution
-* Service health monitoring inside UI
-* Live logs streaming (Docker + TES)
-
----
-
-## ☁️ Phase 2 — Cloud & HPC Integration
-
-### AWS
-
-* AWS Batch job submission UI
-* IAM profile support
-* S3 input/output mapping
-
-### Azure
-
-* Azure Batch integration
-* Azure Blob storage support
-* Managed identity support
-
-### HPC
-
-* Slurm cluster integration
-* Apptainer/Singularity support
-* Job queue visualization
-
----
-
-## 🤖 Phase 3 — LLM Orchestration Layer
-
-* Multi-LLM routing engine:
-
-  * Local: Ollama
-  * Cloud: Claude API
-  * Future: Codex-style APIs
-* Model switching per workflow
-* Context-aware AI assistant for workflows
-
----
-
-## 🐳 Phase 4 — Production Deployment Layer
-
-* GHCR-based image distribution
-* CI/CD pipeline for all backend services
-* Version-pinned deployments
-* Offline-first bundle installer
-
----
-
-## 🔐 Phase 5 — Enterprise Layer
-
-* Authentication system (SSO-ready)
-* RBAC + ABAC policy engine
-* Open Policy Agent (OPA) integration
-* Audit logging (HIPAA / pharma compliance ready)
-* Data lineage tracking across workflows
-
----
-
-## 📦 Phase 6 — Desktop Evolution
-
-* DMG auto-updater system
-* Silent background updates
-* Version sync with backend services
-* Offline installer bundles
-
----
-
-# 🧪 Development Setup
-
-## Requirements
-
-* Node.js 18+
-* Docker + Docker Compose
-* Python 3.10+ (optional for backend tools)
-
----
-
-## Run in Development Mode
+### From source
 
 ```bash
 npm install
-npm run dev
+npm run dev              # development mode
+npm run build            # build AppImage (Linux)
+npm run build:mac        # build DMG (macOS)
 ```
 
 ---
 
-## Build Production UI
+## 🔐 GHCR Authentication
+
+Private service images require a GitHub token:
 
 ```bash
-npm run build
+export GITHUB_TOKEN=your_github_personal_access_token
+export GITHUB_USER=your_github_username
+```
+
+Add to `~/.bashrc` to persist. Token needs `read:packages` scope.
+
+**Public images (no auth needed):**
+- `omnibioai-base`
+- `omnibioai-dev-env`
+- `omnibioai-tool-runtime`
+- All `omnibioai-plugin-*` images
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────┐
+│      OmniBioAI Studio               │
+│   Electron + React (Wizard UI)      │
+└──────────────┬──────────────────────┘
+               │ IPC
+               ▼
+┌─────────────────────────────────────┐
+│      Electron Main Process          │
+│  - Config manager (JSON)            │
+│  - Docker Compose lifecycle         │
+│  - Health check polling             │
+│  - Log streaming                    │
+└──────────────┬──────────────────────┘
+               │ docker compose
+               ▼
+┌─────────────────────────────────────┐
+│      Docker Compose Runtime         │
+│  14 services via GHCR images        │
+│  Workbench · TES · ToolServer       │
+│  Model Registry · LIMS · RAG        │
+│  Control Center · Dev Hub · SDK     │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│      Execution Backends             │
+│  - Local CPU/GPU                    │
+│  - HPC: Slurm + Apptainer via TES   │
+│  - Cloud: AWS Batch / Azure Batch   │
+│  - Kubernetes                       │
+└─────────────────────────────────────┘
 ```
 
 ---
 
-## Create DMG (macOS)
+## ⚙ Configuration
 
-```bash
-npm run dist
+Studio stores config at:
+- **Linux:** `~/.config/omnibioai/omnibioai.config.json`
+- **macOS:** `~/Library/Application Support/omnibioai-studio/omnibioai.config.json`
+
+Key settings:
+
+```json
+{
+  "mode": "local",
+  "settings": {
+    "data_dir": "/path/to/omnibioai/data",
+    "work_dir": "/path/to/omnibioai/work"
+  },
+  "llm": {
+    "enable_ollama": true,
+    "enable_claude": false,
+    "claude_api_key": ""
+  }
+}
 ```
 
 ---
 
-# 🐳 Start Backend Stack
+## 🔗 OmniBioAI Ecosystem
 
-```bash
-bash scripts/start.sh
-```
+OmniBioAI Studio is the **desktop control layer** for:
 
-or manually:
-
-```bash
-docker compose -f docker/docker-compose.yml up -d
-```
-
----
-
-# 🧠 Design Principles
-
-* Local-first execution (no mandatory cloud dependency)
-* Docker-native orchestration
-* Mode-driven architecture (Local / HPC / Cloud / Hybrid)
-* Plugin-ready backend ecosystem
-* Future-proof for distributed compute systems
-* Offline-capable desktop control plane
+| Repository | Role |
+|---|---|
+| `omnibioai` | Main Django workbench + 80+ plugins |
+| `omnibioai-tes` | Task Execution Service |
+| `omnibioai-toolserver` | FastAPI tool API |
+| `omnibioai-lims` | Lab data management |
+| `omnibioai-model-registry` | ML model versioning |
+| `omnibioai-control-center` | Health + image dashboard |
+| `omnibioai-rag` | PubMed RAG pipeline |
+| `omnibioai-dev-hub` | Knowledge graph + embeddings |
+| `omnibioai-workflow-bundles` | WDL/Nextflow/Snakemake bundles |
+| `omnibioai-tool-images` | 80+ bioinformatics tool containers |
+| `omnibioai_sdk` | Python SDK + React launcher |
+| `omnibioai-dev-docker` | DGX/GPU development environment |
 
 ---
 
-# 🔗 Relationship to OmniBioAI Ecosystem
+## 🗺 Roadmap
 
-This repository is the **desktop control layer** of:
+**v0.2 — Runtime Intelligence**
+- Mode-aware workflow routing
+- Live TES job monitoring in UI
+- Auto-pull plugin images on first use
 
-* TES (Tool Execution Service)
-* ToolServer
-* LIMS
-* Model Registry
-* Workflow Bundles
-* RAG system
+**v0.3 — Cloud & HPC**
+- AWS Batch job submission
+- Slurm queue visualization
+- Azure Batch integration
 
-It does NOT contain bioinformatics logic itself.
+**v0.4 — Enterprise**
+- SSO authentication
+- RBAC via OPA
+- HIPAA audit logging
 
----
-
-# ⚡ Key Insight
-
-OmniBioAI Studio is NOT a bioinformatics tool.
-
-It is:
-
-> 🧠 A **desktop orchestration system for distributed scientific computation**
-
----
-
-# 🏁 Current Release
-
-```text
-Version: v0.1.0 (Beta)
-Status: Functional Prototype
-Target: Internal + Early Beta Users
-```
+**v0.5 — Desktop Evolution**
+- Auto-updater (AppImage + DMG)
+- Offline installer bundle
+- Version-pinned deployments
 
 ---
 
-# 📌 Next Immediate Step Recommendation
+## 🐛 Known Issues (Beta)
 
-Before adding more features:
+- System MySQL/Redis must be stopped before starting studio stack (`sudo systemctl stop mysql redis-server`)
+- `GITHUB_TOKEN` must be set manually for private image pull
+- macOS DMG not yet published (AppImage Linux only for now)
+- Kubernetes health check requires kubeconfig at `~/.kube/config`
 
-👉 Build **Runtime Orchestrator Layer**
+---
 
-That is the missing “brain” between:
+## 📄 License
 
-* Electron UI
-* Docker runtime
-* HPC / Cloud / LLM backends
+Apache 2.0 — see [LICENSE](LICENSE)
 
+---
+
+## 👤 Author
+
+Manish Kumar — [GitHub](https://github.com/man4ish)
+
+---
+
+*OmniBioAI Studio is not a bioinformatics tool — it is a desktop orchestration system for distributed scientific computation.*
