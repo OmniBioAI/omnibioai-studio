@@ -238,6 +238,7 @@ jobs:
           name: "OmniBioAI Studio ${{ github.ref_name }}"
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           generate_release_notes: true
+          overwrite: true
           body: |
             ## OmniBioAI Studio ${{ github.ref_name }}
 
