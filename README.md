@@ -14,8 +14,9 @@
 - Dev Hub with knowledge graph + RAG UI
 - SDK Launcher for OmniBioAI Python SDK
 - Mode-aware startup: Local / HPC / Cloud / Hybrid
-- LLM configuration: Ollama (local) + Claude API (cloud)
-- AWS / Azure / GCP / HPC configuration UI
+- LLM configuration: Ollama (local) + Claude API + OpenAI
+- Cloud execution: AWS Batch / Azure Batch / GCP Batch / Kubernetes
+- HPC execution: Slurm / PBS / LSF via TES
 
 ---
 
@@ -24,7 +25,7 @@
 | Service | Port | Description |
 |---|---|---|
 | Workbench | :8000 | Main bioinformatics platform (Django) |
-| TES | :8081 | Task Execution Service (Slurm/AWS/Azure/K8s) |
+| TES | :8081 | Task Execution Service (Slurm / AWS / Azure / GCP / K8s) |
 | ToolServer | :9090 | FastAPI bioinformatics tool server |
 | Model Registry | :8095 | ML model versioning and serving |
 | LIMS | :7000 | Lab Information Management System |
@@ -43,10 +44,29 @@
 | `omnibioai-plugin-fastq-qc` | FASTQ quality control (FastQC + MultiQC) |
 | `omnibioai-plugin-fastq-trimmer` | Read trimming (Trimmomatic) |
 | `omnibioai-plugin-rnaseq-analysis` | Bulk RNA-Seq (DESeq2/edgeR) |
-| `omnibioai-plugin-workflow-runner` | WDL/Nextflow/Snakemake execution |
+| `omnibioai-plugin-workflow-runner` | WDL/Nextflow/Snakemake/CWL execution |
 | `omnibioai-plugin-variant-annotation` | Variant annotation (SnpEff/ANNOVAR) |
 | `omnibioai-plugin-marker-identification` | Marker gene identification |
 | `omnibioai-plugin-phenotype-association` | GWAS + phenotype association |
+
+---
+
+## 🧬 Bioinformatics Modules
+
+### Core Platform
+Home · OnboardAI · Omni Assistant · Job Monitor · Plugin Manager · Admin
+
+### Workflows
+Workflow Runner · Workflow Builder · Agent Studio · Pipeline Dashboard · Multi-Agent Bio Orchestrator · Workflow Compiler
+
+### Omics Analysis
+RNA-Seq · Single Cell (scRNA-Seq) · Exome Analysis · FASTQ QC · Proteomics · Metabolomics
+
+### AI & Intelligence
+Drug Target AI · Literature AI · Pathway Enrichment · Bio Hypothesis AI · Bio Narrator AI
+
+### Learn
+Getting Started · Tutorials · Demo Workflows · Example Pipelines · Developer Hub · Videos
 
 ---
 
@@ -76,7 +96,7 @@ chmod +x "OmniBioAI Studio-0.1.0-beta.1.AppImage"
 ```
 
 1. Select execution mode (Local recommended for first run)
-2. Set Data Directory and Work Directory in Settings
+2. Set Data Directory and Work Directory in **Settings**
 3. Click **Boot System** on the Launch page
 4. Open Workbench at http://localhost:8000
 
@@ -117,6 +137,31 @@ Add to `~/.bashrc` to persist. Token needs `read:packages` scope.
 
 ---
 
+## ☁️ Execution Backends
+
+### Local
+- CPU/GPU execution via Docker
+- NVIDIA GPU support with nvidia-container-toolkit
+
+### HPC
+- **Slurm** — cluster job submission via TES
+- **PBS / LSF** — alternative schedulers
+- **Apptainer/Singularity** — container runtime for HPC
+- SSH-based remote execution
+
+### Cloud
+- **AWS Batch** — S3 input/output, IAM profiles
+- **Azure Batch** — Blob storage, managed identity
+- **GCP Batch** — Cloud Storage, service accounts
+- **Kubernetes** — any K8s cluster via kubeconfig
+
+### LLM
+- **Ollama** — local inference (Llama, DeepSeek, Mistral, etc.)
+- **Claude API** — Anthropic cloud API
+- **OpenAI** — GPT-4 and compatible APIs
+
+---
+
 ## 🏗 Architecture
 
 ```
@@ -146,10 +191,9 @@ Add to `~/.bashrc` to persist. Token needs `read:packages` scope.
                ▼
 ┌─────────────────────────────────────┐
 │      Execution Backends             │
-│  - Local CPU/GPU                    │
-│  - HPC: Slurm + Apptainer via TES   │
-│  - Cloud: AWS Batch / Azure Batch   │
-│  - Kubernetes                       │
+│  Local GPU/CPU · Slurm/PBS/LSF      │
+│  AWS Batch · Azure Batch · GCP      │
+│  Kubernetes · Ollama · Claude API   │
 └─────────────────────────────────────┘
 ```
 
@@ -173,7 +217,21 @@ Key settings:
   "llm": {
     "enable_ollama": true,
     "enable_claude": false,
-    "claude_api_key": ""
+    "claude_api_key": "",
+    "enable_openai": false
+  },
+  "cloud": {
+    "enable_aws_batch": false,
+    "enable_gcp_batch": false,
+    "gcp_project": "",
+    "gcp_region": ""
+  },
+  "hpc": {
+    "enabled": false,
+    "scheduler": "slurm",
+    "hostname": "hpc.university.edu",
+    "username": "",
+    "private_key": "~/.ssh/id_rsa"
   }
 }
 ```
@@ -209,9 +267,9 @@ OmniBioAI Studio is the **desktop control layer** for:
 - Auto-pull plugin images on first use
 
 **v0.3 — Cloud & HPC**
-- AWS Batch job submission
+- AWS/Azure/GCP job submission UI
 - Slurm queue visualization
-- Azure Batch integration
+- Cost estimation per workflow
 
 **v0.4 — Enterprise**
 - SSO authentication
@@ -227,10 +285,11 @@ OmniBioAI Studio is the **desktop control layer** for:
 
 ## 🐛 Known Issues (Beta)
 
-- System MySQL/Redis must be stopped before starting studio stack (`sudo systemctl stop mysql redis-server`)
+- System MySQL/Redis must be stopped before starting: `sudo systemctl stop mysql redis-server`
 - `GITHUB_TOKEN` must be set manually for private image pull
-- macOS DMG not yet published (AppImage Linux only for now)
-- Kubernetes health check requires kubeconfig at `~/.kube/config`
+- macOS DMG not yet code-signed (GateKeeper warning expected)
+- Windows installer not yet code-signed
+- Kubernetes health check requires `~/.kube/config`
 
 ---
 
