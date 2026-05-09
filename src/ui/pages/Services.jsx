@@ -9,6 +9,7 @@ const SERVICES = [
   { key:"toolserver",   label:"ToolServer",    port:9090,  image:"omnibioai/omnibioai-toolserver:beta", group:"Control Plane" },
   { key:"model-registry",label:"Model Registry",port:8095,image:"omnibioai/omnibioai-model-registry:beta",group:"Control Plane"},
   { key:"lims",         label:"LIMS",          port:7000,  image:"omnibioai/omnibioai-lims:beta",       group:"Control Plane" },
+  { key:"dev-hub",      label:"Dev Hub",       port:8082,  image:"omnibioai/omnibioai-dev-hub:beta",    group:"Control Plane" }, 
   { key:"ollama",       label:"Ollama",        port:11434, image:"ollama/ollama",                      group:"AI Layer"      },
   { key:"opa",          label:"OPA",           port:8181,  image:"openpolicyagent/opa:latest",          group:"Policy Engine" },
 ];
@@ -38,20 +39,32 @@ export default function Services() {
 
   const poll = async () => {
     try {
+      // Check dev-hub independently — it runs outside docker-compose
+      const devHubUp = await fetch("http://localhost:8082/status", {
+        signal: AbortSignal.timeout(2000)
+      }).then(() => true).catch(() => false);
+
       if (window.api?.checkHealth) {
         const r = await window.api.checkHealth();
         setStatuses(prev => ({
           ...prev,
-          mysql:          r.mysql         ? "up" : "down",
-          workbench:      r.workbench     ? "up" : "down",
-          tes:            r.tes           ? "up" : "down",
-          toolserver:     r.toolserver    ? "up" : "down",
-          redis:          r.redis         ? "up" : "down",
-          ollama:         r.ollama        ? "up" : "warn",
-          rag:            r.rag           ? "up" : "down",
+          mysql:          r.mysql          ? "up" : "down",
+          workbench:      r.workbench      ? "up" : "down",
+          tes:            r.tes            ? "up" : "down",
+          toolserver:     r.toolserver     ? "up" : "down",
+          redis:          r.redis          ? "up" : "down",
+          ollama:         r.ollama         ? "up" : "warn",
+          rag:            r.rag            ? "up" : "down",
+          "dev-hub":      devHubUp         ? "up" : "down",
         }));
-        setLastCheck(new Date().toTimeString().slice(0, 8));
+      } else {
+        // No electron API yet — just update dev-hub directly
+        setStatuses(prev => ({
+          ...prev,
+          "dev-hub": devHubUp ? "up" : "down",
+        }));
       }
+      setLastCheck(new Date().toTimeString().slice(0, 8));
     } catch (_) {}
   };
 

@@ -82,7 +82,8 @@ ipcMain.handle("restart-docker", async () => {
 ipcMain.handle("restart-service", async (_, name) => {
   const allowed = [
     "mysql","redis","workbench","tes","toolserver",
-    "model-registry","lims","ollama","opa","control-center"
+    "model-registry","lims","ollama","opa","control-center",
+    "dev-hub"
   ];
   if (!allowed.includes(name)) throw new Error(`Unknown service: ${name}`);
   return new Promise((resolve, reject) => {

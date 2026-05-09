@@ -55,14 +55,14 @@ const CATEGORIES = [
     name: "External Services",
     color: "var(--muted)",
     links: [
-      { label:"LIMS",             url:"http://192.168.86.234:7000",                   icon:"🧪", desc:":7000"                 },
-      { label:"Model Registry",   url:"http://localhost:5181",                        icon:"🧬", desc:"ML model versioning"   },
-      { label:"RAG / Lit AI",     url:"http://localhost:5182",                        icon:"📚", desc:"PubMed RAG + DeepSeek" },
-      { label:"Workflows",        url:"http://localhost:5183",                        icon:"⚡", desc:"WDL/NF/Snake/CWL"      },
-      { label:"Tool Images",      url:"http://localhost:5184",                        icon:"🐳", desc:"ARM64 SIF dashboard"   },
-      { label:"TES / Jobs",       url:"http://localhost:5185",                        icon:"🚀", desc:"Slurm/AWS/Azure/GCP"   },
+      { label:"LIMS",             url:"http://localhost:7000",                   icon:"🧪", desc:":7000"                 },
+      { label:"Model Registry",   url:"http://localhost:8095",                        icon:"🧬", desc:"ML model versioning"   },
+      { label:"RAG / Lit AI",     url:"http://localhost:8090",                        icon:"📚", desc:"PubMed RAG + DeepSeek" },
+      { label:"Workflows",        url:"http://localhost:8000",                        icon:"⚡", desc:"WDL/NF/Snake/CWL"      },
+      { label:"Tool Images",      url:"http://localhost:7070",                        icon:"🐳", desc:"ARM64 SIF dashboard"   },
+      { label:"TES / Jobs",       url:"http://localhost:8081",                        icon:"🚀", desc:"Slurm/AWS/Azure/GCP"   },
       { label:"Control Center",   url:"http://127.0.0.1:7070",                        icon:"🖥️", desc:"Health + Docker imgs"  },
-      { label:"OmniBioAI SDK",    url:"http://localhost:3000",                        icon:"🔬", desc:"Analysis Launcher · SDK tools" },
+      { label:"OmniBioAI SDK",    url:"http://localhost:5190",                        icon:"🔬", desc:"Analysis Launcher · SDK tools" },
     ]
   },
   {
@@ -94,10 +94,10 @@ const CATEGORIES = [
         desc:"Reference workflow templates"
       },
       {
-        label:"Documentation",
-        url:`${BASE}/docs/`,
-        icon:"📚",
-        desc:"Developer + user docs"
+        label: "Developer Hub",
+        url: "http://localhost:5173",
+        icon: "🛠️",
+        desc: "RAG V6 · Knowledge search"
       },
       {
         label:"Videos",
@@ -229,27 +229,32 @@ export default function Workbench() {
             display:"grid", gridTemplateColumns:"repeat(6, 1fr)",
             gap:1, background:"var(--border)",
           }}>
-            {links.map(({ label, url, icon, desc }) => (
-              <button
-                key={label}
-                onClick={() => online && open(url)}
-                disabled={!online}
-                style={{
-                  padding:"12px 8px", background:"var(--bg3)",
-                  cursor: online ? "pointer" : "not-allowed",
-                  opacity: online ? 1 : 0.5,
-                  border:"none", transition:"background 0.15s",
-                  display:"flex", flexDirection:"column",
-                  alignItems:"center", gap:5, textAlign:"center",
-                }}
-                onMouseEnter={e => { if(online) e.currentTarget.style.background="rgba(255,255,255,0.03)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background="var(--bg3)"; }}
-              >
-                <span style={{ fontSize:20 }}>{icon}</span>
-                <div style={{ fontSize:10, fontWeight:500, color, lineHeight:1.3 }}>{label}</div>
-                <div style={{ fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)" }}>{desc}</div>
-              </button>
-            ))}
+            {/* REPLACE EVERYTHING INSIDE HERE */}
+            {links.map(({ label, url, icon, desc }) => {
+              const isLocal = !url.startsWith(BASE);
+              const clickable = isLocal || online;
+              return (
+                <button
+                  key={label}
+                  onClick={() => clickable && open(url)}
+                  disabled={!clickable}
+                  style={{
+                    padding:"12px 8px", background:"var(--bg3)",
+                    cursor: clickable ? "pointer" : "not-allowed",
+                    opacity: clickable ? 1 : 0.5,
+                    border:"none", transition:"background 0.15s",
+                    display:"flex", flexDirection:"column",
+                    alignItems:"center", gap:5, textAlign:"center",
+                  }}
+                  onMouseEnter={e => { if(clickable) e.currentTarget.style.background="rgba(255,255,255,0.03)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background="var(--bg3)"; }}
+                >
+                  <span style={{ fontSize:20 }}>{icon}</span>
+                  <div style={{ fontSize:10, fontWeight:500, color, lineHeight:1.3 }}>{label}</div>
+                  <div style={{ fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)" }}>{desc}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}
