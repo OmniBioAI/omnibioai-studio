@@ -25,4 +25,6 @@ contextBridge.exposeInMainWorld("api", {
 
   // ─── WORKBENCH ────────────────────────────
   openWorkbench:()         => ipcRenderer.invoke("open-workbench"),
+  // ─── EXTERNAL LINKS ──────────────────────
+  openExternal: (url)      => ipcRenderer.invoke("open-external", url),
 });
