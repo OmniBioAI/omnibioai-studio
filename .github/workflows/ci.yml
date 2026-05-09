@@ -1,0 +1,301 @@
+name: CI/CD — OmniBioAI Studio
+
+on:
+  push:
+    branches: [main, dev, "feature/**"]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # -----------------------------------------------------------------------
+  # 1. Lint & Validate
+  # -----------------------------------------------------------------------
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint shell scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: ./scripts
+          severity: warning
+
+      - name: Validate JSON configs
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json'))" \
+            && echo "✅ package.json valid"
+          node -e "JSON.parse(require('fs').readFileSync('electron-builder.json'))" \
+            && echo "✅ electron-builder.json valid"
+
+      - name: Validate docker-compose.yml
+        run: |
+          docker compose -f docker-compose.yml config --quiet \
+            && echo "✅ docker-compose.yml valid"
+
+      - name: Validate scripts
+        run: |
+          bash -n scripts/start.sh && echo "✅ start.sh syntax OK"
+          bash -n scripts/stop.sh  && echo "✅ stop.sh syntax OK"
+          grep -q "docker compose"  scripts/start.sh || (echo "❌ Missing docker compose" && exit 1)
+          grep -q "local)"          scripts/start.sh || (echo "❌ Missing local mode" && exit 1)
+          grep -q "hpc)"            scripts/start.sh || (echo "❌ Missing hpc mode" && exit 1)
+          echo "✅ scripts validated"
+
+  # -----------------------------------------------------------------------
+  # 2. Build React UI (shared across all platform builds)
+  # -----------------------------------------------------------------------
+  build-ui:
+    name: Build UI
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build React UI
+        run: npm run build:ui
+
+      - name: Verify dist
+        run: |
+          test -f dist/index.html || (echo "❌ dist/index.html missing" && exit 1)
+          echo "✅ UI built — $(du -sh dist | cut -f1)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+          retention-days: 1
+
+  # -----------------------------------------------------------------------
+  # 3. Build Linux AppImage
+  # -----------------------------------------------------------------------
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
+    needs: build-ui
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libarchive-tools fakeroot rpm
+
+      - name: Build AppImage
+        run: npx electron-builder --linux AppImage --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Verify
+        run: ls -lh release/*.AppImage && echo "✅ AppImage built"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: release/*.AppImage
+          retention-days: 7
+
+  # -----------------------------------------------------------------------
+  # 4. Build macOS DMG
+  # -----------------------------------------------------------------------
+  build-mac:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    needs: build-ui
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+
+      - name: Build DMG
+        run: npx electron-builder --mac dmg --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Verify
+        run: ls -lh release/*.dmg && echo "✅ DMG built"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-dmg
+          path: release/*.dmg
+          retention-days: 7
+
+  # -----------------------------------------------------------------------
+  # 5. Build Windows NSIS installer
+  # -----------------------------------------------------------------------
+  build-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+    needs: build-ui
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+
+      - name: Build NSIS installer
+        run: npx electron-builder --win nsis --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Verify
+        shell: pwsh
+        run: |
+          Get-ChildItem release/*.exe | Format-List Name, Length
+          Write-Host "✅ Windows installer built"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/*.exe
+          retention-days: 7
+
+  # -----------------------------------------------------------------------
+  # 6. GitHub Release — version tags only
+  # -----------------------------------------------------------------------
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-mac, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-appimage
+          path: artifacts/linux/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: mac-dmg
+          path: artifacts/mac/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: artifacts/windows/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "OmniBioAI Studio ${{ github.ref_name }}"
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          generate_release_notes: true
+          body: |
+            ## OmniBioAI Studio ${{ github.ref_name }}
+
+            ### Download
+
+            | Platform | File | Notes |
+            |---|---|---|
+            | Linux | `.AppImage` | Works on any Linux distro (Ubuntu 20.04+) |
+            | macOS | `.dmg` | Intel + Apple Silicon |
+            | Windows | `.exe` | NSIS installer |
+
+            ### Quick Start
+
+            **Linux:**
+            ```bash
+            chmod +x "OmniBioAI Studio-*.AppImage"
+            ./"OmniBioAI Studio-*.AppImage"
+            ```
+
+            **Stack only (no Electron):**
+            ```bash
+            bash scripts/start.sh
+            ```
+
+            ### Requirements
+            - Docker Engine 24+ with Docker Compose v2
+            - 16GB RAM minimum (32GB recommended)
+            - 50GB free disk space
+            - `jq` — `sudo apt install jq`
+
+            ### GHCR Authentication (required for private images)
+            ```bash
+            export GITHUB_TOKEN=your_token
+            export GITHUB_USER=your_username
+            ```
+
+            ### Services
+            | Service | Port |
+            |---|---|
+            | Workbench | :8000 |
+            | TES | :8081 |
+            | ToolServer | :9090 |
+            | Model Registry | :8095 |
+            | LIMS | :7000 |
+            | Control Center | :7070 |
+            | RAG | :8090 |
+            | Dev Hub | :5173 |
+            | SDK Launcher | :5190 |
+            | Ollama | :11434 |
+
+          files: |
+            artifacts/linux/*.AppImage
+            artifacts/mac/*.dmg
+            artifacts/windows/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
