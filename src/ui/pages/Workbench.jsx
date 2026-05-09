@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 
-const BASE = "http://localhost:8000";
+const HOST = import.meta.env.VITE_HOST || window.location.hostname || "localhost";
+const BASE = `http://${HOST}:8000`;
 
 const CATEGORIES = [
   {
@@ -52,59 +53,17 @@ const CATEGORIES = [
     ]
   },
   {
-    name: "External Services",
+    name: "Platform Services",
     color: "var(--muted)",
     links: [
-      { label:"LIMS",             url:"http://localhost:7000",                   icon:"🧪", desc:":7000"                 },
-      { label:"Model Registry",   url:"http://localhost:8095",                        icon:"🧬", desc:"ML model versioning"   },
-      { label:"RAG / Lit AI",     url:"http://localhost:8090",                        icon:"📚", desc:"PubMed RAG + DeepSeek" },
-      { label:"Workflows",        url:"http://localhost:8000",                        icon:"⚡", desc:"WDL/NF/Snake/CWL"      },
-      { label:"Tool Images",      url:"http://localhost:7070",                        icon:"🐳", desc:"ARM64 SIF dashboard"   },
-      { label:"TES / Jobs",       url:"http://localhost:8081",                        icon:"🚀", desc:"Slurm/AWS/Azure/GCP"   },
-      { label:"Control Center",   url:"http://127.0.0.1:7070",                        icon:"🖥️", desc:"Health + Docker imgs"  },
-      { label:"OmniBioAI SDK",    url:"http://localhost:5190",                        icon:"🔬", desc:"Analysis Launcher · SDK tools" },
-    ]
-  },
-  {
-    name: "Learn",
-    color: "#f59e0b",
-    links: [
-      {
-        label:"Getting Started",
-        url:`${BASE}/docs/getting-started/`,
-        icon:"🚀",
-        desc:"Platform onboarding"
-      },
-      {
-        label:"Tutorials",
-        url:`${BASE}/docs/tutorials/`,
-        icon:"📘",
-        desc:"Step-by-step guides"
-      },
-      {
-        label:"Demo Workflows",
-        url:`${BASE}/plugins/demo_workflows/`,
-        icon:"🧪",
-        desc:"Runnable example pipelines"
-      },
-      {
-        label:"Example Pipelines",
-        url:`${BASE}/plugins/example_pipelines/`,
-        icon:"⚡",
-        desc:"Reference workflow templates"
-      },
-      {
-        label: "Developer Hub",
-        url: "http://localhost:5173",
-        icon: "🛠️",
-        desc: "RAG V6 · Knowledge search"
-      },
-      {
-        label:"Videos",
-        url:`${BASE}/videos/`,
-        icon:"🎥",
-        desc:"Platform walkthroughs"
-      },
+      { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"          },
+      { label:"Model Registry",   url:`http://${HOST}:8095/docs`,         icon:"🧬", desc:"ML model versioning"          },
+      { label:"RAG / Lit AI",     url:`http://${HOST}:8090/docs`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
+      { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"         },
+      { label:"TES / Jobs",       url:`http://${HOST}:8081`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
+      { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"         },
+      { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search" },
+      { label:"Video Library",    url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorials · Walkthroughs"     },
     ]
   }
 ];
@@ -116,7 +75,7 @@ export default function Workbench() {
   const check = async () => {
     setChecking(true);
     try {
-      await fetch(BASE, { mode:"no-cors", cache:"no-cache" });
+      await fetch(BASE, { mode:"no-cors" });
       setOnline(true);
     } catch (_) { setOnline(false); }
     finally { setChecking(false); }
