@@ -5,6 +5,24 @@ const BASE = `http://${HOST}:8000`;
 
 const CATEGORIES = [
   {
+    name: "Platform Services",
+    color: "var(--muted)",
+    links: [
+      { label:"Getting Started",  url:`http://${HOST}:8086/guide.html`,        icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
+      { label:"Video Tutorials",    url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorial videos · Walkthroughs"     },
+      { label:"Workbench",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
+      { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"         },      
+      { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"          },
+      { label:"Model Registry",   url:`http://${HOST}:5176`,         icon:"🧬", desc:"ML model versioning"          },
+      { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
+      { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
+      { label:"Tool Images",      url:`http://${HOST}:5179`,              icon:"🐳", desc:"ARM64 SIF dashboard"          },
+      { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"         },
+      { label:"Workflows",        url:`http://${HOST}:5178`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
+      { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search" },
+    ]
+  },
+  {
     name: "Core Platform",
     color: "var(--accent)",
     links: [
@@ -50,24 +68,6 @@ const CATEGORIES = [
       { label:"Bio Hypothesis",   url:`${BASE}/plugins/bio_hypothesis_ai/`,          icon:"🧠", desc:"Hypothesis generation" },
       { label:"Literature Summarizer", url:`${BASE}/plugins/literature_summarizer/`, icon:"📄", desc:"AI-powered paper summarization" },
       { label:"Bio Narrator AI",  url:`${BASE}/plugins/bio_narrator_ai/`,            icon:"🧠", desc:"Biological narrative generation" },
-    ]
-  },
-  {
-    name: "Platform Services",
-    color: "var(--muted)",
-    links: [
-      { label:"Workbench",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
-      { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"          },
-      { label:"Model Registry",   url:`http://${HOST}:5176`,         icon:"🧬", desc:"ML model versioning"          },
-      { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
-      { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"         },
-      { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
-      { label:"Tool Images",      url:`http://${HOST}:5179`,              icon:"🐳", desc:"ARM64 SIF dashboard"          },
-      { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"         },
-      { label:"Workflows",        url:`http://${HOST}:5178`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
-      { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search" },
-      { label:"Video Library",    url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorials · Walkthroughs"     },
-      { label:"Notebook Hub",     url:`http://${HOST}:8888`,              icon:"📓", desc:"Jupyter · R Studio · Analysis" },
     ]
   }
 ];
