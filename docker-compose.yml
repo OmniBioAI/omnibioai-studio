@@ -218,6 +218,23 @@ services:
     environment:
       OMNIBIOAI_BASE_URL: http://workbench:8000
 
+
+  workflow-bundles:
+    image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8098:8098"
+      - "${HOST_IP:-0.0.0.0}:5178:5178"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: root
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
   videos:
     image: ghcr.io/man4ish/omnibioai-videos:latest
     ports:
