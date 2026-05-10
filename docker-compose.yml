@@ -3,13 +3,13 @@ services:
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - /home/manish/Desktop/machine/db-init:/docker-entrypoint-initdb.d:ro
+      - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
@@ -35,7 +35,7 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
     volumes:
-      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace
+      - ${WORKSPACE_HOST}:/workspace
     depends_on:
       mysql:
         condition: service_healthy
@@ -50,10 +50,9 @@ services:
       PORT: "8081"
       TOOLSERVER_BASE_URL: http://toolserver:9090
     volumes:
-      - /home/manish/Desktop/machine/omnibioai-tes:/workspace
-      - /home/manish/.kube:/home/manish/.kube:ro
-      - /home/manish/.minikube:/home/manish/.minikube:ro
-
+      - ${WORK_DIR}:/workspace
+      - ${HOME}/.kube:/root/.kube:ro
+      - ${HOME}/.minikube:/root/.minikube:ro
     depends_on:
       mysql:
         condition: service_healthy
@@ -73,11 +72,11 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       DB_NAME: model_registry
       OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
     volumes:
-      - /home/manish/Desktop/machine/local_registry/model_registry:/registry
+      - ${DATA_DIR}/model_registry:/registry
     depends_on:
       mysql:
         condition: service_healthy
@@ -92,8 +91,8 @@ services:
       MYSQL_PORT: "3306"
       MYSQL_DATABASE: limsdb
       MYSQL_USER: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-dev-secret}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-omnibioai-studio-secret}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
     depends_on:
       mysql:
@@ -130,7 +129,7 @@ services:
       DB_PORT: "3306"
       DB_NAME: omnibioai
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       REDIS_HOST: redis
       REDIS_PORT: "6380"
       CELERY_BROKER_URL: redis://redis:6379/1
@@ -139,9 +138,10 @@ services:
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       RAG_BASE_URL: http://rag:8096
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace
-      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/app
+      - ${WORKSPACE_HOST}:/workspace
     depends_on:
       mysql:
         condition: service_healthy
@@ -164,7 +164,7 @@ services:
       DB_PORT: "3306"
       DB_NAME: omnibioai
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       REDIS_HOST: redis
       REDIS_PORT: "6380"
       CELERY_BROKER_URL: redis://redis:6379/1
@@ -172,9 +172,10 @@ services:
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       RAG_BASE_URL: http://rag:8096
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace
-      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/app
+      - ${WORKSPACE_HOST}:/workspace
     depends_on:
       workbench:
         condition: service_started
@@ -189,21 +190,7 @@ services:
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
     volumes:
-      - /home/manish/Desktop/machine/omnibioai:/workspace/omnibioai
-      - /home/manish/Desktop/machine/omnibioai-control-center:/workspace/omnibioai-control-center
-      - /home/manish/Desktop/machine/omnibioai-tool-images:/workspace/omnibioai-tool-images
-      - /home/manish/Desktop/machine/omnibioai-tes:/workspace/omnibioai-tes
-      - /home/manish/Desktop/machine/omnibioai-rag:/workspace/omnibioai-rag
-      - /home/manish/Desktop/machine/omnibioai-lims:/workspace/omnibioai-lims
-      - /home/manish/Desktop/machine/omnibioai-toolserver:/workspace/omnibioai-toolserver
-      - /home/manish/Desktop/machine/omnibioai-tool-runtime:/workspace/omnibioai-tool-runtime
-      - /home/manish/Desktop/machine/omnibioai-workflow-bundles:/workspace/omnibioai-workflow-bundles
-      - /home/manish/Desktop/machine/omnibioai-model-registry:/workspace/omnibioai-model-registry
-      - /home/manish/Desktop/machine/omnibioai-studio:/workspace/omnibioai-studio
-      - /home/manish/Desktop/machine/omnibioai-dev-hub:/workspace/omnibioai-dev-hub
-      - /home/manish/Desktop/machine/omnibioai-dev-docker:/workspace/omnibioai-dev-docker
-      - /home/manish/Desktop/machine/omnibioai_sdk:/workspace/omnibioai_sdk
-      - /home/manish/Desktop/machine/omnibioai-videos:/workspace/omnibioai-videos
+      - ${WORK_DIR}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
@@ -232,7 +219,6 @@ services:
     environment:
       OMNIBIOAI_BASE_URL: http://workbench:8000
 
-
   workflow-bundles:
     image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
     ports:
@@ -244,7 +230,7 @@ services:
       DB_PORT: "3306"
       DB_NAME: omnibioai
       DB_USER: root
-      DB_PASSWORD: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
     depends_on:
       mysql:
         condition: service_healthy
@@ -258,15 +244,16 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
     volumes:
-      - /home/manish/Desktop/machine/omnibioai-tool-images/dockerfiles:/app/dockerfiles:ro
-      - /home/manish/Desktop/machine/omnibioai-tool-images/sif:/app/sif:ro
+      - ${DATA_DIR}/tool-images/dockerfiles:/app/dockerfiles:ro
+      - ${DATA_DIR}/tool-images/sif:/app/sif:ro
     restart: on-failure
+
   videos:
     image: ghcr.io/man4ish/omnibioai-videos:latest
     ports:
       - "8086:8086"
     volumes:
-      - ${VIDEO_DIR:-/home/manish/Desktop/machine/omnibioai-videos/content}:/videos:ro
+      - ${VIDEO_DIR}:/videos:ro
 
   opa:
     image: openpolicyagent/opa:latest

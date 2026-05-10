@@ -1,10 +1,86 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const { writeConfig, readConfig, resetConfig } = require("../backend/config");
-const { exec, spawn } = require("child_process");
+const { spawn, execFile } = require("child_process");
 
 let mainWindow;
 
+// ─── PATH HELPERS ─────────────────────────────────────────────────────────────
+function getComposePath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "docker-compose.yml");
+  }
+  return path.join(__dirname, "..", "docker-compose.yml");
+}
+
+function getEnvPath() {
+  return path.join(app.getPath("userData"), ".env");
+}
+
+function getDbInitPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "db-init");
+  }
+  return path.join(__dirname, "..", "db-init");
+}
+
+// ─── DOCKER HELPERS ───────────────────────────────────────────────────────────
+function composeArgs(...extra) {
+  const args = ["compose", "-f", getComposePath()];
+  const envPath = getEnvPath();
+  if (fs.existsSync(envPath)) args.push("--env-file", envPath);
+  return [...args, ...extra];
+}
+
+function sendLog(line) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("docker-log", line);
+  }
+}
+
+function pipeLog(proc) {
+  const emit = (data) =>
+    data.toString().split("\n").filter((l) => l.trim()).forEach(sendLog);
+  proc.stdout.on("data", emit);
+  proc.stderr.on("data", emit);
+}
+
+// ─── ENV FILE GENERATION ──────────────────────────────────────────────────────
+function writeEnvFile(config) {
+  const llm      = config.llm      || {};
+  const cloud    = config.cloud    || {};
+  const settings = config.settings || {};
+  const home     = app.getPath("home");
+
+  const dataDir = settings.data_dir || path.join(home, "omnibioai", "data");
+  const workDir = settings.work_dir || path.join(home, "omnibioai", "work");
+
+  const lines = [
+    `HOST_IP=0.0.0.0`,
+    `ANTHROPIC_API_KEY=${llm.claude_api_key         || ""}`,
+    `OPENAI_API_KEY=${llm.openai_api_key            || ""}`,
+    `OLLAMA_URL=${llm.ollama_host                   || "http://ollama:11434"}`,
+    `AWS_ACCESS_KEY_ID=${cloud.aws_access_key       || ""}`,
+    `AWS_SECRET_ACCESS_KEY=${cloud.aws_secret_key   || ""}`,
+    `AWS_DEFAULT_REGION=${cloud.aws_region          || "us-east-1"}`,
+    `AZURE_SUBSCRIPTION_ID=${cloud.azure_subscription_id || ""}`,
+    `GCP_PROJECT_ID=${cloud.gcp_project_id          || ""}`,
+    `DATA_DIR=${dataDir}`,
+    `WORK_DIR=${workDir}`,
+    `WORKSPACE_HOST=${workDir}`,
+    `DB_INIT_DIR=${getDbInitPath()}`,
+    `VIDEO_DIR=${workDir}/videos`,
+    `MYSQL_ROOT_PASSWORD=omnibioai`,
+    `MYSQL_DEFAULT_DB=omnibioai`,
+    `LIMSX_DJANGO_SECRET_KEY=omnibioai-studio-secret`,
+  ];
+
+  fs.mkdirSync(path.dirname(getEnvPath()), { recursive: true });
+  fs.writeFileSync(getEnvPath(), lines.join("\n") + "\n", "utf-8");
+}
+
+// ─── WINDOW ───────────────────────────────────────────────────────────────────
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1300,
@@ -17,6 +93,7 @@ function createWindow() {
       webviewTag: true,
     },
   });
+
   const isDev = !app.isPackaged;
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173");
@@ -25,7 +102,6 @@ function createWindow() {
   }
 }
 
-// Open all localhost URLs in system browser
 app.on("web-contents-created", (_, contents) => {
   contents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -35,127 +111,161 @@ app.on("web-contents-created", (_, contents) => {
 
 app.whenReady().then(() => {
   createWindow();
-  setTimeout(startLogStream, 3000);
+  // Attempt to tail logs after window loads (only if docker is already running)
+  mainWindow.webContents.once("did-finish-load", () => {
+    setTimeout(startLogStream, 6000);
+  });
 });
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-// ─── EXTERNAL LINKS ───────────────────────────────────
+// ─── EXTERNAL LINKS ───────────────────────────────────────────────────────────
 ipcMain.handle("open-external", async (_, url) => shell.openExternal(url));
 
-// ─── CONFIG ───────────────────────────────────────────
-ipcMain.handle("save-config",  async (_, config) => writeConfig(config));
-ipcMain.handle("load-config",  async () => readConfig());
-ipcMain.handle("reset-config", async () => resetConfig());
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+ipcMain.handle("save-config", async (_, config) => {
+  const result = writeConfig(config);
+  try {
+    writeEnvFile(config);
+  } catch (e) {
+    console.error("writeEnvFile failed:", e);
+  }
+  return result;
+});
 
-// ─── DOCKER LIFECYCLE ─────────────────────────────────
+ipcMain.handle("load-config", async () => readConfig());
+
+ipcMain.handle("reset-config", async () => {
+  resetConfig();
+  const envPath = getEnvPath();
+  if (fs.existsSync(envPath)) fs.unlinkSync(envPath);
+});
+
+// ─── DOCKER LIFECYCLE ─────────────────────────────────────────────────────────
 ipcMain.handle("start-docker", async () => {
   return new Promise((resolve, reject) => {
-    exec("bash scripts/start.sh",
-      { cwd: path.join(__dirname, "..") },
-      (err, stdout, stderr) => {
-        if (err) return reject(stderr);
-        resolve(stdout);
+    sendLog("Pulling latest images — this may take several minutes...");
+
+    const pull = spawn("docker", composeArgs("pull"), { env: process.env });
+    pipeLog(pull);
+
+    pull.on("error", (err) => {
+      sendLog(`Docker not found: ${err.message}`);
+      reject(err);
+    });
+
+    pull.on("close", (pullCode) => {
+      if (pullCode !== 0) {
+        sendLog(`Image pull finished with warnings (${pullCode}) — starting with cached images`);
       }
-    );
+
+      sendLog("Starting services with docker compose up -d...");
+      const up = spawn("docker", composeArgs("up", "-d"), { env: process.env });
+      pipeLog(up);
+
+      up.on("close", (code) => {
+        if (code !== 0) {
+          return reject(new Error(`docker compose up -d failed (exit ${code})`));
+        }
+        sendLog("All containers started — health checks will update shortly");
+        resolve("started");
+      });
+
+      up.on("error", reject);
+    });
   });
 });
 
 ipcMain.handle("stop-docker", async () => {
   return new Promise((resolve, reject) => {
-    exec(
-      "docker compose -f docker/docker-compose.yml down",
-      { cwd: path.join(__dirname, "..") },
-      (err, _, stderr) => {
-        if (err) return reject(stderr);
-        resolve("stopped");
-      }
-    );
+    execFile("docker", composeArgs("down"), (err, _, stderr) => {
+      if (err) return reject(stderr || err.message);
+      resolve("stopped");
+    });
   });
 });
 
 ipcMain.handle("restart-docker", async () => {
   return new Promise((resolve, reject) => {
-    exec(
-      "docker compose -f docker/docker-compose.yml restart",
-      { cwd: path.join(__dirname, "..") },
-      (err, _, stderr) => {
-        if (err) return reject(stderr);
-        resolve("restarted");
-      }
-    );
+    execFile("docker", composeArgs("restart"), (err, _, stderr) => {
+      if (err) return reject(stderr || err.message);
+      resolve("restarted");
+    });
   });
 });
 
-// ─── RESTART INDIVIDUAL SERVICE ───────────────────────
+// ─── RESTART INDIVIDUAL SERVICE ───────────────────────────────────────────────
+const ALLOWED_SERVICES = [
+  "mysql", "redis", "workbench", "tes", "toolserver",
+  "model-registry", "lims", "ollama", "opa", "control-center", "dev-hub",
+];
+
 ipcMain.handle("restart-service", async (_, name) => {
-  const allowed = [
-    "mysql","redis","workbench","tes","toolserver",
-    "model-registry","lims","ollama","opa","control-center",
-    "dev-hub"
-  ];
-  if (!allowed.includes(name)) throw new Error(`Unknown service: ${name}`);
+  if (!ALLOWED_SERVICES.includes(name)) throw new Error(`Unknown service: ${name}`);
   return new Promise((resolve, reject) => {
-    exec(
-      `docker compose -f docker/docker-compose.yml restart ${name}`,
-      { cwd: path.join(__dirname, "..") },
-      (err, _, stderr) => {
-        if (err) return reject(stderr);
-        resolve(`${name} restarted`);
-      }
-    );
+    execFile("docker", composeArgs("restart", name), (err, _, stderr) => {
+      if (err) return reject(stderr || err.message);
+      resolve(`${name} restarted`);
+    });
   });
 });
 
-// ─── HEALTH CHECK — matches real container names ───────
+// ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
 ipcMain.handle("check-health", async () => {
   return new Promise((resolve) => {
-    exec("docker ps --format '{{.Names}}'", (err, stdout) => {
+    execFile("docker", ["ps", "--format", "{{.Names}}"], (err, stdout) => {
       if (err) return resolve({
-        mysql:false, redis:false, workbench:false, tes:false,
-        toolserver:false, ollama:false, opa:false,
-        lims:false, "model-registry":false, "control-center":false,
+        mysql: false, redis: false, workbench: false, tes: false,
+        toolserver: false, ollama: false, opa: false,
+        lims: false, "model-registry": false, "control-center": false,
       });
-      const running = stdout.split("\n").map(s => s.trim());
+      const running = stdout.split("\n").map((s) => s.trim());
+      const has = (name) => running.some((s) => s.includes(name) && !s.includes("buildx"));
       resolve({
-        mysql:            running.some(s => s.includes("mysql")         && !s.includes("buildx")),
-        redis:            running.some(s => s.includes("redis")         && !s.includes("buildx")),
-        workbench:        running.some(s => s.includes("workbench")     && !s.includes("buildx")),
-        tes:              running.some(s => s.includes("tes")           && !s.includes("buildx")),
-        toolserver:       running.some(s => s.includes("toolserver")    && !s.includes("buildx")),
-        ollama:           running.some(s => s.includes("ollama")        && !s.includes("buildx")),
-        opa:              running.some(s => s.includes("opa")           && !s.includes("buildx")),
-        lims:             running.some(s => s.includes("lims")          && !s.includes("buildx")),
-        "model-registry": running.some(s => s.includes("model-registry")&& !s.includes("buildx")),
-        "control-center": running.some(s => s.includes("control-center")&& !s.includes("buildx")),
+        mysql:            has("mysql"),
+        redis:            has("redis"),
+        workbench:        has("workbench"),
+        tes:              has("-tes"),
+        toolserver:       has("toolserver"),
+        ollama:           has("ollama"),
+        opa:              has("opa"),
+        lims:             has("lims"),
+        "model-registry": has("model-registry"),
+        "control-center": has("control-center"),
       });
     });
   });
 });
 
-// ─── LOG STREAMING ────────────────────────────────────
+// ─── LOG STREAMING ────────────────────────────────────────────────────────────
 function startLogStream() {
-  const containers = [
-    "omnibioai-workbench",
-    "omnibioai-tes",
-    "omnibioai-toolserver",
-    "omnibioai-celery-worker",
-  ];
-  const proc = spawn("docker", ["logs", "-f", "--tail=20", ...containers]);
-  proc.stdout.on("data", (data) => {
-    if (mainWindow && !mainWindow.isDestroyed())
-      mainWindow.webContents.send("log-stream", data.toString());
-  });
-  proc.stderr.on("data", (data) => {
-    if (mainWindow && !mainWindow.isDestroyed())
-      mainWindow.webContents.send("log-stream", data.toString());
-  });
+  execFile(
+    "docker",
+    ["ps", "--format", "{{.Names}}", "--filter", "status=running"],
+    (err, stdout) => {
+      if (err || !stdout.trim()) return;
+      const running = stdout.split("\n").map((s) => s.trim()).filter(Boolean);
+      const candidates = ["workbench", "tes", "toolserver", "celery-worker"];
+      const targets = candidates.filter((name) => running.some((r) => r.includes(name)));
+      if (!targets.length) return;
+
+      const proc = spawn("docker", ["logs", "-f", "--tail=20", ...targets]);
+      proc.stdout.on("data", (d) => {
+        if (mainWindow && !mainWindow.isDestroyed())
+          mainWindow.webContents.send("log-stream", d.toString());
+      });
+      proc.stderr.on("data", (d) => {
+        if (mainWindow && !mainWindow.isDestroyed())
+          mainWindow.webContents.send("log-stream", d.toString());
+      });
+    }
+  );
 }
 
-// ─── OPEN WORKBENCH ───────────────────────────────────
+// ─── OPEN WORKBENCH ───────────────────────────────────────────────────────────
 ipcMain.handle("open-workbench", async () => {
-  await shell.openExternal("http://localhost:8000");
+  shell.openExternal("http://localhost:8000");
   return true;
 });
