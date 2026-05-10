@@ -20,9 +20,17 @@ function getEnvPath() {
 
 function getDbInitPath() {
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, "db-init");
+    return path.join(app.getPath("userData"), "db-init");
   }
   return path.join(__dirname, "..", "db-init");
+}
+
+function ensureDbInit() {
+  if (!app.isPackaged) return;
+  const dest = getDbInitPath();
+  if (fs.existsSync(dest)) return;
+  const src = path.join(process.resourcesPath, "db-init");
+  if (fs.existsSync(src)) fs.cpSync(src, dest, { recursive: true });
 }
 
 // ─── DOCKER HELPERS ───────────────────────────────────────────────────────────
@@ -48,6 +56,7 @@ function pipeLog(proc) {
 
 // ─── ENV FILE GENERATION ──────────────────────────────────────────────────────
 function writeEnvFile(config) {
+  ensureDbInit();
   const llm      = config.llm      || {};
   const cloud    = config.cloud    || {};
   const settings = config.settings || {};
@@ -165,6 +174,7 @@ ipcMain.handle("reset-config", async () => {
 
 // ─── DOCKER LIFECYCLE ─────────────────────────────────────────────────────────
 ipcMain.handle("start-docker", async () => {
+  ensureDbInit();
   return new Promise((resolve, reject) => {
     sendLog("Pulling latest images — this may take several minutes...");
 
