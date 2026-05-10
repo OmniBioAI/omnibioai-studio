@@ -97,7 +97,7 @@ function createWindow() {
 
   const isDev = !app.isPackaged;
   if (isDev) {
-    const devUrl = "http://localhost:5173";
+    const devUrl = "http://localhost:5174";
     mainWindow.loadURL(devUrl).catch(() => {
       setTimeout(() => mainWindow.loadURL(devUrl), 2000);
     });
