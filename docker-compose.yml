@@ -189,7 +189,20 @@ services:
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
     volumes:
-      - ${WORKSPACE_HOST:-/home/manish/Desktop/machine/omnibioai}:/workspace/omnibioai
+      - /home/manish/Desktop/machine/omnibioai:/workspace/omnibioai
+      - /home/manish/Desktop/machine/omnibioai-control-center:/workspace/omnibioai-control-center
+      - /home/manish/Desktop/machine/omnibioai-tool-images:/workspace/omnibioai-tool-images
+      - /home/manish/Desktop/machine/omnibioai-tes:/workspace/omnibioai-tes
+      - /home/manish/Desktop/machine/omnibioai-rag:/workspace/omnibioai-rag
+      - /home/manish/Desktop/machine/omnibioai-lims:/workspace/omnibioai-lims
+      - /home/manish/Desktop/machine/omnibioai-toolserver:/workspace/omnibioai-toolserver
+      - /home/manish/Desktop/machine/omnibioai-tool-runtime:/workspace/omnibioai-tool-runtime
+      - /home/manish/Desktop/machine/omnibioai-workflow-bundles:/workspace/omnibioai-workflow-bundles
+      - /home/manish/Desktop/machine/omnibioai-model-registry:/workspace/omnibioai-model-registry
+      - /home/manish/Desktop/machine/omnibioai-studio:/workspace/omnibioai-studio
+      - /home/manish/Desktop/machine/omnibioai-dev-hub:/workspace/omnibioai-dev-hub
+      - /home/manish/Desktop/machine/omnibioai-dev-docker:/workspace/omnibioai-dev-docker
+      - /home/manish/Desktop/machine/omnibioai_sdk:/workspace/omnibioai_sdk
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
@@ -234,6 +247,18 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    restart: on-failure
+
+  tool-images:
+    image: ghcr.io/man4ish/omnibioai-tool-images:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8097:8097"
+      - "${HOST_IP:-0.0.0.0}:5179:5179"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - /home/manish/Desktop/machine/omnibioai-tool-images/dockerfiles:/app/dockerfiles:ro
+      - /home/manish/Desktop/machine/omnibioai-tool-images/sif:/app/sif:ro
     restart: on-failure
   videos:
     image: ghcr.io/man4ish/omnibioai-videos:latest
