@@ -57,8 +57,8 @@ const CATEGORIES = [
     color: "var(--muted)",
     links: [
       { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"          },
-      { label:"Model Registry",   url:`http://${HOST}:8095/docs`,         icon:"🧬", desc:"ML model versioning"          },
-      { label:"RAG / Lit AI",     url:`http://${HOST}:8090/docs`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
+      { label:"Model Registry",   url:`http://${HOST}:5176`,         icon:"🧬", desc:"ML model versioning"          },
+      { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
       { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"         },
       { label:"TES / Jobs",       url:`http://${HOST}:8081`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
       { label:"Tool Images",      url:`http://${HOST}:7070`,              icon:"🐳", desc:"ARM64 SIF dashboard"          },
@@ -79,8 +79,16 @@ export default function Workbench() {
   const check = async () => {
     setChecking(true);
     try {
-      await fetch(BASE, { mode:"no-cors" });
-      setOnline(true);
+      const sig = AbortSignal.timeout(5000);
+      if (import.meta.env.DEV) {
+        // Vite proxy rewrites /_health → workbench /health/ — same-origin, no CORS
+        const res = await fetch("/_health", { signal: sig });
+        setOnline(res.ok);
+      } else {
+        // Electron / production: no-cors is fine (no browser CORS enforcement)
+        await fetch(`${BASE}/health/`, { mode: "no-cors", signal: sig });
+        setOnline(true);
+      }
     } catch (_) { setOnline(false); }
     finally { setChecking(false); }
   };
