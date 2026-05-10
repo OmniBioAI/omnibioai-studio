@@ -203,6 +203,7 @@ services:
       - /home/manish/Desktop/machine/omnibioai-dev-hub:/workspace/omnibioai-dev-hub
       - /home/manish/Desktop/machine/omnibioai-dev-docker:/workspace/omnibioai-dev-docker
       - /home/manish/Desktop/machine/omnibioai_sdk:/workspace/omnibioai_sdk
+      - /home/manish/Desktop/machine/omnibioai-videos:/workspace/omnibioai-videos
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
