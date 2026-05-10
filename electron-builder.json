@@ -1,14 +1,12 @@
 {
   "appId": "com.omnibioai.studio",
   "productName": "OmniBioAI Studio",
-  "copyright": "Copyright © 2026 OmniBioAI",
+  "copyright": "Copyright \u00a9 2026 OmniBioAI",
   "asar": true,
   "compression": "maximum",
-
   "directories": {
     "output": "release"
   },
-
   "files": [
     "electron/**/*",
     "dist/**/*",
@@ -16,28 +14,46 @@
     "scripts/**/*",
     "package.json"
   ],
-
   "extraResources": [
-    { "from": "docker", "to": "docker" }
+    {
+      "from": "docker-compose.yml",
+      "to": "docker-compose.yml"
+    },
+    {
+      "from": "scripts",
+      "to": "scripts"
+    },
+    {
+      "from": "docker",
+      "to": "docker"
+    }
   ],
-
   "linux": {
     "target": [
-      { "target": "AppImage", "arch": ["x64"] }
+      {
+        "target": "AppImage",
+        "arch": [
+          "x64"
+        ]
+      }
     ],
     "category": "Science",
     "icon": "build/icon.png",
     "description": "AI-powered bioinformatics orchestration platform"
   },
-
   "mac": {
     "target": [
-      { "target": "dmg", "arch": ["x64", "arm64"] }
+      {
+        "target": "dmg",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
     ],
     "category": "public.app-category.developer-tools",
     "icon": "build/icon.icns"
   },
-
   "dmg": {
     "title": "OmniBioAI Studio"
   }

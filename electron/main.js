@@ -42,6 +42,9 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
+// ─── EXTERNAL LINKS ───────────────────────────────────
+ipcMain.handle("open-external", async (_, url) => shell.openExternal(url));
+
 // ─── CONFIG ───────────────────────────────────────────
 ipcMain.handle("save-config",  async (_, config) => writeConfig(config));
 ipcMain.handle("load-config",  async () => readConfig());

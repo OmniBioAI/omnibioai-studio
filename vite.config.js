@@ -27,6 +27,15 @@ export default defineConfig({
 
   server: {
     port: 5174,
-    strictPort: true
+    strictPort: true,
+    // Proxy /api/ to the workbench so health checks are same-origin (no CORS).
+    // Target host comes from VITE_HOST shell env (set when starting Vite remotely).
+    proxy: {
+      "/_health": {
+        target: `http://${process.env.VITE_HOST || "192.168.86.234"}:8000`,
+        changeOrigin: true,
+        rewrite: () => "/health/",
+      }
+    }
   }
 });
