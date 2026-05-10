@@ -44,6 +44,7 @@ services:
     image: ghcr.io/man4ish/omnibioai-tes:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8081:8081"
+      - "${HOST_IP:-0.0.0.0}:5177:5177"
     environment:
       HOST: 0.0.0.0
       PORT: "8081"
@@ -52,15 +53,7 @@ services:
       - /home/manish/Desktop/machine/omnibioai-tes:/workspace
       - /home/manish/.kube:/home/manish/.kube:ro
       - /home/manish/.minikube:/home/manish/.minikube:ro
-    command:
-      - bash
-      - -lc
-      - |
-        omnibioai-tes serve \
-          --host 0.0.0.0 \
-          --port 8081 \
-          --tools /workspace/configs/tools.example.yaml \
-          --servers /workspace/configs/servers.example.yaml
+
     depends_on:
       mysql:
         condition: service_healthy
@@ -212,8 +205,11 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       PYTHONPATH: /app
+      OLLAMA_URL: http://ollama:11434/api
+      OLLAMA_HOST: http://ollama:11434
     depends_on:
       - ollama
+    restart: on-failure
 
   sdk:
     image: ghcr.io/man4ish/omnibioai-sdk:latest
