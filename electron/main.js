@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, session } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { writeConfig, readConfig, resetConfig } = require("../backend/config");
@@ -90,13 +90,17 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: false,
+      allowRunningInsecureContent: true,
       webviewTag: true,
     },
   });
 
   const isDev = !app.isPackaged;
   if (isDev) {
-    mainWindow.loadURL("http://localhost:5173");
+    const devUrl = "http://localhost:5173";
+    mainWindow.loadURL(devUrl).catch(() => {
+      setTimeout(() => mainWindow.loadURL(devUrl), 2000);
+    });
   } else {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
@@ -110,9 +114,25 @@ app.on("web-contents-created", (_, contents) => {
 });
 
 app.whenReady().then(() => {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* ws://localhost:* http://192.168.*"
+        ]
+      }
+    });
+  });
+
   createWindow();
   // Attempt to tail logs after window loads (only if docker is already running)
   mainWindow.webContents.once("did-finish-load", () => {
+    const cfg = readConfig();
+    const hostIp = cfg?.server?.host_ip || "localhost";
+    mainWindow.webContents.executeJavaScript(
+      `window.__OMNIBIOAI_SERVER__ = ${JSON.stringify(hostIp)}`
+    );
     setTimeout(startLogStream, 6000);
   });
 });
