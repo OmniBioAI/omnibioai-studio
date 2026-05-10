@@ -60,7 +60,7 @@ const CATEGORIES = [
       { label:"Model Registry",   url:`http://${HOST}:5176`,         icon:"🧬", desc:"ML model versioning"          },
       { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
       { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"         },
-      { label:"TES / Jobs",       url:`http://${HOST}:8081`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
+      { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
       { label:"Tool Images",      url:`http://${HOST}:7070`,              icon:"🐳", desc:"ARM64 SIF dashboard"          },
       { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"         },
       { label:"Workflows",        url:`http://${HOST}:8000/plugins/workflow_runner/`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
