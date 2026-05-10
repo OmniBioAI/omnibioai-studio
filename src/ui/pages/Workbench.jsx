@@ -56,6 +56,7 @@ const CATEGORIES = [
     name: "Platform Services",
     color: "var(--muted)",
     links: [
+      { label:"Workbench",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
       { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"          },
       { label:"Model Registry",   url:`http://${HOST}:5176`,         icon:"🧬", desc:"ML model versioning"          },
       { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
@@ -63,11 +64,10 @@ const CATEGORIES = [
       { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
       { label:"Tool Images",      url:`http://${HOST}:7070`,              icon:"🐳", desc:"ARM64 SIF dashboard"          },
       { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"         },
-      { label:"Workflows",        url:`http://${HOST}:8000/plugins/workflow_runner/`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
+      { label:"Workflows",        url:`http://${HOST}:5178`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
       { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search" },
       { label:"Video Library",    url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorials · Walkthroughs"     },
       { label:"Notebook Hub",     url:`http://${HOST}:8888`,              icon:"📓", desc:"Jupyter · R Studio · Analysis" },
-      { label:"Data Browser",     url:`http://${HOST}:8087`,              icon:"🗄️", desc:"Omics objects · File manager"  },
     ]
   }
 ];
