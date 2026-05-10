@@ -20,12 +20,12 @@
       "to": "docker-compose.yml"
     },
     {
-      "from": "scripts",
-      "to": "scripts"
+      "from": "db-init",
+      "to": "db-init"
     },
     {
-      "from": "docker",
-      "to": "docker"
+      "from": "scripts",
+      "to": "scripts"
     }
   ],
   "linux": {

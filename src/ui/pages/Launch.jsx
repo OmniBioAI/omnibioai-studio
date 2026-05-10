@@ -51,6 +51,14 @@ export default function Launch({ config, onStatusChange }) {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs]);
 
+  // Real Docker compose output via IPC
+  useEffect(() => {
+    if (!window.api?.onDockerLog) return;
+    window.api.onDockerLog((line) => {
+      setLogs((prev) => [...prev, { time: timestamp(), type: "info", msg: line }]);
+    });
+  }, []);
+
   // Live health polling every 5s
   useEffect(() => {
     const poll = async () => {
@@ -85,13 +93,9 @@ export default function Launch({ config, onStatusChange }) {
       if (window.api?.startDocker) {
         await window.api.startDocker();
       } else {
-        // Dev simulation
-        await new Promise(r => setTimeout(r, 700));  addLog("ok",   "MySQL container started");
-        await new Promise(r => setTimeout(r, 400));  addLog("ok",   "Redis container started");
-        await new Promise(r => setTimeout(r, 400));  addLog("ok",   "TES service online :8081");
-        await new Promise(r => setTimeout(r, 500));  addLog("warn", "Ollama pulling model...");
-        await new Promise(r => setTimeout(r, 800));  addLog("ok",   "All critical services healthy");
-        setHealth({ mysql:"up", workbench:"up", tes:"up", ollama:"warn", rag:"down" });
+        // Dev fallback — no Electron API
+        await new Promise(r => setTimeout(r, 1200));
+        addLog("warn", "Electron API not available — run via: npm run dev");
       }
 
       if (window.api?.openWorkbench) await window.api.openWorkbench();
