@@ -1,80 +1,104 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
-const HOST = import.meta.env.VITE_HOST || window.location.hostname || "localhost";
-const BASE = `http://${HOST}:8000`;
+function getInitialHost() {
+  return (
+    window.__OMNIBIOAI_SERVER__ ||
+    import.meta.env.VITE_HOST ||
+    window.location.hostname ||
+    "localhost"
+  );
+}
 
-const CATEGORIES = [
-  {
-    name: "Platform Services",
-    color: "var(--muted)",
-    links: [
-      { label:"Getting Started",  url:`http://${HOST}:8086/guide.html`,        icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
-      { label:"Video Tutorials",    url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorial videos · Walkthroughs"     },
-      { label:"Workbench",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
-      { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"         },      
-      { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"          },
-      { label:"Model Registry",   url:`http://${HOST}:5176`,         icon:"🧬", desc:"ML model versioning"          },
-      { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
-      { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
-      { label:"Tool Images",      url:`http://${HOST}:5179`,              icon:"🐳", desc:"ARM64 SIF dashboard"          },
-      { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"         },
-      { label:"Workflows",        url:`http://${HOST}:5178`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
-      { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search" },
-    ]
-  },
-  {
-    name: "Core Platform",
-    color: "var(--accent)",
-    links: [
-      { label:"Home",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
-      { label:"OnboardAI",        url:`${BASE}/plugins/onboardai/`,                  icon:"🤖", desc:"AI developer tools"     },
-      { label:"Omni Assistant",   url:`${BASE}/plugins/omni_assistant/`,             icon:"💬", desc:"AI assistant"           },
-      { label:"Job Monitor",      url:`${BASE}/plugins/job_monitor/`,                icon:"📊", desc:"Monitor jobs"           },
-      { label:"Plugin Manager",   url:`${BASE}/plugins/plugin_manager/`,             icon:"🔌", desc:"Manage plugins"         },
-      { label:"Admin",            url:`${BASE}/admin/`,                              icon:"⚙️", desc:"Django admin"           },
-    ]
-  },
-  {
-    name: "Workflows",
-    color: "var(--accent2)",
-    links: [
-      { label:"Workflow Runner",  url:`${BASE}/plugins/workflow_runner/`,            icon:"⚡", desc:"Run workflows"          },
-      { label:"Workflow Builder", url:`${BASE}/plugins/workflow_builder/`,           icon:"🔧", desc:"Build workflows"        },
-      { label:"Agent Studio",     url:`${BASE}/plugins/agent-workflows/`,            icon:"🤝", desc:"Multi-agent workflows"  },
-      { label:"Pipeline",         url:`${BASE}/pipeline-dashboard/`,                 icon:"🔄", desc:"Pipeline dashboard"     },
-      { label:"Multi-Agent Orchestrator", url:`${BASE}/plugins/multi_agent_bio_orchestrator/`, icon:"🤖", desc:"Multi-agent biological workflows" },
-      { label:"Workflow Compiler", url:`${BASE}/plugins/workflow_compiler/`,         icon:"⚙️", desc:"Compile and optimize workflows" },
-    ]
-  },
-  {
-    name: "Omics Analysis",
-    color: "var(--accent3)",
-    links: [
-      { label:"RNA-Seq",          url:`${BASE}/plugins/rnaseq_analysis/`,            icon:"🧬", desc:"RNA-Seq analysis"       },
-      { label:"Single Cell",      url:`${BASE}/plugins/single_cell_analysis/`,       icon:"🔬", desc:"scRNA-Seq"              },
-      { label:"Exome Analysis",   url:`${BASE}/plugins/exome_analysis/`,             icon:"🧫", desc:"Exome sequencing"       },
-      { label:"FASTQ QC",         url:`${BASE}/plugins/fastq_qc/`,                   icon:"✅", desc:"Quality control"        },
-      { label:"Proteomics",       url:`${BASE}/plugins/proteomics/`,                 icon:"⚗️", desc:"Proteomics analysis"    },
-      { label:"Metabolomics",     url:`${BASE}/plugins/metabolomics_analysis/`,      icon:"🔭", desc:"Metabolomics"           },
-    ]
-  },
-  {
-    name: "AI & Intelligence",
-    color: "#a78bfa",
-    links: [
-      { label:"Drug Target AI",   url:`${BASE}/plugins/drug_target_intelligence/`,   icon:"💊", desc:"Drug target analysis"  },
-      { label:"Literature AI",    url:`${BASE}/plugins/literature_summarizer/`,      icon:"📚", desc:"Literature summarizer" },
-      { label:"Pathway Enrichment",url:`${BASE}/plugins/pathway_enrichment/`,        icon:"🔗", desc:"Pathway analysis"      },
-      { label:"Bio Hypothesis",   url:`${BASE}/plugins/bio_hypothesis_ai/`,          icon:"🧠", desc:"Hypothesis generation" },
-      { label:"Literature Summarizer", url:`${BASE}/plugins/literature_summarizer/`, icon:"📄", desc:"AI-powered paper summarization" },
-      { label:"Bio Narrator AI",  url:`${BASE}/plugins/bio_narrator_ai/`,            icon:"🧠", desc:"Biological narrative generation" },
-    ]
-  }
-];
+function buildCategories(HOST, BASE) {
+  return [
+    {
+      name: "Platform Services",
+      color: "var(--muted)",
+      links: [
+        { label:"Getting Started",  url:`http://${HOST}:8086/guide.html`,        icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
+        { label:"Video Tutorials",    url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorial videos · Walkthroughs"     },
+        { label:"Workbench",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
+        { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"         },
+        { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"          },
+        { label:"Model Registry",   url:`http://${HOST}:5176`,         icon:"🧬", desc:"ML model versioning"          },
+        { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
+        { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
+        { label:"Tool Images",      url:`http://${HOST}:5179`,              icon:"🐳", desc:"ARM64 SIF dashboard"          },
+        { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"         },
+        { label:"Workflows",        url:`http://${HOST}:5178`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
+        { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search" },
+      ]
+    },
+    {
+      name: "Core Platform",
+      color: "var(--accent)",
+      links: [
+        { label:"Home",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
+        { label:"OnboardAI",        url:`${BASE}/plugins/onboardai/`,                  icon:"🤖", desc:"AI developer tools"     },
+        { label:"Omni Assistant",   url:`${BASE}/plugins/omni_assistant/`,             icon:"💬", desc:"AI assistant"           },
+        { label:"Job Monitor",      url:`${BASE}/plugins/job_monitor/`,                icon:"📊", desc:"Monitor jobs"           },
+        { label:"Plugin Manager",   url:`${BASE}/plugins/plugin_manager/`,             icon:"🔌", desc:"Manage plugins"         },
+        { label:"Admin",            url:`${BASE}/admin/`,                              icon:"⚙️", desc:"Django admin"           },
+      ]
+    },
+    {
+      name: "Workflows",
+      color: "var(--accent2)",
+      links: [
+        { label:"Workflow Runner",  url:`${BASE}/plugins/workflow_runner/`,            icon:"⚡", desc:"Run workflows"          },
+        { label:"Workflow Builder", url:`${BASE}/plugins/workflow_builder/`,           icon:"🔧", desc:"Build workflows"        },
+        { label:"Agent Studio",     url:`${BASE}/plugins/agent-workflows/`,            icon:"🤝", desc:"Multi-agent workflows"  },
+        { label:"Pipeline",         url:`${BASE}/pipeline-dashboard/`,                 icon:"🔄", desc:"Pipeline dashboard"     },
+        { label:"Multi-Agent Orchestrator", url:`${BASE}/plugins/multi_agent_bio_orchestrator/`, icon:"🤖", desc:"Multi-agent biological workflows" },
+        { label:"Workflow Compiler", url:`${BASE}/plugins/workflow_compiler/`,         icon:"⚙️", desc:"Compile and optimize workflows" },
+      ]
+    },
+    {
+      name: "Omics Analysis",
+      color: "var(--accent3)",
+      links: [
+        { label:"RNA-Seq",          url:`${BASE}/plugins/rnaseq_analysis/`,            icon:"🧬", desc:"RNA-Seq analysis"       },
+        { label:"Single Cell",      url:`${BASE}/plugins/single_cell_analysis/`,       icon:"🔬", desc:"scRNA-Seq"              },
+        { label:"Exome Analysis",   url:`${BASE}/plugins/exome_analysis/`,             icon:"🧫", desc:"Exome sequencing"       },
+        { label:"FASTQ QC",         url:`${BASE}/plugins/fastq_qc/`,                   icon:"✅", desc:"Quality control"        },
+        { label:"Proteomics",       url:`${BASE}/plugins/proteomics/`,                 icon:"⚗️", desc:"Proteomics analysis"    },
+        { label:"Metabolomics",     url:`${BASE}/plugins/metabolomics_analysis/`,      icon:"🔭", desc:"Metabolomics"           },
+      ]
+    },
+    {
+      name: "AI & Intelligence",
+      color: "#a78bfa",
+      links: [
+        { label:"Drug Target AI",   url:`${BASE}/plugins/drug_target_intelligence/`,   icon:"💊", desc:"Drug target analysis"  },
+        { label:"Literature AI",    url:`${BASE}/plugins/literature_summarizer/`,      icon:"📚", desc:"Literature summarizer" },
+        { label:"Pathway Enrichment",url:`${BASE}/plugins/pathway_enrichment/`,        icon:"🔗", desc:"Pathway analysis"      },
+        { label:"Bio Hypothesis",   url:`${BASE}/plugins/bio_hypothesis_ai/`,          icon:"🧠", desc:"Hypothesis generation" },
+        { label:"Literature Summarizer", url:`${BASE}/plugins/literature_summarizer/`, icon:"📄", desc:"AI-powered paper summarization" },
+        { label:"Bio Narrator AI",  url:`${BASE}/plugins/bio_narrator_ai/`,            icon:"🧠", desc:"Biological narrative generation" },
+      ]
+    }
+  ];
+}
 
 export default function Workbench() {
+  const [host,     setHost]     = useState(getInitialHost);
   const [online,   setOnline]   = useState(false);
   const [checking, setChecking] = useState(true);
+
+  const BASE       = `http://${host}:8000`;
+  const CATEGORIES = useMemo(() => buildCategories(host, BASE), [host, BASE]);
+
+  // Load saved server IP from config on mount
+  useEffect(() => {
+    const loadHost = async () => {
+      if (window.api?.loadConfig) {
+        const cfg = await window.api.loadConfig();
+        const savedHost = cfg?.server?.host_ip;
+        if (savedHost) setHost(savedHost);
+      }
+    };
+    loadHost();
+  }, []);
 
   const check = async () => {
     setChecking(true);
@@ -97,7 +121,7 @@ export default function Workbench() {
     check();
     const id = setInterval(check, 10000);
     return () => clearInterval(id);
-  }, []);
+  }, [BASE]);
 
   const open = (url) => {
     if (window.api?.openExternal) {
@@ -134,6 +158,10 @@ export default function Workbench() {
               {checking ? "Checking..." : online ? "Online" : "Offline"}
             </span>
           </div>
+
+          <span style={{ fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+            {host}
+          </span>
 
           <button onClick={check} style={{
             padding:"6px 10px", borderRadius:6, fontSize:11,
@@ -206,7 +234,6 @@ export default function Workbench() {
             display:"grid", gridTemplateColumns:"repeat(6, 1fr)",
             gap:1, background:"var(--border)",
           }}>
-            {/* REPLACE EVERYTHING INSIDE HERE */}
             {links.map(({ label, url, icon, desc }) => {
               const isLocal = !url.startsWith(BASE);
               const clickable = isLocal || online;

@@ -4,6 +4,7 @@ import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, ToggleRow, Btn }
 export default function Settings({ config, setConfig }) {
   const [saved, setSaved] = useState(false);
   const [settings, setSettings] = useState({
+    host_ip:         "localhost",
     update_channel:  "stable",
     log_level:       "info",
     log_retention:   "7",
@@ -206,6 +207,18 @@ export default function Settings({ config, setConfig }) {
         <Panel>
           <PanelHeader title="Service Ports" icon iconColor="blue" />
           <PanelBody>
+            <FormRow label="Server IP or Hostname">
+              <Input value={settings.host_ip}
+                onChange={e => set("host_ip", e.target.value)}
+                placeholder="192.168.86.234 or localhost" />
+            </FormRow>
+            <div style={{
+              fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)",
+              marginTop:-8, marginBottom:14, paddingLeft:2,
+            }}>
+              IP of the machine running Docker. Use localhost for this machine,
+              or an IP like 192.168.86.234 for a remote server.
+            </div>
             <FormRow label="Workbench Port">
               <Input value={settings.workbench_port}
                 onChange={e => set("workbench_port", e.target.value)}
