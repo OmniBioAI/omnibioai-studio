@@ -41,18 +41,31 @@ services:
         condition: service_healthy
 
   tes:
-    image: ghcr.io/man4ish/omnibioai-tes:latest
+    image: omnibioai-tes-local
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-tes
     ports:
       - "${HOST_IP:-0.0.0.0}:8081:8081"
       - "${HOST_IP:-0.0.0.0}:5177:5177"
+    user: "1000:988"
     environment:
       HOST: 0.0.0.0
       PORT: "8081"
       TOOLSERVER_BASE_URL: http://toolserver:9090
+      TES_TOOLS: /workspace/configs/tools.example.yaml
+      TES_SERVERS: /workspace/configs/servers.example.yaml
+      TMPDIR: /tmp/omnibioai_tes_runs
     volumes:
-      - ${WORK_DIR}:/workspace
-      - ${HOME}/.kube:/root/.kube:ro
-      - ${HOME}/.minikube:/root/.minikube:ro
+      - /home/manish/Desktop/machine/omnibioai-tes:/workspace
+    command:
+      - bash
+      - -lc
+      - |
+        omnibioai-tes serve \
+          --host 0.0.0.0 \
+          --port 8081 \
+          --tools /workspace/configs/tools.example.yaml \
+          --servers /workspace/configs/servers.example.yaml
     depends_on:
       mysql:
         condition: service_healthy
@@ -140,8 +153,20 @@ services:
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OMNIBIOAI_TES_URL: http://tes:8081
+      OMNIBIOAI_MYSQL_HOST: mysql
+      OMNIBIOAI_MYSQL_PORT: "3306"
+      OMNIBIOAI_MYSQL_USER: root
+      OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      OMNIBIOAI_MYSQL_DB: omnibioai
     volumes:
       - ${WORKSPACE_HOST}:/workspace
+      - ${WORK_DIR}/runs:/app/work/runs
+      - ${WORK_DIR}/objects:/app/work/objects
+      - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
+      - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
       mysql:
         condition: service_healthy
@@ -176,6 +201,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
+      - ${WORK_DIR}/runs:/app/work/runs
+      - ${WORK_DIR}/objects:/app/work/objects
+      - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
+      - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
       workbench:
         condition: service_started
@@ -190,9 +221,15 @@ services:
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
     volumes:
-      - ${WORK_DIR}:/workspace
+      - /home/manish/Desktop/machine:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
+      - /home/manish/Desktop/machine/omnibioai-control-center/backend/src:/app/src
+      - /home/manish/Desktop/machine/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
+      - /home/manish/Desktop/machine/omnibioai-control-center/config:/config:ro
+    command: >-
+      bash -c "pip install -q pytest pytest-cov pandas 2>&1 | grep -v '^Requirement' || true &&
+      exec uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
     depends_on:
       - workbench
       - tes
