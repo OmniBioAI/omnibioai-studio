@@ -228,7 +228,7 @@ services:
       - /home/manish/Desktop/machine/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
       - /home/manish/Desktop/machine/omnibioai-control-center/config:/config:ro
     command: >-
-      bash -c "pip install -q pytest pytest-cov pandas 2>&1 | grep -v '^Requirement' || true &&
+      bash -c "pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
       exec uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
     depends_on:
       - workbench
