@@ -349,9 +349,7 @@ services:
 
 
   policy-engine:
-    build:
-      context: /home/manish/Desktop/machine
-      dockerfile: omnibioai-policy-engine/Dockerfile
+    image: ghcr.io/man4ish/omnibioai-policy-engine:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8002:8002"
     environment:
@@ -363,8 +361,7 @@ services:
     restart: on-failure
 
   hpc-policy-engine:
-    build:
-      context: /home/manish/Desktop/machine/omnibioai-hpc-policy-engine
+    image: ghcr.io/man4ish/omnibioai-hpc-policy-engine:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8003:8003"
     environment:
@@ -380,8 +377,7 @@ services:
     restart: on-failure
 
   security-audit:
-    build:
-      context: /home/manish/Desktop/machine/omnibioai-security-audit
+    image: ghcr.io/man4ish/omnibioai-security-audit:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8004:8004"
     environment:
@@ -393,9 +389,7 @@ services:
     restart: on-failure
 
   api-gateway:
-    build:
-      context: /home/manish/Desktop/machine
-      dockerfile: omnibioai-api-gateway/Dockerfile
+    image: ghcr.io/man4ish/omnibioai-api-gateway:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8080:8080"
     environment:
