@@ -94,6 +94,7 @@ const HEALTH_URLS = {
   "tes":               "/_svc/tes",
   "toolserver":        "/_svc/toolserver",
   "rag":               "/_svc/rag",
+  "model-registry":    "/_svc/modelregistry",
   "dev-hub":           "/_svc/devhub",
   "control-center":    "/_svc/control",
   "ollama":            "/_svc/ollama",
