@@ -98,9 +98,6 @@ const HEALTH_URLS = {
   "control-center":    "/_svc/control",
   "ollama":            "/_svc/ollama",
   "lims":              "/_svc/lims",
-  "opa":               "/_svc/opa",
-  "mysql":             "/_svc/mysql",
-  "redis":             "/_svc/redis",
 }
 
 async function checkUrl(url) {
