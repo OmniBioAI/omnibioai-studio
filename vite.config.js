@@ -28,7 +28,7 @@ export default defineConfig({
       "/_svc/control":   { target: `http://${HOST}:7070`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/ollama":    { target: `http://${HOST}:11434`, changeOrigin: true, rewrite: () => "/" },
       "/_svc/lims":      { target: `http://${HOST}:7000`, changeOrigin: true, rewrite: () => "/" },
-      "/_svc/opa":       { target: `http://${HOST}:8181`, changeOrigin: true, rewrite: () => "/v1/data" },
+      "/_svc/opa":       { target: `http://${HOST}:8181`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/mysql":     { target: `http://${HOST}:8000`, changeOrigin: true, rewrite: () => "/" },
       "/_svc/redis":     { target: `http://${HOST}:8000`, changeOrigin: true, rewrite: () => "/" },
     }
