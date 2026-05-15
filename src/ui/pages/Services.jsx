@@ -2,22 +2,75 @@ import React, { useState, useEffect } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
 
 const SERVICES = [
-  { key:"mysql",        label:"MySQL",         port:3306,  image:"mysql:8.0",                          group:"Data Layer"    },
-  { key:"redis",        label:"Redis",         port:6379,  image:"redis:7-alpine",                     group:"Data Layer"    },
-  { key:"workbench",    label:"Workbench",     port:8000,  image:"omnibioai/omnibioai-workbench:beta",  group:"Control Plane" },
-  { key:"tes",          label:"TES",           port:8081,  image:"omnibioai/omnibioai-tes:beta",        group:"Control Plane" },
-  { key:"toolserver",   label:"ToolServer",    port:9090,  image:"omnibioai/omnibioai-toolserver:beta", group:"Control Plane" },
-  { key:"model-registry",label:"Model Registry",port:8095,image:"omnibioai/omnibioai-model-registry:beta",group:"Control Plane"},
-  { key:"lims",         label:"LIMS",          port:7000,  image:"omnibioai/omnibioai-lims:beta",       group:"Control Plane" },
-  { key:"dev-hub",      label:"Dev Hub",       port:8082,  image:"omnibioai/omnibioai-dev-hub:beta",    group:"Control Plane" }, 
-  { key:"ollama",       label:"Ollama",        port:11434, image:"ollama/ollama",                      group:"AI Layer"      },
-  { key:"opa",          label:"OPA",           port:8181,  image:"openpolicyagent/opa:latest",          group:"Policy Engine" },
+  // Data Layer
+  { key:"mysql",              label:"MySQL",              port:3306,  image:"mysql:8.0",                                          group:"Data Layer"             },
+  { key:"redis",              label:"Redis",              port:6379,  image:"redis:7-alpine",                                     group:"Data Layer"             },
+
+  // Security Control Plane
+  { key:"api-gateway",        label:"API Gateway",        port:8080,  image:"ghcr.io/man4ish/omnibioai-api-gateway:latest",       group:"Security Control Plane" },
+  { key:"auth-service",       label:"Auth Service",       port:8001,  image:"ghcr.io/man4ish/omnibioai-auth:latest",              group:"Security Control Plane" },
+  { key:"policy-engine",      label:"Policy Engine",      port:8002,  image:"ghcr.io/man4ish/omnibioai-policy-engine:latest",     group:"Security Control Plane" },
+  { key:"hpc-policy-engine",  label:"HPC Policy Engine",  port:8003,  image:"ghcr.io/man4ish/omnibioai-hpc-policy-engine:latest", group:"Security Control Plane" },
+  { key:"security-audit",     label:"Security Audit",     port:8004,  image:"ghcr.io/man4ish/omnibioai-security-audit:latest",    group:"Security Control Plane" },
+
+  // Execution Layer
+  { key:"workbench",          label:"Workbench",          port:8000,  image:"ghcr.io/man4ish/omnibioai-app:latest",               group:"Execution Layer"        },
+  { key:"tes",                label:"TES",                port:8081,  image:"omnibioai-tes-local",                                group:"Execution Layer"        },
+  { key:"toolserver",         label:"ToolServer",         port:9090,  image:"ghcr.io/man4ish/omnibioai-toolserver:latest",        group:"Execution Layer"        },
+  { key:"model-registry",     label:"Model Registry",     port:8095,  image:"ghcr.io/man4ish/omnibioai-model-registry:latest",    group:"Execution Layer"        },
+  { key:"lims",               label:"LIMS",               port:7000,  image:"ghcr.io/man4ish/omnibioai-lims:latest",              group:"Execution Layer"        },
+  { key:"control-center",     label:"Control Center",     port:7070,  image:"ghcr.io/man4ish/omnibioai-control-center:latest",    group:"Execution Layer"        },
+
+  // AI Layer
+  { key:"ollama",             label:"Ollama",             port:11434, image:"ollama/ollama",                                      group:"AI Layer"               },
+  { key:"rag",                label:"RAG",                port:8090,  image:"ghcr.io/man4ish/omnibioai-rag:latest",               group:"AI Layer"               },
+  { key:"dev-hub",            label:"Dev Hub",            port:8082,  image:"ghcr.io/man4ish/omnibioai-dev-hub:latest",           group:"AI Layer"               },
+
+  // Developer Layer
+  { key:"sdk",                label:"SDK Launcher",       port:5190,  image:"ghcr.io/man4ish/omnibioai-sdk:latest",               group:"Developer Layer"        },
+  { key:"workflow-bundles",   label:"Workflow Bundles",   port:8098,  image:"ghcr.io/man4ish/omnibioai-workflow-bundles:latest",   group:"Developer Layer"        },
+  { key:"tool-images",        label:"Tool Images",        port:8097,  image:"ghcr.io/man4ish/omnibioai-tool-images:latest",       group:"Developer Layer"        },
+  { key:"opa",                label:"OPA",                port:8181,  image:"openpolicyagent/opa:latest",                         group:"Developer Layer"        },
 ];
 
-const GROUPS = ["Data Layer", "Control Plane", "AI Layer", "Policy Engine"];
+const GROUPS = [
+  "Data Layer",
+  "Security Control Plane",
+  "Execution Layer",
+  "AI Layer",
+  "Developer Layer",
+];
 
-const statusColor = { up:"#00e5a0", warn:"#ffa502", down:"#ff4757", unknown:"#6b7280", restarting:"#0094ff" };
-const statusLabel = { up:"● Running", warn:"◐ Starting", down:"✕ Stopped", unknown:"— Unknown", restarting:"↻ Restarting" };
+const GROUP_COLORS = {
+  "Data Layer":             "teal",
+  "Security Control Plane": "red",
+  "Execution Layer":        "blue",
+  "AI Layer":               "orange",
+  "Developer Layer":        "purple",
+};
+
+const GROUP_ICONS = {
+  "Data Layer":             "🗄",
+  "Security Control Plane": "🔐",
+  "Execution Layer":        "⚙",
+  "AI Layer":               "🤖",
+  "Developer Layer":        "🛠",
+};
+
+const statusColor = {
+  up:         "#00e5a0",
+  warn:       "#ffa502",
+  down:       "#ff4757",
+  unknown:    "#6b7280",
+  restarting: "#0094ff",
+};
+const statusLabel = {
+  up:         "● Running",
+  warn:       "◐ Starting",
+  down:       "✕ Stopped",
+  unknown:    "— Unknown",
+  restarting: "↻ Restarting",
+};
 
 function StatusDot({ status }) {
   return (
@@ -30,6 +83,32 @@ function StatusDot({ status }) {
   );
 }
 
+// Direct health check URLs per service
+const HEALTH_URLS = {
+  "api-gateway":       "http://localhost:8080/health",
+  "auth-service":      "http://localhost:8001/health",
+  "policy-engine":     "http://localhost:8002/health",
+  "hpc-policy-engine": "http://localhost:8003/health",
+  "security-audit":    "http://localhost:8004/health",
+  "workbench":         "http://localhost:8000",
+  "tes":               "http://localhost:8081/api/tools",
+  "toolserver":        "http://localhost:9090/health",
+  "rag":               "http://localhost:8090/health",
+  "dev-hub":           "http://localhost:8082/status",
+  "control-center":    "http://localhost:7070/health",
+  "ollama":            "http://localhost:11434",
+  "opa":               "http://localhost:8181/health",
+};
+
+async function checkUrl(url) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+    return res.status < 500;
+  } catch (_) {
+    return false;
+  }
+}
+
 export default function Services() {
   const [statuses, setStatuses] = useState(() =>
     Object.fromEntries(SERVICES.map(s => [s.key, "unknown"]))
@@ -39,30 +118,30 @@ export default function Services() {
 
   const poll = async () => {
     try {
-      // Check dev-hub independently — it runs outside docker-compose
-      const devHubUp = await fetch("http://localhost:8082/status", {
-        signal: AbortSignal.timeout(2000)
-      }).then(() => true).catch(() => false);
+      // Direct health checks for all services with known URLs
+      const directChecks = await Promise.all(
+        Object.entries(HEALTH_URLS).map(async ([key, url]) => {
+          const up = await checkUrl(url);
+          return [key, up ? "up" : "down"];
+        })
+      );
+      const directStatuses = Object.fromEntries(directChecks);
 
       if (window.api?.checkHealth) {
         const r = await window.api.checkHealth();
         setStatuses(prev => ({
           ...prev,
-          mysql:          r.mysql          ? "up" : "down",
-          workbench:      r.workbench      ? "up" : "down",
-          tes:            r.tes            ? "up" : "down",
-          toolserver:     r.toolserver     ? "up" : "down",
-          redis:          r.redis          ? "up" : "down",
-          ollama:         r.ollama         ? "up" : "warn",
-          rag:            r.rag            ? "up" : "down",
-          "dev-hub":      devHubUp         ? "up" : "down",
+          ...directStatuses,
+          mysql:     r.mysql      ? "up" : "down",
+          redis:     r.redis      ? "up" : "down",
+          workbench: r.workbench  ? "up" : "down",
+          tes:       r.tes        ? "up" : "down",
+          toolserver:r.toolserver ? "up" : "down",
+          ollama:    r.ollama     ? "up" : "warn",
+          rag:       r.rag        ? "up" : "down",
         }));
       } else {
-        // No electron API yet — just update dev-hub directly
-        setStatuses(prev => ({
-          ...prev,
-          "dev-hub": devHubUp ? "up" : "down",
-        }));
+        setStatuses(prev => ({ ...prev, ...directStatuses }));
       }
       setLastCheck(new Date().toTimeString().slice(0, 8));
     } catch (_) {}
@@ -97,7 +176,7 @@ export default function Services() {
   }));
 
   const totalUp   = SERVICES.filter(s => statuses[s.key] === "up").length;
-  const totalDown = SERVICES.filter(s => statuses[s.key] === "down").length;
+  const totalDown = SERVICES.filter(s => statuses[s.key] === "down" || statuses[s.key] === "unknown").length;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -136,13 +215,9 @@ export default function Services() {
       {grouped.map(({ group, services }) => (
         <Panel key={group}>
           <PanelHeader
-            title={group}
+            title={`${GROUP_ICONS[group]}  ${group}`}
             icon
-            iconColor={
-              group === "Data Layer"    ? "teal"   :
-              group === "Control Plane" ? "blue"   :
-              group === "AI Layer"      ? "orange" : "teal"
-            }
+            iconColor={GROUP_COLORS[group] || "teal"}
           />
           <PanelBody style={{ padding:0 }}>
             <table style={{ width:"100%", borderCollapse:"collapse" }}>
