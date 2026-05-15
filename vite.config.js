@@ -24,6 +24,7 @@ export default defineConfig({
       "/_svc/tes":       { target: `http://${HOST}:8081`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/toolserver":{ target: `http://${HOST}:9090`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/rag":       { target: `http://${HOST}:8090`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/modelregistry": { target: `http://${HOST}:8095`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/devhub":    { target: `http://${HOST}:8082`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/control":   { target: `http://${HOST}:7070`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/ollama":    { target: `http://${HOST}:11434`, changeOrigin: true, rewrite: () => "/" },
