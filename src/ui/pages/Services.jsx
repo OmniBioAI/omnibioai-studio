@@ -85,21 +85,23 @@ function StatusDot({ status }) {
 
 // Direct health check URLs per service
 const HEALTH_URLS = {
-  "api-gateway":       `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8080/health`,
-  "auth-service":      `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8001/health`,
-  "policy-engine":     `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8002/docs`,
-  "hpc-policy-engine": `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8003/docs`,
-  "security-audit":    `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8004/health`,
-  "workbench":         `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8000/api/health`,
-  "tes":               `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8081/health`,
-  "toolserver":        `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:9090/health`,
-  "rag":               `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8090/health`,
-  "dev-hub":           `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8082/health`,
-  "control-center":    `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:7070/health`,
-  "ollama":            `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:11434`,
-  "lims":              "http://localhost:7000/",
-  "opa":               "http://localhost:8181/v1/data",
-};
+  "api-gateway":       "/_svc/gateway",
+  "auth-service":      "/_svc/auth",
+  "policy-engine":     "/_svc/policy",
+  "hpc-policy-engine": "/_svc/hpc",
+  "security-audit":    "/_svc/audit",
+  "workbench":         "/_svc/workbench",
+  "tes":               "/_svc/tes",
+  "toolserver":        "/_svc/toolserver",
+  "rag":               "/_svc/rag",
+  "dev-hub":           "/_svc/devhub",
+  "control-center":    "/_svc/control",
+  "ollama":            "/_svc/ollama",
+  "lims":              "/_svc/lims",
+  "opa":               "/_svc/opa",
+  "mysql":             "/_svc/mysql",
+  "redis":             "/_svc/redis",
+}
 
 async function checkUrl(url) {
   try {
