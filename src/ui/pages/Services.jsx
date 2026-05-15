@@ -87,14 +87,14 @@ function StatusDot({ status }) {
 const HEALTH_URLS = {
   "api-gateway":       `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8080/health`,
   "auth-service":      `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8001/health`,
-  "policy-engine":     `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8002/health`,
-  "hpc-policy-engine": `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8003/health`,
+  "policy-engine":     `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8002/`,
+  "hpc-policy-engine": `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8003/`,
   "security-audit":    `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8004/health`,
-  "workbench":         `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8000`,
-  "tes":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8081/api/tools`,
+  "workbench":         `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8000/api/health`,
+  "tes":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8081/health`,
   "toolserver":        `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:9090/health`,
-  "rag":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8090/health`,
-  "dev-hub":           `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8082/status`,
+  "rag":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8090/api/health`,
+  "dev-hub":           `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8082/health`,
   "control-center":    `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:7070/health`,
   "ollama":            `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:11434`,
   "opa":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8181/health`,
@@ -103,6 +103,7 @@ const HEALTH_URLS = {
 async function checkUrl(url) {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+    // treat any response < 500 as up (some services return 404 on /)
     return res.status < 500;
   } catch (_) {
     return false;
