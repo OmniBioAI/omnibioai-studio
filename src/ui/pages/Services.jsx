@@ -87,17 +87,17 @@ function StatusDot({ status }) {
 const HEALTH_URLS = {
   "api-gateway":       `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8080/health`,
   "auth-service":      `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8001/health`,
-  "policy-engine":     `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8002/`,
+  "policy-engine":     `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8002/docs`,
   "hpc-policy-engine": `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8003/`,
   "security-audit":    `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8004/health`,
   "workbench":         `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8000/api/health`,
   "tes":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8081/health`,
   "toolserver":        `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:9090/health`,
-  "rag":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8090/api/health`,
+  "rag":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8090/health`,
   "dev-hub":           `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8082/health`,
   "control-center":    `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:7070/health`,
   "ollama":            `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:11434`,
-  "opa":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8181/health`,
+  "opa":               "http://localhost:8181/v1/data",
 };
 
 async function checkUrl(url) {
