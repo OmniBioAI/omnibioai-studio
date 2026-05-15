@@ -1,41 +1,36 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const HOST = process.env.VITE_HOST || "192.168.86.234";
+
 export default defineConfig({
-
   plugins: [react()],
-
-  // ─────────────────────────────
-  // BUILD CONFIG (IMPORTANT)
-  // ─────────────────────────────
-
   build: {
     outDir: "dist",
     emptyOutDir: true,
     sourcemap: false
   },
-
-  // ─────────────────────────────
-  // BASE PATH (Electron COMPAT)
-  // ─────────────────────────────
-
   base: "./",
-
-  // ─────────────────────────────
-  // DEV SERVER
-  // ─────────────────────────────
-
   server: {
     port: 5174,
     strictPort: true,
-    // Proxy /api/ to the workbench so health checks are same-origin (no CORS).
-    // Target host comes from VITE_HOST shell env (set when starting Vite remotely).
     proxy: {
-      "/_health": {
-        target: `http://${process.env.VITE_HOST || "192.168.86.234"}:8000`,
-        changeOrigin: true,
-        rewrite: () => "/health/",
-      }
+      "/_svc/gateway":   { target: `http://${HOST}:8080`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/auth":      { target: `http://${HOST}:8001`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/policy":    { target: `http://${HOST}:8002`, changeOrigin: true, rewrite: () => "/docs" },
+      "/_svc/hpc":       { target: `http://${HOST}:8003`, changeOrigin: true, rewrite: () => "/docs" },
+      "/_svc/audit":     { target: `http://${HOST}:8004`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/workbench": { target: `http://${HOST}:8000`, changeOrigin: true, rewrite: () => "/" },
+      "/_svc/tes":       { target: `http://${HOST}:8081`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/toolserver":{ target: `http://${HOST}:9090`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/rag":       { target: `http://${HOST}:8090`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/devhub":    { target: `http://${HOST}:8082`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/control":   { target: `http://${HOST}:7070`, changeOrigin: true, rewrite: () => "/health" },
+      "/_svc/ollama":    { target: `http://${HOST}:11434`, changeOrigin: true, rewrite: () => "/" },
+      "/_svc/lims":      { target: `http://${HOST}:7000`, changeOrigin: true, rewrite: () => "/" },
+      "/_svc/opa":       { target: `http://${HOST}:8181`, changeOrigin: true, rewrite: () => "/v1/data" },
+      "/_svc/mysql":     { target: `http://${HOST}:8000`, changeOrigin: true, rewrite: () => "/" },
+      "/_svc/redis":     { target: `http://${HOST}:8000`, changeOrigin: true, rewrite: () => "/" },
     }
   }
 });
