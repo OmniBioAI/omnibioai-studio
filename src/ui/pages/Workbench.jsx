@@ -15,18 +15,30 @@ function buildCategories(HOST, BASE) {
       name: "Platform Services",
       color: "var(--muted)",
       links: [
-        { label:"Getting Started",  url:`http://${HOST}:8086/guide.html`,        icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
-        { label:"Video Tutorials",    url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorial videos · Walkthroughs"     },
-        { label:"Workbench",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
-        { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"         },
-        { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"          },
-        { label:"Model Registry",   url:`http://${HOST}:5176`,         icon:"🧬", desc:"ML model versioning"          },
-        { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,         icon:"📚", desc:"PubMed RAG + DeepSeek"        },
-        { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"          },
-        { label:"Tool Images",      url:`http://${HOST}:5179`,              icon:"🐳", desc:"ARM64 SIF dashboard"          },
-        { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"         },
-        { label:"Workflows",        url:`http://${HOST}:5178`, icon:"⚡", desc:"WDL/NF/Snake/CWL" },
-        { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search" },
+        { label:"Getting Started",  url:`http://${HOST}:8086/guide.html`,   icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
+        { label:"Video Tutorials",  url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
+        { label:"Workbench",        url:`${BASE}/`,                         icon:"🏠", desc:"Dashboard"                        },
+        { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"             },
+        { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"              },
+        { label:"Model Registry",   url:`http://${HOST}:5176`,              icon:"🧬", desc:"ML model versioning"              },
+        { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,              icon:"📚", desc:"PubMed RAG + DeepSeek"            },
+        { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"              },
+        { label:"Tool Images",      url:`http://${HOST}:5179`,              icon:"🐳", desc:"ARM64 SIF dashboard"              },
+        { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"             },
+        { label:"Workflows",        url:`http://${HOST}:5178`,              icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
+        { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
+      ]
+    },
+    {
+      name: "Security Control Plane",
+      color: "#f87171",
+      links: [
+        { label:"API Gateway",      url:`http://${HOST}:8080/docs`,         icon:"🔐", desc:"Entry point · JWT enforcement"    },
+        { label:"Auth Service",     url:`http://${HOST}:8001/docs`,         icon:"🪪", desc:"JWT · Login · Register"           },
+        { label:"Policy Engine",    url:`http://${HOST}:8002/docs`,         icon:"📋", desc:"RBAC · ABAC decisions"            },
+        { label:"HPC Policy",       url:`http://${HOST}:8003/docs`,         icon:"⚡", desc:"GPU/CPU quota governance"         },
+        { label:"Security Audit",   url:`http://${HOST}:8004/docs`,         icon:"📝", desc:"Redis Streams audit log"          },
+        { label:"OPA",              url:`http://${HOST}:8181`,              icon:"🛡️", desc:"Open Policy Agent"               },
       ]
     },
     {
@@ -105,11 +117,9 @@ export default function Workbench() {
     try {
       const sig = AbortSignal.timeout(5000);
       if (import.meta.env.DEV) {
-        // Vite proxy rewrites /_health → workbench /health/ — same-origin, no CORS
         const res = await fetch("/_health", { signal: sig });
         setOnline(res.ok);
       } else {
-        // Electron / production: no-cors is fine (no browser CORS enforcement)
         await fetch(`${BASE}/health/`, { mode: "no-cors", signal: sig });
         setOnline(true);
       }
