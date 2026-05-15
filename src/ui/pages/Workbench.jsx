@@ -4,8 +4,7 @@ function getInitialHost() {
   return (
     window.__OMNIBIOAI_SERVER__ ||
     import.meta.env.VITE_HOST ||
-    window.location.hostname ||
-    "localhost"
+    "192.168.86.234"
   );
 }
 
