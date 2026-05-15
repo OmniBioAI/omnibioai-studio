@@ -88,7 +88,7 @@ const HEALTH_URLS = {
   "api-gateway":       `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8080/health`,
   "auth-service":      `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8001/health`,
   "policy-engine":     `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8002/docs`,
-  "hpc-policy-engine": `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8003/`,
+  "hpc-policy-engine": `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8003/docs`,
   "security-audit":    `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8004/health`,
   "workbench":         `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8000/api/health`,
   "tes":               `http://${window.__OMNIBIOAI_SERVER__ || "192.168.86.234"}:8081/health`,
