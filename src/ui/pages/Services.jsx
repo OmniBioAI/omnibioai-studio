@@ -85,19 +85,19 @@ function StatusDot({ status }) {
 
 // Direct health check URLs per service
 const HEALTH_URLS = {
-  "api-gateway":       "http://localhost:8080/health",
-  "auth-service":      "http://localhost:8001/health",
-  "policy-engine":     "http://localhost:8002/health",
-  "hpc-policy-engine": "http://localhost:8003/health",
-  "security-audit":    "http://localhost:8004/health",
-  "workbench":         "http://localhost:8000",
-  "tes":               "http://localhost:8081/api/tools",
-  "toolserver":        "http://localhost:9090/health",
-  "rag":               "http://localhost:8090/health",
-  "dev-hub":           "http://localhost:8082/status",
-  "control-center":    "http://localhost:7070/health",
-  "ollama":            "http://localhost:11434",
-  "opa":               "http://localhost:8181/health",
+  "api-gateway":       `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8080/health`,
+  "auth-service":      `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8001/health`,
+  "policy-engine":     `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8002/health`,
+  "hpc-policy-engine": `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8003/health`,
+  "security-audit":    `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8004/health`,
+  "workbench":         `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8000`,
+  "tes":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8081/api/tools`,
+  "toolserver":        `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:9090/health`,
+  "rag":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8090/health`,
+  "dev-hub":           `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8082/status`,
+  "control-center":    `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:7070/health`,
+  "ollama":            `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:11434`,
+  "opa":               `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8181/health`,
 };
 
 async function checkUrl(url) {
