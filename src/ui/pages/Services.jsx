@@ -97,6 +97,7 @@ const HEALTH_URLS = {
   "dev-hub":           `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:8082/health`,
   "control-center":    `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:7070/health`,
   "ollama":            `http://${window.__OMNIBIOAI_SERVER__ || "localhost"}:11434`,
+  "lims":              "http://localhost:7000/",
   "opa":               "http://localhost:8181/v1/data",
 };
 
