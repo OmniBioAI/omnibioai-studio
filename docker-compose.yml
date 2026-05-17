@@ -46,10 +46,10 @@ services:
     image: omnibioai-tes-local
     build:
       context: /home/manish/Desktop/machine/omnibioai-tes
+      dockerfile: Dockerfile.new
     ports:
       - "${HOST_IP:-0.0.0.0}:8081:8081"
       - "${HOST_IP:-0.0.0.0}:5177:5177"
-    user: "1000:988"
     environment:
       HOST: 0.0.0.0
       PORT: "8081"
@@ -68,6 +68,7 @@ services:
       - bash
       - -lc
       - |
+        service nginx start && \
         omnibioai-tes serve \
           --host 0.0.0.0 \
           --port 8081 \
@@ -96,7 +97,7 @@ services:
       DB_NAME: model_registry
       OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
     volumes:
-      - ${DATA_DIR}/model_registry:/registry
+      - /home/manish/Desktop/machine/data/local_registry/model_registry:/registry
     depends_on:
       mysql:
         condition: service_healthy
@@ -291,8 +292,9 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
     volumes:
-      - ${DATA_DIR}/tool-images/dockerfiles:/app/dockerfiles:ro
-      - ${DATA_DIR}/tool-images/sif:/app/sif:ro
+      - /home/manish/Desktop/machine/omnibioai-tool-images/dockerfiles:/app/dockerfiles:ro
+      - /home/manish/Desktop/machine/omnibioai-tool-images/sif:/app/sif:ro
+      - /home/manish/Desktop/machine/omnibioai-tool-images/build_logs:/app/build_logs:ro
     restart: on-failure
 
   videos:
