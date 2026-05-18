@@ -35,7 +35,7 @@ function buildCategories(HOST, BASE) {
         { label:"API Gateway",      url:`http://${HOST}:8080/docs`,         icon:"🔐", desc:"Entry point · JWT enforcement"    },
         { label:"Auth Service",     url:`http://${HOST}:8001/docs`,         icon:"🪪", desc:"JWT · Login · Register"           },
         { label:"Policy Engine",    url:`http://${HOST}:8002/docs`,         icon:"📋", desc:"RBAC · ABAC decisions"            },
-        { label:"HPC Policy",       url:`http://${HOST}:8003/docs`,         icon:"⚡", desc:"GPU/CPU quota governance"         },
+        { label:"HPC Policy",       url:`http://${HOST}:8003/`,         icon:"⚡", desc:"GPU/CPU quota governance"         },
         { label:"Security Audit",   url:`http://${HOST}:8004/docs`,         icon:"📝", desc:"Redis Streams audit log"          },
         { label:"OPA",              url:`http://${HOST}:8181`,              icon:"🛡️", desc:"Open Policy Agent"               },
       ]
@@ -81,7 +81,7 @@ function buildCategories(HOST, BASE) {
       color: "#a78bfa",
       links: [
         { label:"Drug Target AI",   url:`${BASE}/plugins/drug_target_intelligence/`,   icon:"💊", desc:"Drug target analysis"  },
-        { label:"Literature AI",    url:`${BASE}/plugins/literature_summarizer/`,      icon:"📚", desc:"Literature summarizer" },
+        { label:"Literature AI",    url:`http://${HOST}:5175`,                                  icon:"📚", desc:"PubMed RAG + DeepSeek" },
         { label:"Pathway Enrichment",url:`${BASE}/plugins/pathway_enrichment/`,        icon:"🔗", desc:"Pathway analysis"      },
         { label:"Bio Hypothesis",   url:`${BASE}/plugins/bio_hypothesis_ai/`,          icon:"🧠", desc:"Hypothesis generation" },
         { label:"Literature Summarizer", url:`${BASE}/plugins/literature_summarizer/`, icon:"📄", desc:"AI-powered paper summarization" },

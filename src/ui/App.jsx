@@ -9,6 +9,7 @@ import Services  from "./pages/Services";
 import Logs      from "./pages/Logs";
 import Settings  from "./pages/Settings";
 import Workbench from "./pages/Workbench";
+import Jobs      from "./pages/Jobs";
 
 const NAV = [
   { section: "Setup",   items: [
@@ -22,6 +23,7 @@ const NAV = [
     { name:"Services",  idx:5 },
     { name:"Logs",      idx:6 },
     { name:"Workbench", idx:7 },
+    { name:"Jobs",      idx:9 },
   ]},
   { section: "System",  items: [
     { name:"Settings",  idx:8 },
@@ -33,7 +35,7 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","workbench","settings"
+  "services","logs","workbench","settings","jobs"
 ];
 
 export default function App() {
@@ -87,6 +89,7 @@ export default function App() {
     <Logs      />,
     <Workbench />,
     <Settings  config={config} setConfig={setConfig} />,
+    <Jobs      />,
   ];
 
   const currentName = PAGE_NAMES[step] || "—";
