@@ -22,6 +22,7 @@ export default defineConfig({
       "/_svc/audit":     { target: `http://${HOST}:8004`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/workbench": { target: `http://${HOST}:8000`, changeOrigin: true, rewrite: () => "/" },
       "/_svc/tes":       { target: `http://${HOST}:8081`, changeOrigin: true, rewrite: () => "/health" },
+      "/_tes":           { target: `http://${HOST}:8081`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_tes/, "") },
       "/_svc/toolserver":{ target: `http://${HOST}:9090`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/rag":       { target: `http://${HOST}:8090`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/modelregistry": { target: `http://${HOST}:8095`, changeOrigin: true, rewrite: () => "/health" },

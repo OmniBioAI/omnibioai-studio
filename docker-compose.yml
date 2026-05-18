@@ -8,7 +8,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - /home/manish/Desktop/machine/omnibioai-lims/data/mysql:/var/lib/mysql
       - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
@@ -103,11 +103,16 @@ services:
         condition: service_healthy
 
   lims:
-    image: ghcr.io/man4ish/omnibioai-lims:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-lims
+      dockerfile: Dockerfile.new
+    image: omnibioai-lims-local
     ports:
       - "7000:7000"
     environment:
       DJANGO_SETTINGS_MODULE: lab_data_manager.settings
+      DJANGO_ENV: prod
+      DJANGO_DEBUG: "true"
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_DATABASE: limsdb
@@ -115,10 +120,12 @@ services:
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-omnibioai-studio-secret}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
+      CORS_ALLOWED_ORIGINS: "http://192.168.86.234:7000,http://localhost:7000"
+    volumes:
+      - /home/manish/Desktop/machine/omnibioai-lims/core:/app/core
     depends_on:
       mysql:
         condition: service_healthy
-    command: ["bash", "-lc", "python manage.py migrate && python manage.py ensure_admin && python manage.py runserver 0.0.0.0:7000"]
 
   ollama:
     image: ollama/ollama
