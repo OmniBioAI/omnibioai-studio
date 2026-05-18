@@ -8,7 +8,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - /home/manish/Desktop/machine/omnibioai-lims/data/mysql:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
       - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
@@ -83,7 +83,10 @@ services:
         condition: service_started
 
   model-registry:
-    image: ghcr.io/man4ish/omnibioai-model-registry:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-model-registry
+      dockerfile: Dockerfile.new
+    # image: ghcr.io/man4ish/omnibioai-model-registry:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8095:8095"
       - "${HOST_IP:-0.0.0.0}:5176:5176"
@@ -135,7 +138,10 @@ services:
       - ollama_data:/root/.ollama
 
   rag:
-    image: ghcr.io/man4ish/omnibioai-rag:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-rag
+      dockerfile: Dockerfile.new
+    # image: ghcr.io/man4ish/omnibioai-rag:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8090:8096"
       - "${HOST_IP:-0.0.0.0}:5175:5175"
@@ -149,7 +155,10 @@ services:
       - ollama
 
   workbench:
-    image: ghcr.io/man4ish/omnibioai-app:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai
+      dockerfile: Dockerfile.new
+    # image: ghcr.io/man4ish/omnibioai-app:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
     environment:
@@ -199,7 +208,10 @@ services:
     command: ["bash", "-lc", "python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate) && python manage.py runserver 0.0.0.0:8000 --noreload"]
 
   celery-worker:
-    image: ghcr.io/man4ish/omnibioai-app:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai
+      dockerfile: Dockerfile.new
+    # image: ghcr.io/man4ish/omnibioai-app:latest
     environment:
       DEBUG: "1"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
@@ -231,7 +243,10 @@ services:
     command: ["bash", "-lc", "celery -A omnibioai worker -l info"]
 
   control-center:
-    image: ghcr.io/man4ish/omnibioai-control-center:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-control-center
+      dockerfile: Dockerfile.new
+    # image: ghcr.io/man4ish/omnibioai-control-center:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:7070:7070"
     environment:
@@ -245,6 +260,7 @@ services:
       - /home/manish/Desktop/machine/omnibioai-control-center/backend/src:/app/src
       - /home/manish/Desktop/machine/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
       - /home/manish/Desktop/machine/omnibioai-control-center/config:/config:ro
+      - /home/manish/Desktop/machine/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
     command: >-
       bash -c "pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
       exec uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
@@ -254,7 +270,10 @@ services:
       - toolserver
 
   dev-hub:
-    image: ghcr.io/man4ish/omnibioai-dev-hub:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-dev-hub
+      dockerfile: Dockerfile.new
+    # image: ghcr.io/man4ish/omnibioai-dev-hub:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:5173:5173"
       - "${HOST_IP:-0.0.0.0}:8082:8082"
@@ -268,14 +287,20 @@ services:
     restart: on-failure
 
   sdk:
-    image: ghcr.io/man4ish/omnibioai-sdk:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai_sdk
+      dockerfile: Dockerfile
+    # image: ghcr.io/man4ish/omnibioai-sdk:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:5190:5190"
     environment:
       OMNIBIOAI_BASE_URL: http://workbench:8000
 
   workflow-bundles:
-    image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-workflow-bundles
+      dockerfile: Dockerfile.new
+    # image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8098:8098"
       - "${HOST_IP:-0.0.0.0}:5178:5178"
@@ -292,7 +317,10 @@ services:
     restart: on-failure
 
   tool-images:
-    image: ghcr.io/man4ish/omnibioai-tool-images:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-tool-images
+      dockerfile: Dockerfile.new
+    # image: ghcr.io/man4ish/omnibioai-tool-images:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8097:8097"
       - "${HOST_IP:-0.0.0.0}:5179:5179"
