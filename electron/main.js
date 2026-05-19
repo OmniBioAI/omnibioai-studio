@@ -124,14 +124,13 @@ app.on("web-contents-created", (_, contents) => {
 
 app.whenReady().then(() => {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:* ws://localhost:* http://192.168.*"
-        ]
-      }
-    });
+    const headers = { ...details.responseHeaders };
+    delete headers['content-security-policy'];
+    delete headers['Content-Security-Policy'];
+    headers['Content-Security-Policy'] = [
+      "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:"
+    ];
+    callback({ responseHeaders: headers });
   });
 
   createWindow();
