@@ -79,6 +79,39 @@ echo ""
 echo "Pulling latest images (this may take a while)..."
 docker compose $COMPOSE_ARGS pull || echo "[WARN] Some images could not be pulled, using cached versions"
 
+# ─── Download SIF images ──────────────────────────────
+SIF_DIR="${DATA_DIR}/tool-images/sif"
+mkdir -p "$SIF_DIR"
+
+if [ "${SKIP_SIF:-0}" = "1" ]; then
+  echo ""
+  echo "[SKIP] SIF image download skipped (SKIP_SIF=1)"
+else
+  echo ""
+  echo "Downloading SIF images (this may take 30-60 minutes on first run)..."
+  echo "Core bioinformatics tools: ~20GB"
+  echo "You can skip with: SKIP_SIF=1 bash scripts/start.sh"
+
+  # Core tools needed for workflows
+  CORE_TOOLS="fastqc multiqc trimmomatic samtools bwa star
+              gatk deseq2 salmon kallisto hisat2 bcftools
+              bismark kraken2 scanpy seurat pytorch tensorflow"
+
+  for tool in $CORE_TOOLS; do
+    SIF_PATH="$SIF_DIR/${tool}_arm64.sif"
+    if [ ! -f "$SIF_PATH" ]; then
+      echo "  Downloading ${tool}..."
+      singularity pull "$SIF_PATH" \
+        oras://ghcr.io/man4ish/omnibioai-sif/${tool}:arm64 \
+        2>/dev/null || echo "  [WARN] Could not download ${tool}"
+    else
+      echo "  [OK] ${tool} already present"
+    fi
+  done
+
+  echo "SIF images ready at: $SIF_DIR"
+fi
+
 # ─── Start services ───────────────────────────────────
 echo ""
 echo "Starting services..."

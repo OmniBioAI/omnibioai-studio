@@ -53,6 +53,8 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "8081"
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/docker
+      DOCKER_HOST: unix:///var/run/docker.sock
       TOOLSERVER_BASE_URL: http://toolserver:9090
       TES_TOOLS: /workspace/configs/tools.example.yaml
       TES_SERVERS: /workspace/configs/servers.example.yaml
@@ -62,8 +64,28 @@ services:
       HPC_POLICY_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
       REDIS_URL: redis://redis:6379
+      OMNIBIOAI_EXTRA_MOUNTS: /usr/bin/docker:/usr/bin/singularity:/usr/bin/unsquashfs:/usr/bin/squashfuse:/lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/etc/singularity:/usr/lib/aarch64-linux-gnu/singularity:/var/lib/singularity:/home/manish/Desktop/machine/omnibioai-tool-images/sif:/home/manish/Desktop/machine/omnibioai
+      SINGULARITY_CACHEDIR: /tmp/singularity_cache
+      SINGULARITY_TMPDIR: /tmp/singularity_tmp
     volumes:
       - /home/manish/Desktop/machine/omnibioai-tes:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+      - /usr/bin/singularity:/usr/bin/singularity:ro
+      - /usr/bin/unsquashfs:/usr/bin/unsquashfs:ro
+      - /usr/bin/squashfuse:/usr/bin/squashfuse:ro
+      - /lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/libseccomp.so.2:ro
+      - /lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:ro
+      - /lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:ro
+      - /lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3:ro
+      - /lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:ro
+      - /usr/lib/aarch64-linux-gnu/singularity:/usr/lib/aarch64-linux-gnu/singularity:ro
+      - /var/lib/singularity:/var/lib/singularity:rw
+      - /etc/singularity:/etc/singularity:ro
+      - /home/manish/Desktop/machine/omnibioai-workflow-bundles:/home/manish/Desktop/machine/omnibioai-workflow-bundles:ro
+      - /home/manish/Desktop/machine/omnibioai:/home/manish/Desktop/machine/omnibioai:rw
+      - /home/manish/Desktop/machine/omnibioai-tool-images:/home/manish/Desktop/machine/omnibioai-tool-images:ro
+      - ${DATA_DIR}/tool-images/sif:/sif:ro
     command:
       - bash
       - -lc
@@ -328,7 +350,7 @@ services:
       PYTHONUNBUFFERED: "1"
     volumes:
       - /home/manish/Desktop/machine/omnibioai-tool-images/dockerfiles:/app/dockerfiles:ro
-      - /home/manish/Desktop/machine/omnibioai-tool-images/sif:/app/sif:ro
+      - ${DATA_DIR}/tool-images/sif:/app/sif:ro
       - /home/manish/Desktop/machine/omnibioai-tool-images/build_logs:/app/build_logs:ro
     restart: on-failure
 
