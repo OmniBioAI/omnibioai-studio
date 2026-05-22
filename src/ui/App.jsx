@@ -109,7 +109,7 @@ export default function App() {
           borderTop:"3px solid var(--accent)",
           animation:"spin 1s linear infinite",
         }} />
-        <div style={{ fontSize:11, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+        <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
           Loading configuration...
         </div>
         <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
@@ -137,7 +137,7 @@ export default function App() {
           padding:"0 20px", gap:12, flexShrink:0,
         }}>
           <div style={{
-            fontSize:11, fontFamily:"var(--mono)", color:"var(--muted)",
+            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
             display:"flex", alignItems:"center", gap:6,
           }}>
             studio / <span style={{ color:"var(--text)" }}>{currentName}</span>
@@ -146,11 +146,11 @@ export default function App() {
           {/* First run warning */}
           {!config?.settings?.data_dir && (
             <div style={{
-              fontSize:10, fontFamily:"var(--mono)",
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
               color:"var(--warn)",
               background:"rgba(255,165,2,0.08)",
               border:"1px solid rgba(255,165,2,0.2)",
-              padding:"3px 10px", borderRadius:4,
+              padding:"3px 10px", borderRadius:'var(--radius-xs)',
               cursor:"pointer",
             }} onClick={() => setStep(8)}>
               ⚠ Setup required — configure data directory
@@ -160,8 +160,8 @@ export default function App() {
           <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
             {/* System status */}
             <span style={{
-              fontFamily:"var(--mono)", fontSize:9,
-              padding:"3px 8px", borderRadius:4, letterSpacing:"0.08em",
+              fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)',
+              padding:"3px 8px", borderRadius:'var(--radius-xs)', letterSpacing:"0.08em",
               background: systemStatus === "running"  ? "rgba(0,229,160,0.12)"
                         : systemStatus === "starting" ? "rgba(255,165,2,0.12)"
                         : systemStatus === "error"    ? "rgba(255,71,87,0.12)"
@@ -169,7 +169,7 @@ export default function App() {
               color: systemStatus === "running"  ? "var(--accent)"
                    : systemStatus === "starting" ? "var(--warn)"
                    : systemStatus === "error"    ? "var(--danger)"
-                   : "var(--muted)",
+                   : "var(--color-text-muted)",
               border: `1px solid ${
                 systemStatus === "running"  ? "rgba(0,229,160,0.2)"
                 : systemStatus === "starting" ? "rgba(255,165,2,0.2)"
@@ -181,15 +181,15 @@ export default function App() {
             </span>
 
             <span style={{
-              fontFamily:"var(--mono)", fontSize:9, padding:"3px 8px",
-              borderRadius:4, letterSpacing:"0.08em",
+              fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)', padding:"3px 8px",
+              borderRadius:'var(--radius-xs)', letterSpacing:"0.08em",
               background:"rgba(0,148,255,0.12)", color:"var(--accent2)",
               border:"1px solid rgba(0,148,255,0.2)",
             }}>v0.1.0</span>
 
             <span style={{
-              fontFamily:"var(--mono)", fontSize:9, padding:"3px 8px",
-              borderRadius:4, letterSpacing:"0.08em",
+              fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)', padding:"3px 8px",
+              borderRadius:'var(--radius-xs)', letterSpacing:"0.08em",
               background:"rgba(255,107,53,0.12)", color:"var(--accent3)",
               border:"1px solid rgba(255,107,53,0.2)",
             }}>BETA</span>
@@ -220,7 +220,7 @@ export default function App() {
                   onClick={() => setStep(i)}
                   title={name}
                   style={{
-                    width:28, height:3, borderRadius:2, cursor:"pointer",
+                    width:28, height:3, borderRadius:'var(--radius-xs)', cursor:"pointer",
                     background: i < step   ? "var(--accent)"
                               : i === step ? "var(--accent2)"
                               : "var(--border2)",
@@ -229,8 +229,8 @@ export default function App() {
                 />
               ))}
               <span style={{
-                fontSize:10, fontFamily:"var(--mono)",
-                color:"var(--muted)", marginLeft:8,
+                fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+                color:"var(--color-text-muted)", marginLeft:8,
               }}>
                 Step {step + 1} of {WIZARD_STEPS.length} — {WIZARD_STEPS[step]}
               </span>
@@ -240,13 +240,13 @@ export default function App() {
               onClick={() => setStep(s => Math.max(0, s - 1))}
               disabled={step === 0}
               style={{
-                padding:"7px 16px", borderRadius:6, fontSize:11,
+                padding:"7px 16px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-xs)',
                 fontFamily:"var(--font)", fontWeight:500,
                 cursor: step === 0 ? "not-allowed" : "pointer",
                 opacity: step === 0 ? 0.4 : 1,
                 background:"transparent",
                 border:"1px solid var(--border2)",
-                color:"var(--muted)", transition:"all 0.15s",
+                color:"var(--color-text-muted)", transition:"all 0.15s",
               }}
             >Back</button>
 
@@ -254,7 +254,7 @@ export default function App() {
               onClick={() => setStep(s => Math.min(WIZARD_MAX, s + 1))}
               disabled={step === WIZARD_MAX}
               style={{
-                padding:"7px 16px", borderRadius:6, fontSize:11,
+                padding:"7px 16px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-xs)',
                 fontFamily:"var(--font)", fontWeight:500,
                 cursor: step === WIZARD_MAX ? "not-allowed" : "pointer",
                 opacity: step === WIZARD_MAX ? 0.4 : 1,

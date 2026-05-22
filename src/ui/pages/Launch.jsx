@@ -13,22 +13,27 @@ function timestamp() {
 }
 
 function HealthCard({ label, status, port }) {
-  const colorMap = { up:"#00e5a0", warn:"#ffa502", down:"#ff4757", unknown:"#6b7280" };
+  const colorMap = {
+    up:      "var(--accent)",
+    warn:    "var(--color-warning)",
+    down:    "var(--color-danger)",
+    unknown: "var(--color-text-muted)",
+  };
   const labelMap = { up:"● UP", warn:"◐ INIT", down:"✕ DOWN", unknown:"— —" };
   const color = colorMap[status] || colorMap.unknown;
   return (
     <div style={{
       background:"var(--bg3)", border:"1px solid var(--border)",
-      borderRadius:8, padding:"10px 12px", position:"relative", overflow:"hidden", minWidth:0,
+      borderRadius:'var(--radius)', padding:"10px 12px", position:"relative", overflow:"hidden", minWidth:0,
     }}>
       <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:color }} />
-      <div style={{ fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:5 }}>
+      <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:5 }}>
         {label}
       </div>
-      <div style={{ fontSize:11, fontWeight:500, fontFamily:"var(--mono)", color }}>
+      <div style={{ fontSize:'var(--font-size-xs)', fontWeight:500, fontFamily:"var(--mono)", color }}>
         {labelMap[status] || "— —"}
       </div>
-      <div style={{ fontSize:9, color:"var(--muted)", fontFamily:"var(--mono)", marginTop:2 }}>{port}</div>
+      <div style={{ fontSize:'var(--font-size-xs)', color:"var(--color-text-muted)", fontFamily:"var(--mono)", marginTop:2 }}>{port}</div>
     </div>
   );
 }
@@ -125,7 +130,12 @@ export default function Launch({ config, onStatusChange }) {
     }
   };
 
-  const typeColors = { info:"#0094ff", ok:"#00e5a0", err:"#ff4757", warn:"#ffa502" };
+  const typeColors = {
+    info: "#0094ff",
+    ok:   "var(--accent)",
+    err:  "var(--color-danger)",
+    warn: "var(--color-warning)",
+  };
   const typeLabels = { info:"INFO", ok:"OK  ", err:"ERR ", warn:"WARN" };
   const llm   = config.llm   || {};
   const cloud = config.cloud || {};
@@ -139,7 +149,7 @@ export default function Launch({ config, onStatusChange }) {
           <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
             Execution Console
           </div>
-          <div style={{ fontSize:12, color:"var(--muted)", fontFamily:"var(--mono)" }}>
+          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
             review configuration and boot the runtime stack
           </div>
         </div>
@@ -165,17 +175,17 @@ export default function Launch({ config, onStatusChange }) {
         <Panel>
           <PanelHeader title="Runtime Summary" icon iconColor="teal" />
           <PanelBody style={{ padding:"10px 16px" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, fontFamily:"var(--mono)" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)" }}>
               {[
                 ["Mode",          config.mode || "local",                 "var(--accent)"],
-                ["Ollama",        llm.enable_ollama  ? "Enabled":"Disabled", llm.enable_ollama  ? "var(--accent)":"var(--muted)"],
-                ["Claude API",    llm.enable_claude  ? "Enabled":"Disabled", llm.enable_claude  ? "var(--accent)":"var(--muted)"],
-                ["OpenAI",        llm.enable_openai  ? "Enabled":"Disabled", llm.enable_openai  ? "var(--accent)":"var(--muted)"],
-                ["AWS Batch",     cloud.enable_aws_batch ? "Enabled":"Disabled", cloud.enable_aws_batch ? "var(--accent)":"var(--muted)"],
-                ["HPC Scheduler", hpc.scheduler || "Not configured",       hpc.scheduler ? "var(--text)":"var(--muted)"],
+                ["Ollama",        llm.enable_ollama  ? "Enabled":"Disabled", llm.enable_ollama  ? "var(--accent)":"var(--color-text-muted)"],
+                ["Claude API",    llm.enable_claude  ? "Enabled":"Disabled", llm.enable_claude  ? "var(--accent)":"var(--color-text-muted)"],
+                ["OpenAI",        llm.enable_openai  ? "Enabled":"Disabled", llm.enable_openai  ? "var(--accent)":"var(--color-text-muted)"],
+                ["AWS Batch",     cloud.enable_aws_batch ? "Enabled":"Disabled", cloud.enable_aws_batch ? "var(--accent)":"var(--color-text-muted)"],
+                ["HPC Scheduler", hpc.scheduler || "Not configured",       hpc.scheduler ? "var(--text)":"var(--color-text-muted)"],
               ].map(([label, val, color]) => (
                 <tr key={label} style={{ borderBottom:"1px solid var(--border)" }}>
-                  <td style={{ padding:"7px 0", color:"var(--muted)" }}>{label}</td>
+                  <td style={{ padding:"7px 0", color:"var(--color-text-muted)" }}>{label}</td>
                   <td style={{ textAlign:"right", color }}>{val}</td>
                 </tr>
               ))}
@@ -186,19 +196,19 @@ export default function Launch({ config, onStatusChange }) {
         <Panel>
           <PanelHeader title="System Logs" icon iconColor="blue">
             <button onClick={() => setLogs([])} style={{
-              fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)",
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
               background:"transparent", border:"none", cursor:"pointer", letterSpacing:"0.06em",
             }}>CLEAR</button>
           </PanelHeader>
           <PanelBody style={{ padding:10 }}>
             <div ref={logRef} style={{
-              background:"var(--bg2)", borderRadius:6, padding:10,
+              background:"var(--bg2)", borderRadius:'var(--radius-sm)', padding:10,
               height:200, overflowY:"auto", fontFamily:"var(--mono)",
-              fontSize:10, scrollbarWidth:"thin",
+              fontSize:'var(--font-size-xs)', scrollbarWidth:"thin",
             }}>
               {logs.map((l, i) => (
                 <div key={i} style={{ display:"flex", gap:8, padding:"2px 0" }}>
-                  <span style={{ color:"var(--muted)", flexShrink:0 }}>{l.time}</span>
+                  <span style={{ color:"var(--color-text-muted)", flexShrink:0 }}>{l.time}</span>
                   <span style={{ color:typeColors[l.type], flexShrink:0, minWidth:32 }}>{typeLabels[l.type]}</span>
                   <span style={{ color:"var(--text)" }}>{l.msg}</span>
                 </div>

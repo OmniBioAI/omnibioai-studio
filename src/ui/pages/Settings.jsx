@@ -58,7 +58,7 @@ export default function Settings({ config, setConfig }) {
           <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
             Settings
           </div>
-          <div style={{ fontSize:12, color:"var(--muted)", fontFamily:"var(--mono)" }}>
+          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
             application preferences and system configuration
           </div>
         </div>
@@ -78,10 +78,10 @@ export default function Settings({ config, setConfig }) {
       {/* First run banner */}
       {isFirstRun && (
         <div style={{
-          padding:"14px 16px", borderRadius:8,
+          padding:"14px 16px", borderRadius:'var(--radius)',
           background:"rgba(0,229,160,0.06)",
           border:"1px solid rgba(0,229,160,0.2)",
-          fontSize:12, fontFamily:"var(--mono)",
+          fontSize:'var(--font-size-sm)', fontFamily:"var(--mono)",
           color:"var(--accent)", lineHeight:1.7,
         }}>
           👋 <strong>First time setup</strong> — configure your Data and Work directories below,
@@ -96,10 +96,10 @@ export default function Settings({ config, setConfig }) {
         <PanelHeader title="Data Directories" icon iconColor="teal" />
         <PanelBody>
           <div style={{
-            padding:"10px 12px", borderRadius:6, marginBottom:14,
+            padding:"10px 12px", borderRadius:'var(--radius-sm)', marginBottom:14,
             background:"rgba(0,148,255,0.06)",
             border:"1px solid rgba(0,148,255,0.15)",
-            fontSize:10, fontFamily:"var(--mono)",
+            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             color:"var(--accent2)", lineHeight:1.7,
           }}>
             ℹ These paths are mounted into all Docker containers at startup.
@@ -115,7 +115,7 @@ export default function Settings({ config, setConfig }) {
           </FormRow>
 
           <div style={{
-            fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)",
+            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
             marginTop:-8, marginBottom:14, paddingLeft:2,
           }}>
             Expected layout: data/PubMed/Index/&lt;study&gt;/pubmed_index.faiss
@@ -130,7 +130,7 @@ export default function Settings({ config, setConfig }) {
           </FormRow>
 
           <div style={{
-            fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)",
+            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
             marginTop:-8, marginBottom:4, paddingLeft:2,
           }}>
             Expected layout: work/workflow_runner_runs/, work/uploads/, work/objects/
@@ -144,9 +144,9 @@ export default function Settings({ config, setConfig }) {
                 set("work_dir", `${navigator.platform.includes("Win") ? "C:\\Users" : "/home"}/omnibioai/work`);
               }}
               style={{
-                padding:"5px 12px", borderRadius:5, fontSize:10,
+                padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)',
                 fontFamily:"var(--mono)", background:"var(--bg2)",
-                border:"1px solid var(--border2)", color:"var(--muted)",
+                border:"1px solid var(--border2)", color:"var(--color-text-muted)",
                 cursor:"pointer",
               }}
             >Use defaults</button>
@@ -158,9 +158,9 @@ export default function Settings({ config, setConfig }) {
                 set("work_dir", "/home/manish/Desktop/machine/omnibioai/work");
               }}
               style={{
-                padding:"5px 12px", borderRadius:5, fontSize:10,
+                padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)',
                 fontFamily:"var(--mono)", background:"var(--bg2)",
-                border:"1px solid var(--border2)", color:"var(--muted)",
+                border:"1px solid var(--border2)", color:"var(--color-text-muted)",
                 cursor:"pointer",
               }}
             >Use OmniBioAI defaults</button>
@@ -213,7 +213,7 @@ export default function Settings({ config, setConfig }) {
                 placeholder="192.168.86.234 or localhost" />
             </FormRow>
             <div style={{
-              fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)",
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
               marginTop:-8, marginBottom:14, paddingLeft:2,
             }}>
               IP of the machine running Docker. Use localhost for this machine,
@@ -235,10 +235,10 @@ export default function Settings({ config, setConfig }) {
                 placeholder="9090" />
             </FormRow>
             <div style={{
-              marginTop:12, padding:"10px 12px", borderRadius:6,
+              marginTop:12, padding:"10px 12px", borderRadius:'var(--radius-sm)',
               background:"rgba(255,165,2,0.06)",
               border:"1px solid rgba(255,165,2,0.15)",
-              fontSize:10, fontFamily:"var(--mono)",
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
               color:"var(--warn)", lineHeight:1.6,
             }}>
               ⚠ Changing ports requires a full stack restart.
@@ -256,11 +256,11 @@ export default function Settings({ config, setConfig }) {
                 placeholder="docker/docker-compose.yml" />
             </FormRow>
             <div style={{
-              marginTop:8, padding:"10px 12px", borderRadius:6,
+              marginTop:8, padding:"10px 12px", borderRadius:'var(--radius-sm)',
               background:"rgba(255,255,255,0.03)",
               border:"1px solid var(--border)",
-              fontSize:10, fontFamily:"var(--mono)",
-              color:"var(--muted)", lineHeight:1.7,
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+              color:"var(--color-text-muted)", lineHeight:1.7,
             }}>
               Data Dir → mounted at <span style={{color:"var(--accent)"}}>
                 /data</span> in all containers<br/>
@@ -276,7 +276,7 @@ export default function Settings({ config, setConfig }) {
           <PanelBody>
             <table style={{
               width:"100%", borderCollapse:"collapse",
-              fontSize:11, fontFamily:"var(--mono)",
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             }}>
               {[
                 ["Studio Version", "v0.1.0-beta.2"],
@@ -286,22 +286,22 @@ export default function Settings({ config, setConfig }) {
                 ["Status",         "Beta"],
               ].map(([k, v]) => (
                 <tr key={k} style={{ borderBottom:"1px solid var(--border)" }}>
-                  <td style={{ padding:"7px 0", color:"var(--muted)" }}>{k}</td>
+                  <td style={{ padding:"7px 0", color:"var(--color-text-muted)" }}>{k}</td>
                   <td style={{ textAlign:"right", color:"var(--text)" }}>{v}</td>
                 </tr>
               ))}
             </table>
             <div style={{ marginTop:14, display:"flex", gap:8 }}>
               <button style={{
-                flex:1, padding:"7px", borderRadius:5, fontSize:10,
+                flex:1, padding:"7px", borderRadius:5, fontSize:'var(--font-size-xs)',
                 fontFamily:"var(--mono)", background:"var(--bg2)",
-                border:"1px solid var(--border2)", color:"var(--muted)",
+                border:"1px solid var(--border2)", color:"var(--color-text-muted)",
                 cursor:"pointer",
               }}>Docs ↗</button>
               <button style={{
-                flex:1, padding:"7px", borderRadius:5, fontSize:10,
+                flex:1, padding:"7px", borderRadius:5, fontSize:'var(--font-size-xs)',
                 fontFamily:"var(--mono)", background:"var(--bg2)",
-                border:"1px solid var(--border2)", color:"var(--muted)",
+                border:"1px solid var(--border2)", color:"var(--color-text-muted)",
                 cursor:"pointer",
               }}>GitHub ↗</button>
             </div>

@@ -28,23 +28,23 @@ async function apiFetch(path, opts = {}) {
 }
 
 const STATE_COLOR = {
-  COMPLETED:  "#00e5a0",
+  COMPLETED:  "var(--accent)",
   RUNNING:    "#0094ff",
-  QUEUED:     "#ffa502",
+  QUEUED:     "var(--color-warning)",
   CREATED:    "#a78bfa",
   VALIDATED:  "#a78bfa",
-  FAILED:     "#ff4757",
-  CANCELLED:  "#6b7280",
+  FAILED:     "var(--color-danger)",
+  CANCELLED:  "var(--color-text-muted)",
 };
 
 function Badge({ state }) {
   return (
     <span style={{
-      fontSize: 9, fontFamily: "var(--mono)", padding: "2px 7px",
-      borderRadius: 3, letterSpacing: "0.06em",
-      background: `${STATE_COLOR[state] || "#6b7280"}22`,
-      color: STATE_COLOR[state] || "#6b7280",
-      border: `1px solid ${STATE_COLOR[state] || "#6b7280"}44`,
+      fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", padding:"2px 7px",
+      borderRadius: 3, letterSpacing:"0.06em",
+      background: `${STATE_COLOR[state] || "var(--color-text-muted)"}22`,
+      color: STATE_COLOR[state] || "var(--color-text-muted)",
+      border: `1px solid ${STATE_COLOR[state] || "var(--color-text-muted)"}44`,
     }}>
       {state}
     </span>
@@ -155,18 +155,18 @@ export default function Jobs() {
           <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
             Jobs
           </div>
-          <div style={{ fontSize: 12, color: "var(--muted)", ...mono }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--color-text-muted)", ...mono }}>
             TES execution engine — port 8081
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={loadData} style={{
-            padding: "6px 12px", borderRadius: 5, fontSize: 11, ...mono,
+            padding: "6px 12px", borderRadius: 5, fontSize: 'var(--font-size-xs)', ...mono,
             background: "var(--bg3)", border: "1px solid var(--border2)",
-            color: "var(--muted)", cursor: "pointer",
+            color: "var(--color-text-muted)", cursor: "pointer",
           }}>↻ Refresh</button>
           <button onClick={() => setShowSubmit(s => !s)} style={{
-            padding: "6px 16px", borderRadius: 5, fontSize: 11,
+            padding: "6px 16px", borderRadius: 5, fontSize: 'var(--font-size-xs)',
             fontFamily: "var(--font)", fontWeight: 600,
             background: "var(--accent)", border: "none", color: "#000", cursor: "pointer",
           }}>+ Submit Run</button>
@@ -176,9 +176,9 @@ export default function Jobs() {
       {/* Error banner */}
       {error && (
         <div style={{
-          padding: "10px 14px", borderRadius: 8,
+          padding: "10px 14px", borderRadius: 'var(--radius)',
           background: "rgba(255,71,87,0.06)", border: "1px solid rgba(255,71,87,0.2)",
-          fontSize: 12, color: "var(--danger)", ...mono,
+          fontSize: 'var(--font-size-sm)', color: "var(--danger)", ...mono,
         }}>
           {error}
         </div>
@@ -188,15 +188,15 @@ export default function Jobs() {
       {showSubmit && (
         <div style={{
           background: "var(--bg3)", border: "1px solid var(--border)",
-          borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 10,
+          borderRadius: 'var(--radius-lg)', padding: 16, display: "flex", flexDirection: "column", gap: 10,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: "var(--text)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
             Submit New Run
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             <div>
-              <label style={{ fontSize: 9, ...mono, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+              <label style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
                 Tool ID
               </label>
               <select
@@ -204,7 +204,7 @@ export default function Jobs() {
                 onChange={e => setToolId(e.target.value)}
                 style={{
                   width: "100%", background: "var(--bg2)", border: "1px solid var(--border2)",
-                  borderRadius: 6, padding: "7px 10px", fontSize: 12, ...mono,
+                  borderRadius: 'var(--radius-sm)', padding: "7px 10px", fontSize: 'var(--font-size-sm)', ...mono,
                   color: "var(--text)", outline: "none",
                 }}
               >
@@ -218,7 +218,7 @@ export default function Jobs() {
             </div>
 
             <div>
-              <label style={{ fontSize: 9, ...mono, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+              <label style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
                 Inputs (JSON)
               </label>
               <textarea
@@ -227,14 +227,14 @@ export default function Jobs() {
                 rows={4}
                 style={{
                   width: "100%", background: "var(--bg2)", border: "1px solid var(--border2)",
-                  borderRadius: 6, padding: "7px 10px", fontSize: 11, ...mono,
+                  borderRadius: 'var(--radius-sm)', padding: "7px 10px", fontSize: 'var(--font-size-xs)', ...mono,
                   color: "var(--text)", outline: "none", resize: "vertical", boxSizing: "border-box",
                 }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 9, ...mono, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+              <label style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
                 Resources (JSON)
               </label>
               <textarea
@@ -243,7 +243,7 @@ export default function Jobs() {
                 rows={4}
                 style={{
                   width: "100%", background: "var(--bg2)", border: "1px solid var(--border2)",
-                  borderRadius: 6, padding: "7px 10px", fontSize: 11, ...mono,
+                  borderRadius: 'var(--radius-sm)', padding: "7px 10px", fontSize: 'var(--font-size-xs)', ...mono,
                   color: "var(--text)", outline: "none", resize: "vertical", boxSizing: "border-box",
                 }}
               />
@@ -251,7 +251,7 @@ export default function Jobs() {
           </div>
 
           {submitErr && (
-            <div style={{ fontSize: 11, color: "var(--danger)", ...mono }}>{submitErr}</div>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: "var(--danger)", ...mono }}>{submitErr}</div>
           )}
 
           <div style={{ display: "flex", gap: 8 }}>
@@ -259,10 +259,10 @@ export default function Jobs() {
               onClick={submitRun}
               disabled={!toolId || submitting}
               style={{
-                padding: "7px 20px", borderRadius: 6, fontSize: 12,
+                padding: "7px 20px", borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-sm)',
                 fontFamily: "var(--font)", fontWeight: 600,
                 background: (!toolId || submitting) ? "var(--bg2)" : "var(--accent)",
-                border: "none", color: (!toolId || submitting) ? "var(--muted)" : "#000",
+                border: "none", color: (!toolId || submitting) ? "var(--color-text-muted)" : "#000",
                 cursor: (!toolId || submitting) ? "not-allowed" : "pointer",
                 opacity: submitting ? 0.6 : 1,
               }}
@@ -270,9 +270,9 @@ export default function Jobs() {
               {submitting ? "Submitting..." : "Submit"}
             </button>
             <button onClick={() => setShowSubmit(false)} style={{
-              padding: "7px 14px", borderRadius: 6, fontSize: 11,
+              padding: "7px 14px", borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-xs)',
               fontFamily: "var(--font)", background: "transparent",
-              border: "1px solid var(--border2)", color: "var(--muted)", cursor: "pointer",
+              border: "1px solid var(--border2)", color: "var(--color-text-muted)", cursor: "pointer",
             }}>
               Cancel
             </button>
@@ -283,16 +283,16 @@ export default function Jobs() {
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
         {[
-          { label: "Total Runs",   value: runs.length,                                         color: "var(--text)"    },
-          { label: "Running",      value: runs.filter(r => r.state === "RUNNING").length,       color: "#0094ff"        },
-          { label: "Completed",    value: runs.filter(r => r.state === "COMPLETED").length,     color: "#00e5a0"        },
-          { label: "Failed",       value: runs.filter(r => r.state === "FAILED").length,        color: "#ff4757"        },
+          { label: "Total Runs",   value: runs.length,                                         color: "var(--text)"          },
+          { label: "Running",      value: runs.filter(r => r.state === "RUNNING").length,       color: "#0094ff"              },
+          { label: "Completed",    value: runs.filter(r => r.state === "COMPLETED").length,     color: "var(--accent)"        },
+          { label: "Failed",       value: runs.filter(r => r.state === "FAILED").length,        color: "var(--color-danger)"  },
         ].map(({ label, value, color }) => (
           <div key={label} style={{
             background: "var(--bg3)", border: "1px solid var(--border)",
-            borderRadius: 8, padding: "10px 14px",
+            borderRadius: 'var(--radius)', padding: "10px 14px",
           }}>
-            <div style={{ fontSize: 9, ...mono, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+            <div style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
               {label}
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color, ...mono }}>{value}</div>
@@ -306,26 +306,26 @@ export default function Jobs() {
         {/* Runs table */}
         <div style={{
           background: "var(--bg3)", border: "1px solid var(--border)",
-          borderRadius: 10, overflow: "hidden",
+          borderRadius: 'var(--radius-lg)', overflow: "hidden",
         }}>
           <div style={{
             padding: "10px 16px", borderBottom: "1px solid var(--border)",
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
-            <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
               Run History
             </span>
-            <span style={{ fontSize: 9, ...mono, color: "var(--muted)" }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
               {runs.length} runs
             </span>
           </div>
 
           {loading ? (
-            <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "var(--muted)", ...mono }}>
+            <div style={{ padding: 20, textAlign: "center", fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", ...mono }}>
               Loading...
             </div>
           ) : runs.length === 0 ? (
-            <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "var(--muted)", ...mono }}>
+            <div style={{ padding: 20, textAlign: "center", fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", ...mono }}>
               No runs yet — submit one above
             </div>
           ) : (
@@ -335,7 +335,7 @@ export default function Jobs() {
                   {["Run ID", "Tool", "State", "Server", "Created", ""].map(h => (
                     <th key={h} style={{
                       padding: "7px 14px", textAlign: h === "" ? "right" : "left",
-                      fontSize: 9, ...mono, color: "var(--muted)",
+                      fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)",
                       letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500,
                     }}>{h}</th>
                   ))}
@@ -353,22 +353,22 @@ export default function Jobs() {
                     onMouseEnter={e => { if (selected !== run.run_id) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
                     onMouseLeave={e => { if (selected !== run.run_id) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <td style={{ padding: "9px 14px", fontSize: 10, ...mono, color: "var(--muted)" }}>
+                    <td style={{ padding: "9px 14px", fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
                       {run.run_id.slice(0, 14)}…
                     </td>
-                    <td style={{ padding: "9px 14px", fontSize: 11, color: "var(--text)", fontWeight: 500 }}>
+                    <td style={{ padding: "9px 14px", fontSize: 'var(--font-size-xs)', color: "var(--text)", fontWeight: 500 }}>
                       {run.tool_id}
                     </td>
                     <td style={{ padding: "9px 14px" }}>
                       <Badge state={run.state} />
                     </td>
-                    <td style={{ padding: "9px 14px", fontSize: 10, ...mono, color: "var(--muted)" }}>
+                    <td style={{ padding: "9px 14px", fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
                       {run.server_id || "—"}
                     </td>
-                    <td style={{ padding: "9px 14px", fontSize: 10, ...mono, color: "var(--muted)" }}>
+                    <td style={{ padding: "9px 14px", fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
                       {ts(run.created_epoch)}
                     </td>
-                    <td style={{ padding: "9px 14px", textAlign: "right", fontSize: 10, ...mono, color: "var(--accent2)" }}>
+                    <td style={{ padding: "9px 14px", textAlign: "right", fontSize: 'var(--font-size-xs)', ...mono, color: "var(--accent2)" }}>
                       →
                     </td>
                   </tr>
@@ -382,18 +382,18 @@ export default function Jobs() {
         {selected && (
           <div style={{
             background: "var(--bg3)", border: "1px solid var(--border)",
-            borderRadius: 10, overflow: "hidden", display: "flex", flexDirection: "column",
+            borderRadius: 'var(--radius-lg)', overflow: "hidden", display: "flex", flexDirection: "column",
           }}>
             <div style={{
               padding: "10px 16px", borderBottom: "1px solid var(--border)",
               display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
             }}>
-              <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
+              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
                 Run Detail
               </span>
               <button onClick={() => setSelected(null)} style={{
-                background: "transparent", border: "none", color: "var(--muted)",
-                cursor: "pointer", fontSize: 14, padding: 0,
+                background: "transparent", border: "none", color: "var(--color-text-muted)",
+                cursor: "pointer", fontSize: 'var(--font-size-md)', padding: 0,
               }}>✕</button>
             </div>
 
@@ -410,20 +410,20 @@ export default function Jobs() {
                     ["Exit Code", detail.exit_code ?? "—"],
                   ].map(([k, v]) => (
                     <div key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                      <span style={{ fontSize: 9, ...mono, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0, width: 70, paddingTop: 1 }}>
+                      <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0, width: 70, paddingTop: 1 }}>
                         {k}
                       </span>
-                      <span style={{ fontSize: 11, ...mono, color: "var(--text)" }}>{v}</span>
+                      <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--text)" }}>{v}</span>
                     </div>
                   ))}
                   {detail.inputs && Object.keys(detail.inputs).length > 0 && (
                     <div>
-                      <div style={{ fontSize: 9, ...mono, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+                      <div style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
                         Inputs
                       </div>
                       <pre style={{
-                        fontSize: 10, ...mono, color: "var(--text)",
-                        background: "var(--bg2)", padding: "8px 10px", borderRadius: 6,
+                        fontSize: 'var(--font-size-xs)', ...mono, color: "var(--text)",
+                        background: "var(--bg2)", padding: "8px 10px", borderRadius: 'var(--radius-sm)',
                         margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all",
                       }}>
                         {JSON.stringify(detail.inputs, null, 2)}
@@ -432,12 +432,12 @@ export default function Jobs() {
                   )}
                   {detail.error && (
                     <div>
-                      <div style={{ fontSize: 9, ...mono, color: "var(--danger)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+                      <div style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--danger)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
                         Error
                       </div>
                       <pre style={{
-                        fontSize: 10, ...mono, color: "var(--danger)",
-                        background: "rgba(255,71,87,0.06)", padding: "8px 10px", borderRadius: 6,
+                        fontSize: 'var(--font-size-xs)', ...mono, color: "var(--danger)",
+                        background: "rgba(255,71,87,0.06)", padding: "8px 10px", borderRadius: 'var(--radius-sm)',
                         margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all",
                       }}>
                         {JSON.stringify(detail.error, null, 2)}
@@ -447,12 +447,12 @@ export default function Jobs() {
                 </div>
               )}
 
-              <div style={{ fontSize: 9, ...mono, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
                 Logs
               </div>
               <pre style={{
-                fontSize: 10, ...mono, color: "var(--text)",
-                background: "var(--bg2)", padding: "10px 12px", borderRadius: 6,
+                fontSize: 'var(--font-size-xs)', ...mono, color: "var(--text)",
+                background: "var(--bg2)", padding: "10px 12px", borderRadius: 'var(--radius-sm)',
                 margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all",
                 maxHeight: 320, overflowY: "auto",
               }}>
@@ -469,35 +469,35 @@ export default function Jobs() {
         {/* Servers */}
         <div style={{
           background: "var(--bg3)", border: "1px solid var(--border)",
-          borderRadius: 10, overflow: "hidden",
+          borderRadius: 'var(--radius-lg)', overflow: "hidden",
         }}>
           <div style={{
             padding: "10px 16px", borderBottom: "1px solid var(--border)",
             display: "flex", alignItems: "center", gap: 8,
           }}>
-            <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
               Execution Servers
             </span>
-            <span style={{ fontSize: 9, ...mono, color: "var(--muted)" }}>{servers.length}</span>
+            <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>{servers.length}</span>
           </div>
           {servers.length === 0 ? (
-            <div style={{ padding: 14, fontSize: 11, color: "var(--muted)", ...mono }}>No servers configured</div>
+            <div style={{ padding: 14, fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", ...mono }}>No servers configured</div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
                   {["Server ID", "Adapter", "Status"].map(h => (
-                    <th key={h} style={{ padding: "6px 14px", textAlign: "left", fontSize: 9, ...mono, color: "var(--muted)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
+                    <th key={h} style={{ padding: "6px 14px", textAlign: "left", fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {servers.map((s, i) => (
                   <tr key={s.server_id} style={{ borderBottom: i < servers.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <td style={{ padding: "8px 14px", fontSize: 11, color: "var(--text)", fontWeight: 500 }}>{s.server_id}</td>
-                    <td style={{ padding: "8px 14px", fontSize: 10, ...mono, color: "var(--muted)" }}>{s.adapter_type}</td>
+                    <td style={{ padding: "8px 14px", fontSize: 'var(--font-size-xs)', color: "var(--text)", fontWeight: 500 }}>{s.server_id}</td>
+                    <td style={{ padding: "8px 14px", fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>{s.adapter_type}</td>
                     <td style={{ padding: "8px 14px" }}>
-                      <span style={{ fontSize: 9, ...mono, color: s.capabilities ? "#00e5a0" : "#ffa502" }}>
+                      <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: s.capabilities ? "var(--accent)" : "var(--color-warning)" }}>
                         {s.capabilities ? "● ready" : "◐ pending"}
                       </span>
                     </td>
@@ -511,19 +511,19 @@ export default function Jobs() {
         {/* Tools */}
         <div style={{
           background: "var(--bg3)", border: "1px solid var(--border)",
-          borderRadius: 10, overflow: "hidden",
+          borderRadius: 'var(--radius-lg)', overflow: "hidden",
         }}>
           <div style={{
             padding: "10px 16px", borderBottom: "1px solid var(--border)",
             display: "flex", alignItems: "center", gap: 8,
           }}>
-            <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
               Registered Tools
             </span>
-            <span style={{ fontSize: 9, ...mono, color: "var(--muted)" }}>{tools.length}</span>
+            <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>{tools.length}</span>
           </div>
           {tools.length === 0 ? (
-            <div style={{ padding: 14, fontSize: 11, color: "var(--muted)", ...mono }}>No tools registered</div>
+            <div style={{ padding: 14, fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", ...mono }}>No tools registered</div>
           ) : (
             <div style={{ padding: "4px 0", maxHeight: 220, overflowY: "auto" }}>
               {tools.map(t => (
@@ -531,8 +531,8 @@ export default function Jobs() {
                   padding: "7px 14px", borderBottom: "1px solid var(--border)",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                 }}>
-                  <span style={{ fontSize: 11, color: "var(--text)", fontWeight: 500 }}>{t.tool_id}</span>
-                  <span style={{ fontSize: 9, ...mono, color: "var(--muted)" }}>
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: "var(--text)", fontWeight: 500 }}>{t.tool_id}</span>
+                  <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
                     {[t.http && "http", t.slurm && "slurm"].filter(Boolean).join(" · ") || "local"}
                   </span>
                 </div>

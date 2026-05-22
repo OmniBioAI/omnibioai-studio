@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,14 +19,34 @@
   --warn: #ffa502;
   --font: system-ui, -apple-system, sans-serif;
   --mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+
+  /* Phase 2 unified token aliases */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-warning: var(--warn);
+  --color-text-muted: var(--muted);
+  --color-text-secondary: #9ca3af;
+  --color-bg: var(--bg);
+  --color-bg-surface: var(--bg2);
+  --color-bg-elevated: var(--bg3);
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
+body, #root {
+  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+  background: var(--bg, #0a0c10);
+  color: var(--text, #e8eaf0);
   overflow: hidden;
 }
 

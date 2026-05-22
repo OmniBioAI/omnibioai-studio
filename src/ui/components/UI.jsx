@@ -5,7 +5,7 @@ export function Panel({ children, style }) {
     <div style={{
       background: "var(--bg3)",
       border: "1px solid var(--border)",
-      borderRadius: 10,
+      borderRadius: 'var(--radius-lg)',
       overflow: "hidden",
       ...style,
     }}>
@@ -27,7 +27,7 @@ export function PanelHeader({ title, icon, iconColor, children }) {
     }}>
       <div style={{
         display: "flex", alignItems: "center", gap: 6,
-        fontSize: 11, fontWeight: 500, letterSpacing: "0.06em",
+        fontSize: 'var(--font-size-xs)', fontWeight: 500, letterSpacing: "0.06em",
         textTransform: "uppercase", color: "var(--text)",
       }}>
         {icon && (
@@ -58,7 +58,7 @@ export function FormRow({ label, children }) {
   return (
     <div style={{ marginBottom: 12 }}>
       <label style={{
-        fontSize: 10, fontFamily: "var(--mono)", color: "var(--muted)",
+        fontSize: 'var(--font-size-xs)', fontFamily: "var(--mono)", color: "var(--color-text-muted)",
         letterSpacing: "0.08em", textTransform: "uppercase",
         marginBottom: 6, display: "block",
       }}>
@@ -82,9 +82,9 @@ export function Input({ type = "text", placeholder, value, onChange }) {
         width: "100%",
         background: "var(--bg2)",
         border: "1px solid var(--border2)",
-        borderRadius: 6,
+        borderRadius: 'var(--radius-sm)',
         padding: "7px 10px",
-        fontSize: 12,
+        fontSize: 'var(--font-size-sm)',
         fontFamily: "var(--mono)",
         color: "var(--text)",
         outline: "none",
@@ -106,9 +106,9 @@ export function Textarea({ placeholder, value, onChange, rows = 4 }) {
         width: "100%",
         background: "var(--bg2)",
         border: "1px solid var(--border2)",
-        borderRadius: 6,
+        borderRadius: 'var(--radius-sm)',
         padding: "7px 10px",
-        fontSize: 11,
+        fontSize: 'var(--font-size-xs)',
         fontFamily: "var(--mono)",
         color: "var(--text)",
         outline: "none",
@@ -128,9 +128,9 @@ export function Select({ value, onChange, options }) {
         width: "100%",
         background: "var(--bg2)",
         border: "1px solid var(--border2)",
-        borderRadius: 6,
+        borderRadius: 'var(--radius-sm)',
         padding: "7px 10px",
-        fontSize: 12,
+        fontSize: 'var(--font-size-sm)',
         fontFamily: "var(--mono)",
         color: "var(--text)",
         outline: "none",
@@ -160,12 +160,12 @@ export function ToggleRow({ label, sub, value, onChange }) {
       display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: "7px 0", borderBottom: "1px solid var(--border)",
     }}>
-      <div style={{ fontSize: 12, color: "var(--text)" }}>
+      <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--text)" }}>
         {label}
         {sub && (
           <span style={{
-            fontSize: 10, fontFamily: "var(--mono)",
-            color: "var(--muted)", display: "block", marginTop: 1,
+            fontSize: 'var(--font-size-xs)', fontFamily: "var(--mono)",
+            color: "var(--color-text-muted)", display: "block", marginTop: 1,
           }}>
             {sub}
           </span>
@@ -184,7 +184,7 @@ export function HealthCard({ label, status, port }) {
     <div style={{
       background: "var(--bg3)",
       border: "1px solid var(--border)",
-      borderRadius: 8,
+      borderRadius: 'var(--radius)',
       padding: "10px 12px",
       position: "relative",
       overflow: "hidden",
@@ -194,15 +194,15 @@ export function HealthCard({ label, status, port }) {
         height: 2, background: color,
       }} />
       <div style={{
-        fontSize: 9, fontFamily: "var(--mono)", color: "var(--muted)",
+        fontSize: 'var(--font-size-xs)', fontFamily: "var(--mono)", color: "var(--color-text-muted)",
         letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6,
       }}>
         {label}
       </div>
-      <div style={{ fontSize: 11, fontWeight: 500, fontFamily: "var(--mono)", color }}>
+      <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, fontFamily: "var(--mono)", color }}>
         {labelMap[status]}
       </div>
-      <div style={{ fontSize: 9, color: "var(--muted)", fontFamily: "var(--mono)", marginTop: 2 }}>
+      <div style={{ fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", fontFamily: "var(--mono)", marginTop: 2 }}>
         {port}
       </div>
     </div>
@@ -211,7 +211,7 @@ export function HealthCard({ label, status, port }) {
 
 export function Btn({ children, variant = "ghost", onClick, disabled, style }) {
   const variants = {
-    ghost:   { background: "transparent", border: "1px solid var(--border2)", color: "var(--muted)" },
+    ghost:   { background: "transparent", border: "1px solid var(--border2)", color: "var(--color-text-muted)" },
     primary: { background: "var(--accent)", border: "none", color: "#000" },
     danger:  { background: "rgba(255,71,87,0.12)", border: "1px solid rgba(255,71,87,0.25)", color: "var(--danger)" },
   };
@@ -220,7 +220,7 @@ export function Btn({ children, variant = "ghost", onClick, disabled, style }) {
       onClick={onClick}
       disabled={disabled}
       style={{
-        padding: "7px 16px", borderRadius: 6, fontSize: 11,
+        padding: "7px 16px", borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-xs)',
         fontFamily: "var(--font)", fontWeight: 500,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,

@@ -16,7 +16,7 @@ export default function LLM({ config, setConfig }) {
         <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
           LLM Configuration
         </div>
-        <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--mono)" }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
           configure local, cloud, and enterprise AI providers
         </div>
       </div>

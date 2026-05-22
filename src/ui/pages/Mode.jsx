@@ -41,7 +41,7 @@ export default function Mode({ config, setConfig }) {
         <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
           Runtime Mode
         </div>
-        <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--mono)" }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
           select execution backend for workflow orchestration
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function Mode({ config, setConfig }) {
                 border: isSelected
                   ? "1px solid rgba(0,229,160,0.4)"
                   : "1px solid var(--border)",
-                borderRadius: 8,
+                borderRadius: 'var(--radius)',
                 padding: "10px 12px",
                 cursor: "pointer",
                 transition: "all 0.15s",
@@ -74,7 +74,7 @@ export default function Mode({ config, setConfig }) {
             >
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 500,
                   color: isSelected ? "var(--accent)" : "var(--text)",
                   marginBottom: 4,
@@ -89,7 +89,7 @@ export default function Mode({ config, setConfig }) {
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
-                    border: isSelected ? "none" : "1px solid var(--muted)",
+                    border: isSelected ? "none" : "1px solid var(--color-text-muted)",
                     background: isSelected ? "var(--accent)" : "transparent",
                     transition: "all 0.15s",
                   }}
@@ -97,9 +97,9 @@ export default function Mode({ config, setConfig }) {
               </div>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 'var(--font-size-xs)',
                   fontFamily: "var(--mono)",
-                  color: "var(--muted)",
+                  color: "var(--color-text-muted)",
                   lineHeight: 1.6,
                   whiteSpace: "pre-line",
                 }}
@@ -114,7 +114,7 @@ export default function Mode({ config, setConfig }) {
       {/* Health Grid */}
       <Panel>
         <PanelHeader title="Service Health" icon iconColor="teal">
-          <span style={{ fontSize: 10, fontFamily: "var(--mono)", color: "var(--muted)" }}>
+          <span style={{ fontSize: 'var(--font-size-xs)', fontFamily: "var(--mono)", color: "var(--color-text-muted)" }}>
             last check: 2s ago
           </span>
         </PanelHeader>

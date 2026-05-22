@@ -16,7 +16,7 @@ export default function Cloud({ config, setConfig }) {
         <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
           Cloud Configuration
         </div>
-        <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--mono)" }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
           connect to AWS, Azure, GCP, or Kubernetes compute backends
         </div>
       </div>
@@ -241,9 +241,9 @@ export default function Cloud({ config, setConfig }) {
                 padding: "5px 12px",
                 borderRadius: 5,
                 border: "1px solid var(--border)",
-                fontSize: 10,
+                fontSize: 'var(--font-size-xs)',
                 fontFamily: "var(--mono)",
-                color: "var(--muted)",
+                color: "var(--color-text-muted)",
               }}
             >
               {p}
