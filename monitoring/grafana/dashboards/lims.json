@@ -1,0 +1,157 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "OmniBioAI LIMS — sample tracking, endpoint breakdown, auth failures, DB latency, cache hits",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "increase(django_http_responses_total_by_status_view_method_total{job=\"omnibioai-lims\", view=~\".*sample.*\", method=\"POST\"}[5m])",
+          "legendFormat": "Samples created (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(django_http_responses_total_by_status_view_method_total{job=\"omnibioai-lims\", view=~\".*sample.*\", method=\"POST\", status=\"201\"}) by (view)",
+          "legendFormat": "Total created — {{view}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Total Samples Created Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 5 },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum(rate(django_http_responses_total_by_status_view_method_total{job=\"omnibioai-lims\"}[5m])) by (view, method)",
+          "legendFormat": "{{method}} {{view}}",
+          "refId": "A"
+        }
+      ],
+      "title": "API Endpoint Breakdown (req/s by view + method)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum(increase(django_http_responses_total_by_status_view_method_total{job=\"omnibioai-lims\", status=\"401\"}[5m]))",
+          "legendFormat": "401 Auth Failures (5m)",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth Failures (401 count)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 5 },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(django_db_execute_many_duration_seconds_bucket{job=\"omnibioai-lims\"}[5m])) by (le, vendor))",
+          "legendFormat": "DB p50 {{vendor}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(django_db_execute_many_duration_seconds_bucket{job=\"omnibioai-lims\"}[5m])) by (le, vendor))",
+          "legendFormat": "DB p95 {{vendor}}",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(django_db_query_duration_seconds_bucket{job=\"omnibioai-lims\"}[5m])) by (le, vendor))",
+          "legendFormat": "Query p50 {{vendor}}",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(django_db_query_duration_seconds_bucket{job=\"omnibioai-lims\"}[5m])) by (le, vendor))",
+          "legendFormat": "Query p95 {{vendor}}",
+          "refId": "D"
+        }
+      ],
+      "title": "Database Query Duration (p50 / p95)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum(rate(django_cache_get_hits_total{job=\"omnibioai-lims\"}[5m])) / (sum(rate(django_cache_get_hits_total{job=\"omnibioai-lims\"}[5m])) + sum(rate(django_cache_get_misses_total{job=\"omnibioai-lims\"}[5m])))",
+          "legendFormat": "Cache hit rate",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Cache Hit Rate",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["omnibioai", "lims"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "OmniBioAI LIMS",
+  "uid": "omnibioai-lims",
+  "version": 1
+}
