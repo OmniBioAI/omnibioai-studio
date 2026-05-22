@@ -14,78 +14,78 @@ function buildCategories(HOST, BASE) {
       name: "Platform Services",
       color: "var(--muted)",
       links: [
-        { label:"Getting Started",  url:`http://${HOST}:8086/guide.html`,   icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
-        { label:"Video Tutorials",  url:`http://${HOST}:8086`,              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
-        { label:"Workbench",        url:`${BASE}/`,                         icon:"🏠", desc:"Dashboard"                        },
-        { label:"Control Center",   url:`http://${HOST}:7070`,              icon:"🖥️", desc:"Health + Docker imgs"             },
-        { label:"LIMS",             url:`http://${HOST}:7000`,              icon:"🧪", desc:"Lab data management"              },
-        { label:"Model Registry",   url:`http://${HOST}:5176`,              icon:"🧬", desc:"ML model versioning"              },
-        { label:"RAG / Lit AI",     url:`http://${HOST}:5175`,              icon:"📚", desc:"PubMed RAG + DeepSeek"            },
-        { label:"TES / Jobs",       url:`http://${HOST}:5177`,              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"              },
-        { label:"Tool Images",      url:`http://${HOST}:5179`,              icon:"🐳", desc:"ARM64 SIF dashboard"              },
-        { label:"SDK Launcher",     url:`http://${HOST}:5190`,              icon:"🔬", desc:"Analysis · SDK tools"             },
-        { label:"Workflows",        url:`http://${HOST}:5178`,              icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
-        { label:"Dev Hub",          url:`http://${HOST}:5173`,              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
+        { label:"Getting Started",  url:"/_svc/videos/guide.html",   icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
+        { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
+        { label:"Workbench",        url:"/_svc/workbench/",                         icon:"🏠", desc:"Dashboard"                        },
+        { label:"Control Center",   url:"/_svc/control",              icon:"🖥️", desc:"Health + Docker imgs"             },
+        { label:"LIMS",             url:"/_svc/lims",              icon:"🧪", desc:"Lab data management"              },
+        { label:"Model Registry",   url:"/_svc/modelregistry",              icon:"🧬", desc:"ML model versioning"              },
+        { label:"RAG / Lit AI",     url:"/_svc/rag",              icon:"📚", desc:"PubMed RAG + DeepSeek"            },
+        { label:"TES / Jobs",       url:"/_svc/tes",              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"              },
+        { label:"Tool Images",      url:"/_svc/toolimages",              icon:"🐳", desc:"ARM64 SIF dashboard"              },
+        { label:"SDK Launcher",     url:"/_svc/sdk",              icon:"🔬", desc:"Analysis · SDK tools"             },
+        { label:"Workflows",        url:"/_svc/workflows",              icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
+        { label:"Dev Hub",          url:"/_svc/devhub",              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
       ]
     },
     {
       name: "Security Control Plane",
       color: "#f87171",
       links: [
-        { label:"API Gateway",      url:`http://${HOST}:8080/docs`,         icon:"🔐", desc:"Entry point · JWT enforcement"    },
-        { label:"Auth Service",     url:`http://${HOST}:8001/docs`,         icon:"🪪", desc:"JWT · Login · Register"           },
-        { label:"Policy Engine",    url:`http://${HOST}:8002/docs`,         icon:"📋", desc:"RBAC · ABAC decisions"            },
-        { label:"HPC Policy",       url:`http://${HOST}:8003/`,         icon:"⚡", desc:"GPU/CPU quota governance"         },
-        { label:"Security Audit",   url:`http://${HOST}:8004/docs`,         icon:"📝", desc:"Redis Streams audit log"          },
-        { label:"OPA",              url:`http://${HOST}:8181`,              icon:"🛡️", desc:"Open Policy Agent"               },
+        { label:"API Gateway",      url:"/_svc/gateway/docs",         icon:"🔐", desc:"Entry point · JWT enforcement"    },
+        { label:"Auth Service",     url:"/_svc/auth/docs",         icon:"🪪", desc:"JWT · Login · Register"           },
+        { label:"Policy Engine",    url:"/_svc/policy/docs",         icon:"📋", desc:"RBAC · ABAC decisions"            },
+        { label:"HPC Policy",       url:"/_svc/hpc/",         icon:"⚡", desc:"GPU/CPU quota governance"         },
+        { label:"Security Audit",   url:"/_svc/audit/docs",         icon:"📝", desc:"Redis Streams audit log"          },
+        { label:"OPA",              url:"/_svc/opa",              icon:"🛡️", desc:"Open Policy Agent"               },
       ]
     },
     {
       name: "Core Platform",
       color: "var(--accent)",
       links: [
-        { label:"Home",             url:`${BASE}/`,                                    icon:"🏠", desc:"Dashboard"              },
-        { label:"OnboardAI",        url:`${BASE}/plugins/onboardai/`,                  icon:"🤖", desc:"AI developer tools"     },
-        { label:"Omni Assistant",   url:`${BASE}/plugins/omni_assistant/`,             icon:"💬", desc:"AI assistant"           },
-        { label:"Job Monitor",      url:`${BASE}/plugins/job_monitor/`,                icon:"📊", desc:"Monitor jobs"           },
-        { label:"Plugin Manager",   url:`${BASE}/plugins/plugin_manager/`,             icon:"🔌", desc:"Manage plugins"         },
-        { label:"Admin",            url:`${BASE}/admin/`,                              icon:"⚙️", desc:"Django admin"           },
+        { label:"Home",             url:"/_svc/workbench/",                                    icon:"🏠", desc:"Dashboard"              },
+        { label:"OnboardAI",        url:"/_svc/workbench/plugins/onboardai/",                  icon:"🤖", desc:"AI developer tools"     },
+        { label:"Omni Assistant",   url:"/_svc/workbench/plugins/omni_assistant/",             icon:"💬", desc:"AI assistant"           },
+        { label:"Job Monitor",      url:"/_svc/workbench/plugins/job_monitor/",                icon:"📊", desc:"Monitor jobs"           },
+        { label:"Plugin Manager",   url:"/_svc/workbench/plugins/plugin_manager/",             icon:"🔌", desc:"Manage plugins"         },
+        { label:"Admin",            url:"/_svc/workbench/admin/",                              icon:"⚙️", desc:"Django admin"           },
       ]
     },
     {
       name: "Workflows",
       color: "var(--accent2)",
       links: [
-        { label:"Workflow Runner",  url:`${BASE}/plugins/workflow_runner/`,            icon:"⚡", desc:"Run workflows"          },
-        { label:"Workflow Builder", url:`${BASE}/plugins/workflow_builder/`,           icon:"🔧", desc:"Build workflows"        },
-        { label:"Agent Studio",     url:`${BASE}/plugins/agent-workflows/`,            icon:"🤝", desc:"Multi-agent workflows"  },
-        { label:"Pipeline",         url:`${BASE}/pipeline-dashboard/`,                 icon:"🔄", desc:"Pipeline dashboard"     },
-        { label:"Multi-Agent Orchestrator", url:`${BASE}/plugins/multi_agent_bio_orchestrator/`, icon:"🤖", desc:"Multi-agent biological workflows" },
-        { label:"Workflow Compiler", url:`${BASE}/plugins/workflow_compiler/`,         icon:"⚙️", desc:"Compile and optimize workflows" },
+        { label:"Workflow Runner",  url:"/_svc/workbench/plugins/workflow_runner/",            icon:"⚡", desc:"Run workflows"          },
+        { label:"Workflow Builder", url:"/_svc/workbench/plugins/workflow_builder/",           icon:"🔧", desc:"Build workflows"        },
+        { label:"Agent Studio",     url:"/_svc/workbench/plugins/agent-workflows/",            icon:"🤝", desc:"Multi-agent workflows"  },
+        { label:"Pipeline",         url:"/_svc/workbench/pipeline-dashboard/",                 icon:"🔄", desc:"Pipeline dashboard"     },
+        { label:"Multi-Agent Orchestrator", url:"/_svc/workbench/plugins/multi_agent_bio_orchestrator/", icon:"🤖", desc:"Multi-agent biological workflows" },
+        { label:"Workflow Compiler", url:"/_svc/workbench/plugins/workflow_compiler/",         icon:"⚙️", desc:"Compile and optimize workflows" },
       ]
     },
     {
       name: "Omics Analysis",
       color: "var(--accent3)",
       links: [
-        { label:"RNA-Seq",          url:`${BASE}/plugins/rnaseq_analysis/`,            icon:"🧬", desc:"RNA-Seq analysis"       },
-        { label:"Single Cell",      url:`${BASE}/plugins/single_cell_analysis/`,       icon:"🔬", desc:"scRNA-Seq"              },
-        { label:"Exome Analysis",   url:`${BASE}/plugins/exome_analysis/`,             icon:"🧫", desc:"Exome sequencing"       },
-        { label:"FASTQ QC",         url:`${BASE}/plugins/fastq_qc/`,                   icon:"✅", desc:"Quality control"        },
-        { label:"Proteomics",       url:`${BASE}/plugins/proteomics/`,                 icon:"⚗️", desc:"Proteomics analysis"    },
-        { label:"Metabolomics",     url:`${BASE}/plugins/metabolomics_analysis/`,      icon:"🔭", desc:"Metabolomics"           },
+        { label:"RNA-Seq",          url:"/_svc/workbench/plugins/rnaseq_analysis/",            icon:"🧬", desc:"RNA-Seq analysis"       },
+        { label:"Single Cell",      url:"/_svc/workbench/plugins/single_cell_analysis/",       icon:"🔬", desc:"scRNA-Seq"              },
+        { label:"Exome Analysis",   url:"/_svc/workbench/plugins/exome_analysis/",             icon:"🧫", desc:"Exome sequencing"       },
+        { label:"FASTQ QC",         url:"/_svc/workbench/plugins/fastq_qc/",                   icon:"✅", desc:"Quality control"        },
+        { label:"Proteomics",       url:"/_svc/workbench/plugins/proteomics/",                 icon:"⚗️", desc:"Proteomics analysis"    },
+        { label:"Metabolomics",     url:"/_svc/workbench/plugins/metabolomics_analysis/",      icon:"🔭", desc:"Metabolomics"           },
       ]
     },
     {
       name: "AI & Intelligence",
       color: "#a78bfa",
       links: [
-        { label:"Drug Target AI",   url:`${BASE}/plugins/drug_target_intelligence/`,   icon:"💊", desc:"Drug target analysis"  },
-        { label:"Literature AI",    url:`http://${HOST}:5175`,                                  icon:"📚", desc:"PubMed RAG + DeepSeek" },
-        { label:"Pathway Enrichment",url:`${BASE}/plugins/pathway_enrichment/`,        icon:"🔗", desc:"Pathway analysis"      },
-        { label:"Bio Hypothesis",   url:`${BASE}/plugins/bio_hypothesis_ai/`,          icon:"🧠", desc:"Hypothesis generation" },
-        { label:"Literature Summarizer", url:`${BASE}/plugins/literature_summarizer/`, icon:"📄", desc:"AI-powered paper summarization" },
-        { label:"Bio Narrator AI",  url:`${BASE}/plugins/bio_narrator_ai/`,            icon:"🧠", desc:"Biological narrative generation" },
+        { label:"Drug Target AI",   url:"/_svc/workbench/plugins/drug_target_intelligence/",   icon:"💊", desc:"Drug target analysis"  },
+        { label:"Literature AI",    url:"/_svc/rag",                                  icon:"📚", desc:"PubMed RAG + DeepSeek" },
+        { label:"Pathway Enrichment",url:"/_svc/workbench/plugins/pathway_enrichment/",        icon:"🔗", desc:"Pathway analysis"      },
+        { label:"Bio Hypothesis",   url:"/_svc/workbench/plugins/bio_hypothesis_ai/",          icon:"🧠", desc:"Hypothesis generation" },
+        { label:"Literature Summarizer", url:"/_svc/workbench/plugins/literature_summarizer/", icon:"📄", desc:"AI-powered paper summarization" },
+        { label:"Bio Narrator AI",  url:"/_svc/workbench/plugins/bio_narrator_ai/",            icon:"🧠", desc:"Biological narrative generation" },
       ]
     }
   ];
@@ -96,7 +96,7 @@ export default function Workbench() {
   const [online,   setOnline]   = useState(false);
   const [checking, setChecking] = useState(true);
 
-  const BASE       = `http://${host}:8000`;
+  const BASE       = "/_svc/workbench";
   const CATEGORIES = useMemo(() => buildCategories(host, BASE), [host, BASE]);
 
   // Load saved server IP from config on mount

@@ -47,6 +47,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai-tes
       dockerfile: Dockerfile.new
+      target: backend
     ports:
       - "${HOST_IP:-0.0.0.0}:8081:8081"
       - "${HOST_IP:-0.0.0.0}:5177:5177"
@@ -64,7 +65,7 @@ services:
       HPC_POLICY_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
       REDIS_URL: redis://redis:6379
-      OMNIBIOAI_EXTRA_MOUNTS: /usr/bin/docker:/usr/bin/singularity:/usr/bin/unsquashfs:/usr/bin/squashfuse:/lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/etc/singularity:/usr/lib/aarch64-linux-gnu/singularity:/var/lib/singularity:/home/manish/Desktop/machine/omnibioai-tool-images/sif:/home/manish/Desktop/machine/omnibioai
+      OMNIBIOAI_EXTRA_MOUNTS: /usr/bin/docker:/usr/bin/singularity:/usr/bin/unsquashfs:/usr/bin/squashfuse:/usr/bin/fusermount:/usr/bin/fusermount3:/lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/etc/singularity:/usr/lib/aarch64-linux-gnu/singularity:/var/lib/singularity:/home/manish/Desktop/machine/omnibioai-tool-images/sif:/home/manish/Desktop/machine/omnibioai
       SINGULARITY_CACHEDIR: /tmp/singularity_cache
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
     volumes:
@@ -74,6 +75,8 @@ services:
       - /usr/bin/singularity:/usr/bin/singularity:ro
       - /usr/bin/unsquashfs:/usr/bin/unsquashfs:ro
       - /usr/bin/squashfuse:/usr/bin/squashfuse:ro
+      - /usr/bin/fusermount:/usr/bin/fusermount:ro
+      - /usr/bin/fusermount3:/usr/bin/fusermount3:ro
       - /lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/libseccomp.so.2:ro
       - /lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:ro
       - /lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:ro
@@ -108,6 +111,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai-model-registry
       dockerfile: Dockerfile.new
+      target: backend
     # image: ghcr.io/man4ish/omnibioai-model-registry:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8095:8095"
@@ -131,6 +135,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai-lims
       dockerfile: Dockerfile.new
+      target: backend
     image: omnibioai-lims-local
     ports:
       - "7000:7000"
@@ -163,6 +168,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai-rag
       dockerfile: Dockerfile.new
+      target: backend
     # image: ghcr.io/man4ish/omnibioai-rag:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8090:8096"
@@ -173,6 +179,8 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       IAM_URL: http://auth-service:8001
       GATEWAY_URL: http://api-gateway:8080
+      RAGBIO_API_KEY: ${RAGBIO_API_KEY}
+      RAGBIO_HOST: 0.0.0.0
     depends_on:
       - ollama
 
@@ -180,6 +188,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai
       dockerfile: Dockerfile.new
+      target: backend
     # image: ghcr.io/man4ish/omnibioai-app:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
@@ -204,6 +213,8 @@ services:
       OMNIBIOAI_TES_URL: http://tes:8081
       OMNIBIOAI_MYSQL_HOST: mysql
       GATEWAY_URL: http://api-gateway:8080
+      RAGBIO_API_KEY: ${RAGBIO_API_KEY}
+      RAGBIO_HOST: 0.0.0.0
       OMNIBIOAI_MYSQL_PORT: "3306"
       OMNIBIOAI_MYSQL_USER: root
       OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
@@ -233,6 +244,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai
       dockerfile: Dockerfile.new
+      target: backend
     # image: ghcr.io/man4ish/omnibioai-app:latest
     environment:
       DEBUG: "1"
@@ -268,6 +280,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai-control-center
       dockerfile: Dockerfile.new
+      target: backend
     # image: ghcr.io/man4ish/omnibioai-control-center:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:7070:7070"
@@ -284,8 +297,8 @@ services:
       - /home/manish/Desktop/machine/omnibioai-control-center/config:/config:ro
       - /home/manish/Desktop/machine/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
     command: >-
-      bash -c "pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
-      exec uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
+      sh -c "/usr/local/bin/pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
+      exec /usr/local/bin/uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
     depends_on:
       - workbench
       - tes
@@ -295,6 +308,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai-dev-hub
       dockerfile: Dockerfile.new
+      target: backend
     # image: ghcr.io/man4ish/omnibioai-dev-hub:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:5173:5173"
@@ -322,6 +336,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai-workflow-bundles
       dockerfile: Dockerfile.new
+      target: backend
     # image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8098:8098"
@@ -342,6 +357,7 @@ services:
     build:
       context: /home/manish/Desktop/machine/omnibioai-tool-images
       dockerfile: Dockerfile.new
+      target: backend
     # image: ghcr.io/man4ish/omnibioai-tool-images:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8097:8097"
