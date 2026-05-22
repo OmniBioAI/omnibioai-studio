@@ -56,6 +56,8 @@ export default defineConfig({
       "/_svc/sdk":        { target: `http://${HOST}:5190`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/sdk/, "") || "/" },
       "/_svc/opa":        { target: `http://${HOST}:8181`, changeOrigin: true },
       "/_svc/videos":    { target: `http://${HOST}:8086`, changeOrigin: true },
+      "/_svc/prometheus": { target: "http://localhost:9090", changeOrigin: true, secure: false, rewrite: (p) => p.replace(/^\/_svc\/prometheus/, "") || "/" },
+      "/_svc/grafana":    { target: "http://localhost:3000", changeOrigin: true, secure: false, rewrite: (p) => p.replace(/^\/_svc\/grafana/, "") || "/" },
     }
   }
 });
