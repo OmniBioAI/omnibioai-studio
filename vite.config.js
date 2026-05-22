@@ -40,10 +40,10 @@ export default defineConfig({
       "/_svc/rag":       { target: `http://${HOST}:5175`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/rag/, "") || "/" },
       "/_svc/modelregistry": { target: `http://${HOST}:5176`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/modelregistry/, "") || "/" },
       "/_svc/devhub":    { target: `http://${HOST}:5173`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/devhub/, "") || "/" },
-      "/_svc/control":   { target: `http://${HOST}:7070`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/control/, "") || "/" },
-      "/docker":         { target: `http://${HOST}:7070`, changeOrigin: true, secure: false },
-      "/summary":        { target: `http://${HOST}:7070`, changeOrigin: true, secure: false },
-      "/report":         { target: `http://${HOST}:7070`, changeOrigin: true, secure: false },
+      "/_svc/control":   { target: "http://192.168.86.234:7070", changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/control/, "") || "/" },
+      "/docker":         { target: "http://192.168.86.234:7070", changeOrigin: true, secure: false },
+      "/summary":        { target: "http://192.168.86.234:7070", changeOrigin: true, secure: false },
+      "/report":         { target: "http://192.168.86.234:7070", changeOrigin: true, secure: false },
       "/_svc/ollama":    { target: `http://${HOST}:11434`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/ollama/, "") || "/" },
       "/_svc/toolimages": { target: `http://${HOST}:5179`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/toolimages/, "") || "/" },
       "/_svc/workflows":  { target: `http://${HOST}:5178`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/workflows/, "") || "/" },
@@ -56,7 +56,7 @@ export default defineConfig({
       "/_svc/sdk":        { target: `http://${HOST}:5190`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/sdk/, "") || "/" },
       "/_svc/opa":        { target: `http://${HOST}:8181`, changeOrigin: true },
       "/_svc/videos":    { target: `http://${HOST}:8086`, changeOrigin: true },
-      "/_svc/prometheus": { target: "http://localhost:9090", changeOrigin: true, secure: false, rewrite: (p) => p.replace(/^\/_svc\/prometheus/, "") || "/" },
+      "/_svc/prometheus": { target: "http://localhost:9091", changeOrigin: true, secure: false, rewrite: (p) => p.replace(/^\/_svc\/prometheus/, "") || "/" },
       "/_svc/grafana":    { target: "http://localhost:3000", changeOrigin: true, secure: false, rewrite: (p) => p.replace(/^\/_svc\/grafana/, "") || "/" },
     }
   }
