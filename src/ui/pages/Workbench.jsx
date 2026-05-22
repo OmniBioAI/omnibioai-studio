@@ -12,13 +12,13 @@ function buildCategories(HOST, BASE) {
   return [
     {
       name: "Platform Services",
-      color: "var(--muted)",
+      color: "var(--color-text-muted)",
       links: [
         { label:"Getting Started",  url:"/_svc/videos/guide.html",   icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
         { label:"Workbench",        url:"/_svc/workbench/",                         icon:"🏠", desc:"Dashboard"                        },
         { label:"Control Center",   url:"/_svc/control",              icon:"🖥️", desc:"Health + Docker imgs"             },
-        { label:"LIMS",             url:"/_svc/lims",              icon:"🧪", desc:"Lab data management"              },
+        { label:"LIMS",             url:"/_svc/lims/",             icon:"🧪", desc:"Lab data management"              },
         { label:"Model Registry",   url:"/_svc/modelregistry",              icon:"🧬", desc:"ML model versioning"              },
         { label:"RAG / Lit AI",     url:"/_svc/rag",              icon:"📚", desc:"PubMed RAG + DeepSeek"            },
         { label:"TES / Jobs",       url:"/_svc/tes",              icon:"🚀", desc:"Slurm/AWS/Azure/GCP"              },
@@ -149,7 +149,7 @@ export default function Workbench() {
           <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
             Workbench
           </div>
-          <div style={{ fontSize:12, color:"var(--muted)", fontFamily:"var(--mono)" }}>
+          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
             OmniBioAI bioinformatics platform — quick access to key modules
           </div>
         </div>
@@ -161,25 +161,25 @@ export default function Workbench() {
               background: checking ? "var(--warn)" : online ? "var(--accent)" : "var(--danger)",
               animation: (checking || online) ? "pulse 2s infinite" : "none",
             }} />
-            <span style={{ fontSize:11, fontFamily:"var(--mono)",
+            <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
               color: checking ? "var(--warn)" : online ? "var(--accent)" : "var(--danger)",
             }}>
               {checking ? "Checking..." : online ? "Online" : "Offline"}
             </span>
           </div>
 
-          <span style={{ fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+          <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
             {host}
           </span>
 
           <button onClick={check} style={{
-            padding:"6px 10px", borderRadius:6, fontSize:11,
+            padding:"6px 10px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-xs)',
             fontFamily:"var(--mono)", background:"var(--bg3)",
-            border:"1px solid var(--border2)", color:"var(--muted)", cursor:"pointer",
+            border:"1px solid var(--border2)", color:"var(--color-text-muted)", cursor:"pointer",
           }}>↻</button>
 
           <button onClick={() => open(`${BASE}/plugins/catalog/`)} disabled={!online} style={{
-            padding:"8px 16px", borderRadius:6, fontSize:12,
+            padding:"8px 16px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-sm)',
             fontFamily:"var(--font)", fontWeight:500,
             cursor: online ? "pointer" : "not-allowed",
             opacity: online ? 1 : 0.4,
@@ -189,13 +189,13 @@ export default function Workbench() {
           }}>📦 Catalog</button>
 
           <button onClick={() => open(`${BASE}/`)} disabled={!online} style={{
-            padding:"8px 20px", borderRadius:6, fontSize:12,
+            padding:"8px 20px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-sm)',
             fontFamily:"var(--font)", fontWeight:600,
             cursor: online ? "pointer" : "not-allowed",
             opacity: online ? 1 : 0.4,
             background: online ? "var(--accent)" : "var(--bg2)",
             border: online ? "none" : "1px solid var(--border2)",
-            color: online ? "#000" : "var(--muted)",
+            color: online ? "#000" : "var(--color-text-muted)",
           }}>↗ Launch Workbench</button>
         </div>
       </div>
@@ -203,16 +203,16 @@ export default function Workbench() {
       {/* Offline banner */}
       {!online && !checking && (
         <div style={{
-          padding:"12px 16px", borderRadius:8,
+          padding:"12px 16px", borderRadius:'var(--radius)',
           background:"rgba(255,71,87,0.06)",
           border:"1px solid rgba(255,71,87,0.15)",
           display:"flex", alignItems:"center", justifyContent:"space-between",
         }}>
-          <span style={{ fontSize:12, fontFamily:"var(--mono)", color:"var(--danger)" }}>
+          <span style={{ fontSize:'var(--font-size-sm)', fontFamily:"var(--mono)", color:"var(--danger)" }}>
             Workbench offline — start the stack first
           </span>
           <button onClick={() => window.dispatchEvent(new CustomEvent("navigate",{detail:4}))} style={{
-            padding:"5px 12px", borderRadius:5, fontSize:11,
+            padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)',
             fontFamily:"var(--mono)", background:"rgba(0,229,160,0.08)",
             border:"1px solid rgba(0,229,160,0.2)", color:"var(--accent)", cursor:"pointer",
           }}>Go to Launch →</button>
@@ -223,18 +223,18 @@ export default function Workbench() {
       {CATEGORIES.map(({ name, color, links }) => (
         <div key={name} style={{
           background:"var(--bg3)", border:"1px solid var(--border)",
-          borderRadius:10, overflow:"hidden",
+          borderRadius:'var(--radius-lg)', overflow:"hidden",
         }}>
           <div style={{
             padding:"10px 16px", borderBottom:"1px solid var(--border)",
             display:"flex", alignItems:"center", gap:8,
           }}>
-            <div style={{ width:3, height:14, borderRadius:2, background:color, flexShrink:0 }} />
+            <div style={{ width:3, height:14, borderRadius:'var(--radius-xs)', background:color, flexShrink:0 }} />
             <span style={{
-              fontSize:11, fontWeight:500, letterSpacing:"0.06em",
+              fontSize:'var(--font-size-xs)', fontWeight:500, letterSpacing:"0.06em",
               textTransform:"uppercase", color:"var(--text)",
             }}>{name}</span>
-            <span style={{ fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)", marginLeft:4 }}>
+            <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)", marginLeft:4 }}>
               {links.length} modules
             </span>
           </div>
@@ -263,8 +263,8 @@ export default function Workbench() {
                   onMouseLeave={e => { e.currentTarget.style.background="var(--bg3)"; }}
                 >
                   <span style={{ fontSize:20 }}>{icon}</span>
-                  <div style={{ fontSize:10, fontWeight:500, color, lineHeight:1.3 }}>{label}</div>
-                  <div style={{ fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)" }}>{desc}</div>
+                  <div style={{ fontSize:'var(--font-size-xs)', fontWeight:500, color, lineHeight:1.3 }}>{label}</div>
+                  <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>{desc}</div>
                 </button>
               );
             })}
@@ -274,22 +274,22 @@ export default function Workbench() {
 
       {/* Explore more banner */}
       <div style={{
-        padding:"16px 20px", borderRadius:10,
+        padding:"16px 20px", borderRadius:'var(--radius-lg)',
         background:"linear-gradient(135deg, rgba(0,229,160,0.06), rgba(0,148,255,0.06))",
         border:"1px solid rgba(0,229,160,0.15)",
         display:"flex", alignItems:"center", justifyContent:"space-between",
       }}>
         <div>
-          <div style={{ fontSize:13, fontWeight:600, color:"#fff", marginBottom:4 }}>
+          <div style={{ fontSize:'var(--font-size-base)', fontWeight:600, color:"#fff", marginBottom:4 }}>
             🚀 Explore all plugins, tools and pipelines
           </div>
-          <div style={{ fontSize:11, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+          <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
             OmniBioAI has 80+ bioinformatics modules — browse the full catalog inside the workbench
           </div>
         </div>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
           <button onClick={() => online && open(`${BASE}/plugins/catalog/`)} disabled={!online} style={{
-            padding:"9px 18px", borderRadius:6, fontSize:12,
+            padding:"9px 18px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-sm)',
             fontFamily:"var(--font)", fontWeight:500,
             cursor: online ? "pointer" : "not-allowed",
             opacity: online ? 1 : 0.4,
@@ -298,12 +298,12 @@ export default function Workbench() {
             color:"var(--accent2)",
           }}>📦 Open Catalog</button>
           <button onClick={() => online && open(`${BASE}/`)} disabled={!online} style={{
-            padding:"9px 18px", borderRadius:6, fontSize:12,
+            padding:"9px 18px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-sm)',
             fontFamily:"var(--font)", fontWeight:600,
             cursor: online ? "pointer" : "not-allowed",
             opacity: online ? 1 : 0.4,
             background: online ? "var(--accent)" : "var(--bg2)",
-            border:"none", color: online ? "#000" : "var(--muted)",
+            border:"none", color: online ? "#000" : "var(--color-text-muted)",
           }}>↗ Launch Workbench</button>
         </div>
       </div>

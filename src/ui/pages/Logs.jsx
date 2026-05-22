@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
 
 const SOURCES = ["all", "mysql", "redis", "workbench", "tes", "toolserver", "ollama", "rag", "opa"];
-const LEVEL_COLOR = { INFO:"#0094ff", OK:"#00e5a0", WARN:"#ffa502", ERR:"#ff4757", DEBUG:"#6b7280" };
+const LEVEL_COLOR = { INFO:"#0094ff", OK:"var(--accent)", WARN:"var(--color-warning)", ERR:"var(--color-danger)", DEBUG:"var(--color-text-muted)" };
 
 const DEMO_LOGS = [
   { time:"08:14:01", source:"workbench",  level:"INFO", msg:"Starting OmniBioAI Workbench v0.1.0" },
@@ -78,26 +78,26 @@ export default function Logs() {
           <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
             Live Logs
           </div>
-          <div style={{ fontSize:12, color:"var(--muted)", fontFamily:"var(--mono)" }}>
+          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
             real-time docker service log stream
           </div>
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
           {streaming && (
-            <span style={{ fontSize:10, fontFamily:"var(--mono)", color:"var(--accent)", display:"flex", alignItems:"center", gap:5 }}>
+            <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--accent)", display:"flex", alignItems:"center", gap:5 }}>
               <span style={{ width:6, height:6, borderRadius:"50%", background:"var(--accent)", display:"inline-block", animation:"pulse 2s infinite" }} />
               LIVE
             </span>
           )}
           <button onClick={() => setPaused(p => !p)} style={{
-            padding:"5px 12px", borderRadius:5, fontSize:10, fontFamily:"var(--mono)",
+            padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             background: paused ? "rgba(255,165,2,0.12)" : "var(--bg3)",
             border: paused ? "1px solid rgba(255,165,2,0.25)" : "1px solid var(--border2)",
-            color: paused ? "var(--warn)" : "var(--muted)", cursor:"pointer",
+            color: paused ? "var(--warn)" : "var(--color-text-muted)", cursor:"pointer",
           }}>{paused ? "▶ Resume" : "⏸ Pause"}</button>
           <button onClick={() => setLogs([])} style={{
-            padding:"5px 12px", borderRadius:5, fontSize:10, fontFamily:"var(--mono)",
-            background:"var(--bg3)", border:"1px solid var(--border2)", color:"var(--muted)", cursor:"pointer",
+            padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+            background:"var(--bg3)", border:"1px solid var(--border2)", color:"var(--color-text-muted)", cursor:"pointer",
           }}>Clear</button>
         </div>
       </div>
@@ -105,17 +105,17 @@ export default function Logs() {
       <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
         {SOURCES.map(s => (
           <button key={s} onClick={() => setFilter(s)} style={{
-            padding:"4px 10px", borderRadius:5, fontSize:10, fontFamily:"var(--mono)",
+            padding:"4px 10px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             background: filter === s ? "rgba(0,229,160,0.1)" : "var(--bg3)",
             border: filter === s ? "1px solid rgba(0,229,160,0.25)" : "1px solid var(--border)",
-            color: filter === s ? "var(--accent)" : "var(--muted)", cursor:"pointer",
+            color: filter === s ? "var(--accent)" : "var(--color-text-muted)", cursor:"pointer",
           }}>{s}</button>
         ))}
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="search logs..."
           style={{
             marginLeft:"auto", padding:"5px 10px", borderRadius:5,
-            fontSize:11, fontFamily:"var(--mono)", background:"var(--bg3)",
+            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", background:"var(--bg3)",
             border:"1px solid var(--border2)", color:"var(--text)", outline:"none", width:180,
           }}
           onFocus={e => e.target.style.borderColor="rgba(0,229,160,0.4)"}
@@ -125,17 +125,17 @@ export default function Logs() {
 
       <Panel>
         <PanelHeader title={`Log Stream — ${filtered.length} entries`} icon iconColor="blue">
-          <span style={{ fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+          <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
             {paused ? "⏸ PAUSED" : "● STREAMING"}
           </span>
         </PanelHeader>
         <PanelBody style={{ padding:0 }}>
           <div ref={logRef} style={{
             height:440, overflowY:"auto", fontFamily:"var(--mono)",
-            fontSize:11, background:"var(--bg2)", scrollbarWidth:"thin",
+            fontSize:'var(--font-size-xs)', background:"var(--bg2)", scrollbarWidth:"thin",
           }}>
             {filtered.length === 0 && (
-              <div style={{ padding:20, color:"var(--muted)", textAlign:"center" }}>
+              <div style={{ padding:20, color:"var(--color-text-muted)", textAlign:"center" }}>
                 No log entries match current filter.
               </div>
             )}
@@ -148,19 +148,19 @@ export default function Logs() {
                 onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.02)"}
                 onMouseLeave={e => e.currentTarget.style.background="transparent"}
               >
-                <span style={{ color:"var(--muted)", fontSize:10 }}>{l.time}</span>
+                <span style={{ color:"var(--color-text-muted)", fontSize:'var(--font-size-xs)' }}>{l.time}</span>
                 <span style={{
-                  fontSize:9, padding:"2px 6px", borderRadius:3, textAlign:"center",
-                  background:`${LEVEL_COLOR[l.level]||"#6b7280"}18`,
-                  color: LEVEL_COLOR[l.level]||"#6b7280",
-                  border:`1px solid ${LEVEL_COLOR[l.level]||"#6b7280"}30`,
+                  fontSize:'var(--font-size-xs)', padding:"2px 6px", borderRadius:3, textAlign:"center",
+                  background:`${LEVEL_COLOR[l.level]||"var(--color-text-muted)"}18`,
+                  color: LEVEL_COLOR[l.level]||"var(--color-text-muted)",
+                  border:`1px solid ${LEVEL_COLOR[l.level]||"var(--color-text-muted)"}30`,
                 }}>{l.level}</span>
                 <span style={{
-                  fontSize:9, color:"var(--muted)", padding:"2px 5px",
+                  fontSize:'var(--font-size-xs)', color:"var(--color-text-muted)", padding:"2px 5px",
                   background:"rgba(255,255,255,0.04)", borderRadius:3, textAlign:"center",
                   overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
                 }}>{l.source}</span>
-                <span style={{ color:"var(--text)", fontSize:11 }}>{l.msg}</span>
+                <span style={{ color:"var(--text)", fontSize:'var(--font-size-xs)' }}>{l.msg}</span>
               </div>
             ))}
           </div>

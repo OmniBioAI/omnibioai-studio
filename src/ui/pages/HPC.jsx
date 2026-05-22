@@ -16,7 +16,7 @@ export default function HPC({ config, setConfig }) {
         <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
           HPC Configuration
         </div>
-        <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "var(--mono)" }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
           connect to institutional clusters via SSH + TES
         </div>
       </div>

@@ -58,10 +58,10 @@ const GROUP_ICONS = {
 };
 
 const statusColor = {
-  up:         "#00e5a0",
-  warn:       "#ffa502",
-  down:       "#ff4757",
-  unknown:    "#6b7280",
+  up:         "var(--accent)",
+  warn:       "var(--color-warning)",
+  down:       "var(--color-danger)",
+  unknown:    "var(--color-text-muted)",
   restarting: "#0094ff",
 };
 const statusLabel = {
@@ -189,26 +189,26 @@ export default function Services() {
           <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
             Services
           </div>
-          <div style={{ fontSize:12, color:"var(--muted)", fontFamily:"var(--mono)" }}>
+          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
             monitor and control individual docker services
           </div>
         </div>
         <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-          <span style={{ fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+          <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
             last check: {lastCheck}
           </span>
           <div style={{ display:"flex", gap:8 }}>
-            <span style={{ fontSize:11, fontFamily:"var(--mono)", color:"#00e5a0" }}>
+            <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--accent)" }}>
               ● {totalUp} up
             </span>
-            <span style={{ fontSize:11, fontFamily:"var(--mono)", color:"#ff4757" }}>
+            <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-danger)" }}>
               ✕ {totalDown} down
             </span>
           </div>
           <button onClick={poll} style={{
-            padding:"5px 12px", borderRadius:5, fontSize:10,
+            padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)',
             fontFamily:"var(--mono)", background:"var(--bg3)",
-            border:"1px solid var(--border2)", color:"var(--muted)", cursor:"pointer",
+            border:"1px solid var(--border2)", color:"var(--color-text-muted)", cursor:"pointer",
           }}>↻ Refresh</button>
         </div>
       </div>
@@ -228,7 +228,7 @@ export default function Services() {
                   {["Service","Status","Port","Image",""].map(h => (
                     <th key={h} style={{
                       padding:"7px 14px", textAlign: h === "" ? "right" : "left",
-                      fontSize:9, fontFamily:"var(--mono)", color:"var(--muted)",
+                      fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
                       letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:500,
                     }}>{h}</th>
                   ))}
@@ -246,23 +246,23 @@ export default function Services() {
                       onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                      <td style={{ padding:"10px 14px", fontSize:12, color:"var(--text)", fontWeight:500 }}>
+                      <td style={{ padding:"10px 14px", fontSize:'var(--font-size-sm)', color:"var(--text)", fontWeight:500 }}>
                         {s.label}
                       </td>
                       <td style={{ padding:"10px 14px" }}>
                         <span style={{
                           display:"inline-flex", alignItems:"center",
-                          fontSize:11, fontFamily:"var(--mono)",
+                          fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
                           color: statusColor[st],
                         }}>
                           <StatusDot status={st} />
                           {statusLabel[st]}
                         </span>
                       </td>
-                      <td style={{ padding:"10px 14px", fontSize:11, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+                      <td style={{ padding:"10px 14px", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
                         :{s.port}
                       </td>
-                      <td style={{ padding:"10px 14px", fontSize:10, fontFamily:"var(--mono)", color:"var(--muted)" }}>
+                      <td style={{ padding:"10px 14px", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
                         {s.image}
                       </td>
                       <td style={{ padding:"10px 14px", textAlign:"right" }}>
@@ -270,11 +270,11 @@ export default function Services() {
                           onClick={() => restartService(s.key)}
                           disabled={isRestarting}
                           style={{
-                            padding:"4px 10px", borderRadius:4, fontSize:10,
+                            padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
                             fontFamily:"var(--mono)", cursor: isRestarting ? "not-allowed" : "pointer",
                             background: isRestarting ? "rgba(0,148,255,0.08)" : "rgba(255,255,255,0.04)",
                             border: isRestarting ? "1px solid rgba(0,148,255,0.2)" : "1px solid var(--border2)",
-                            color: isRestarting ? "var(--accent2)" : "var(--muted)",
+                            color: isRestarting ? "var(--accent2)" : "var(--color-text-muted)",
                             transition:"all 0.15s",
                             opacity: isRestarting ? 0.7 : 1,
                           }}
