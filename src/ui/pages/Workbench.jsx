@@ -26,8 +26,8 @@ function buildCategories(HOST, BASE) {
         { label:"SDK Launcher",     url:"/_svc/sdk",                 icon:"🔬", desc:"Analysis · SDK tools"             },
         { label:"Workflows",        url:"/_svc/workflows",           icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
         { label:"Dev Hub",          url:"/_svc/devhub",              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
-        { label:"Prometheus",       url:"/_svc/prometheus/",         icon:"📊", desc:"Metrics scraper"                  },
-        { label:"Grafana",          url:"/_svc/grafana/",            icon:"📈", desc:"Metrics dashboards"               },
+        { label:"Prometheus",       url:`http://${HOST}:9091`,         icon:"📊", desc:"Metrics scraper"                  },
+        { label:"Grafana",          url:`http://${HOST}:3000`,            icon:"📈", desc:"Metrics dashboards"               },
       ]
     },
     {

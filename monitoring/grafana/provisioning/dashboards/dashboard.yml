@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: OmniBioAI
+    folder: OmniBioAI
+    type: file
+    options:
+      path: /etc/grafana/dashboards
