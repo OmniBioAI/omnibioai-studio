@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: omnibioai-lims
+    static_configs:
+      - targets: ['192.168.86.234:7000']
+    metrics_path: /metrics
+
+  - job_name: omnibioai-rag
+    static_configs:
+      - targets: ['192.168.86.234:8090']
+    metrics_path: /metrics
+
+  - job_name: omnibioai-control-center
+    static_configs:
+      - targets: ['192.168.86.234:7070']
+    metrics_path: /metrics
+
+  - job_name: omnibioai-workbench
+    static_configs:
+      - targets: ['192.168.86.234:8000']
+    metrics_path: /metrics
