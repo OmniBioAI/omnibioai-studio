@@ -1,0 +1,2 @@
+Invalid -W option ignored: unknown warning category: 'RequestsDependencyWarning'
+python3: can't open file '/home/manish/Desktop/machine/omnibioai-studio/scripts/test_e2e.py': [Errno 2] No such file or directory

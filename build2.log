@@ -1,0 +1,691 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 3.72kB done
+#1 DONE 0.0s
+
+#2 [lims internal] load build definition from Dockerfile.new
+#2 transferring dockerfile: 2.81kB done
+#2 DONE 0.0s
+
+#3 [workflow-bundles internal] load build definition from Dockerfile.new
+#3 transferring dockerfile: 1.72kB done
+#3 DONE 0.0s
+
+#4 [tes internal] load build definition from Dockerfile.new
+#4 transferring dockerfile: 2.16kB done
+#4 DONE 0.1s
+
+#5 [dev-hub internal] load build definition from Dockerfile.new
+#5 transferring dockerfile: 1.68kB done
+#5 DONE 0.1s
+
+#6 [tool-images internal] load build definition from Dockerfile.new
+#6 transferring dockerfile: 1.62kB done
+#6 DONE 0.1s
+
+#7 [rag internal] load build definition from Dockerfile.new
+#7 transferring dockerfile: 2.02kB done
+#7 DONE 0.1s
+
+#8 [model-registry internal] load build definition from Dockerfile.new
+#8 transferring dockerfile: 1.74kB done
+#8 DONE 0.1s
+
+#9 [auth] library/node:pull token for registry-1.docker.io
+#9 DONE 0.0s
+
+#10 [auth] library/python:pull token for registry-1.docker.io
+#10 DONE 0.0s
+
+#11 [auth] man4ish/omnibioai-base:pull token for ghcr.io
+#11 DONE 0.0s
+
+#12 [model-registry internal] load metadata for docker.io/library/python:3.12-slim-bookworm
+#12 DONE 0.4s
+
+#13 [lims internal] load metadata for docker.io/library/node:20-alpine
+#13 DONE 0.4s
+
+#14 [tool-images internal] load metadata for docker.io/library/node:20-bookworm-slim
+#14 DONE 0.4s
+
+#15 [lims internal] load .dockerignore
+#15 transferring context: 410B done
+#15 DONE 0.0s
+
+#16 [dev-hub internal] load metadata for ghcr.io/man4ish/omnibioai-base:latest
+#16 DONE 0.4s
+
+#17 [lims internal] load build context
+#17 DONE 0.0s
+
+#18 [tool-images internal] load .dockerignore
+#18 transferring context: 2B done
+#18 DONE 0.0s
+
+#19 [model-registry internal] load .dockerignore
+#19 transferring context: 174B done
+#19 DONE 0.0s
+
+#20 [tool-images internal] load build context
+#20 DONE 0.0s
+
+#21 [lims frontend-builder 1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#21 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.0s done
+#21 DONE 0.0s
+
+#22 [tes internal] load .dockerignore
+#22 transferring context: 218B done
+#22 DONE 0.1s
+
+#23 [lims python-builder 1/4] FROM docker.io/library/python:3.12-slim-bookworm@sha256:93ab4b7fa528b25124c97bcc755415e60eb671a86b4dbe0328df2fe2d1c1193d
+#23 resolve docker.io/library/python:3.12-slim-bookworm@sha256:93ab4b7fa528b25124c97bcc755415e60eb671a86b4dbe0328df2fe2d1c1193d 0.0s done
+#23 DONE 0.0s
+
+#24 [rag internal] load .dockerignore
+#24 transferring context: 2B done
+#24 DONE 0.1s
+
+#25 [workflow-bundles internal] load .dockerignore
+#25 transferring context: 2B done
+#25 DONE 0.1s
+
+#26 [tool-images ui-builder 1/6] FROM docker.io/library/node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+#26 resolve docker.io/library/node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 0.0s done
+#26 DONE 0.0s
+
+#27 [dev-hub internal] load .dockerignore
+#27 transferring context: 387B done
+#27 DONE 0.1s
+
+#23 [rag python-builder 1/4] FROM docker.io/library/python:3.12-slim-bookworm@sha256:93ab4b7fa528b25124c97bcc755415e60eb671a86b4dbe0328df2fe2d1c1193d
+#23 resolve docker.io/library/python:3.12-slim-bookworm@sha256:93ab4b7fa528b25124c97bcc755415e60eb671a86b4dbe0328df2fe2d1c1193d 0.0s done
+#23 DONE 0.0s
+
+#26 [rag ui-builder 1/6] FROM docker.io/library/node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+#26 resolve docker.io/library/node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0 0.0s done
+#26 DONE 0.0s
+
+#17 [lims internal] load build context
+#17 transferring context: 19.59kB 0.0s done
+#17 DONE 0.0s
+
+#28 [dev-hub  1/16] FROM ghcr.io/man4ish/omnibioai-base:latest@sha256:6a48978ee0e82487f5c1c765cce91f3555ae8e1510d3444491ef3c7a7e27226c
+#28 resolve ghcr.io/man4ish/omnibioai-base:latest@sha256:6a48978ee0e82487f5c1c765cce91f3555ae8e1510d3444491ef3c7a7e27226c 0.0s done
+#28 DONE 0.0s
+
+#29 [lims frontend-builder 2/6] WORKDIR /app/frontend
+#29 CACHED
+
+#30 [lims frontend-builder 3/6] COPY frontend/package*.json ./
+#30 CACHED
+
+#31 [lims frontend-builder 4/6] RUN npm ci --silent
+#31 CACHED
+
+#32 [lims backend  3/11] WORKDIR /app
+#32 CACHED
+
+#33 [lims python-builder 4/4] RUN apt-get update && apt-get install -y --no-install-recommends     default-libmysqlclient-dev build-essential pkg-config     && pip install --no-cache-dir -r requirements.lims.txt gunicorn     && apt-get purge -y --auto-remove default-libmysqlclient-dev build-essential pkg-config     && rm -rf /var/lib/apt/lists/* /root/.cache/pip
+#33 CACHED
+
+#34 [lims python-builder 3/4] COPY requirements.lims.txt .
+#34 CACHED
+
+#35 [lims python-builder 2/4] WORKDIR /app
+#35 CACHED
+
+#36 [lims backend  4/11] COPY --from=python-builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+#36 CACHED
+
+#37 [lims backend  2/11] RUN apt-get update && apt-get install -y --no-install-recommends     nginx     libmariadb3     supervisor     ca-certificates     curl     bash     && rm -rf /var/lib/apt/lists/*
+#37 CACHED
+
+#38 [lims backend  5/11] COPY --from=python-builder /usr/local/bin /usr/local/bin
+#38 CACHED
+
+#39 [dev-hub internal] load build context
+#39 transferring context: 5.99kB done
+#39 DONE 0.0s
+
+#40 [dev-hub  5/16] RUN pip install --no-cache-dir fastapi uvicorn requests     && pip install --no-cache-dir -r requirements.txt
+#40 CACHED
+
+#41 [dev-hub 15/16] COPY omnibioai-dev-hub-ui/dist /usr/share/nginx/html
+#41 CACHED
+
+#42 [dev-hub  9/16] COPY ingestion/ ./ingestion/
+#42 CACHED
+
+#43 [dev-hub  4/16] COPY requirements.txt .
+#43 CACHED
+
+#44 [dev-hub 14/16] COPY configs/ ./configs/
+#44 CACHED
+
+#45 [dev-hub 12/16] COPY rag/ ./rag/
+#45 CACHED
+
+#46 [dev-hub  8/16] COPY index/ ./index/
+#46 CACHED
+
+#47 [dev-hub 11/16] COPY retrieval/ ./retrieval/
+#47 CACHED
+
+#48 [dev-hub  7/16] COPY embeddings/ ./embeddings/
+#48 CACHED
+
+#49 [dev-hub  6/16] COPY api/ ./api/
+#49 CACHED
+
+#50 [dev-hub 13/16] COPY utils/ ./utils/
+#50 CACHED
+
+#51 [dev-hub  3/16] WORKDIR /app
+#51 CACHED
+
+#52 [dev-hub  2/16] RUN apt-get update && apt-get install -y --no-install-recommends nginx     && rm -rf /var/lib/apt/lists/*
+#52 CACHED
+
+#53 [dev-hub 10/16] COPY processing/ ./processing/
+#53 CACHED
+
+#54 [dev-hub 16/16] RUN printf 'server {\n    listen 5173;\n    root /usr/share/nginx/html;\n    index index.html;\n    location / { try_files $uri $uri/ /index.html; }\n    location /api/ { proxy_pass http://127.0.0.1:8082; proxy_set_header Host $host; }\n    location /rag/ { proxy_pass http://127.0.0.1:8082; }\n    location /health { proxy_pass http://127.0.0.1:8082; }\n    location /status { proxy_pass http://127.0.0.1:8082; }\n    location /docs { proxy_pass http://127.0.0.1:8082; }\n}\n' > /etc/nginx/sites-available/default
+#54 CACHED
+
+#55 [lims frontend-builder 5/6] COPY frontend/ ./
+#55 DONE 0.1s
+
+#56 [lims backend  6/11] COPY . .
+#56 DONE 0.1s
+
+#57 [dev-hub] exporting to docker image format
+#57 exporting layers done
+#57 exporting manifest sha256:577036b92f3ac2e82fdec030b8731cf3c206e9cc2736ba9aa655aaa94c8c9720 done
+#57 exporting config sha256:f47a181ec9ddbdd38d9f012b7a473da528464d45a0cb9105eca54ac110d60660 done
+#57 sending tarball
+#57 ...
+
+#58 [rag internal] load build context
+#58 transferring context: 578.92kB 0.2s done
+#58 DONE 0.2s
+
+#59 [rag ui-builder 2/6] WORKDIR /ui
+#59 CACHED
+
+#60 [rag ui-builder 3/6] COPY frontend/ragbio-ui/package*.json ./
+#60 CACHED
+
+#61 [rag ui-builder 4/6] RUN npm ci
+#61 CACHED
+
+#62 [model-registry internal] load build context
+#62 transferring context: 917.53kB 0.2s done
+#62 DONE 0.3s
+
+#20 [tool-images internal] load build context
+#20 transferring context: 941.73kB 0.2s done
+#20 DONE 0.3s
+
+#63 [model-registry ui-builder 3/6] COPY frontend/omnibioai-model-registry-ui/package*.json ./
+#63 CACHED
+
+#59 [model-registry ui-builder 2/6] WORKDIR /ui
+#59 CACHED
+
+#64 [model-registry ui-builder 4/6] RUN npm ci
+#64 CACHED
+
+#65 [workflow-bundles internal] load build context
+#65 transferring context: 973.20kB 0.3s done
+#65 DONE 0.3s
+
+#66 [tes internal] load build context
+#66 transferring context: 882.27kB 0.3s done
+#66 DONE 0.3s
+
+#67 [model-registry ui-builder 5/6] COPY frontend/omnibioai-model-registry-ui/ ./
+#67 ...
+
+#68 [tool-images ui-builder 3/6] COPY frontend/tool-images-ui/package*.json ./
+#68 CACHED
+
+#69 [tool-images ui-builder 4/6] RUN npm ci
+#69 CACHED
+
+#70 [tes ui-builder 3/6] COPY frontend/tes-ui/package*.json ./
+#70 CACHED
+
+#71 [tes ui-builder 4/6] RUN npm ci
+#71 CACHED
+
+#59 [workflow-bundles ui-builder 2/6] WORKDIR /ui
+#59 CACHED
+
+#72 [workflow-bundles ui-builder 3/6] COPY frontend/workflow-ui/package*.json ./
+#72 CACHED
+
+#73 [workflow-bundles ui-builder 4/6] RUN npm ci
+#73 CACHED
+
+#74 [lims frontend-builder 6/6] RUN npm run build
+#74 0.244 
+#74 0.244 > omnibioai-lims-ui@1.0.0 build
+#74 0.244 > vite build
+#74 0.244 
+#74 0.448 vite v6.4.2 building for production...
+#74 0.497 transforming...
+#74 1.126 ✓ 95 modules transformed.
+#74 1.255 rendering chunks...
+#74 1.261 computing gzip size...
+#74 1.267 dist/index.html                   0.68 kB │ gzip:  0.39 kB
+#74 1.267 dist/assets/index-BgL9hbSj.css    8.32 kB │ gzip:  2.18 kB
+#74 1.268 dist/assets/index-PhbQBhxP.js   242.43 kB │ gzip: 77.53 kB
+#74 1.268 ✓ built in 799ms
+#74 DONE 1.5s
+
+#75 [workflow-bundles ui-builder 5/6] COPY frontend/workflow-ui/ ./
+#75 ...
+
+#76 [lims backend  7/11] COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
+#76 DONE 0.1s
+
+#57 [dev-hub] exporting to docker image format
+#57 sending tarball 1.8s done
+#57 DONE 1.8s
+
+#77 importing to docker
+#77 DONE 0.1s
+
+#78 [dev-hub] resolving provenance for metadata file
+#78 DONE 0.0s
+
+#79 [lims backend  8/11] RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
+#79 DONE 0.2s
+
+#80 [lims backend  9/11] COPY nginx.conf /etc/nginx/conf.d/lims.conf
+#80 DONE 0.1s
+
+#81 [tes ui-builder 5/6] COPY frontend/tes-ui/ ./
+#81 ...
+
+#82 [lims backend 10/11] COPY supervisord.conf /etc/supervisor/conf.d/lims.conf
+#82 DONE 0.1s
+
+#83 [lims backend 11/11] RUN DJANGO_DEBUG=true python manage.py collectstatic --noinput || true
+#83 0.475 
+#83 0.475 196 static files copied to '/app/staticfiles'.
+#83 DONE 0.6s
+
+#84 [lims] exporting to docker image format
+#84 exporting layers 0.8s done
+#84 exporting manifest sha256:4726a4de79a21afed6c1eff67049888c94c16de265b5134fe4224e1c5c147c22 0.0s done
+#84 exporting config sha256:49ccebe643b0b6dfe7e172b25ff1ebd4da4ace64eda6cace519d7c9d563b529a 0.0s done
+#84 sending tarball 0.7s done
+#84 DONE 1.6s
+
+#85 importing to docker
+#85 loading layer 3c127f557bbb 2.61MB / 2.61MB 0.5s done
+#85 loading layer 352f71903516 80.75kB / 80.75kB 0.4s done
+#85 loading layer 2cdadd343cbe 179B / 179B 0.3s done
+#85 loading layer f23ecaf8e047 719B / 719B 0.3s done
+#85 loading layer 756b18584796 615B / 615B 0.2s done
+#85 loading layer 9ac4781ec31c 5.15MB / 5.15MB 0.2s done
+#85 DONE 0.5s
+
+#86 [lims] resolving provenance for metadata file
+#86 DONE 0.0s
+
+#87 [tool-images ui-builder 5/6] COPY frontend/tool-images-ui/ ./
+#87 ...
+
+#88 [rag ui-builder 5/6] COPY frontend/ragbio-ui/ ./
+#88 DONE 7.6s
+
+#89 [rag ui-builder 6/6] RUN npm run build
+#89 0.500 
+#89 0.500 > ragbio-ui@0.0.0 build
+#89 0.500 > tsc && vite build
+#89 0.500 
+#89 ...
+
+#67 [model-registry ui-builder 5/6] COPY frontend/omnibioai-model-registry-ui/ ./
+#67 DONE 8.7s
+
+#89 [rag ui-builder 6/6] RUN npm run build
+#89 1.316 vite v4.5.14 building for production...
+#89 1.328 transforming...
+#89 ...
+
+#87 [tool-images ui-builder 5/6] COPY frontend/tool-images-ui/ ./
+#87 DONE 9.0s
+
+#89 [rag ui-builder 6/6] RUN npm run build
+#89 1.653 ✓ 32 modules transformed.
+#89 1.721 rendering chunks...
+#89 1.724 computing gzip size...
+#89 1.729 dist/index.html                   0.48 kB │ gzip:  0.31 kB
+#89 1.729 dist/assets/index-8d72f506.css    2.03 kB │ gzip:  0.90 kB
+#89 1.729 dist/assets/index-6601eb19.js   166.27 kB │ gzip: 52.08 kB
+#89 1.729 ✓ built in 413ms
+#89 1.745 npm notice
+#89 1.745 npm notice New major version of npm available! 10.8.2 -> 11.15.0
+#89 1.745 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.15.0
+#89 1.745 npm notice To update run: npm install -g npm@11.15.0
+#89 1.745 npm notice
+#89 DONE 1.8s
+
+#90 [rag backend 3/9] WORKDIR /app
+#90 CACHED
+
+#91 [rag backend 2/9] RUN apt-get update && apt-get install -y --no-install-recommends     nginx build-essential && rm -rf /var/lib/apt/lists/*
+#91 CACHED
+
+#92 [rag backend 4/9] COPY pyproject.toml .
+#92 CACHED
+
+#93 [rag backend 5/9] COPY ragbio/ ./ragbio/
+#93 CACHED
+
+#94 [rag backend 6/9] RUN pip install --no-cache-dir hatchling && pip install --no-cache-dir .
+#94 CACHED
+
+#95 [rag backend 7/9] COPY --from=ui-builder /ui/dist /usr/share/nginx/html
+#95 DONE 0.0s
+
+#96 [rag backend 8/9] RUN printf 'server {\n    listen 5175;\n    root /usr/share/nginx/html;\n    index index.html;\n    location / { try_files $uri $uri/ /index.html; }\n    location /v1/ { proxy_pass http://127.0.0.1:8096; proxy_set_header Host $host; }\n    location /health { proxy_pass http://127.0.0.1:8096; }\n    location /docs { proxy_pass http://127.0.0.1:8096; }\n}\n' > /etc/nginx/sites-available/default
+#96 DONE 0.1s
+
+#97 [tool-images ui-builder 6/6] RUN npm run build
+#97 0.256 
+#97 0.256 > tool-images-ui@0.0.0 build
+#97 0.256 > tsc && vite build
+#97 0.256 
+#97 ...
+
+#98 [model-registry ui-builder 6/6] RUN npm run build
+#98 0.249 
+#98 0.249 > omnibioai-model-registry-ui@0.0.0 build
+#98 0.249 > tsc -b && vite build
+#98 0.249 
+#98 1.376 vite v8.0.10 building client environment for production...
+#98 1.383 [2Ktransforming...✓ 470 modules transformed.
+#98 1.476 rendering chunks...
+#98 1.527 computing gzip size...
+#98 1.531 dist/index.html                   0.53 kB │ gzip:   0.32 kB
+#98 1.531 dist/assets/index-BgXC4Tkn.css    8.86 kB │ gzip:   2.22 kB
+#98 1.531 dist/assets/index-BZEVnmZ4.js   432.68 kB │ gzip: 135.31 kB
+#98 1.531 
+#98 1.531 ✓ built in 154ms
+#98 1.546 npm notice
+#98 1.546 npm notice New major version of npm available! 10.8.2 -> 11.15.0
+#98 1.546 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.15.0
+#98 1.546 npm notice To update run: npm install -g npm@11.15.0
+#98 1.546 npm notice
+#98 DONE 1.6s
+
+#99 [rag backend 9/9] RUN adduser --disabled-password --gecos "" ragbio &&     mkdir -p /var/lib/nginx/body /var/log/nginx /var/run /run &&     chown -R ragbio:ragbio /app /usr/share/nginx/html /var/lib/nginx /var/log/nginx /var/run /run
+#99 0.113 Adding user `ragbio' ...
+#99 0.113 Adding new group `ragbio' (1000) ...
+#99 0.173 Adding new user `ragbio' (1000) with group `ragbio (1000)' ...
+#99 0.290 Creating home directory `/home/ragbio' ...
+#99 0.290 Copying files from `/etc/skel' ...
+#99 0.313 Adding new user `ragbio' to supplemental / extra groups `users' ...
+#99 0.313 Adding user `ragbio' to group `users' ...
+#99 DONE 0.9s
+
+#97 [tool-images ui-builder 6/6] RUN npm run build
+#97 1.171 vite v4.5.14 building for production...
+#97 1.183 transforming...
+#97 ...
+
+#100 [model-registry backend 2/7] RUN apt-get update && apt-get install -y --no-install-recommends     nginx && rm -rf /var/lib/apt/lists/*
+#100 CACHED
+
+#101 [model-registry backend 5/8] RUN pip install --no-cache-dir -U pip && pip install --no-cache-dir .
+#101 CACHED
+
+#102 [model-registry backend 4/8] COPY pyproject.toml .
+#102 CACHED
+
+#103 [model-registry backend 3/7] WORKDIR /app
+#103 CACHED
+
+#104 [model-registry backend 6/8] COPY omnibioai_model_registry/ ./omnibioai_model_registry/
+#104 CACHED
+
+#105 [model-registry backend 7/8] COPY --from=ui-builder /ui/dist /usr/share/nginx/html
+#105 DONE 0.1s
+
+#106 [rag] exporting to docker image format
+#106 exporting layers 0.3s done
+#106 ...
+
+#107 [model-registry backend 8/8] RUN printf 'server {\n    listen 5176;\n    root /usr/share/nginx/html;\n    index index.html;\n    location / { try_files $uri $uri/ /index.html; }\n    location /v1/ { proxy_pass http://127.0.0.1:8095; proxy_set_header Host $host; }\n    location /health { proxy_pass http://127.0.0.1:8095; }\n    location /docs { proxy_pass http://127.0.0.1:8095; }\n}\n' > /etc/nginx/sites-available/default
+#107 DONE 0.2s
+
+#106 [rag] exporting to docker image format
+#106 exporting manifest sha256:a6fc78105e92dc34f837563b15db296945137541e29335763db19204e284d5ad 0.0s done
+#106 exporting config sha256:420009a1465a1714c0acaef30f1ad117efcfbeb339e2eda34540cb439ad37976 0.0s done
+#106 sending tarball
+#106 ...
+
+#108 [model-registry] exporting to docker image format
+#108 exporting layers 0.2s done
+#108 exporting manifest sha256:9e1cde32346001ce8c4ee8af5c9ddbbee756a4355f02bfe43c74823fe891f77e 0.0s done
+#108 exporting config sha256:3d69dc01a07d1f006bbc27754d26e94ac5444561e14171046ac4636ef29515b0 0.0s done
+#108 sending tarball 0.3s done
+#108 DONE 0.5s
+
+#109 importing to docker
+#109 loading layer 3d8e7fe80e6a 140.67kB / 140.67kB 0.1s done
+#109 loading layer c5bf44d10bc1 331B / 331B 0.1s done
+#109 DONE 0.1s
+
+#106 [rag] exporting to docker image format
+#106 sending tarball 0.6s done
+#106 DONE 1.0s
+
+#110 importing to docker
+#110 loading layer 96c24c828e83 54.36kB / 54.36kB 0.2s done
+#110 loading layer 4f790a67dc28 332B / 332B 0.2s done
+#110 loading layer 91beb5e1faf2 460.33kB / 460.33kB 0.1s done
+#110 DONE 0.2s
+
+#97 [tool-images ui-builder 6/6] RUN npm run build
+#97 2.183 ✓ 1512 modules transformed.
+#97 2.251 rendering chunks...
+#97 2.254 computing gzip size...
+#97 2.259 dist/index.html                   0.51 kB │ gzip:  0.32 kB
+#97 2.259 dist/assets/index-facb793e.css    1.10 kB │ gzip:  0.57 kB
+#97 2.259 dist/assets/index-eb8fc05f.js   169.32 kB │ gzip: 52.69 kB
+#97 2.259 ✓ built in 1.09s
+#97 2.281 npm notice
+#97 2.281 npm notice New major version of npm available! 10.8.2 -> 11.15.0
+#97 2.281 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.15.0
+#97 2.281 npm notice To update run: npm install -g npm@11.15.0
+#97 2.281 npm notice
+#97 DONE 2.3s
+
+#111 [model-registry] resolving provenance for metadata file
+#111 DONE 0.0s
+
+#112 [rag] resolving provenance for metadata file
+#112 DONE 0.0s
+
+#100 [tool-images backend 2/7] RUN apt-get update && apt-get install -y --no-install-recommends     nginx && rm -rf /var/lib/apt/lists/*
+#100 CACHED
+
+#103 [tool-images backend 3/7] WORKDIR /app
+#103 CACHED
+
+#113 [tool-images backend 4/7] COPY api/ ./api/
+#113 CACHED
+
+#114 [tool-images backend 5/7] RUN pip install --no-cache-dir uvicorn fastapi sse-starlette
+#114 CACHED
+
+#115 [tool-images backend 6/7] COPY --from=ui-builder /ui/dist /usr/share/nginx/html
+#115 DONE 0.1s
+
+#75 [workflow-bundles ui-builder 5/6] COPY frontend/workflow-ui/ ./
+#75 DONE 11.6s
+
+#116 [tool-images backend 7/7] RUN printf 'server {\n    listen 5179;\n    root /usr/share/nginx/html;\n    index index.html;\n    location / { try_files $uri $uri/ /index.html; }\n    location /v1/ { proxy_pass http://127.0.0.1:8097; proxy_set_header Host $host; }\n    location /health { proxy_pass http://127.0.0.1:8097; }\n    location /docs   { proxy_pass http://127.0.0.1:8097; }\n}\n' > /etc/nginx/conf.d/tool-images.conf &&     rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
+#116 DONE 0.1s
+
+#117 [workflow-bundles ui-builder 6/6] RUN npm run build
+#117 ...
+
+#118 [tool-images] exporting to docker image format
+#118 exporting layers 0.1s done
+#118 exporting manifest sha256:67bc548af83a5ec6e3959674f8530d81577f8fd98a08c32205f88b5393ba333d 0.0s done
+#118 exporting config sha256:e8835e8fc8fa4b8a39fa02c5f12ee8d93a0313ec09bb9230fe1a0e640df05bb1 0.0s done
+#118 sending tarball 0.2s done
+#118 DONE 0.3s
+
+#119 importing to docker
+#119 loading layer 0f178260401a 54.63kB / 54.63kB 0.1s done
+#119 loading layer 5a0becc64f8d 421B / 421B 0.0s done
+#119 DONE 0.1s
+
+#120 [tool-images] resolving provenance for metadata file
+#120 DONE 0.0s
+
+#117 [workflow-bundles ui-builder 6/6] RUN npm run build
+#117 0.514 
+#117 0.514 > workflow-ui@0.0.0 build
+#117 0.514 > tsc -b && vite build
+#117 0.514 
+#117 1.699 vite v8.0.10 building client environment for production...
+#117 1.705 [2Ktransforming...✓ 1733 modules transformed.
+#117 1.777 rendering chunks...
+#117 1.799 computing gzip size...
+#117 1.802 dist/index.html                   0.50 kB │ gzip:  0.30 kB
+#117 1.802 dist/assets/index-4o90JfAc.css    1.36 kB │ gzip:  0.74 kB
+#117 1.802 dist/assets/index-BeUvDF0L.js   220.24 kB │ gzip: 67.39 kB
+#117 1.802 
+#117 1.803 ✓ built in 103ms
+#117 1.817 npm notice
+#117 1.817 npm notice New major version of npm available! 10.8.2 -> 11.15.0
+#117 1.817 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.15.0
+#117 1.817 npm notice To update run: npm install -g npm@11.15.0
+#117 1.817 npm notice
+#117 DONE 1.9s
+
+#81 [tes ui-builder 5/6] COPY frontend/tes-ui/ ./
+#81 DONE 13.6s
+
+#121 [workflow-bundles backend 4/8] COPY pyproject.toml .
+#121 CACHED
+
+#122 [workflow-bundles backend 5/8] COPY api/ ./api/
+#122 CACHED
+
+#103 [workflow-bundles backend 3/7] WORKDIR /app
+#103 CACHED
+
+#100 [workflow-bundles backend 2/7] RUN apt-get update && apt-get install -y --no-install-recommends     nginx && rm -rf /var/lib/apt/lists/*
+#100 CACHED
+
+#123 [workflow-bundles backend 6/8] RUN pip install --no-cache-dir -U pip &&     pip install --no-cache-dir . &&     pip install --no-cache-dir uvicorn fastapi mysql-connector-python
+#123 CACHED
+
+#124 [workflow-bundles backend 7/8] COPY --from=ui-builder /ui/dist /usr/share/nginx/html
+#124 DONE 0.1s
+
+#125 [tes ui-builder 6/6] RUN npm run build
+#125 ...
+
+#126 [workflow-bundles backend 8/8] RUN printf 'server {\n    listen 5178;\n    root /usr/share/nginx/html;\n    index index.html;\n    location / { try_files $uri $uri/ /index.html; }\n    location /v1/ { proxy_pass http://127.0.0.1:8098; proxy_set_header Host $host; }\n    location /health { proxy_pass http://127.0.0.1:8098; }\n    location /docs   { proxy_pass http://127.0.0.1:8098; }\n}\n' > /etc/nginx/conf.d/workflows.conf &&     rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
+#126 DONE 0.1s
+
+#125 [tes ui-builder 6/6] RUN npm run build
+#125 0.274 
+#125 0.274 > tes-ui@0.0.0 build
+#125 0.274 > tsc && vite build
+#125 0.274 
+#125 ...
+
+#127 [workflow-bundles] exporting to docker image format
+#127 exporting layers 0.1s done
+#127 exporting manifest sha256:efa7f8925ae405e6b052804f882723c3128bc2814da77cb1e08a971b87745d39 0.0s done
+#127 exporting config sha256:8e27a8ed16b0aed49319f650c3889cb17828a81ebf286c710ab766cc3ecb29ab 0.0s done
+#127 sending tarball 0.2s done
+#127 DONE 0.4s
+
+#128 importing to docker
+#128 loading layer 9562b983fbcd 71.79kB / 71.79kB 0.1s done
+#128 loading layer 8d14a70d35f4 420B / 420B 0.0s done
+#128 DONE 0.1s
+
+#129 [workflow-bundles] resolving provenance for metadata file
+#129 DONE 0.0s
+
+#125 [tes ui-builder 6/6] RUN npm run build
+#125 1.418 vite v4.5.14 building for production...
+#125 1.429 transforming...
+#125 2.399 ✓ 1514 modules transformed.
+#125 2.480 rendering chunks...
+#125 2.483 computing gzip size...
+#125 2.487 dist/index.html                   0.41 kB │ gzip:  0.28 kB
+#125 2.487 dist/assets/index-bc929387.css    1.68 kB │ gzip:  0.78 kB
+#125 2.487 dist/assets/index-c244d173.js   192.96 kB │ gzip: 57.88 kB
+#125 2.487 ✓ built in 1.07s
+#125 2.515 npm notice
+#125 2.515 npm notice New major version of npm available! 10.8.2 -> 11.15.0
+#125 2.515 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.15.0
+#125 2.515 npm notice To update run: npm install -g npm@11.15.0
+#125 2.515 npm notice
+#125 DONE 2.6s
+
+#130 [tes backend  5/11] COPY README.md ./README.md
+#130 CACHED
+
+#131 [tes backend  2/11] RUN apt-get update && apt-get install -y --no-install-recommends     nginx bash     && rm -rf /var/lib/apt/lists/*
+#131 CACHED
+
+#132 [tes backend  3/11] WORKDIR /app
+#132 CACHED
+
+#133 [tes backend  8/11] COPY configs/ ./configs/
+#133 CACHED
+
+#134 [tes backend  4/11] COPY pyproject.toml .
+#134 CACHED
+
+#135 [tes backend  7/11] COPY scripts/ ./scripts/
+#135 CACHED
+
+#136 [tes backend  6/11] COPY src/ ./src/
+#136 CACHED
+
+#137 [tes backend  9/11] RUN pip install --no-cache-dir --upgrade-strategy only-if-needed .
+#137 CACHED
+
+#138 [tes backend 10/11] COPY --from=ui-builder /ui/dist /usr/share/nginx/html
+#138 DONE 0.0s
+
+#139 [tes backend 11/11] RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default &&     printf 'server {\n    listen 5177;\n    root /usr/share/nginx/html;\n    index index.html;\n    location / { try_files $uri $uri/ /index.html; }\n    location /api/ { proxy_pass http://127.0.0.1:8081; proxy_set_header Host $host; }\n    location /health { proxy_pass http://127.0.0.1:8081; }\n    location /docs   { proxy_pass http://127.0.0.1:8081; }\n    location /tasks  { proxy_pass http://127.0.0.1:8081; }\n    location /runs   { proxy_pass http://127.0.0.1:8081; }\n    location /v1/    { proxy_pass http://127.0.0.1:8081; }\n}\n' > /etc/nginx/conf.d/tes.conf
+#139 DONE 0.1s
+
+#140 [tes] exporting to docker image format
+#140 exporting layers 0.1s done
+#140 exporting manifest sha256:52df785eb593c4146c0825a5ff437eb8a585583253280d74c4572f0653b8c240 0.0s done
+#140 exporting config sha256:9e113a27ad97dfd387ab3ad382360832a9b97289e6cc2e0440ad948103a95a6a 0.0s done
+#140 sending tarball 0.3s done
+#140 DONE 0.4s
+
+#141 importing to docker
+#141 loading layer 34e0f088526c 59.32kB / 59.32kB 0.1s done
+#141 loading layer b1e958934690 433B / 433B 0.1s done
+#141 DONE 0.1s
+
+#142 [tes] resolving provenance for metadata file
+#142 DONE 0.0s
+ omnibioai-studio-rag  Built
+ omnibioai-studio-model-registry  Built
+ omnibioai-tes-local  Built
+ omnibioai-studio-dev-hub  Built
+ omnibioai-studio-workflow-bundles  Built
+ omnibioai-studio-tool-images  Built
+ omnibioai-lims-local  Built
