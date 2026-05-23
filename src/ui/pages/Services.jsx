@@ -111,7 +111,8 @@ async function checkUrl(url) {
   }
 }
 
-export default function Services() {
+export default function Services({ config }) {
+  const isBeta = config?.mode === "beta";
   const [statuses, setStatuses] = useState(() =>
     Object.fromEntries(SERVICES.map(s => [s.key, "unknown"]))
   );
@@ -190,7 +191,7 @@ export default function Services() {
             Services
           </div>
           <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
-            monitor and control individual docker services
+            {isBeta ? "monitoring remote cloud services via tunnel" : "monitor and control individual docker services"}
           </div>
         </div>
         <div style={{ display:"flex", gap:12, alignItems:"center" }}>
@@ -266,21 +267,23 @@ export default function Services() {
                         {s.image}
                       </td>
                       <td style={{ padding:"10px 14px", textAlign:"right" }}>
-                        <button
-                          onClick={() => restartService(s.key)}
-                          disabled={isRestarting}
-                          style={{
-                            padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
-                            fontFamily:"var(--mono)", cursor: isRestarting ? "not-allowed" : "pointer",
-                            background: isRestarting ? "rgba(0,148,255,0.08)" : "rgba(255,255,255,0.04)",
-                            border: isRestarting ? "1px solid rgba(0,148,255,0.2)" : "1px solid var(--border2)",
-                            color: isRestarting ? "var(--accent2)" : "var(--color-text-muted)",
-                            transition:"all 0.15s",
-                            opacity: isRestarting ? 0.7 : 1,
-                          }}
-                        >
-                          {isRestarting ? "↻ Restarting..." : "↻ Restart"}
-                        </button>
+                        {!isBeta && (
+                          <button
+                            onClick={() => restartService(s.key)}
+                            disabled={isRestarting}
+                            style={{
+                              padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
+                              fontFamily:"var(--mono)", cursor: isRestarting ? "not-allowed" : "pointer",
+                              background: isRestarting ? "rgba(0,148,255,0.08)" : "rgba(255,255,255,0.04)",
+                              border: isRestarting ? "1px solid rgba(0,148,255,0.2)" : "1px solid var(--border2)",
+                              color: isRestarting ? "var(--accent2)" : "var(--color-text-muted)",
+                              transition:"all 0.15s",
+                              opacity: isRestarting ? 0.7 : 1,
+                            }}
+                          >
+                            {isRestarting ? "↻ Restarting..." : "↻ Restart"}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

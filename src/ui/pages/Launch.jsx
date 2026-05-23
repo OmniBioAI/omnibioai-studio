@@ -8,6 +8,13 @@ const SERVICES = [
   { key: "ollama",    label: "Ollama",    port: ":11434" },
 ];
 
+const BETA_HEALTH_URLS = {
+  workbench: "/_svc/workbench/",
+  tes:       "/_svc/tes/",
+  ollama:    "/_svc/ollama/",
+  mysql:     "/_svc/lims/",
+};
+
 function timestamp() {
   return new Date().toTimeString().slice(0, 8);
 }
@@ -38,14 +45,27 @@ function HealthCard({ label, status, port }) {
   );
 }
 
+async function checkUrl(url) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    return res.status < 500;
+  } catch (_) {
+    return false;
+  }
+}
+
 export default function Launch({ config, onStatusChange }) {
-  const [status, setStatus]  = useState("idle");
+  const isBeta = config?.mode === "beta";
+
+  const [status, setStatus]  = useState(isBeta ? "running" : "idle");
   const [health, setHealth]  = useState({
     mysql:"unknown", workbench:"unknown", tes:"unknown", ollama:"unknown", rag:"unknown",
   });
-  const [logs, setLogs] = useState([
-    { time:"—:—:—", type:"info", msg:"Studio initialized — waiting for boot" },
-  ]);
+  const [logs, setLogs] = useState(
+    isBeta
+      ? [{ time: timestamp(), type:"ok",  msg:"Beta mode — connected to app.omnibioai.org" }]
+      : [{ time:"—:—:—",     type:"info", msg:"Studio initialized — waiting for boot" }]
+  );
   const logRef  = useRef(null);
   const pollRef = useRef(null);
 
@@ -56,19 +76,29 @@ export default function Launch({ config, onStatusChange }) {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs]);
 
-  // Real Docker compose output via IPC
+  // Docker compose output via IPC (local mode only)
   useEffect(() => {
-    if (!window.api?.onDockerLog) return;
+    if (isBeta || !window.api?.onDockerLog) return;
     window.api.onDockerLog((line) => {
       setLogs((prev) => [...prev, { time: timestamp(), type: "info", msg: line }]);
     });
-  }, []);
+  }, [isBeta]);
 
-  // Live health polling every 5s
+  // Health polling — beta uses tunnel URLs, local uses docker IPC
   useEffect(() => {
     const poll = async () => {
       try {
-        if (window.api?.checkHealth) {
+        if (isBeta) {
+          const results = await Promise.all(
+            SERVICES.map(async (s) => {
+              const url = BETA_HEALTH_URLS[s.key];
+              const up = url ? await checkUrl(url) : false;
+              return [s.key, up ? "up" : "down"];
+            })
+          );
+          const next = Object.fromEntries(results);
+          setHealth(prev => ({ ...prev, ...next }));
+        } else if (window.api?.checkHealth) {
           const r = await window.api.checkHealth();
           setHealth({
             mysql:     r.mysql     ? "up" : "down",
@@ -83,7 +113,22 @@ export default function Launch({ config, onStatusChange }) {
     poll();
     pollRef.current = setInterval(poll, 5000);
     return () => clearInterval(pollRef.current);
-  }, []);
+  }, [isBeta]);
+
+  // Beta: log connection events when health changes
+  const prevHealthRef = useRef({});
+  useEffect(() => {
+    if (!isBeta) return;
+    const prev = prevHealthRef.current;
+    Object.entries(health).forEach(([key, st]) => {
+      if (prev[key] !== undefined && prev[key] !== st) {
+        const label = SERVICES.find(s => s.key === key)?.label || key;
+        if (st === "up")   addLog("ok",   `${label} tunnel — reachable`);
+        if (st === "down") addLog("warn", `${label} tunnel — unreachable`);
+      }
+    });
+    prevHealthRef.current = { ...health };
+  }, [health, isBeta]);
 
   const startSystem = async () => {
     if (status === "starting" || status === "running") return;
@@ -98,7 +143,6 @@ export default function Launch({ config, onStatusChange }) {
       if (window.api?.startDocker) {
         await window.api.startDocker();
       } else {
-        // Dev fallback — no Electron API
         await new Promise(r => setTimeout(r, 1200));
         addLog("warn", "Electron API not available — run via: npm run dev");
       }
@@ -150,19 +194,36 @@ export default function Launch({ config, onStatusChange }) {
             Execution Console
           </div>
           <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
-            review configuration and boot the runtime stack
+            {isBeta ? "connected to cloud — monitoring tunnel services" : "review configuration and boot the runtime stack"}
           </div>
         </div>
-        <div style={{ display:"flex", gap:8 }}>
-          <Btn variant="ghost" onClick={stopSystem}>Stop Stack</Btn>
-          <Btn variant="primary" onClick={startSystem} disabled={status === "starting"}
-            style={status === "running" ? {
-              background:"rgba(0,229,160,0.12)", color:"var(--accent)",
-              border:"1px solid rgba(0,229,160,0.25)",
-            } : {}}>
-            {status === "starting" ? "Booting..." : status === "running" ? "● Running" : "Boot System"}
-          </Btn>
-        </div>
+
+        {isBeta ? (
+          <div style={{
+            display:"flex", alignItems:"center", gap:8,
+            padding:"8px 16px", borderRadius:'var(--radius)',
+            background:"rgba(0,229,160,0.08)", border:"1px solid rgba(0,229,160,0.25)",
+          }}>
+            <div style={{ width:7, height:7, borderRadius:"50%", background:"var(--accent)", animation:"pulse 2s infinite" }} />
+            <span style={{ fontSize:'var(--font-size-sm)', fontFamily:"var(--mono)", fontWeight:500, color:"var(--accent)" }}>
+              Connected to Cloud
+            </span>
+            <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
+              app.omnibioai.org
+            </span>
+          </div>
+        ) : (
+          <div style={{ display:"flex", gap:8 }}>
+            <Btn variant="ghost" onClick={stopSystem}>Stop Stack</Btn>
+            <Btn variant="primary" onClick={startSystem} disabled={status === "starting"}
+              style={status === "running" ? {
+                background:"rgba(0,229,160,0.12)", color:"var(--accent)",
+                border:"1px solid rgba(0,229,160,0.25)",
+              } : {}}>
+              {status === "starting" ? "Booting..." : status === "running" ? "● Running" : "Boot System"}
+            </Btn>
+          </div>
+        )}
       </div>
 
       {/* Health Cards */}
@@ -177,7 +238,7 @@ export default function Launch({ config, onStatusChange }) {
           <PanelBody style={{ padding:"10px 16px" }}>
             <table style={{ width:"100%", borderCollapse:"collapse", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)" }}>
               {[
-                ["Mode",          config.mode || "local",                 "var(--accent)"],
+                ["Mode",          config.mode || "beta",                 "var(--accent)"],
                 ["Ollama",        llm.enable_ollama  ? "Enabled":"Disabled", llm.enable_ollama  ? "var(--accent)":"var(--color-text-muted)"],
                 ["Claude API",    llm.enable_claude  ? "Enabled":"Disabled", llm.enable_claude  ? "var(--accent)":"var(--color-text-muted)"],
                 ["OpenAI",        llm.enable_openai  ? "Enabled":"Disabled", llm.enable_openai  ? "var(--accent)":"var(--color-text-muted)"],
@@ -194,7 +255,7 @@ export default function Launch({ config, onStatusChange }) {
         </Panel>
 
         <Panel>
-          <PanelHeader title="System Logs" icon iconColor="blue">
+          <PanelHeader title={isBeta ? "Connection Events" : "System Logs"} icon iconColor="blue">
             <button onClick={() => setLogs([])} style={{
               fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
               background:"transparent", border:"none", cursor:"pointer", letterSpacing:"0.06em",

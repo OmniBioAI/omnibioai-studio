@@ -4,6 +4,8 @@ const fs = require("fs");
 const { writeConfig, readConfig, resetConfig } = require("../backend/config");
 const { spawn, execFile } = require("child_process");
 
+const BETA_MODE = true;
+
 let mainWindow;
 
 // ─── PATH HELPERS ─────────────────────────────────────────────────────────────
@@ -138,10 +140,11 @@ app.whenReady().then(() => {
   mainWindow.webContents.once("did-finish-load", () => {
     const cfg = readConfig();
     const hostIp = cfg?.server?.host_ip || "localhost";
+    const server = BETA_MODE ? "app.omnibioai.org" : hostIp;
     mainWindow.webContents.executeJavaScript(
-      `window.__OMNIBIOAI_SERVER__ = ${JSON.stringify(hostIp)}`
+      `window.__OMNIBIOAI_SERVER__ = ${JSON.stringify(server)}`
     );
-    setTimeout(startLogStream, 6000);
+    if (!BETA_MODE) setTimeout(startLogStream, 6000);
   });
 });
 
@@ -172,7 +175,10 @@ ipcMain.handle("reset-config", async () => {
 });
 
 // ─── DOCKER LIFECYCLE ─────────────────────────────────────────────────────────
+const BETA_RESPONSE = { betaMode: true, message: "Not available in Beta — cloud mode active" };
+
 ipcMain.handle("start-docker", async () => {
+  if (BETA_MODE) return BETA_RESPONSE;
   ensureDbInit();
   return new Promise((resolve, reject) => {
     sendLog("Pulling latest images — this may take several minutes...");
@@ -208,6 +214,7 @@ ipcMain.handle("start-docker", async () => {
 });
 
 ipcMain.handle("stop-docker", async () => {
+  if (BETA_MODE) return BETA_RESPONSE;
   return new Promise((resolve, reject) => {
     execFile("docker", composeArgs("down"), (err, _, stderr) => {
       if (err) return reject(stderr || err.message);
@@ -217,6 +224,7 @@ ipcMain.handle("stop-docker", async () => {
 });
 
 ipcMain.handle("restart-docker", async () => {
+  if (BETA_MODE) return BETA_RESPONSE;
   return new Promise((resolve, reject) => {
     execFile("docker", composeArgs("restart"), (err, _, stderr) => {
       if (err) return reject(stderr || err.message);
@@ -232,6 +240,7 @@ const ALLOWED_SERVICES = [
 ];
 
 ipcMain.handle("restart-service", async (_, name) => {
+  if (BETA_MODE) return BETA_RESPONSE;
   if (!ALLOWED_SERVICES.includes(name)) throw new Error(`Unknown service: ${name}`);
   return new Promise((resolve, reject) => {
     execFile("docker", composeArgs("restart", name), (err, _, stderr) => {

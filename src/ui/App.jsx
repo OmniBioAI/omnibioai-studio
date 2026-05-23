@@ -43,7 +43,7 @@ export default function App() {
   const [systemStatus, setSystemStatus] = useState("idle");
   const [ready,        setReady]        = useState(false);
   const [config,       setConfig]       = useState({
-    mode: "local", llm: {}, cloud: {}, hpc: {}, settings: {},
+    mode: "beta", llm: {}, cloud: {}, hpc: {}, settings: {},
   });
 
   // ─── Load saved config + first-run detection ───────────
@@ -53,7 +53,7 @@ export default function App() {
         if (window.api?.loadConfig) {
           const saved = await window.api.loadConfig();
           if (saved) {
-            setConfig(prev => ({ ...prev, ...saved }));
+            setConfig(prev => ({ ...prev, ...saved, mode: saved.mode || "beta" }));
             // First run — no data_dir set → go to Settings
             if (!saved?.settings?.data_dir) {
               setStep(8);
@@ -85,7 +85,7 @@ export default function App() {
     <Cloud     config={config} setConfig={setConfig} />,
     <HPC       config={config} setConfig={setConfig} />,
     <Launch    config={config} onStatusChange={setSystemStatus} />,
-    <Services  />,
+    <Services  config={config} />,
     <Logs      />,
     <Workbench />,
     <Settings  config={config} setConfig={setConfig} />,
