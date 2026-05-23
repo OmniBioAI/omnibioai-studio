@@ -42,7 +42,7 @@ const HEALTH = [
   { label: "Redis",    status: "up",   port: ":6379"  },
   { label: "TES",      status: "up",   port: ":8081"  },
   { label: "Ollama",   status: "warn", port: ":11434" },
-  { label: "RAG",      status: "down", port: ":8500"  },
+  { label: "RAG",      status: "unknown", port: ":8090"  },
 ];
 
 export default function Mode({ config, setConfig }) {

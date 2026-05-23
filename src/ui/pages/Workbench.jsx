@@ -26,8 +26,8 @@ function buildCategories(BASE) {
         { label:"SDK Launcher",     url:"/_svc/sdk",                 icon:"🔬", desc:"Analysis · SDK tools"             },
         { label:"Workflows",        url:"/_svc/workflows",           icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
         { label:"Dev Hub",          url:"/_svc/devhub",              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
-        { label:"Prometheus",       url:"/_svc/prometheus/",           icon:"📊", desc:"Metrics scraper"                  },
-        { label:"Grafana",          url:"/_svc/monitor/",               icon:"📈", desc:"Metrics dashboards"               },
+        { label:"Prometheus",       url:"http://localhost:9091",        icon:"📊", desc:"Metrics scraper"                  },
+        { label:"Grafana",          url:"http://localhost:3000",        icon:"📈", desc:"Metrics dashboards"               },
       ]
     },
     {
@@ -136,6 +136,8 @@ export default function Workbench() {
   const open = (url) => {
     if (window.api?.openExternal) {
       window.api.openExternal(url);
+    } else if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, "_blank", "noopener,noreferrer");
     } else {
       window.open(url, "_blank");
     }
