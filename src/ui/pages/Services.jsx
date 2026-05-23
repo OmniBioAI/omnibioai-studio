@@ -98,7 +98,7 @@ const HEALTH_URLS = {
   "dev-hub":           "/_svc/devhub",
   "control-center":    "/_svc/control",
   "ollama":            "/_svc/ollama",
-  "lims":              "/_svc/lims",
+  "lims":              "/_svc/lims/",
 }
 
 async function checkUrl(url) {

@@ -4,7 +4,7 @@ function getHost() {
   return (
     window.__OMNIBIOAI_SERVER__ ||
     import.meta.env.VITE_HOST ||
-    "192.168.86.234"
+    "app.omnibioai.org"
   );
 }
 
