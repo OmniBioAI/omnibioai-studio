@@ -3,24 +3,37 @@ import { Panel, PanelHeader, PanelBody, HealthCard } from "../components/UI";
 
 const MODES = [
   {
+    id: "beta",
+    title: "Beta Cloud",
+    desc: "Connects to app.omnibioai.org\nNo local docker needed",
+  },
+  {
     id: "local",
     title: "Local",
     desc: "Docker + local GPU/CPU\nOffline-first, Ollama support",
+    disabled: true,
+    tooltip: "Available in future release",
   },
   {
     id: "hpc",
     title: "HPC",
     desc: "Slurm / PBS / LSF\nApptainer + remote execution",
+    disabled: true,
+    tooltip: "Available in future release",
   },
   {
     id: "cloud",
     title: "Cloud",
     desc: "AWS Batch / Azure Batch\nElastic auto-scaling compute",
+    disabled: true,
+    tooltip: "Available in future release",
   },
   {
     id: "hybrid",
     title: "Hybrid",
     desc: "Multi-backend orchestration\nPolicy-driven scheduling",
+    disabled: true,
+    tooltip: "Available in future release",
   },
 ];
 
@@ -50,17 +63,19 @@ export default function Mode({ config, setConfig }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "repeat(3, 1fr)",
           gap: 8,
           marginBottom: 14,
         }}
       >
         {MODES.map((m) => {
           const isSelected = selected === m.id;
+          const isDisabled = !!m.disabled;
           return (
             <div
               key={m.id}
-              onClick={() => setConfig((p) => ({ ...p, mode: m.id }))}
+              onClick={() => !isDisabled && setConfig((p) => ({ ...p, mode: m.id }))}
+              title={isDisabled ? m.tooltip : undefined}
               style={{
                 background: isSelected ? "rgba(0,229,160,0.04)" : "var(--bg2)",
                 border: isSelected
@@ -68,7 +83,8 @@ export default function Mode({ config, setConfig }) {
                   : "1px solid var(--border)",
                 borderRadius: 'var(--radius)',
                 padding: "10px 12px",
-                cursor: "pointer",
+                cursor: isDisabled ? "not-allowed" : "pointer",
+                opacity: isDisabled ? 0.45 : 1,
                 transition: "all 0.15s",
               }}
             >
@@ -83,7 +99,14 @@ export default function Mode({ config, setConfig }) {
                   justifyContent: "space-between",
                 }}
               >
-                {m.title}
+                <span>
+                  {m.title}
+                  {isDisabled && (
+                    <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)", marginLeft:6 }}>
+                      (coming soon)
+                    </span>
+                  )}
+                </span>
                 <div
                   style={{
                     width: 6,

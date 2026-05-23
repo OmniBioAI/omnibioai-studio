@@ -8,7 +8,7 @@ function getInitialHost() {
   );
 }
 
-function buildCategories(HOST, BASE) {
+function buildCategories(BASE) {
   return [
     {
       name: "Platform Services",
@@ -26,8 +26,8 @@ function buildCategories(HOST, BASE) {
         { label:"SDK Launcher",     url:"/_svc/sdk",                 icon:"🔬", desc:"Analysis · SDK tools"             },
         { label:"Workflows",        url:"/_svc/workflows",           icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
         { label:"Dev Hub",          url:"/_svc/devhub",              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
-        { label:"Prometheus",       url:`http://${HOST}:9091`,         icon:"📊", desc:"Metrics scraper"                  },
-        { label:"Grafana",          url:`http://${HOST}:3000`,            icon:"📈", desc:"Metrics dashboards"               },
+        { label:"Prometheus",       url:"/_svc/prometheus/",           icon:"📊", desc:"Metrics scraper"                  },
+        { label:"Grafana",          url:"/_svc/monitor/",               icon:"📈", desc:"Metrics dashboards"               },
       ]
     },
     {
@@ -99,7 +99,7 @@ export default function Workbench() {
   const [checking, setChecking] = useState(true);
 
   const BASE       = "/_svc/workbench";
-  const CATEGORIES = useMemo(() => buildCategories(host, BASE), [host, BASE]);
+  const CATEGORIES = useMemo(() => buildCategories(BASE), [BASE]);
 
   useEffect(() => {
     const loadHost = async () => {
