@@ -15,6 +15,7 @@
 - **Redis token caching** — validated tokens cached (TTL=300s) with pub/sub invalidation on logout
 - Internal service header propagation (`X-Internal-Service`, `X-Trace-Id`, `X-User-Id`) across all TES calls
 - Fail-closed on auth/policy/HPC failure; fail-open on audit (never blocks requests)
+- **RAG V6 FAISS index** — persistent vector store with recursive document indexing for large literature corpora
 
 ### v0.1.0-beta.1
 - Full local stack launch with containerized services
@@ -74,8 +75,11 @@ security-audit :8004  ← async audit log → Redis Streams (never blocks)
 | Model Registry | :8095 | ML model versioning and serving |
 | LIMS | :7000 | Lab Information Management System |
 | Control Center | :7070 | Service health + Docker image dashboard |
-| RAG | :8090 | PubMed literature AI + DeepSeek RAG |
-| Dev Hub | :5173 | Knowledge graph + embeddings UI |
+| RAG | :8090 (ext) / :8096 (int) | PubMed literature AI + DeepSeek RAG (V6 FAISS, persistent vector store) |
+| Dev Hub | :5173 / :8082 | Knowledge graph + embeddings UI |
+| Workflow Bundles | :8098 | WDL/Nextflow/Snakemake/CWL workflow bundle server |
+| Tool Images | :8097 | Bioinformatics tool image registry |
+| Videos | :8086 | Tutorial and demo video server |
 | SDK Launcher | :5190 | OmniBioAI Python SDK UI |
 | Ollama | :11434 | Local LLM inference |
 | OPA | :8181 | Open Policy Agent (policy rules backend) |
@@ -361,6 +365,10 @@ OmniBioAI Studio is the **desktop control layer** for:
 | `omnibioai-tool-images` | 80+ bioinformatics tool containers |
 | `omnibioai_sdk` | Python SDK + React launcher |
 | `omnibioai-dev-docker` | DGX/GPU development environment |
+| `omnibioai-security-sdk` | Security SDK for service auth integration |
+| `omnibioai-design-tokens` | Shared design tokens and theme system |
+| `omnibioai-ui` | Shared UI component library |
+| `omnibioai-landing` | Public-facing landing page |
 
 ---
 
