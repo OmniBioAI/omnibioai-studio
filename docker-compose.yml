@@ -88,6 +88,8 @@ services:
       - /home/manish/Desktop/machine/omnibioai-workflow-bundles:/home/manish/Desktop/machine/omnibioai-workflow-bundles:ro
       - /home/manish/Desktop/machine/omnibioai:/home/manish/Desktop/machine/omnibioai:rw
       - /home/manish/Desktop/machine/omnibioai-tool-images:/home/manish/Desktop/machine/omnibioai-tool-images:ro
+      - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
+      - /home/manish/Desktop/machine/work:/home/manish/Desktop/machine/work
       - ${DATA_DIR}/tool-images/sif:/sif:ro
     command:
       - bash
@@ -232,6 +234,8 @@ services:
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
+      - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
+      - /home/manish/Desktop/machine/work:/home/manish/Desktop/machine/work
     depends_on:
       mysql:
         condition: service_healthy
@@ -326,6 +330,8 @@ services:
     volumes:
       - /home/manish/Desktop/machine/omnibioai-dev-hub/data:/app/data
       - /home/manish/Desktop/machine/omnibioai:/repos/omnibioai:ro
+      - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
+      - /home/manish/Desktop/machine/work:/home/manish/Desktop/machine/work
       - /home/manish/Desktop/machine/omnibioai-rag:/repos/omnibioai-rag:ro
       - /home/manish/Desktop/machine/omnibioai-toolserver:/repos/omnibioai-toolserver:ro
       - /home/manish/Desktop/machine/omnibioai-sdk:/repos/omnibioai-sdk:ro
