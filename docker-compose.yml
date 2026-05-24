@@ -448,7 +448,10 @@ services:
 
 
   policy-engine:
-    image: ghcr.io/man4ish/omnibioai-policy-engine:latest
+    build:
+      context: /home/manish/Desktop/machine
+      dockerfile: omnibioai-policy-engine/Dockerfile
+    image: omnibioai-policy-engine-local
     ports:
       - "${HOST_IP:-0.0.0.0}:8002:8002"
     environment:
@@ -460,7 +463,10 @@ services:
     restart: on-failure
 
   hpc-policy-engine:
-    image: ghcr.io/man4ish/omnibioai-hpc-policy-engine:latest
+    build:
+      context: /home/manish/Desktop/machine/omnibioai-hpc-policy-engine
+      dockerfile: Dockerfile
+    image: omnibioai-hpc-policy-engine-local
     ports:
       - "${HOST_IP:-0.0.0.0}:8003:8003"
     environment:
@@ -554,6 +560,7 @@ services:
       - "80:80"
     volumes:
       - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
+      - /home/manish/Desktop/machine/omnibioai-docs:/docs:ro
     depends_on:
       - workbench
       - lims
