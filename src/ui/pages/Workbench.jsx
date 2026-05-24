@@ -8,13 +8,22 @@ function getInitialHost() {
   );
 }
 
+const openDocs = () => {
+  const url = 'http://192.168.86.234/docs/';
+  if (window.api && window.api.openExternal) {
+    window.api.openExternal(url);
+  } else {
+    window.open(url, '_blank');
+  }
+};
+
 function buildCategories(BASE) {
   return [
     {
       name: "Platform Services",
       color: "var(--color-text-muted)",
       links: [
-        { label:"Getting Started",  url:"/_svc/videos/guide.html",   icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
+        { label:"Getting Started",  url:"/docs/", action:openDocs,    icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
         { label:"Workbench",        url:"/_svc/workbench/",          icon:"🏠", desc:"Dashboard"                        },
         { label:"Control Center",   url:"/_svc/control",             icon:"🖥️", desc:"Health + Docker imgs"             },
@@ -275,13 +284,13 @@ export default function Workbench() {
             </div>
 
             <div className="app-grid">
-              {links.map(({ label, url, icon, desc }) => {
+              {links.map(({ label, url, icon, desc, action }) => {
                 const isLocal = !url.startsWith(BASE);
                 const clickable = isLocal || online;
                 return (
                   <button
                     key={label}
-                    onClick={() => clickable && open(url)}
+                    onClick={() => clickable && (action ? action() : open(url))}
                     aria-label={`${label} — ${desc}`}
                     aria-disabled={!clickable}
                     title={desc}
