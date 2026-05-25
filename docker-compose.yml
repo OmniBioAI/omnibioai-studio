@@ -226,6 +226,11 @@ services:
       OMNIBIOAI_MYSQL_USER: root
       OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       OMNIBIOAI_MYSQL_DB: omnibioai
+      LIMS_BASE_URL: "http://lims:7000"
+      LIMS_USERNAME: "man4ish"
+      LIMS_PASSWORD: "root"
+      LIMS_REFRESH_TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3OTc0Nzg0MiwiaWF0IjoxNzc5NjYxNDQyLCJqdGkiOiJlOGFiYjIzNjU1YjQ0MWJiOWRmYWM3OWFhMjIwMDk5NyIsInVzZXJfaWQiOiIxMCJ9.44Dfx5L7hHbVr-JmhcVjX__3pYoxbpgdfEtltKZnuvE"
+      LIMS_API_TOKEN: ""
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
