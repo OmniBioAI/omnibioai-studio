@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import LicenseGate from "./components/LicenseGate";
 import Sidebar   from "./components/Sidebar";
 import Mode      from "./pages/Mode";
 import LLM       from "./pages/LLM";
@@ -118,6 +119,7 @@ export default function App() {
   }
 
   return (
+    <LicenseGate>
     <div style={{
       display:"flex", height:"100vh",
       background:"var(--bg)", color:"var(--text)",
@@ -266,5 +268,6 @@ export default function App() {
         )}
       </div>
     </div>
+    </LicenseGate>
   );
 }

@@ -30,3 +30,9 @@ contextBridge.exposeInMainWorld("api", {
   openWorkbench: ()         => ipcRenderer.invoke("open-workbench"),
   openExternal:  (url)      => ipcRenderer.invoke("open-external", url),
 });
+
+contextBridge.exposeInMainWorld("electronAPI", {
+  validateLicense: (key) => ipcRenderer.invoke("license-validate", key),
+  getLicense:      ()    => ipcRenderer.invoke("license-get-cached"),
+  clearLicense:    ()    => ipcRenderer.invoke("license-clear"),
+});

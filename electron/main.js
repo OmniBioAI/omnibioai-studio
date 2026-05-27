@@ -3,8 +3,60 @@ const path = require("path");
 const fs = require("fs");
 const { writeConfig, readConfig, resetConfig } = require("../backend/config");
 const { spawn, execFile } = require("child_process");
+const os = require("os");
+const crypto = require("crypto");
 
-const BETA_MODE = true;
+const DEV_MODE = process.env.OMNIBIOAI_DEV_MODE === 'true';
+
+// ─── LICENSE ──────────────────────────────────────────────────────────────────
+const LICENSE_SERVER = process.env.LICENSE_SERVER || 'https://license.omnibioai.org';
+const LICENSE_FILE = path.join(app.getPath('userData'), 'license.json');
+
+function getMachineId() {
+  const raw = os.hostname() + os.platform() + os.arch();
+  return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
+}
+
+async function validateLicense(key) {
+  const machineId = getMachineId();
+  try {
+    const response = await fetch(`${LICENSE_SERVER}/api/license/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, machine_id: machineId })
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      return { valid: false, reason: err.detail || 'Invalid license' };
+    }
+    return await response.json();
+  } catch (e) {
+    if (fs.existsSync(LICENSE_FILE)) {
+      const cached = JSON.parse(fs.readFileSync(LICENSE_FILE, 'utf8'));
+      const expiry = new Date(cached.expiry);
+      const gracePeriod = new Date(cached.cached_at);
+      gracePeriod.setDate(gracePeriod.getDate() + 7);
+      if (new Date() < expiry && new Date() < gracePeriod) {
+        return { ...cached, valid: true, offline: true };
+      }
+    }
+    return { valid: false, reason: 'Cannot reach license server and no cached license' };
+  }
+}
+
+function saveLicense(data) {
+  fs.writeFileSync(LICENSE_FILE, JSON.stringify({
+    ...data,
+    cached_at: new Date().toISOString()
+  }));
+}
+
+function loadCachedLicense() {
+  if (fs.existsSync(LICENSE_FILE)) {
+    return JSON.parse(fs.readFileSync(LICENSE_FILE, 'utf8'));
+  }
+  return null;
+}
 
 let mainWindow;
 
@@ -140,11 +192,11 @@ app.whenReady().then(() => {
   mainWindow.webContents.once("did-finish-load", () => {
     const cfg = readConfig();
     const hostIp = cfg?.server?.host_ip || "localhost";
-    const server = BETA_MODE ? "app.omnibioai.org" : hostIp;
+    const server = DEV_MODE ? "app.omnibioai.org" : hostIp;
     mainWindow.webContents.executeJavaScript(
       `window.__OMNIBIOAI_SERVER__ = ${JSON.stringify(server)}`
     );
-    if (!BETA_MODE) setTimeout(startLogStream, 6000);
+    if (!DEV_MODE) setTimeout(startLogStream, 6000);
   });
 });
 
@@ -175,10 +227,10 @@ ipcMain.handle("reset-config", async () => {
 });
 
 // ─── DOCKER LIFECYCLE ─────────────────────────────────────────────────────────
-const BETA_RESPONSE = { betaMode: true, message: "Not available in Beta — cloud mode active" };
+const DEV_RESPONSE = { devMode: true, message: "Not available in Dev mode — use release build" };
 
 ipcMain.handle("start-docker", async () => {
-  if (BETA_MODE) return BETA_RESPONSE;
+  if (DEV_MODE) return DEV_RESPONSE;
   ensureDbInit();
   return new Promise((resolve, reject) => {
     sendLog("Pulling latest images — this may take several minutes...");
@@ -214,7 +266,7 @@ ipcMain.handle("start-docker", async () => {
 });
 
 ipcMain.handle("stop-docker", async () => {
-  if (BETA_MODE) return BETA_RESPONSE;
+  if (DEV_MODE) return DEV_RESPONSE;
   return new Promise((resolve, reject) => {
     execFile("docker", composeArgs("down"), (err, _, stderr) => {
       if (err) return reject(stderr || err.message);
@@ -224,7 +276,7 @@ ipcMain.handle("stop-docker", async () => {
 });
 
 ipcMain.handle("restart-docker", async () => {
-  if (BETA_MODE) return BETA_RESPONSE;
+  if (DEV_MODE) return DEV_RESPONSE;
   return new Promise((resolve, reject) => {
     execFile("docker", composeArgs("restart"), (err, _, stderr) => {
       if (err) return reject(stderr || err.message);
@@ -240,7 +292,7 @@ const ALLOWED_SERVICES = [
 ];
 
 ipcMain.handle("restart-service", async (_, name) => {
-  if (BETA_MODE) return BETA_RESPONSE;
+  if (DEV_MODE) return DEV_RESPONSE;
   if (!ALLOWED_SERVICES.includes(name)) throw new Error(`Unknown service: ${name}`);
   return new Promise((resolve, reject) => {
     execFile("docker", composeArgs("restart", name), (err, _, stderr) => {
@@ -306,4 +358,27 @@ function startLogStream() {
 ipcMain.handle("open-workbench", async () => {
   shell.openExternal("http://localhost:8000");
   return true;
+});
+
+// ─── LICENSE ──────────────────────────────────────────────────────────────────
+ipcMain.handle('license-validate', async (event, key) => {
+  const result = await validateLicense(key);
+  if (result.valid) {
+    saveLicense(result);
+    if (result.ghcr_token) {
+      process.env.GHCR_TOKEN = result.ghcr_token;
+    }
+  }
+  return result;
+});
+
+ipcMain.handle('license-get-cached', async () => {
+  return loadCachedLicense();
+});
+
+ipcMain.handle('license-clear', async () => {
+  if (fs.existsSync(LICENSE_FILE)) {
+    fs.unlinkSync(LICENSE_FILE);
+  }
+  return { cleared: true };
 });

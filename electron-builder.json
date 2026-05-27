@@ -56,5 +56,23 @@
   },
   "dmg": {
     "title": "OmniBioAI Studio"
+  },
+  "win": {
+    "target": [{"target": "nsis", "arch": ["x64"]}],
+    "icon": "build/icon.ico",
+    "requestedExecutionLevel": "requireAdministrator"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico"
+  },
+  "extraMetadata": {
+    "buildConfig": {
+      "devMode": "${env.OMNIBIOAI_DEV_MODE}"
+    }
   }
 }
