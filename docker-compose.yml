@@ -55,6 +55,9 @@ services:
       HOST: 0.0.0.0
       PORT: "8081"
       PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/docker
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
+      SENTRY_RELEASE: "0.2.0-beta"
       DOCKER_HOST: unix:///var/run/docker.sock
       TOOLSERVER_BASE_URL: http://toolserver:9090
       TES_TOOLS: /workspace/configs/tools.example.yaml
@@ -231,6 +234,9 @@ services:
       LIMS_PASSWORD: "root"
       LIMS_REFRESH_TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3OTc0Nzg0MiwiaWF0IjoxNzc5NjYxNDQyLCJqdGkiOiJlOGFiYjIzNjU1YjQ0MWJiOWRmYWM3OWFhMjIwMDk5NyIsInVzZXJfaWQiOiIxMCJ9.44Dfx5L7hHbVr-JmhcVjX__3pYoxbpgdfEtltKZnuvE"
       LIMS_API_TOKEN: ""
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
+      SENTRY_RELEASE: "0.2.0-beta"
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
@@ -302,6 +308,9 @@ services:
       WORKSPACE_ROOT: /workspace
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
+      SENTRY_RELEASE: "0.2.0-beta"
     volumes:
       - /home/manish/Desktop/machine:/workspace
       - /var/run/docker.sock:/var/run/docker.sock

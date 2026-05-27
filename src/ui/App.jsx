@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import LicenseGate from "./components/LicenseGate";
+import BugReport from "./components/BugReport";
 import Sidebar   from "./components/Sidebar";
 import Mode      from "./pages/Mode";
 import LLM       from "./pages/LLM";
@@ -268,6 +269,7 @@ export default function App() {
         )}
       </div>
     </div>
+      <BugReport />
     </LicenseGate>
   );
 }
