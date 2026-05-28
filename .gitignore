@@ -6,3 +6,7 @@ dist/
 release/
 .env
 .coverage
+data/
+out/
+*.log
+obsolete/
