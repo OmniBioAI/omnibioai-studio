@@ -600,10 +600,28 @@ services:
       - opa
     restart: unless-stopped
 
+  license-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.license
+    ports:
+      - "8099:8099"
+    environment:
+      LICENSE_SECRET: ${LICENSE_SECRET:-omnibioai-secret-change-in-production}
+      ADMIN_KEY: ${ADMIN_KEY:-admin-secret}
+      GHCR_PULL_TOKEN: ${GHCR_PULL_TOKEN:-}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: ${MYSQL_USER:-root}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      MYSQL_DATABASE: omnibioai_licenses
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   mysql_data:
   redis_data:
   ollama_data:
   grafana_data:
-
-
