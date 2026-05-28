@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install fastapi uvicorn pymysql sqlalchemy --no-cache-dir
+
+COPY license_server.py .
+
+EXPOSE 8099
+
+CMD ["uvicorn", "license_server:app", "--host", "0.0.0.0", "--port", "8099"]
