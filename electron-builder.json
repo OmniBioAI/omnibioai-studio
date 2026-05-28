@@ -30,26 +30,19 @@
   ],
   "linux": {
     "target": [
-      {
-        "target": "AppImage",
-        "arch": [
-          "x64"
-        ]
-      }
+      {"target": "AppImage", "arch": ["x64", "arm64"]},
+      {"target": "deb", "arch": ["x64", "arm64"]},
+      {"target": "rpm", "arch": ["x64", "arm64"]}
     ],
     "category": "Science",
     "icon": "build/icon.png",
-    "description": "AI-powered bioinformatics orchestration platform"
+    "description": "AI-powered bioinformatics orchestration platform",
+    "maintainer": "Manish Kumar <manish@omnibioai.org>",
+    "vendor": "OmniBioAI"
   },
   "mac": {
     "target": [
-      {
-        "target": "dmg",
-        "arch": [
-          "x64",
-          "arm64"
-        ]
-      }
+      {"target": "dmg", "arch": ["x64", "arm64"]}
     ],
     "category": "public.app-category.developer-tools",
     "icon": "build/icon.icns"
