@@ -9,7 +9,9 @@ const crypto = require("crypto");
 const DEV_MODE = process.env.OMNIBIOAI_DEV_MODE === 'true';
 
 // ─── LICENSE ──────────────────────────────────────────────────────────────────
-const LICENSE_SERVER = process.env.LICENSE_SERVER || 'https://license.omnibioai.org';
+const LICENSE_SERVER = DEV_MODE
+  ? (process.env.LICENSE_SERVER || 'http://localhost:8099')
+  : (process.env.LICENSE_SERVER || 'https://license.omnibioai.org');
 const LICENSE_FILE = path.join(app.getPath('userData'), 'license.json');
 
 function getMachineId() {
