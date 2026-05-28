@@ -179,15 +179,32 @@ app.on("web-contents-created", (_, contents) => {
 });
 
 app.whenReady().then(() => {
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const headers = { ...details.responseHeaders };
-    delete headers['content-security-policy'];
-    delete headers['Content-Security-Policy'];
-    headers['Content-Security-Policy'] = [
-      "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:"
-    ];
-    callback({ responseHeaders: headers });
-  });
+  session.defaultSession.webRequest.onHeadersReceived(
+    (details, callback) => {
+      if (DEV_MODE) {
+        // Remove CSP entirely in dev mode
+        delete details.responseHeaders['content-security-policy'];
+        delete details.responseHeaders['Content-Security-Policy'];
+        callback({ responseHeaders: details.responseHeaders });
+      } else {
+        // Production CSP with Sentry allowed
+        delete details.responseHeaders['content-security-policy'];
+        delete details.responseHeaders['Content-Security-Policy'];
+        details.responseHeaders['Content-Security-Policy'] = [
+          [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com",
+            "img-src 'self' data: https:",
+            "connect-src 'self' ws: wss: http://localhost:* https://*.sentry.io https://o4511460178132992.ingest.us.sentry.io",
+            "media-src 'self'"
+          ].join("; ")
+        ];
+        callback({ responseHeaders: details.responseHeaders });
+      }
+    }
+  );
 
   createWindow();
   // Attempt to tail logs after window loads (only if docker is already running)
