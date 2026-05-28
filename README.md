@@ -6,8 +6,16 @@
 
 ---
 
-## ✨ What's New in v0.2.0
+## ✨ What's New in v0.2.0-beta
 
+- **License key system** — 30-day trial keys (OMNI-XXXX-XXXX-XXXX-XXXX format)
+- **Sentry error tracking** — automatic error reporting across all services
+- **Bug report button** — 🐛 in-app bug reporting via Studio UI
+- **Cython IP protection** — core business logic compiled to .so binaries
+- **MySQL-backed license server** — license validation with MySQL persistence
+- **DEV_MODE flag** — replaces BETA_MODE for cleaner build configuration
+- **500+ bioinformatics tools** — 350 HTTP API tools + 144 Slurm execution tools
+- **Windows installer** — NSIS .exe installer added alongside DMG and AppImage
 - **Zero-trust security control plane** — JWT authentication + RBAC/ABAC policy enforcement on every request
 - **API Gateway** — single enforced entry point for all service traffic
 - **HPC Policy Engine** — per-user GPU/CPU quota governance
@@ -27,6 +35,19 @@
 - LLM configuration: Ollama (local) + Claude API + OpenAI
 - Cloud execution: AWS Batch / Azure Batch / GCP Batch / Kubernetes
 - HPC execution: Slurm / PBS / LSF via TES
+
+---
+
+## 📦 Downloads
+
+| Platform | File | Requirements |
+|---|---|---|
+| macOS (M1/M2/M3/M4) | OmniBioAI-Studio-arm64.dmg | macOS 12+ |
+| macOS (Intel) | OmniBioAI-Studio-x64.dmg | macOS 12+ |
+| Linux | OmniBioAI-Studio.AppImage | Ubuntu 20.04+ |
+| Windows | OmniBioAI-Studio-Setup.exe | Windows 10/11 |
+
+Download from: https://github.com/man4ish/omnibioai-studio/releases/latest
 
 ---
 
@@ -99,6 +120,31 @@ security-audit :8004  ← async audit log → Redis Streams (never blocks)
 
 ---
 
+## 🧰 Bioinformatics Tools (500+)
+
+### HTTP API Tools (350)
+Direct REST API integrations — no compute needed:
+- Genomics: Ensembl, NCBI, ClinVar, gnomAD, dbSNP
+- Proteins: UniProt, AlphaFold, PDB, InterPro
+- Pathways: KEGG, Reactome, WikiPathways, GO
+- Literature: PubMed, Europe PMC, Semantic Scholar
+- Drugs: ChEMBL, DrugBank, PharmGKB, OpenFDA
+- Single Cell: CellxGene, HCA, Broad SCP
+- Metabolomics: HMDB, LipidMaps, MetaboAnalyst
+- And 280+ more across all omics domains
+
+### Slurm/HPC Tools (144)
+Compute-heavy tools executed on HPC/cloud:
+- Alignment: BWA, STAR, HISAT2, Minimap2
+- Variant Calling: GATK, DeepVariant, Clair3, Mutect2
+- RNA-seq: DESeq2, edgeR, Salmon, Kallisto
+- Single Cell: Seurat, Scanpy, Cell Ranger
+- ML/AI: PyTorch, TensorFlow, ESM2, AlphaFold2
+- Proteomics: MSFragger, MaxQuant, DIA-NN
+- And 90+ more
+
+---
+
 ## 🧬 Bioinformatics Modules
 
 ### Core Platform
@@ -166,14 +212,15 @@ curl -H "Authorization: Bearer <token>" http://localhost:8080/api/tools
 ### Linux (AppImage)
 
 ```bash
-chmod +x "OmniBioAI Studio-0.1.0-beta.1.AppImage"
-./"OmniBioAI Studio-0.1.0-beta.1.AppImage"
+chmod +x "OmniBioAI-Studio.AppImage"
+./"OmniBioAI-Studio.AppImage"
 ```
 
-1. Select execution mode (Local recommended for first run)
-2. Set Data Directory and Work Directory in **Settings**
-3. Click **Boot System** on the Launch page
-4. Open Workbench at http://localhost:8000
+1. Enter your license key when prompted
+2. Select execution mode (Local recommended for first run)
+3. Set Data Directory and Work Directory in **Settings**
+4. Click **Boot System** on the Launch page
+5. Open Workbench at http://localhost:8000
 
 ### From source
 
@@ -182,7 +229,31 @@ npm install
 npm run dev              # development mode
 npm run build            # build AppImage (Linux)
 npm run build:mac        # build DMG (macOS)
+npm run build:win        # build EXE (Windows)
 ```
+
+---
+
+## 🔑 License & Access
+
+OmniBioAI Studio requires a license key for first launch.
+
+### Getting a License
+Contact: mandecent.gupta@gmail.com for beta access
+
+### License Key Format
+OMNI-XXXX-XXXX-XXXX-XXXX (30-day trial)
+
+### First Launch Flow
+1. Download installer (DMG / AppImage / EXE)
+2. Launch OmniBioAI Studio
+3. Enter license key when prompted
+4. App validates key against license server
+5. Platform pulls images from ghcr.io automatically
+6. Studio launches — ready to use!
+
+### Offline Grace Period
+License is cached locally for 7 days offline use.
 
 ---
 
@@ -211,26 +282,52 @@ VIDEO_DIR=/path/to/videos
 # AI API Keys (optional)
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
+
+# Build
+DEV_MODE=false
+
+# Error reporting (set empty to disable)
+SENTRY_DSN=
 ```
 
 ---
 
 ## 🔗 GHCR Authentication
 
-Private service images require a GitHub token:
+Private service images require authentication.
+**Beta users receive a GitHub token automatically with their license key.**
 
+Manual setup:
 ```bash
 export GITHUB_TOKEN=your_github_personal_access_token
 export GITHUB_USER=your_github_username
+echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin
 ```
 
-Add to `~/.bashrc` to persist. Token needs `read:packages` scope.
+Token needs `read:packages` scope.
 
 **Public images (no auth needed):**
-- `omnibioai-base`
+- `omnibioai-base` (3.4GB — heavy dependencies, pull once)
 - `omnibioai-dev-env`
 - `omnibioai-tool-runtime`
-- All `omnibioai-plugin-*` images
+- All `omnibioai-plugin-*` images (122 plugins)
+
+**Private images (token required):**
+- `omnibioai-app` (~170MB — app code only, fast updates)
+- All core service images
+
+---
+
+## 🐛 Error Reporting
+
+OmniBioAI Studio includes built-in error reporting via Sentry.
+
+- Click the 🐛 **Report Bug** button in the Studio UI
+- Fill in title, description and severity
+- Report sent automatically to our dashboard
+- We'll respond within 24 hours during beta
+
+To disable: set SENTRY_DSN= (empty) in .env
 
 ---
 
@@ -374,7 +471,14 @@ OmniBioAI Studio is the **desktop control layer** for:
 
 ## 🗺 Roadmap
 
-**v0.2 — Security Control Plane** ✅ Released
+**v0.2.0-beta — Current Release** ✅
+- License key system (OMNI-XXXX-XXXX-XXXX-XXXX, 30-day trial)
+- Sentry error tracking + in-app bug report button
+- Cython IP protection (.so compiled binaries)
+- MySQL-backed license server
+- DEV_MODE flag (replaces BETA_MODE)
+- 500+ bioinformatics tools (350 HTTP API + 144 Slurm)
+- Windows NSIS .exe installer
 - Zero-trust JWT authentication on every request
 - RBAC/ABAC policy engine
 - HPC quota governance
@@ -382,11 +486,11 @@ OmniBioAI Studio is the **desktop control layer** for:
 - Redis token caching with pub/sub invalidation
 - Internal service header propagation
 
-**v0.3 — Runtime Intelligence**
-- Mode-aware workflow routing
-- Live TES job monitoring in UI
-- Auto-pull plugin images on first use
-- Slurm queue visualization
+**v0.3 — Beta Launch** (July 4th 2026 target)
+- DMG + AppImage + EXE installers via GitHub Actions
+- Auto-updater for all platforms
+- Cloudflare-integrated beta signup with automatic license delivery
+- Public beta announcement
 
 **v0.4 — Cloud & HPC**
 - AWS/Azure/GCP job submission UI
@@ -398,11 +502,6 @@ OmniBioAI Studio is the **desktop control layer** for:
 - Role management UI
 - HIPAA compliance reporting from audit logs
 - Cost attribution per user/team
-
-**v0.6 — Desktop Evolution**
-- Auto-updater (AppImage + DMG)
-- Offline installer bundle
-- Version-pinned deployments
 
 ---
 
@@ -425,6 +524,10 @@ This is expected and harmless for development. For production ARM deployments, r
 - Windows installer not yet code-signed
 - Kubernetes health check requires `~/.kube/config`
 - policy-engine and hpc-policy-engine do not expose a `/health` endpoint (returns 404, services are running)
+- License server requires MySQL (included in docker-compose)
+- First launch requires internet connection for license validation
+- 7-day offline grace period after initial validation
+- Bug reports sent to Sentry (can be disabled via SENTRY_DSN= in .env)
 
 ---
 
