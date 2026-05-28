@@ -177,7 +177,7 @@ services:
       - ollama
 
   workbench:
-    image: ghcr.io/man4ish/omnibioai:latest
+    image: ghcr.io/man4ish/omnibioai-app:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
     environment:
@@ -236,7 +236,7 @@ services:
     command: ["bash", "-lc", "python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate) && python manage.py runserver 0.0.0.0:8000 --noreload"]
 
   celery-worker:
-    image: ghcr.io/man4ish/omnibioai:latest
+    image: ghcr.io/man4ish/omnibioai-app:latest
     environment:
       DEBUG: "1"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
