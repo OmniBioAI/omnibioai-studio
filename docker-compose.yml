@@ -619,6 +619,8 @@ services:
       mysql:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - default
 
 volumes:
   mysql_data:
