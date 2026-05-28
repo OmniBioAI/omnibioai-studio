@@ -7,6 +7,8 @@ export default function BugReport() {
   const [submitted, setSubmitted] = useState(false);
 
   function handleSubmit() {
+    console.log("Sending to Sentry DSN:", import.meta.env.VITE_SENTRY_DSN);
+    console.log("Bug report data:", form);
     Sentry.captureMessage(`Bug Report: ${form.title}`, {
       level: form.severity,
       extra: {
