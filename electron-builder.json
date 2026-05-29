@@ -20,12 +20,24 @@
       "to": "docker-compose.yml"
     },
     {
+      "from": "docker-compose.release.yml",
+      "to": "docker-compose.release.yml"
+    },
+    {
       "from": "db-init",
       "to": "db-init"
     },
     {
       "from": "scripts",
       "to": "scripts"
+    },
+    {
+      "from": "monitoring",
+      "to": "monitoring"
+    },
+    {
+      "from": "docker",
+      "to": "docker"
     }
   ],
   "linux": {

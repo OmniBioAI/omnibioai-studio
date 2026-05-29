@@ -74,7 +74,7 @@ let mainWindow;
 // ─── PATH HELPERS ─────────────────────────────────────────────────────────────
 function getComposePath() {
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, "docker-compose.yml");
+    return path.join(process.resourcesPath, "docker-compose.release.yml");
   }
   return path.join(__dirname, "..", "docker-compose.yml");
 }
@@ -262,6 +262,29 @@ ipcMain.handle("start-docker", async () => {
   ensureDbInit();
   return new Promise((resolve, reject) => {
     sendLog("Pulling latest images — this may take several minutes...");
+
+    // Login to ghcr.io so private images can be pulled
+    const ghcrToken = process.env.GHCR_TOKEN || loadCachedLicense()?.ghcr_token || '';
+    if (ghcrToken) {
+      try {
+        sendLog('Logging into ghcr.io...');
+        const { spawnSync } = require('child_process');
+        const login = spawnSync(
+          'docker',
+          ['login', 'ghcr.io', '-u', 'man4ish', '--password-stdin'],
+          { input: ghcrToken, encoding: 'utf8', stdio: 'pipe' }
+        );
+        if (login.status === 0) {
+          sendLog('ghcr.io login successful');
+        } else {
+          sendLog('ghcr.io login failed: ' + (login.stderr || '').trim());
+        }
+      } catch (e) {
+        sendLog('ghcr.io login error: ' + e.message);
+      }
+    } else {
+      sendLog('No ghcr.io token found — private images may fail to pull');
+    }
 
     const pull = spawn("docker", composeArgs("pull"), { env: process.env });
     pipeLog(pull);
