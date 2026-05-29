@@ -6,12 +6,16 @@ const { spawn, execFile } = require("child_process");
 const os = require("os");
 const crypto = require("crypto");
 
-const DEV_MODE = process.env.OMNIBIOAI_DEV_MODE === 'true';
+// In packaged app (DMG/AppImage/EXE) → always production mode
+// In dev (npm run dev) → use env var
+const DEV_MODE = app.isPackaged
+  ? false
+  : (process.env.OMNIBIOAI_DEV_MODE === 'true');
 
 // ─── LICENSE ──────────────────────────────────────────────────────────────────
 const LICENSE_SERVER = DEV_MODE
-  ? (process.env.LICENSE_SERVER || 'http://localhost:8099')
-  : (process.env.LICENSE_SERVER || 'https://license.omnibioai.org');
+  ? 'http://localhost:8099'
+  : 'https://license.omnibioai.org';
 const LICENSE_FILE = path.join(app.getPath('userData'), 'license.json');
 
 function getMachineId() {
@@ -33,16 +37,21 @@ async function validateLicense(key) {
     }
     return await response.json();
   } catch (e) {
+    console.error('License server error:', LICENSE_SERVER, e.message);
     if (fs.existsSync(LICENSE_FILE)) {
       const cached = JSON.parse(fs.readFileSync(LICENSE_FILE, 'utf8'));
       const expiry = new Date(cached.expiry);
-      const gracePeriod = new Date(cached.cached_at);
+      const cachedAt = new Date(cached.cached_at);
+      const gracePeriod = new Date(cachedAt);
       gracePeriod.setDate(gracePeriod.getDate() + 7);
       if (new Date() < expiry && new Date() < gracePeriod) {
         return { ...cached, valid: true, offline: true };
       }
     }
-    return { valid: false, reason: 'Cannot reach license server and no cached license' };
+    return {
+      valid: false,
+      reason: `Cannot reach license server at ${LICENSE_SERVER}. Check your internet connection.`
+    };
   }
 }
 
@@ -211,7 +220,7 @@ app.whenReady().then(() => {
   mainWindow.webContents.once("did-finish-load", () => {
     const cfg = readConfig();
     const hostIp = cfg?.server?.host_ip || "localhost";
-    const server = DEV_MODE ? "app.omnibioai.org" : hostIp;
+    const server = DEV_MODE ? "app.omnibioai.org" : (hostIp || "localhost");
     mainWindow.webContents.executeJavaScript(
       `window.__OMNIBIOAI_SERVER__ = ${JSON.stringify(server)}`
     );
