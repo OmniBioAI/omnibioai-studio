@@ -159,7 +159,7 @@ export default function Cloud({ config, setConfig }) {
           <PanelBody>
             <FormRow label="Kubeconfig Path">
               <Input
-                placeholder="/home/manish/.kube/config"
+                placeholder="/home/$USER/.kube/config"
                 value={cloud.k8s_kubeconfig_path || ""}
                 onChange={(e) => set("k8s_kubeconfig_path", e.target.value)}
               />
