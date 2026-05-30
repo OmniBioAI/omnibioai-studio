@@ -45,7 +45,7 @@ services:
   tes:
     image: omnibioai-tes-local
     build:
-      context: /home/manish/Desktop/machine/omnibioai-tes
+      context: ${MACHINE_DIR}/omnibioai-tes
       dockerfile: Dockerfile.new
       target: backend
     ports:
@@ -68,11 +68,11 @@ services:
       HPC_POLICY_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
       REDIS_URL: redis://redis:6379
-      OMNIBIOAI_EXTRA_MOUNTS: /usr/bin/docker:/usr/bin/singularity:/usr/bin/unsquashfs:/usr/bin/squashfuse:/usr/bin/fusermount:/usr/bin/fusermount3:/lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/etc/singularity:/usr/lib/aarch64-linux-gnu/singularity:/var/lib/singularity:/home/manish/Desktop/machine/omnibioai-tool-images/sif:/home/manish/Desktop/machine/omnibioai
+      OMNIBIOAI_EXTRA_MOUNTS: /usr/bin/docker:/usr/bin/singularity:/usr/bin/unsquashfs:/usr/bin/squashfuse:/usr/bin/fusermount:/usr/bin/fusermount3:/lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/etc/singularity:/usr/lib/aarch64-linux-gnu/singularity:/var/lib/singularity:${MACHINE_DIR}/omnibioai-tool-images/sif:${MACHINE_DIR}/omnibioai
       SINGULARITY_CACHEDIR: /tmp/singularity_cache
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
     volumes:
-      - /home/manish/Desktop/machine/omnibioai-tes:/workspace
+      - ${MACHINE_DIR}/omnibioai-tes:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
       - /usr/bin/singularity:/usr/bin/singularity:ro
@@ -88,11 +88,11 @@ services:
       - /usr/lib/aarch64-linux-gnu/singularity:/usr/lib/aarch64-linux-gnu/singularity:ro
       - /var/lib/singularity:/var/lib/singularity:rw
       - /etc/singularity:/etc/singularity:ro
-      - /home/manish/Desktop/machine/omnibioai-workflow-bundles:/home/manish/Desktop/machine/omnibioai-workflow-bundles:ro
-      - /home/manish/Desktop/machine/omnibioai:/home/manish/Desktop/machine/omnibioai:rw
-      - /home/manish/Desktop/machine/omnibioai-tool-images:/home/manish/Desktop/machine/omnibioai-tool-images:ro
-      - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
-      - /home/manish/Desktop/machine/work:/home/manish/Desktop/machine/work
+      - ${MACHINE_DIR}/omnibioai-workflow-bundles:${MACHINE_DIR}/omnibioai-workflow-bundles:ro
+      - ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
+      - ${MACHINE_DIR}/omnibioai-tool-images:${MACHINE_DIR}/omnibioai-tool-images:ro
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
+      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
       - ${DATA_DIR}/tool-images/sif:/sif:ro
     command:
       - bash
@@ -114,7 +114,7 @@ services:
 
   model-registry:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-model-registry
+      context: ${MACHINE_DIR}/omnibioai-model-registry
       dockerfile: Dockerfile.new
       target: backend
     # image: ghcr.io/man4ish/omnibioai-model-registry:latest
@@ -131,14 +131,14 @@ services:
       DB_NAME: model_registry
       OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
     volumes:
-      - /home/manish/Desktop/machine/data/local_registry/model_registry:/registry
+      - ${MACHINE_DIR}/data/local_registry/model_registry:/registry
     depends_on:
       mysql:
         condition: service_healthy
 
   lims:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-lims
+      context: ${MACHINE_DIR}/omnibioai-lims
       dockerfile: Dockerfile.new
       target: backend
     image: omnibioai-lims-local
@@ -160,7 +160,7 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
     volumes:
-      - /home/manish/Desktop/machine/omnibioai-lims/core:/app/core
+      - ${MACHINE_DIR}/omnibioai-lims/core:/app/core
     depends_on:
       mysql:
         condition: service_healthy
@@ -176,7 +176,7 @@ services:
 
   rag:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-rag
+      context: ${MACHINE_DIR}/omnibioai-rag
       dockerfile: Dockerfile.new
       target: backend
     # image: ghcr.io/man4ish/omnibioai-rag:latest
@@ -196,7 +196,7 @@ services:
 
   workbench:
     build:
-      context: /home/manish/Desktop/machine/omnibioai
+      context: ${MACHINE_DIR}/omnibioai
       dockerfile: Dockerfile.new
       target: backend
     # image: ghcr.io/man4ish/omnibioai-app:latest
@@ -230,9 +230,9 @@ services:
       OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       OMNIBIOAI_MYSQL_DB: omnibioai
       LIMS_BASE_URL: "http://lims:7000"
-      LIMS_USERNAME: "man4ish"
-      LIMS_PASSWORD: "root"
-      LIMS_REFRESH_TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3OTc0Nzg0MiwiaWF0IjoxNzc5NjYxNDQyLCJqdGkiOiJlOGFiYjIzNjU1YjQ0MWJiOWRmYWM3OWFhMjIwMDk5NyIsInVzZXJfaWQiOiIxMCJ9.44Dfx5L7hHbVr-JmhcVjX__3pYoxbpgdfEtltKZnuvE"
+      LIMS_USERNAME: ${LIMS_USERNAME:-admin}
+      LIMS_PASSWORD: ${LIMS_PASSWORD:-omnibioai}
+      LIMS_REFRESH_TOKEN: ${LIMS_REFRESH_TOKEN:-}
       LIMS_API_TOKEN: ""
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
@@ -245,8 +245,8 @@ services:
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
-      - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
-      - /home/manish/Desktop/machine/work:/home/manish/Desktop/machine/work
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
+      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
     depends_on:
       mysql:
         condition: service_healthy
@@ -262,7 +262,7 @@ services:
 
   celery-worker:
     build:
-      context: /home/manish/Desktop/machine/omnibioai
+      context: ${MACHINE_DIR}/omnibioai
       dockerfile: Dockerfile.new
       target: backend
     # image: ghcr.io/man4ish/omnibioai-app:latest
@@ -298,7 +298,7 @@ services:
 
   control-center:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-control-center
+      context: ${MACHINE_DIR}/omnibioai-control-center
       dockerfile: Dockerfile.new
       target: backend
     # image: ghcr.io/man4ish/omnibioai-control-center:latest
@@ -312,13 +312,13 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.2.0-beta"
     volumes:
-      - /home/manish/Desktop/machine:/workspace
+      - ${MACHINE_DIR}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
-      - /home/manish/Desktop/machine/omnibioai-control-center/backend/src:/app/src
-      - /home/manish/Desktop/machine/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
-      - /home/manish/Desktop/machine/omnibioai-control-center/config:/config:ro
-      - /home/manish/Desktop/machine/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
+      - ${MACHINE_DIR}/omnibioai-control-center/backend/src:/app/src
+      - ${MACHINE_DIR}/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
+      - ${MACHINE_DIR}/omnibioai-control-center/config:/config:ro
+      - ${MACHINE_DIR}/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
     command: >-
       sh -c "/usr/local/bin/pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
       exec /usr/local/bin/uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
@@ -329,7 +329,7 @@ services:
 
   dev-hub:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-dev-hub
+      context: ${MACHINE_DIR}/omnibioai-dev-hub
       dockerfile: Dockerfile.new
       target: backend
     ports:
@@ -342,33 +342,33 @@ services:
       OLLAMA_HOST: http://ollama:11434
       REPO_BASE: /repos
     volumes:
-      - /home/manish/Desktop/machine/omnibioai-dev-hub/data:/app/data
-      - /home/manish/Desktop/machine/omnibioai:/repos/omnibioai:ro
-      - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
-      - /home/manish/Desktop/machine/work:/home/manish/Desktop/machine/work
-      - /home/manish/Desktop/machine/omnibioai-rag:/repos/omnibioai-rag:ro
-      - /home/manish/Desktop/machine/omnibioai-toolserver:/repos/omnibioai-toolserver:ro
-      - /home/manish/Desktop/machine/omnibioai-sdk:/repos/omnibioai-sdk:ro
-      - /home/manish/Desktop/machine/omnibioai-workflow-bundles:/repos/omnibioai-workflow-bundles:ro
-      - /home/manish/Desktop/machine/omnibioai-control-center:/repos/omnibioai-control-center:ro
-      - /home/manish/Desktop/machine/omnibioai-lims:/repos/omnibioai-lims:ro
-      - /home/manish/Desktop/machine/omnibioai-model-registry:/repos/omnibioai-model-registry:ro
-      - /home/manish/Desktop/machine/omnibioai-dev-docker:/repos/omnibioai-dev-docker:ro
-      - /home/manish/Desktop/machine/omnibioai-docs:/repos/omnibioai-docs:ro
-      - /home/manish/Desktop/machine/omnibioai-studio:/repos/omnibioai-studio:ro
-      - /home/manish/Desktop/machine/omnibioai-api-gateway:/repos/omnibioai-api-gateway:ro
-      - /home/manish/Desktop/machine/omnibioai-auth:/repos/omnibioai-auth:ro
-      - /home/manish/Desktop/machine/omnibioai-tool-runtime:/repos/omnibioai-tool-runtime:ro
-      - /home/manish/Desktop/machine/omnibioai-iam-client:/repos/omnibioai-iam-client:ro
-      - /home/manish/Desktop/machine/omnibioai-policy-engine:/repos/omnibioai-policy-engine:ro
-      - /home/manish/Desktop/machine/omnibioai-security-sdk:/repos/omnibioai-security-sdk:ro
+      - ${MACHINE_DIR}/omnibioai-dev-hub/data:/app/data
+      - ${MACHINE_DIR}/omnibioai:/repos/omnibioai:ro
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
+      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+      - ${MACHINE_DIR}/omnibioai-rag:/repos/omnibioai-rag:ro
+      - ${MACHINE_DIR}/omnibioai-toolserver:/repos/omnibioai-toolserver:ro
+      - ${MACHINE_DIR}/omnibioai-sdk:/repos/omnibioai-sdk:ro
+      - ${MACHINE_DIR}/omnibioai-workflow-bundles:/repos/omnibioai-workflow-bundles:ro
+      - ${MACHINE_DIR}/omnibioai-control-center:/repos/omnibioai-control-center:ro
+      - ${MACHINE_DIR}/omnibioai-lims:/repos/omnibioai-lims:ro
+      - ${MACHINE_DIR}/omnibioai-model-registry:/repos/omnibioai-model-registry:ro
+      - ${MACHINE_DIR}/omnibioai-dev-docker:/repos/omnibioai-dev-docker:ro
+      - ${MACHINE_DIR}/omnibioai-docs:/repos/omnibioai-docs:ro
+      - ${MACHINE_DIR}/omnibioai-studio:/repos/omnibioai-studio:ro
+      - ${MACHINE_DIR}/omnibioai-api-gateway:/repos/omnibioai-api-gateway:ro
+      - ${MACHINE_DIR}/omnibioai-auth:/repos/omnibioai-auth:ro
+      - ${MACHINE_DIR}/omnibioai-tool-runtime:/repos/omnibioai-tool-runtime:ro
+      - ${MACHINE_DIR}/omnibioai-iam-client:/repos/omnibioai-iam-client:ro
+      - ${MACHINE_DIR}/omnibioai-policy-engine:/repos/omnibioai-policy-engine:ro
+      - ${MACHINE_DIR}/omnibioai-security-sdk:/repos/omnibioai-security-sdk:ro
     depends_on:
       - ollama
     restart: on-failure
 
   launcher:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-launcher
+      context: ${MACHINE_DIR}/omnibioai-launcher
       dockerfile: Dockerfile
     ports:
       - "${HOST_IP:-0.0.0.0}:5190:5190"
@@ -384,7 +384,7 @@ services:
 
   workflow-bundles:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-workflow-bundles
+      context: ${MACHINE_DIR}/omnibioai-workflow-bundles
       dockerfile: Dockerfile.new
       target: backend
     # image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
@@ -405,7 +405,7 @@ services:
 
   tool-images:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-tool-images
+      context: ${MACHINE_DIR}/omnibioai-tool-images
       dockerfile: Dockerfile.new
       target: backend
     # image: ghcr.io/man4ish/omnibioai-tool-images:latest
@@ -415,9 +415,9 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
     volumes:
-      - /home/manish/Desktop/machine/omnibioai-tool-images/dockerfiles:/app/dockerfiles:ro
+      - ${MACHINE_DIR}/omnibioai-tool-images/dockerfiles:/app/dockerfiles:ro
       - ${DATA_DIR}/tool-images/sif:/app/sif:ro
-      - /home/manish/Desktop/machine/omnibioai-tool-images/build_logs:/app/build_logs:ro
+      - ${MACHINE_DIR}/omnibioai-tool-images/build_logs:/app/build_logs:ro
     restart: on-failure
 
   videos:
@@ -446,7 +446,7 @@ services:
   auth-service:
     image: ghcr.io/man4ish/omnibioai-auth:latest
     build:
-      context: /home/manish/Desktop/machine/omnibioai-auth
+      context: ${MACHINE_DIR}/omnibioai-auth
     ports:
       - "${HOST_IP:-0.0.0.0}:8001:8001"
     environment:
@@ -475,7 +475,7 @@ services:
 
   policy-engine:
     build:
-      context: /home/manish/Desktop/machine
+      context: ${MACHINE_DIR}
       dockerfile: omnibioai-policy-engine/Dockerfile
     image: omnibioai-policy-engine-local
     ports:
@@ -490,7 +490,7 @@ services:
 
   hpc-policy-engine:
     build:
-      context: /home/manish/Desktop/machine/omnibioai-hpc-policy-engine
+      context: ${MACHINE_DIR}/omnibioai-hpc-policy-engine
       dockerfile: Dockerfile
     image: omnibioai-hpc-policy-engine-local
     ports:
@@ -586,7 +586,7 @@ services:
       - "80:80"
     volumes:
       - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
-      - /home/manish/Desktop/machine/omnibioai-docs:/docs:ro
+      - ${MACHINE_DIR}/omnibioai-docs:/docs:ro
     depends_on:
       - workbench
       - lims
