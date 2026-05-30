@@ -143,6 +143,7 @@ function writeEnvFile(config) {
     `DATA_DIR=${dataDir}`,
     `WORK_DIR=${workDir}`,
     `WORKSPACE_HOST=${workDir}`,
+    `MACHINE_DIR=${path.dirname(workDir)}`,
     `DB_INIT_DIR=${getDbInitPath()}`,
     `VIDEO_DIR=${workDir}/videos`,
     `MYSQL_ROOT_PASSWORD=omnibioai`,

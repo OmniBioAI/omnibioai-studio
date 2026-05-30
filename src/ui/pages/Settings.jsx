@@ -154,8 +154,14 @@ export default function Settings({ config, setConfig }) {
             <button
               onClick={() => {
                 // Pre-fill with known omnibioai paths
-                set("data_dir", "/home/manish/Desktop/machine/omnibioai/data");
-                set("work_dir", "/home/manish/Desktop/machine/omnibioai/work");
+                // Derive from current work_dir or use home-based default
+                const home = navigator.platform.includes("Win")
+                  ? "C:\\Users\\omnibioai"
+                  : (settings.work_dir
+                      ? settings.work_dir.split("/").slice(0,-1).join("/")
+                      : "/home/" + (window.api?.username || "user") + "/Desktop/machine/omnibioai");
+                set("data_dir", home + "/data");
+                set("work_dir", home + "/work");
               }}
               style={{
                 padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)',
