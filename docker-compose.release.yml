@@ -298,12 +298,19 @@ services:
       - ollama
     restart: on-failure
 
-  sdk:
-    image: ghcr.io/man4ish/omnibioai-sdk:latest
+  launcher:
+    image: ghcr.io/man4ish/omnibioai-launcher:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:5190:5190"
     environment:
-      OMNIBIOAI_BASE_URL: http://workbench:8000
+      REACT_APP_OMNIBIOAI_BASE_URL: http://workbench:8000
+      REACT_APP_OMNIBIOAI_TOKEN: ${OMNIBIOAI_TOKEN:-dev}
+      REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://127.0.0.1:8890}
+      REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-devtoken}
+      REACT_APP_USE_MOCK: "false"
+    depends_on:
+      workbench:
+        condition: service_started
 
   workflow-bundles:
     image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
@@ -502,7 +509,7 @@ services:
       - control-center
       - grafana
       - videos
-      - sdk
+      - launcher
       - model-registry
       - workflow-bundles
       - tool-images
