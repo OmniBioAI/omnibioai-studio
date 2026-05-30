@@ -170,6 +170,7 @@ function createWindow() {
   });
 
   const isDev = !app.isPackaged;
+
   if (isDev) {
     const devUrl = "http://localhost:5174";
     mainWindow.loadURL(devUrl).catch(() => {
@@ -178,12 +179,31 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
+
 }
 
 app.on("web-contents-created", (_, contents) => {
+  // Block window.open() — open external URLs in the system browser, keep app URLs in Electron
   contents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    const isAppUrl = url.startsWith("http://localhost:5174") ||
+                     url.startsWith("http://127.0.0.1:5174");
+    if (!isAppUrl && isExternalUrl(url)) shell.openExternal(url);
     return { action: "deny" };
+  });
+
+  // For the main window: allow any localhost navigation (service pages navigate freely),
+  // but redirect external URLs to the system browser instead of leaving Electron.
+  contents.on("will-navigate", (event, url) => {
+    if (contents !== mainWindow?.webContents) return;
+    try {
+      const { hostname } = new URL(url);
+      if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+        event.preventDefault();
+        shell.openExternal(url);
+      }
+    } catch {
+      event.preventDefault();
+    }
   });
 });
 
@@ -233,7 +253,19 @@ app.on("window-all-closed", () => {
 });
 
 // ─── EXTERNAL LINKS ───────────────────────────────────────────────────────────
-ipcMain.handle("open-external", async (_, url) => shell.openExternal(url));
+function isExternalUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' ||
+           (parsed.protocol === 'http:' && parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1');
+  } catch {
+    return false; // relative paths, malformed strings — never open externally
+  }
+}
+
+ipcMain.handle("open-external", async (_, url) => {
+  if (isExternalUrl(url)) shell.openExternal(url);
+});
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 ipcMain.handle("save-config", async (_, config) => {
@@ -409,6 +441,19 @@ function startLogStream() {
 ipcMain.handle("open-workbench", async () => {
   shell.openExternal("http://localhost:8000");
   return true;
+});
+
+// ─── NAVIGATE MAIN WINDOW IN-PLACE ────────────────────────────────────────────
+ipcMain.handle("load-url", async (_, url) => {
+  mainWindow.loadURL(url);
+});
+
+ipcMain.handle("go-home", async () => {
+  if (app.isPackaged) {
+    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+  } else {
+    mainWindow.loadURL("http://localhost:5174");
+  }
 });
 
 // ─── LICENSE ──────────────────────────────────────────────────────────────────

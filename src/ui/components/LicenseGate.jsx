@@ -12,6 +12,12 @@ export default function LicenseGate({ children }) {
     }, []);
 
     async function checkCachedLicense() {
+        // In browser/dev mode there is no Electron preload — skip license gate
+        if (!window.electronAPI) {
+            setLicense({ valid: true, tier: 'dev', expiry: '2099-12-31', days_remaining: 99999 });
+            setLoading(false);
+            return;
+        }
         try {
             const cached = await window.electronAPI.getLicense();
             if (cached?.valid) {
@@ -27,6 +33,10 @@ export default function LicenseGate({ children }) {
     }
 
     async function handleValidate() {
+        if (!window.electronAPI) {
+            setError('License validation requires the desktop app');
+            return;
+        }
         if (!key.trim()) {
             setError('Please enter a license key');
             return;

@@ -5,7 +5,8 @@
   "description": "AI-powered bioinformatics orchestration desktop platform",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "cross-env OMNIBIOAI_DEV_MODE=true concurrently \"npm run vite\" \"electron . --no-sandbox\"",
+    "predev": "fuser -k 5174/tcp 2>/dev/null; true",
+    "dev": "cross-env OMNIBIOAI_DEV_MODE=true concurrently \"npm run vite\" \"npx --no-install electron . --no-sandbox --disable-gpu-sandbox\"",
     "vite": "vite",
     "build:ui": "vite build",
     "build:dev": "cross-env OMNIBIOAI_DEV_MODE=true npm run build:ui && electron-builder --linux",

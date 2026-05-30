@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld("api", {
   // ─── WORKBENCH & LINKS ────────────────────────────
   openWorkbench: ()         => ipcRenderer.invoke("open-workbench"),
   openExternal:  (url)      => ipcRenderer.invoke("open-external", url),
+  loadUrl:       (url)      => ipcRenderer.invoke("load-url", url),
+  goHome:        ()         => ipcRenderer.invoke("go-home"),
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {

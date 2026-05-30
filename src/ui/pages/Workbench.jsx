@@ -10,11 +10,7 @@ function getInitialHost() {
 
 const openDocs = () => {
   const url = 'http://192.168.86.234/docs/';
-  if (window.api && window.api.openExternal) {
-    window.api.openExternal(url);
-  } else {
-    window.open(url, '_blank');
-  }
+  window.dispatchEvent(new CustomEvent("open-service", { detail: { url, label: "Getting Started" } }));
 };
 
 function buildCategories(BASE) {
@@ -125,13 +121,8 @@ export default function Workbench() {
     setChecking(true);
     try {
       const sig = AbortSignal.timeout(5000);
-      if (import.meta.env.DEV) {
-        const res = await fetch("/_health", { signal: sig });
-        setOnline(res.ok);
-      } else {
-        await fetch(`${BASE}/health/`, { mode: "no-cors", signal: sig });
-        setOnline(true);
-      }
+      await fetch(`${BASE}/health/`, { mode: "no-cors", signal: sig });
+      setOnline(true);
     } catch (_) { setOnline(false); }
     finally { setChecking(false); }
   };
@@ -142,14 +133,9 @@ export default function Workbench() {
     return () => clearInterval(id);
   }, [BASE]);
 
-  const open = (url) => {
-    if (window.api?.openExternal) {
-      window.api.openExternal(url);
-    } else if (url.startsWith('http://') || url.startsWith('https://')) {
-      window.open(url, "_blank", "noopener,noreferrer");
-    } else {
-      window.open(url, "_blank");
-    }
+  const open = (url, label) => {
+    const absolute = url.startsWith('/') ? `http://localhost:5174${url}` : url;
+    window.dispatchEvent(new CustomEvent("open-service", { detail: { url: absolute, label: label || url } }));
   };
 
   return (
@@ -206,7 +192,7 @@ export default function Workbench() {
           >↻</button>
 
           <button
-            onClick={() => open(`${BASE}/plugins/catalog/`)}
+            onClick={() => open(`${BASE}/plugins/catalog/`, "Plugin Catalog")}
             aria-disabled={!online}
             aria-label="Open plugin catalog"
             style={{
@@ -223,7 +209,7 @@ export default function Workbench() {
           </button>
 
           <button
-            onClick={() => online && open(`${BASE}/`)}
+            onClick={() => online && open(`${BASE}/`, "Workbench Dashboard")}
             aria-disabled={!online}
             aria-label="Launch workbench dashboard"
             style={{
@@ -290,7 +276,7 @@ export default function Workbench() {
                 return (
                   <button
                     key={label}
-                    onClick={() => clickable && (action ? action() : open(url))}
+                    onClick={() => clickable && (action ? action() : open(url, label))}
                     aria-label={`${label} — ${desc}`}
                     aria-disabled={!clickable}
                     title={desc}
@@ -334,7 +320,7 @@ export default function Workbench() {
         </div>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
           <button
-            onClick={() => online && open(`${BASE}/plugins/catalog/`)}
+            onClick={() => online && open(`${BASE}/plugins/catalog/`, "Plugin Catalog")}
             aria-disabled={!online}
             aria-label="Open plugin catalog"
             style={{
@@ -350,7 +336,7 @@ export default function Workbench() {
             <span aria-hidden="true">📦</span> Open Catalog
           </button>
           <button
-            onClick={() => online && open(`${BASE}/`)}
+            onClick={() => online && open(`${BASE}/`, "Workbench Dashboard")}
             aria-disabled={!online}
             aria-label="Launch workbench dashboard"
             style={{

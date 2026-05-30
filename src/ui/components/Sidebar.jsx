@@ -14,7 +14,7 @@ const statusLabel = {
   error:    "ERROR",
 };
 
-export default function Sidebar({ nav, step, setStep, systemStatus }) {
+export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick }) {
   return (
     <div style={{
       width:200, background:"var(--bg2)",
@@ -40,6 +40,25 @@ export default function Sidebar({ nav, step, setStep, systemStatus }) {
           STUDIO v0.2.0
         </div>
       </div>
+
+      {/* ← Studio back button — visible when browsing a service */}
+      {isServiceView && (
+        <div style={{ padding:"8px 8px 0" }}>
+          <div
+            onClick={onStudioClick}
+            style={{
+              display:"flex", alignItems:"center", gap:8,
+              padding:"8px 10px", borderRadius:'var(--radius-sm)', cursor:"pointer",
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", fontWeight:600,
+              color:"var(--accent)",
+              background:"rgba(0,229,160,0.08)",
+              border:"1px solid rgba(0,229,160,0.2)",
+            }}
+          >
+            ← Studio
+          </div>
+        </div>
+      )}
 
       {/* Nav */}
       <nav style={{ padding:"12px 8px", flex:1, overflowY:"auto" }}>

@@ -12,6 +12,7 @@ import Logs      from "./pages/Logs";
 import Settings  from "./pages/Settings";
 import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
+import ServiceViewer from "./pages/ServiceViewer";
 
 const NAV = [
   { section: "Setup",   items: [
@@ -47,6 +48,7 @@ export default function App() {
   const [config,       setConfig]       = useState({
     mode: "beta", llm: {}, cloud: {}, hpc: {}, settings: {},
   });
+  const [service,      setService]      = useState(null); // { url, label } when viewing a service
 
   // ─── Load saved config + first-run detection ───────────
   useEffect(() => {
@@ -81,6 +83,13 @@ export default function App() {
     return () => window.removeEventListener("navigate", handler);
   }, []);
 
+  // ─── Listen for service open events (from Workbench tiles) ──
+  useEffect(() => {
+    const handler = (e) => setService(e.detail);
+    window.addEventListener("open-service", handler);
+    return () => window.removeEventListener("open-service", handler);
+  }, []);
+
   const pages = [
     <Mode      config={config} setConfig={setConfig} />,
     <LLM       config={config} setConfig={setConfig} />,
@@ -94,8 +103,13 @@ export default function App() {
     <Jobs      />,
   ];
 
-  const currentName = PAGE_NAMES[step] || "—";
-  const isWizardPage = step <= WIZARD_MAX;
+  const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
+  const isWizardPage = !service && step <= WIZARD_MAX;
+
+  function handleStudioClick() {
+    setService(null);
+    setStep(7); // return to Workbench
+  }
 
   // ─── Don't render until config is loaded ───────────────
   if (!ready) {
@@ -127,7 +141,10 @@ export default function App() {
       fontFamily:"var(--font)", overflow:"hidden",
     }}>
       {/* Sidebar */}
-      <Sidebar nav={NAV} step={step} setStep={setStep} systemStatus={systemStatus} />
+      <Sidebar
+        nav={NAV} step={step} setStep={setStep} systemStatus={systemStatus}
+        isServiceView={!!service} onStudioClick={handleStudioClick}
+      />
 
       {/* Main */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
@@ -143,7 +160,13 @@ export default function App() {
             fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
             display:"flex", alignItems:"center", gap:6,
           }}>
-            studio / <span style={{ color:"var(--text)" }}>{currentName}</span>
+            <span
+              onClick={handleStudioClick}
+              style={{ cursor:"pointer" }}
+              title="Back to Workbench"
+            >studio</span>
+            {" / "}
+            <span style={{ color:"var(--text)" }}>{currentName}</span>
           </div>
 
           {/* First run warning */}
@@ -201,11 +224,15 @@ export default function App() {
 
         {/* Page Content */}
         <div style={{
-          flex:1, overflowY:"auto", padding:20,
+          flex:1, overflow:"hidden", display:"flex", flexDirection:"column",
+          ...(service ? {} : { overflowY:"auto", padding:20 }),
           scrollbarWidth:"thin",
           scrollbarColor:"var(--border2) transparent",
         }}>
-          {pages[step]}
+          {service
+            ? <ServiceViewer url={service.url} label={service.label} onBack={() => setService(null)} />
+            : <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>{pages[step]}</div>
+          }
         </div>
 
         {/* Wizard Nav — only for setup pages */}
