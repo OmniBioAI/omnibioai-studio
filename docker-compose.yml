@@ -46,7 +46,7 @@ services:
     image: omnibioai-tes-local
     build:
       context: ${MACHINE_DIR}/omnibioai-tes
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     ports:
       - "${HOST_IP:-0.0.0.0}:8081:8081"
@@ -115,7 +115,7 @@ services:
   model-registry:
     build:
       context: ${MACHINE_DIR}/omnibioai-model-registry
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     # image: ghcr.io/man4ish/omnibioai-model-registry:latest
     ports:
@@ -139,7 +139,7 @@ services:
   lims:
     build:
       context: ${MACHINE_DIR}/omnibioai-lims
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     image: omnibioai-lims-local
     ports:
@@ -177,7 +177,7 @@ services:
   rag:
     build:
       context: ${MACHINE_DIR}/omnibioai-rag
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     # image: ghcr.io/man4ish/omnibioai-rag:latest
     ports:
@@ -197,7 +197,7 @@ services:
   workbench:
     build:
       context: ${MACHINE_DIR}/omnibioai
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     # image: ghcr.io/man4ish/omnibioai-app:latest
     ports:
@@ -268,7 +268,7 @@ services:
   celery-worker:
     build:
       context: ${MACHINE_DIR}/omnibioai
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     # image: ghcr.io/man4ish/omnibioai-app:latest
     environment:
@@ -304,7 +304,7 @@ services:
   control-center:
     build:
       context: ${MACHINE_DIR}/omnibioai-control-center
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     # image: ghcr.io/man4ish/omnibioai-control-center:latest
     ports:
@@ -335,7 +335,7 @@ services:
   dev-hub:
     build:
       context: ${MACHINE_DIR}/omnibioai-dev-hub
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     ports:
       - "${HOST_IP:-0.0.0.0}:5173:5173"
@@ -374,7 +374,7 @@ services:
   launcher:
     build:
       context: ${MACHINE_DIR}/omnibioai-launcher
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.app
     ports:
       - "${HOST_IP:-0.0.0.0}:5190:5190"
     environment:
@@ -390,7 +390,7 @@ services:
   workflow-bundles:
     build:
       context: ${MACHINE_DIR}/omnibioai-workflow-bundles
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     # image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
     ports:
@@ -411,7 +411,7 @@ services:
   tool-images:
     build:
       context: ${MACHINE_DIR}/omnibioai-tool-images
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile.app
       target: backend
     # image: ghcr.io/man4ish/omnibioai-tool-images:latest
     ports:
@@ -496,7 +496,7 @@ services:
   hpc-policy-engine:
     build:
       context: ${MACHINE_DIR}/omnibioai-hpc-policy-engine
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.app
     image: omnibioai-hpc-policy-engine-local
     ports:
       - "${HOST_IP:-0.0.0.0}:8003:8003"
