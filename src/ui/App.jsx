@@ -140,11 +140,18 @@ export default function App() {
       background:"var(--bg)", color:"var(--text)",
       fontFamily:"var(--font)", overflow:"hidden",
     }}>
-      {/* Sidebar */}
-      <Sidebar
-        nav={NAV} step={step} setStep={setStep} systemStatus={systemStatus}
-        isServiceView={!!service} onStudioClick={handleStudioClick}
-      />
+      {/* Sidebar — auto-hides when inside a service/app view */}
+      <div style={{
+        width: service ? 0 : 200,
+        overflow: "hidden",
+        transition: "width 0.2s ease",
+        flexShrink: 0,
+      }}>
+        <Sidebar
+          nav={NAV} step={step} setStep={setStep} systemStatus={systemStatus}
+          isServiceView={!!service} onStudioClick={handleStudioClick}
+        />
+      </div>
 
       {/* Main */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>

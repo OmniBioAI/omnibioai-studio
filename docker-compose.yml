@@ -378,9 +378,9 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:5190:5190"
     environment:
-      REACT_APP_OMNIBIOAI_BASE_URL: http://workbench:8000
+      REACT_APP_OMNIBIOAI_BASE_URL: ${OMNIBIOAI_BASE_URL:-http://192.168.86.234:8000}
       REACT_APP_OMNIBIOAI_TOKEN: ${OMNIBIOAI_TOKEN:-dev}
-      REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://127.0.0.1:8890}
+      REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://192.168.86.234:8890}
       REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-devtoken}
       REACT_APP_USE_MOCK: "false"
     depends_on:

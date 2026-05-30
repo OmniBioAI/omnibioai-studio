@@ -27,7 +27,7 @@ const SERVICES = [
   { key:"dev-hub",            label:"Dev Hub",            port:8082,  image:"ghcr.io/man4ish/omnibioai-dev-hub:latest",           group:"AI Layer"               },
 
   // Developer Layer
-  { key:"sdk",                label:"SDK Launcher",       port:5190,  image:"ghcr.io/man4ish/omnibioai-sdk:latest",               group:"Developer Layer"        },
+  { key:"launcher",           label:"Launcher",           port:5190,  image:"ghcr.io/man4ish/omnibioai-launcher:latest",          group:"Developer Layer"        },
   { key:"workflow-bundles",   label:"Workflow Bundles",   port:8098,  image:"ghcr.io/man4ish/omnibioai-workflow-bundles:latest",   group:"Developer Layer"        },
   { key:"tool-images",        label:"Tool Images",        port:8097,  image:"ghcr.io/man4ish/omnibioai-tool-images:latest",       group:"Developer Layer"        },
   { key:"opa",                label:"OPA",                port:8181,  image:"openpolicyagent/opa:latest",                         group:"Developer Layer"        },

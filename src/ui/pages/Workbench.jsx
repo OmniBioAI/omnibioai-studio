@@ -28,7 +28,7 @@ function buildCategories(BASE) {
         { label:"RAG / Lit AI",     url:"/_svc/rag",                 icon:"📚", desc:"PubMed RAG + DeepSeek"            },
         { label:"TES / Jobs",       url:"/_svc/tes",                 icon:"🚀", desc:"Slurm/AWS/Azure/GCP"              },
         { label:"Tool Images",      url:"/_svc/toolimages",          icon:"🐳", desc:"ARM64 SIF dashboard"              },
-        { label:"Launcher",          url:"/_svc/sdk",                 icon:"🔬", desc:"Jupyter · RStudio · VS Code"      },
+        { label:"Launcher",          url:"http://localhost:5190",      icon:"🔬", desc:"Jupyter · RStudio · VS Code"      },
         { label:"Workflows",        url:"/_svc/workflows",           icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
         { label:"Dev Hub",          url:"/_svc/devhub",              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
         { label:"Prometheus",       url:"http://localhost:9091",        icon:"📊", desc:"Metrics scraper"                  },
