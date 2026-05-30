@@ -221,6 +221,11 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OMNIBIOAI_TES_URL: http://tes:8081
+      OMNIBIOAI_HOST_APP_PREFIX: ${WORKSPACE_HOST}
+      OMNI_OBJECT_STORAGE_DIR: /app/work/objects
+      OMNI_OBJECT_REGISTRY_PATH: /app/work/object_registry.json
+      OMNIBIOAI_RUNS_ROOT: /app/work/runs
+      BIOQUERYAI_SANDBOX_SIF: ${MACHINE_DIR}/omnibioai-tool-images/sif/bioqueryai_sandbox.sif
       OMNIBIOAI_MYSQL_HOST: mysql
       GATEWAY_URL: http://api-gateway:8080
       RAGBIO_API_KEY: ${RAGBIO_API_KEY}
