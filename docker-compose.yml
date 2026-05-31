@@ -242,6 +242,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.2.0-beta"
+      OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${MACHINE_DIR}/omnibioai-workflow-bundles:/workspace/omnibioai-workflow-bundles:ro
@@ -290,6 +291,7 @@ services:
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
