@@ -244,9 +244,11 @@ services:
       SENTRY_RELEASE: "0.2.0-beta"
     volumes:
       - ${WORKSPACE_HOST}:/workspace
+      - ${MACHINE_DIR}/omnibioai-workflow-bundles:/workspace/omnibioai-workflow-bundles:ro
       - ${WORK_DIR}/runs:/app/work/runs
       - ${WORK_DIR}/objects:/app/work/objects
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
+      - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
@@ -293,6 +295,7 @@ services:
       - ${WORK_DIR}/runs:/app/work/runs
       - ${WORK_DIR}/objects:/app/work/objects
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
+      - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
