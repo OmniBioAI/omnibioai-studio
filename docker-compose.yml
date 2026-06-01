@@ -243,8 +243,10 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.2.0-beta"
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
+      OMNIBIOAI_ML_TUTORIALS_DIR: /workspace/omnibioai-docs/ml_tutorials
     volumes:
       - ${WORKSPACE_HOST}:/workspace
+      - ${MACHINE_DIR}/omnibioai-docs:/workspace/omnibioai-docs:ro
       - ${MACHINE_DIR}/omnibioai-workflow-bundles:/workspace/omnibioai-workflow-bundles:ro
       - ${WORK_DIR}/runs:/app/work/runs
       - ${WORK_DIR}/objects:/app/work/objects
