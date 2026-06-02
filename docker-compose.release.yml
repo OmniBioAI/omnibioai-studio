@@ -213,8 +213,6 @@ services:
       OMNI_OBJECT_REGISTRY_PATH: /app/work/object_registry.json
       OMNIBIOAI_RUNS_ROOT: /app/work/runs
       BIOQUERYAI_SANDBOX_SIF: ${MACHINE_DIR}/omnibioai-tool-images/sif/bioqueryai_sandbox.sif
-      OMNIBIOAI_TES_URL: http://tes:8081
-      OLLAMA_BASE_URL: http://ollama:11434
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
@@ -353,12 +351,13 @@ services:
       - ${DATA_DIR}/tool-images/build_logs:/app/build_logs:ro
     restart: on-failure
 
-  videos:
+  omnibioai-videos:
     image: ghcr.io/man4ish/omnibioai-videos:latest
     ports:
-      - "8086:8086"
+      - "${HOST_IP:-0.0.0.0}:8086:8086"
     volumes:
       - ${VIDEO_DIR}:/videos:ro
+    restart: on-failure
 
   opa:
     image: openpolicyagent/opa:latest
@@ -519,7 +518,7 @@ services:
       - auth-service
       - control-center
       - grafana
-      - videos
+      - omnibioai-videos
       - launcher
       - model-registry
       - workflow-bundles

@@ -13,6 +13,7 @@ import Settings  from "./pages/Settings";
 import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
+import Videos        from "./pages/Videos";
 
 const NAV = [
   { section: "Setup",   items: [
@@ -237,7 +238,9 @@ export default function App() {
           scrollbarColor:"var(--border2) transparent",
         }}>
           {service
-            ? <ServiceViewer url={service.url} label={service.label} onBack={() => setService(null)} />
+            ? service.url.includes("/_svc/videos")
+              ? <Videos onBack={() => setService(null)} />
+              : <ServiceViewer url={service.url} label={service.label} onBack={() => setService(null)} />
             : <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>{pages[step]}</div>
           }
         </div>
