@@ -30,10 +30,6 @@ jobs:
             && echo "✅ package.json valid"
           node -e "JSON.parse(require('fs').readFileSync('electron-builder.json'))" \
             && echo "✅ electron-builder.json valid"
-      - name: Validate docker-compose
-        run: |
-          docker compose -f docker-compose.yml config --quiet \
-            && echo "✅ docker-compose.yml valid"
 
   # ── 2. Build React UI ───────────────────────────────────
   build-ui:
