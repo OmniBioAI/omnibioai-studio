@@ -9,7 +9,7 @@ function getInitialHost() {
 }
 
 const openDocs = () => {
-  const url = 'http://192.168.86.234/docs/';
+  const url = 'http://192.168.86.234/docs/guides/getting-started.html';
   window.dispatchEvent(new CustomEvent("open-service", { detail: { url, label: "Getting Started" } }));
 };
 
