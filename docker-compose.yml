@@ -204,6 +204,7 @@ services:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
     environment:
       DEBUG: "1"
+      CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-192.168.86.234}:5174,http://${HOST_IP:-192.168.86.234}:8000"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
       DB_HOST: mysql
       DB_PORT: "3306"
@@ -278,6 +279,7 @@ services:
     # image: ghcr.io/man4ish/omnibioai-app:latest
     environment:
       DEBUG: "1"
+      CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-192.168.86.234}:5174,http://${HOST_IP:-192.168.86.234}:8000"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
       DB_HOST: mysql
       DB_PORT: "3306"
