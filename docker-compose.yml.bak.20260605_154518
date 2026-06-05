@@ -76,7 +76,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
       - /usr/bin/singularity:/usr/bin/singularity:ro
-      - /etc/slurm:/etc/slurm:ro
       - /usr/bin/unsquashfs:/usr/bin/unsquashfs:ro
       - /usr/bin/squashfuse:/usr/bin/squashfuse:ro
       - /usr/bin/fusermount:/usr/bin/fusermount:ro
@@ -88,8 +87,6 @@ services:
       - /lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:ro
       - /usr/lib/aarch64-linux-gnu/singularity:/usr/lib/aarch64-linux-gnu/singularity:ro
       - /var/lib/singularity:/var/lib/singularity:rw
-      - /etc/slurm:/etc/slurm:ro
-      - /var/run/munge:/var/run/munge:ro
       - /etc/singularity:/etc/singularity:ro
       - ${MACHINE_DIR}/omnibioai-workflow-bundles:${MACHINE_DIR}/omnibioai-workflow-bundles:ro
       - ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
