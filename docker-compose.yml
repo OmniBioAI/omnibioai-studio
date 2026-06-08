@@ -399,6 +399,53 @@ services:
       workbench:
         condition: service_started
 
+  jupyter:
+    image: ghcr.io/man4ish/omnibioai-jupyter:1.0
+    container_name: omnibioai-jupyter
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8888:8888"
+    volumes:
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
+      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+    environment:
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-omnibioai}
+      - GRANT_SUDO=yes
+    restart: unless-stopped
+    depends_on:
+      workbench:
+        condition: service_started
+
+  rstudio:
+    image: ghcr.io/man4ish/omnibioai-rstudio:1.0
+    container_name: omnibioai-rstudio
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8787:8787"
+    volumes:
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
+      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+    environment:
+      - PASSWORD=${RSTUDIO_PASSWORD:-omnibioai}
+      - ROOT=TRUE
+    restart: unless-stopped
+    depends_on:
+      workbench:
+        condition: service_started
+
+  vscode:
+    image: ghcr.io/man4ish/omnibioai-vscode:1.0
+    container_name: omnibioai-vscode
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8083:8080"
+    volumes:
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
+      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+    environment:
+      - PASSWORD=${VSCODE_PASSWORD:-omnibioai}
+    restart: unless-stopped
+    depends_on:
+      workbench:
+        condition: service_started
+
   workflow-bundles:
     build:
       context: ${MACHINE_DIR}/omnibioai-workflow-bundles
@@ -621,6 +668,9 @@ services:
       - tes
       - toolserver
       - opa
+      - jupyter
+      - rstudio
+      - vscode
     restart: unless-stopped
 
   license-server:
