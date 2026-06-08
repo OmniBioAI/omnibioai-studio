@@ -88,7 +88,6 @@ services:
       - /lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:ro
       - /usr/lib/aarch64-linux-gnu/singularity:/usr/lib/aarch64-linux-gnu/singularity:ro
       - /var/lib/singularity:/var/lib/singularity:rw
-      - /etc/slurm:/etc/slurm:ro
       - /var/run/munge:/var/run/munge:ro
       - /etc/singularity:/etc/singularity:ro
       - ${MACHINE_DIR}/omnibioai-workflow-bundles:${MACHINE_DIR}/omnibioai-workflow-bundles:ro
