@@ -51,6 +51,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - run: npm install
       - name: Build React UI
         run: npx cross-env OMNIBIOAI_DEV_MODE=false npm run build:ui
@@ -75,6 +81,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - run: npm install
       - uses: actions/download-artifact@v4
         with:
@@ -114,6 +126,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - run: npm install
       - uses: actions/download-artifact@v4
         with:
@@ -158,11 +176,18 @@ jobs:
     runs-on: macos-latest
     needs: build-ui
     if: github.event_name == 'push'
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - run: npm install
       - uses: actions/download-artifact@v4
         with:
@@ -173,6 +198,8 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           OMNIBIOAI_DEV_MODE: false
+          ELECTRON_GET_USE_PROXY: true
+          GLOBAL_AGENT_HTTPS_PROXY: ""
       - name: Verify
         run: |
           ls -lh release/*.dmg
@@ -194,6 +221,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - run: npm install
       - uses: actions/download-artifact@v4
         with:
