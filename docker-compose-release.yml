@@ -1,0 +1,656 @@
+# OmniBioAI Studio - Release configuration
+# Uses pre-built images from ghcr.io
+# Version: v0.2.0-beta
+#
+# Setup:
+#   cp .env.example .env
+#   # Edit .env with your paths and secrets
+#   docker compose -f docker-compose-release.yml up -d
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------------
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  opa:
+    image: openpolicyagent/opa:latest
+    ports:
+      - "8181:8181"
+    command: ["run", "--server"]
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Security Control Plane
+  # ---------------------------------------------------------------------------
+
+  auth-service:
+    image: ghcr.io/man4ish/omnibioai-auth:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8001:8001"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      SECRET_KEY: ${AUTH_SECRET_KEY:-change-me-in-production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: on-failure
+
+  policy-engine:
+    image: ghcr.io/man4ish/omnibioai-policy-engine:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8002:8002"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: on-failure
+
+  hpc-policy-engine:
+    image: ghcr.io/man4ish/omnibioai-hpc-policy-engine:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8003:8003"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_NAME: ${MYSQL_DEFAULT_DB:-omnibioai}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
+  security-audit:
+    image: ghcr.io/man4ish/omnibioai-security-audit:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8004:8004"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: on-failure
+
+  api-gateway:
+    image: ghcr.io/man4ish/omnibioai-api-gateway:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8080:8080"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: redis://redis:6379
+      IAM_URL: http://auth-service:8001
+      POLICY_URL: http://policy-engine:8002
+      HPC_URL: http://hpc-policy-engine:8003
+      AUDIT_URL: http://security-audit:8004
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
+      TES_URL: http://tes:8081
+      WORKBENCH_URL: http://workbench:8000
+      TOOLSERVER_URL: http://toolserver:9090
+      RAG_URL: http://rag:8096
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      policy-engine:
+        condition: service_started
+      hpc-policy-engine:
+        condition: service_started
+      security-audit:
+        condition: service_started
+      workbench:
+        condition: service_started
+      tes:
+        condition: service_started
+      toolserver:
+        condition: service_started
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Core Services
+  # ---------------------------------------------------------------------------
+
+  toolserver:
+    image: ghcr.io/man4ish/omnibioai-toolserver:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:9090:9090"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      IAM_URL: http://auth-service:8001
+      AUDIT_URL: http://security-audit:8004
+    volumes:
+      - ${WORKSPACE_HOST}:/workspace
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
+  tes:
+    image: ghcr.io/man4ish/omnibioai-tes:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8081:8081"
+      - "${HOST_IP:-0.0.0.0}:5177:5177"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8081"
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/docker
+      DOCKER_HOST: unix:///var/run/docker.sock
+      TOOLSERVER_BASE_URL: http://toolserver:9090
+      TES_TOOLS: /workspace/configs/tools.example.yaml
+      TES_SERVERS: /workspace/configs/servers.example.yaml
+      TMPDIR: /tmp/omnibioai_tes_runs
+      IAM_URL: http://auth-service:8001
+      POLICY_URL: http://policy-engine:8002
+      HPC_POLICY_URL: http://hpc-policy-engine:8003
+      AUDIT_URL: http://security-audit:8004
+      REDIS_URL: redis://redis:6379
+      SINGULARITY_CACHEDIR: /tmp/singularity_cache
+      SINGULARITY_TMPDIR: /tmp/singularity_tmp
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
+      SENTRY_RELEASE: "0.2.0-beta"
+    volumes:
+      - ${WORKSPACE_HOST}:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+    command:
+      - bash
+      - -lc
+      - |
+        service nginx start && \
+        omnibioai-tes serve \
+          --host 0.0.0.0 \
+          --port 8081 \
+          --tools /workspace/configs/tools.example.yaml \
+          --servers /workspace/configs/servers.example.yaml
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      toolserver:
+        condition: service_started
+    restart: on-failure
+
+  workbench:
+    image: ghcr.io/man4ish/omnibioai-app:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8000:8000"
+    environment:
+      DEBUG: "1"
+      CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-0.0.0.0}:5174,http://${HOST_IP:-0.0.0.0}:8000"
+      DJANGO_SETTINGS_MODULE: omnibioai.settings
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      REDIS_HOST: redis
+      REDIS_PORT: "6380"
+      CELERY_BROKER_URL: redis://redis:6379/1
+      TES_BASE_URL: http://tes:8081
+      OLLAMA_BASE_URL: http://ollama:11434
+      TOOLSERVER_BASE_URL: http://toolserver:9090
+      MODEL_REGISTRY_BASE_URL: http://model-registry:8095
+      RAG_BASE_URL: http://rag:8096
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OMNIBIOAI_TES_URL: http://tes:8081
+      OMNIBIOAI_HOST_APP_PREFIX: ${WORKSPACE_HOST}
+      OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
+      OMNI_OBJECT_STORAGE_DIR: /app/work/objects
+      OMNI_OBJECT_REGISTRY_PATH: /app/work/object_registry.json
+      OMNIBIOAI_RUNS_ROOT: /app/work/runs
+      OMNIBIOAI_MYSQL_HOST: mysql
+      OMNIBIOAI_MYSQL_PORT: "3306"
+      OMNIBIOAI_MYSQL_USER: root
+      OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      OMNIBIOAI_MYSQL_DB: omnibioai
+      GATEWAY_URL: http://api-gateway:8080
+      RAGBIO_API_KEY: ${RAGBIO_API_KEY:-}
+      RAGBIO_HOST: 0.0.0.0
+      LIMS_BASE_URL: "http://lims:7000"
+      LIMS_USERNAME: ${LIMS_USERNAME:-admin}
+      LIMS_PASSWORD: ${LIMS_PASSWORD:-omnibioai}
+      LIMS_REFRESH_TOKEN: ${LIMS_REFRESH_TOKEN:-}
+      LIMS_API_TOKEN: ""
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
+      SENTRY_RELEASE: "0.2.0-beta"
+    volumes:
+      - ${WORKSPACE_HOST}:/workspace
+      - ${WORK_DIR}/runs:/app/work/runs
+      - ${WORK_DIR}/objects:/app/work/objects
+      - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
+      - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
+      - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tes:
+        condition: service_started
+      toolserver:
+        condition: service_started
+      model-registry:
+        condition: service_started
+    command: ["bash", "-lc", "python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate) && python manage.py runserver 0.0.0.0:8000 --noreload"]
+    restart: on-failure
+
+  celery-worker:
+    image: ghcr.io/man4ish/omnibioai-app:latest
+    environment:
+      DEBUG: "1"
+      DJANGO_SETTINGS_MODULE: omnibioai.settings
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      REDIS_HOST: redis
+      REDIS_PORT: "6380"
+      CELERY_BROKER_URL: redis://redis:6379/1
+      TES_BASE_URL: http://tes:8081
+      TOOLSERVER_BASE_URL: http://toolserver:9090
+      MODEL_REGISTRY_BASE_URL: http://model-registry:8095
+      RAG_BASE_URL: http://rag:8096
+      OLLAMA_BASE_URL: http://ollama:11434
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OMNIBIOAI_HOST_APP_PREFIX: ${WORKSPACE_HOST}
+      OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
+      OMNIBIOAI_RUNS_ROOT: /app/work/runs
+    volumes:
+      - ${WORKSPACE_HOST}:/workspace
+      - ${WORK_DIR}/runs:/app/work/runs
+      - ${WORK_DIR}/objects:/app/work/objects
+      - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
+      - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
+      - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+    depends_on:
+      workbench:
+        condition: service_started
+    command: ["bash", "-lc", "celery -A omnibioai worker -l info"]
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Platform Services
+  # ---------------------------------------------------------------------------
+
+  model-registry:
+    image: ghcr.io/man4ish/omnibioai-model-registry:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8095:8095"
+      - "${HOST_IP:-0.0.0.0}:5176:5176"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8095"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_NAME: model_registry
+      OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
+    volumes:
+      - ${DATA_DIR}/model_registry:/registry
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
+  lims:
+    image: ghcr.io/man4ish/omnibioai-lims:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:7000:7000"
+    environment:
+      DJANGO_SETTINGS_MODULE: lab_data_manager.settings
+      DJANGO_ENV: prod
+      DJANGO_DEBUG: "true"
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: limsdb
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-omnibioai-studio-secret}
+      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
+      CORS_ALLOWED_ORIGINS: "https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: on-failure
+
+  rag:
+    image: ghcr.io/man4ish/omnibioai-rag:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8090:8096"
+      - "${HOST_IP:-0.0.0.0}:5175:5175"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8096"
+      OLLAMA_BASE_URL: http://ollama:11434
+      IAM_URL: http://auth-service:8001
+      GATEWAY_URL: http://api-gateway:8080
+      RAGBIO_API_KEY: ${RAGBIO_API_KEY:-}
+      RAGBIO_HOST: 0.0.0.0
+    depends_on:
+      - ollama
+    restart: on-failure
+
+  control-center:
+    image: ghcr.io/man4ish/omnibioai-control-center:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:7070:7070"
+    environment:
+      WORKSPACE_ROOT: /workspace
+      OMNIBIOAI_BASE: /workspace/omnibioai
+      TOOL_IMAGES_BASE: /workspace/tool-images
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
+      SENTRY_RELEASE: "0.2.0-beta"
+    volumes:
+      - ${DATA_DIR}:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+      - ${DATA_DIR}/tool-images/sif:/workspace/tool-images/sif:ro
+    command: >-
+      sh -c "/usr/local/bin/pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
+      exec /usr/local/bin/uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
+    depends_on:
+      - workbench
+      - tes
+      - toolserver
+    restart: on-failure
+
+  dev-hub:
+    image: ghcr.io/man4ish/omnibioai-dev-hub:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:5173:5173"
+      - "${HOST_IP:-0.0.0.0}:8082:8082"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /app
+      OLLAMA_URL: http://ollama:11434/api
+      OLLAMA_HOST: http://ollama:11434
+      REPO_BASE: /repos
+    volumes:
+      - ${DATA_DIR}/dev-hub:/app/data
+    depends_on:
+      - ollama
+    restart: on-failure
+
+  workflow-bundles:
+    image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8098:8098"
+      - "${HOST_IP:-0.0.0.0}:5178:5178"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
+  tool-images:
+    image: ghcr.io/man4ish/omnibioai-tool-images:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8097:8097"
+      - "${HOST_IP:-0.0.0.0}:5179:5179"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${DATA_DIR}/tool-images/dockerfiles:/app/dockerfiles:ro
+      - ${DATA_DIR}/tool-images/sif:/app/sif:ro
+      - ${DATA_DIR}/tool-images/build_logs:/app/build_logs:ro
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # SDK / Launcher
+  # ---------------------------------------------------------------------------
+
+  launcher:
+    image: ghcr.io/man4ish/omnibioai-launcher:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:5190:5190"
+    environment:
+      REACT_APP_OMNIBIOAI_BASE_URL: ${OMNIBIOAI_BASE_URL:-http://localhost:8000}
+      REACT_APP_OMNIBIOAI_TOKEN: ${OMNIBIOAI_TOKEN:-dev}
+      REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://localhost:8888}
+      REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-omnibioai}
+      REACT_APP_USE_MOCK: "false"
+    depends_on:
+      workbench:
+        condition: service_started
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Interactive Computing
+  # ---------------------------------------------------------------------------
+
+  jupyter:
+    image: ghcr.io/man4ish/omnibioai-jupyter:1.0
+    container_name: omnibioai-jupyter
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8888:8888"
+    volumes:
+      - ${DATA_DIR}:/home/jovyan/data
+      - ${WORK_DIR}:/home/jovyan/work
+    environment:
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-omnibioai}
+      GRANT_SUDO: "yes"
+    depends_on:
+      workbench:
+        condition: service_started
+    restart: unless-stopped
+
+  rstudio:
+    image: ghcr.io/man4ish/omnibioai-rstudio:1.0
+    container_name: omnibioai-rstudio
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8787:8787"
+    volumes:
+      - ${DATA_DIR}:/home/rstudio/data
+      - ${WORK_DIR}:/home/rstudio/work
+    environment:
+      PASSWORD: ${RSTUDIO_PASSWORD:-omnibioai}
+      ROOT: "TRUE"
+    depends_on:
+      workbench:
+        condition: service_started
+    restart: unless-stopped
+
+  vscode:
+    image: ghcr.io/man4ish/omnibioai-vscode:1.0
+    container_name: omnibioai-vscode
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8083:8080"
+    volumes:
+      - ${DATA_DIR}:/home/coder/data
+      - ${WORK_DIR}:/home/coder/work
+    environment:
+      PASSWORD: ${VSCODE_PASSWORD:-omnibioai}
+    depends_on:
+      workbench:
+        condition: service_started
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Content & Media
+  # ---------------------------------------------------------------------------
+
+  videos:
+    image: ghcr.io/man4ish/omnibioai-videos:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8086:8086"
+    volumes:
+      - ${VIDEO_DIR}:/videos:ro
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # License Server
+  # ---------------------------------------------------------------------------
+
+  license-server:
+    image: ghcr.io/man4ish/omnibioai-license-server:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8099:8099"
+    environment:
+      LICENSE_SECRET: ${LICENSE_SECRET:-omnibioai-secret-change-in-production}
+      ADMIN_KEY: ${ADMIN_KEY:-admin-secret}
+      GHCR_PULL_TOKEN: ${GHCR_PULL_TOKEN:-}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: ${MYSQL_USER:-root}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      MYSQL_DATABASE: omnibioai_licenses
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Monitoring
+  # ---------------------------------------------------------------------------
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-omnibioai}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Router
+  # ---------------------------------------------------------------------------
+
+  nginx-router:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - workbench
+      - lims
+      - rag
+      - api-gateway
+      - auth-service
+      - control-center
+      - grafana
+      - videos
+      - launcher
+      - model-registry
+      - workflow-bundles
+      - tool-images
+      - dev-hub
+      - tes
+      - toolserver
+      - opa
+      - jupyter
+      - rstudio
+      - vscode
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Plugin images — pulled on-demand by TES, not persistent services
+  # ---------------------------------------------------------------------------
+  # ghcr.io/man4ish/omnibioai-plugin-scanpy:latest
+  # ghcr.io/man4ish/omnibioai-plugin-fastq-qc:latest
+  # ghcr.io/man4ish/omnibioai-plugin-fastq-trimmer:latest
+  # ghcr.io/man4ish/omnibioai-plugin-rnaseq-analysis:latest
+  # ghcr.io/man4ish/omnibioai-plugin-workflow-runner:latest
+  # ghcr.io/man4ish/omnibioai-plugin-marker-identification:latest
+  # ghcr.io/man4ish/omnibioai-plugin-phenotype-association:latest
+  # ghcr.io/man4ish/omnibioai-plugin-variant-annotation:latest
+
+volumes:
+  mysql_data:
+  redis_data:
+  ollama_data:
+  grafana_data:
