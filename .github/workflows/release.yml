@@ -311,7 +311,7 @@ jobs:
           find . -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \
             -o -name "*.dmg" -o -name "*.exe" \
             -o -name "docker-compose-release.yml" -o -name ".env.example" \) \
-            | sort | xargs sha256sum > SHA256SUMS.txt
+            -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Extract changelog for this version
