@@ -314,77 +314,22 @@ jobs:
             | sort | xargs sha256sum > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          NOTES=$(awk "/^## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "OmniBioAI Studio ${{ github.ref_name }}"
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
-          generate_release_notes: true
-          body: |
-            ## OmniBioAI Studio ${{ github.ref_name }}
-
-            ### 📦 Installers
-
-            | Platform | Architecture | File |
-            |---|---|---|
-            | macOS | Apple Silicon (M1/M2/M3/M4) | `*-arm64.dmg` |
-            | macOS | Intel | `*-x64.dmg` |
-            | Linux | x64 (Intel/AMD) | `*.x86_64.AppImage` / `*.amd64.deb` / `*.x86_64.rpm` |
-            | Linux | ARM64 (DGX/Graviton/Pi) | `*-arm64.AppImage` / `*-arm64.deb` / `*.aarch64.rpm` |
-            | Windows | x64 | `*-Setup-*.exe` |
-
-            ### 🐳 Headless / Server (no Electron)
-
-            Download `docker-compose-release.yml` and `.env.example` from this release, then:
-
-            ```bash
-            # Authenticate with GHCR (token provided with your license key)
-            echo $GHCR_PULL_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
-
-            # Configure
-            cp .env.example .env
-            # Edit .env — set DATA_DIR, WORK_DIR, WORKSPACE_HOST, DB_INIT_DIR
-
-            # Launch
-            docker compose -f docker-compose-release.yml up -d
-            ```
-
-            ### 🚀 Desktop Quick Start
-
-            **Linux (DEB — Ubuntu/Debian):**
-            ```bash
-            sudo dpkg -i omnibioai_*.deb && omnibioai-studio
-            ```
-
-            **Linux (RPM — RHEL/Fedora/CentOS):**
-            ```bash
-            sudo rpm -i omnibioai-*.rpm && omnibioai-studio
-            ```
-
-            **Linux (AppImage):**
-            ```bash
-            chmod +x OmniBioAI*.AppImage && ./OmniBioAI*.AppImage --no-sandbox
-            ```
-
-            **macOS:**
-            Open DMG → Drag to Applications → Right-click → Open (GateKeeper warning expected — not yet code-signed)
-
-            **Windows:**
-            Run installer → Follow wizard → Launch from Start Menu (SmartScreen warning expected — not yet code-signed)
-
-            ### 📋 Requirements
-            - Docker Engine 24+ (or Docker Desktop)
-            - 16 GB RAM minimum (32 GB recommended)
-            - 50 GB free disk space
-            - License key — [get beta access](https://omnibioai.org/#request)
-
-            ### 🔐 GHCR Authentication
-            Private service images require a GitHub token.
-            **Beta users receive a token automatically with their license key.**
-
-            ### ✅ Checksums
-            See `SHA256SUMS.txt` attached to this release.
-
+          generate_release_notes: false
+          body: ${{ steps.changelog.outputs.notes }}
           files: |
             artifacts/linux-x64/*.AppImage
             artifacts/linux-x64/*.deb
