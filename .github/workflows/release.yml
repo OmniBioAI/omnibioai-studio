@@ -31,6 +31,12 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('electron-builder.json'))" \
             && echo "✅ electron-builder.json valid"
       - name: Validate docker-compose-release.yml
+        env:
+          WORKSPACE_HOST: /tmp/workspace
+          DATA_DIR: /tmp/data
+          WORK_DIR: /tmp/work
+          VIDEO_DIR: /tmp/video
+          DB_INIT_DIR: /tmp/db-init
         run: |
           docker compose -f docker-compose-release.yml config --quiet \
             && echo "✅ docker-compose-release.yml valid"
