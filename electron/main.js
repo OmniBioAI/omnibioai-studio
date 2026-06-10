@@ -5,6 +5,7 @@ const { writeConfig, readConfig, resetConfig } = require("../backend/config");
 const { spawn, execFile } = require("child_process");
 const os = require("os");
 const crypto = require("crypto");
+const { initAutoUpdater } = require("./updater");
 
 // In packaged app (DMG/AppImage/EXE) → always production mode
 // In dev (npm run dev) → use env var
@@ -246,6 +247,7 @@ app.whenReady().then(() => {
       `window.__OMNIBIOAI_SERVER__ = ${JSON.stringify(server)}`
     );
     if (!DEV_MODE) setTimeout(startLogStream, 6000);
+    initAutoUpdater(mainWindow);
   });
 });
 

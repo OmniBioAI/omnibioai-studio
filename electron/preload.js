@@ -26,6 +26,12 @@ contextBridge.exposeInMainWorld("api", {
   streamLogs:    (callback) =>
     ipcRenderer.on("log-stream", (_, data) => callback(data)),
 
+  // ─── AUTO-UPDATE ───────────────────────────────────
+  onUpdateAvailable: (callback) =>
+    ipcRenderer.on("update-available", (_, info) => callback(info)),
+  onUpdateError:     (callback) =>
+    ipcRenderer.on("update-error", (_, info) => callback(info)),
+
   // ─── WORKBENCH & LINKS ────────────────────────────
   openWorkbench: ()         => ipcRenderer.invoke("open-workbench"),
   openExternal:  (url)      => ipcRenderer.invoke("open-external", url),

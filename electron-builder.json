@@ -79,5 +79,10 @@
     "buildConfig": {
       "devMode": "${env.OMNIBIOAI_DEV_MODE}"
     }
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "man4ish",
+    "repo": "omnibioai-studio"
   }
 }

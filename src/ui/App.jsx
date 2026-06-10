@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import LicenseGate from "./components/LicenseGate";
-import BugReport from "./components/BugReport";
-import Sidebar   from "./components/Sidebar";
+import LicenseGate  from "./components/LicenseGate";
+import BugReport    from "./components/BugReport";
+import Sidebar      from "./components/Sidebar";
+import UpdateBanner from "./components/UpdateBanner";
 import Mode      from "./pages/Mode";
 import LLM       from "./pages/LLM";
 import Cloud     from "./pages/Cloud";
@@ -156,6 +157,9 @@ export default function App() {
 
       {/* Main */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+
+        {/* Update banner — shown at top when an update is available */}
+        <UpdateBanner />
 
         {/* Topbar */}
         <div style={{
