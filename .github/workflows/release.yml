@@ -273,6 +273,21 @@ jobs:
         with:
           fetch-depth: 0   # needed for changelog generation
 
+      - name: Delete existing draft release if any
+        run: |
+          RELEASE_ID=$(gh release view ${{ github.ref_name }} \
+            --repo ${{ github.repository }} \
+            --json isDraft,databaseId \
+            -q 'select(.isDraft) | .databaseId' 2>/dev/null || echo "")
+          if [ -n "$RELEASE_ID" ]; then
+            gh release delete ${{ github.ref_name }} \
+              --repo ${{ github.repository }} \
+              --yes 2>/dev/null || true
+            echo "Deleted draft release"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/download-artifact@v4
         with:
           name: linux-x64
@@ -330,6 +345,8 @@ jobs:
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           generate_release_notes: false
           body: ${{ steps.changelog.outputs.notes }}
+          fail_on_unmatched_files: false
+          make_latest: true
           files: |
             artifacts/linux-x64/*.AppImage
             artifacts/linux-x64/*.deb
