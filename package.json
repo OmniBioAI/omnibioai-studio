@@ -1,6 +1,6 @@
 {
   "name": "omnibioai-studio",
-  "version": "0.2.0",
+  "version": "0.3.0-beta",
   "productName": "OmniBioAI Studio",
   "description": "AI-powered bioinformatics orchestration desktop platform",
   "main": "electron/main.js",
