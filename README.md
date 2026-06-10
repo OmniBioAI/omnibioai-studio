@@ -495,7 +495,7 @@ OmniBioAI Studio is the **desktop control layer** for:
 
 ## 🗺 Roadmap
 
-**v0.3.0-beta — Current Release** ✅
+**v0.2.0-beta** ✅
 - License key system (OMNI-XXXX-XXXX-XXXX-XXXX, 30-day trial)
 - Sentry error tracking + in-app bug report button
 - Cython IP protection (.so compiled binaries)
@@ -510,7 +510,7 @@ OmniBioAI Studio is the **desktop control layer** for:
 - Redis token caching with pub/sub invalidation
 - Internal service header propagation
 
-**v0.3 — Beta Launch** ✅ (June 2026 ✅)
+**v0.3.0-beta — Current Release ✅** (June 2026)
 - DMG + AppImage + EXE installers via GitHub Actions
 - Auto-updater for all platforms
 - Cloudflare-integrated beta signup with automatic license delivery
