@@ -15,6 +15,7 @@ import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
 import Videos        from "./pages/Videos";
+import IdeServices   from "./pages/IdeServices";
 
 const NAV = [
   { section: "Setup",   items: [
@@ -24,11 +25,12 @@ const NAV = [
     { name:"HPC",       idx:3 },
   ]},
   { section: "Runtime", items: [
-    { name:"Launch",    idx:4 },
-    { name:"Services",  idx:5 },
-    { name:"Logs",      idx:6 },
-    { name:"Workbench", idx:7 },
-    { name:"Jobs",      idx:9 },
+    { name:"Launch",       idx:4  },
+    { name:"Services",     idx:5  },
+    { name:"IDE Services", idx:10 },
+    { name:"Logs",         idx:6  },
+    { name:"Workbench",    idx:7  },
+    { name:"Jobs",         idx:9  },
   ]},
   { section: "System",  items: [
     { name:"Settings",  idx:8 },
@@ -40,7 +42,7 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","workbench","settings","jobs"
+  "services","logs","workbench","settings","jobs","ide-services"
 ];
 
 export default function App() {
@@ -102,7 +104,8 @@ export default function App() {
     <Logs      />,
     <Workbench />,
     <Settings  config={config} setConfig={setConfig} />,
-    <Jobs      />,
+    <Jobs         />,
+    <IdeServices  />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");

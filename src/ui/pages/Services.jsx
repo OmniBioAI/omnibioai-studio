@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
+
+function getHostIp() {
+  return (
+    window.__OMNIBIOAI_CONFIG__?.hostIp ||
+    localStorage.getItem("omnibioai_host_ip") ||
+    "192.168.86.234"
+  );
+}
 
 const SERVICES = [
   // Data Layer
@@ -31,6 +39,11 @@ const SERVICES = [
   { key:"workflow-bundles",   label:"Workflow Bundles",   port:8098,  image:"ghcr.io/man4ish/omnibioai-workflow-bundles:latest",   group:"Developer Layer"        },
   { key:"tool-images",        label:"Tool Images",        port:8097,  image:"ghcr.io/man4ish/omnibioai-tool-images:latest",       group:"Developer Layer"        },
   { key:"opa",                label:"OPA",                port:8181,  image:"openpolicyagent/opa:latest",                         group:"Developer Layer"        },
+
+  // IDE Layer
+  { key:"jupyter", label:"JupyterLab", port:8888, image:"ghcr.io/man4ish/omnibioai-jupyter:1.0", group:"IDE Layer", tool:"jupyter" },
+  { key:"rstudio", label:"RStudio",    port:8787, image:"ghcr.io/man4ish/omnibioai-rstudio:1.0", group:"IDE Layer", tool:"rstudio" },
+  { key:"vscode",  label:"VS Code",    port:8083, image:"ghcr.io/man4ish/omnibioai-vscode:1.0",  group:"IDE Layer", tool:"vscode"  },
 ];
 
 const GROUPS = [
@@ -39,6 +52,7 @@ const GROUPS = [
   "Execution Layer",
   "AI Layer",
   "Developer Layer",
+  "IDE Layer",
 ];
 
 const GROUP_COLORS = {
@@ -47,6 +61,7 @@ const GROUP_COLORS = {
   "Execution Layer":        "blue",
   "AI Layer":               "orange",
   "Developer Layer":        "purple",
+  "IDE Layer":              "teal",
 };
 
 const GROUP_ICONS = {
@@ -55,6 +70,7 @@ const GROUP_ICONS = {
   "Execution Layer":        "⚙",
   "AI Layer":               "🤖",
   "Developer Layer":        "🛠",
+  "IDE Layer":              "💻",
 };
 
 const statusColor = {
@@ -78,7 +94,7 @@ function StatusDot({ status }) {
       display:"inline-block", width:6, height:6, borderRadius:"50%",
       background: statusColor[status] || statusColor.unknown,
       marginRight:6, flexShrink:0,
-      animation: status === "restarting" ? "pulse 1s infinite" : "none",
+      animation: (status === "restarting" || status === "warn") ? "pulse 1s infinite" : "none",
     }} />
   );
 }
@@ -117,7 +133,24 @@ export default function Services({ config }) {
     Object.fromEntries(SERVICES.map(s => [s.key, "unknown"]))
   );
   const [restarting, setRestarting] = useState({});
-  const [lastCheck, setLastCheck] = useState("never");
+  const [ideBusy,    setIdeBusy]    = useState({});
+  const [lastCheck,  setLastCheck]  = useState("never");
+
+  const fetchIdeStatus = useCallback(async (key, tool) => {
+    try {
+      const res = await fetch(
+        `http://${getHostIp()}:5190/api/launcher/status/${tool}/`,
+        { signal: AbortSignal.timeout(2000) }
+      );
+      if (!res.ok) { setStatuses(s => ({ ...s, [key]: "down" })); return; }
+      const data = await res.json();
+      const raw = (data?.status || "stopped").toLowerCase();
+      const mapped = raw === "running" ? "up" : raw === "starting" ? "warn" : "down";
+      setStatuses(s => ({ ...s, [key]: mapped }));
+    } catch (_) {
+      setStatuses(s => ({ ...s, [key]: "down" }));
+    }
+  }, []);
 
   const poll = async () => {
     try {
@@ -148,6 +181,9 @@ export default function Services({ config }) {
       }
       setLastCheck(new Date().toTimeString().slice(0, 8));
     } catch (_) {}
+
+    // IDE Layer — poll launcher API independently
+    SERVICES.filter(s => s.group === "IDE Layer").forEach(s => fetchIdeStatus(s.key, s.tool));
   };
 
   useEffect(() => {
@@ -171,6 +207,29 @@ export default function Services({ config }) {
     } finally {
       setRestarting(r => ({ ...r, [key]: false }));
     }
+  };
+
+  const ideAction = async (key, tool, action) => {
+    setIdeBusy(b => ({ ...b, [key]: true }));
+    if (action === "start" || action === "restart") {
+      setStatuses(s => ({ ...s, [key]: "warn" }));
+    }
+    try {
+      if (action === "restart") {
+        await fetch(`http://${getHostIp()}:5190/api/launcher/stop/${tool}/`, {
+          method: "POST", signal: AbortSignal.timeout(10000),
+        });
+        await fetch(`http://${getHostIp()}:5190/api/launcher/start/${tool}/`, {
+          method: "POST", signal: AbortSignal.timeout(10000),
+        });
+      } else {
+        await fetch(`http://${getHostIp()}:5190/api/launcher/${action}/${tool}/`, {
+          method: "POST", signal: AbortSignal.timeout(10000),
+        });
+      }
+    } catch (_) {}
+    setIdeBusy(b => ({ ...b, [key]: false }));
+    fetchIdeStatus(key, tool);
   };
 
   const grouped = GROUPS.map(g => ({
@@ -239,6 +298,8 @@ export default function Services({ config }) {
                 {services.map((s, i) => {
                   const st = statuses[s.key] || "unknown";
                   const isRestarting = restarting[s.key];
+                  const isBusyIde    = ideBusy[s.key];
+                  const isIde        = s.group === "IDE Layer";
                   return (
                     <tr key={s.key} style={{
                       borderBottom: i < services.length - 1 ? "1px solid var(--border)" : "none",
@@ -267,21 +328,79 @@ export default function Services({ config }) {
                         {s.image}
                       </td>
                       <td style={{ padding:"10px 14px", textAlign:"right" }}>
-                        <button
-                          onClick={() => restartService(s.key)}
-                          disabled={isRestarting}
-                          style={{
-                            padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
-                            fontFamily:"var(--mono)", cursor: isRestarting ? "not-allowed" : "pointer",
-                            background: isRestarting ? "rgba(0,148,255,0.08)" : "rgba(255,255,255,0.04)",
-                            border: isRestarting ? "1px solid rgba(0,148,255,0.2)" : "1px solid var(--border2)",
-                            color: isRestarting ? "var(--accent2)" : "var(--color-text-muted)",
-                            transition:"all 0.15s",
-                            opacity: isRestarting ? 0.7 : 1,
-                          }}
-                        >
-                          {isRestarting ? "↻ Restarting..." : "↻ Restart"}
-                        </button>
+                        {isIde ? (
+                          <div style={{ display:"flex", gap:5, justifyContent:"flex-end" }}>
+                            {st === "up" && (
+                              <>
+                                <button
+                                  onClick={() => window.open(`http://${getHostIp()}:${s.port}`, "_blank")}
+                                  style={{
+                                    padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
+                                    fontFamily:"var(--mono)", cursor:"pointer",
+                                    background:"rgba(0,229,160,0.08)", border:"1px solid rgba(0,229,160,0.2)",
+                                    color:"var(--accent)", transition:"all 0.15s",
+                                  }}
+                                >Open ↗</button>
+                                <button
+                                  onClick={() => ideAction(s.key, s.tool, "restart")}
+                                  disabled={isBusyIde}
+                                  style={{
+                                    padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
+                                    fontFamily:"var(--mono)", cursor: isBusyIde ? "not-allowed" : "pointer",
+                                    background:"rgba(255,255,255,0.04)", border:"1px solid var(--border2)",
+                                    color:"var(--color-text-muted)", transition:"all 0.15s", opacity: isBusyIde ? 0.5 : 1,
+                                  }}
+                                >↻ Restart</button>
+                                <button
+                                  onClick={() => ideAction(s.key, s.tool, "stop")}
+                                  disabled={isBusyIde}
+                                  style={{
+                                    padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
+                                    fontFamily:"var(--mono)", cursor: isBusyIde ? "not-allowed" : "pointer",
+                                    background:"rgba(255,71,87,0.06)", border:"1px solid rgba(255,71,87,0.2)",
+                                    color:"var(--color-danger)", transition:"all 0.15s", opacity: isBusyIde ? 0.5 : 1,
+                                  }}
+                                >Stop</button>
+                              </>
+                            )}
+                            {(st === "down" || st === "unknown") && (
+                              <button
+                                onClick={() => ideAction(s.key, s.tool, "start")}
+                                disabled={isBusyIde}
+                                style={{
+                                  padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
+                                  fontFamily:"var(--mono)", cursor: isBusyIde ? "not-allowed" : "pointer",
+                                  background:"rgba(0,229,160,0.08)", border:"1px solid rgba(0,229,160,0.2)",
+                                  color:"var(--accent)", transition:"all 0.15s", opacity: isBusyIde ? 0.5 : 1,
+                                }}
+                              >Start</button>
+                            )}
+                            {st === "warn" && (
+                              <button disabled style={{
+                                padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
+                                fontFamily:"var(--mono)", cursor:"not-allowed",
+                                background:"rgba(255,165,2,0.06)", border:"1px solid rgba(255,165,2,0.2)",
+                                color:"var(--color-warning)", opacity:0.7,
+                              }}>Starting...</button>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => restartService(s.key)}
+                            disabled={isRestarting}
+                            style={{
+                              padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
+                              fontFamily:"var(--mono)", cursor: isRestarting ? "not-allowed" : "pointer",
+                              background: isRestarting ? "rgba(0,148,255,0.08)" : "rgba(255,255,255,0.04)",
+                              border: isRestarting ? "1px solid rgba(0,148,255,0.2)" : "1px solid var(--border2)",
+                              color: isRestarting ? "var(--accent2)" : "var(--color-text-muted)",
+                              transition:"all 0.15s",
+                              opacity: isRestarting ? 0.7 : 1,
+                            }}
+                          >
+                            {isRestarting ? "↻ Restarting..." : "↻ Restart"}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

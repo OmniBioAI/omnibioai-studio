@@ -395,6 +395,9 @@ services:
       REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://192.168.86.234:8890}
       REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-devtoken}
       REACT_APP_USE_MOCK: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
       workbench:
         condition: service_started
