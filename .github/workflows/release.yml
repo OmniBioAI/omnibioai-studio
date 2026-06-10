@@ -30,6 +30,10 @@ jobs:
             && echo "✅ package.json valid"
           node -e "JSON.parse(require('fs').readFileSync('electron-builder.json'))" \
             && echo "✅ electron-builder.json valid"
+      - name: Validate docker-compose-release.yml
+        run: |
+          docker compose -f docker-compose-release.yml config --quiet \
+            && echo "✅ docker-compose-release.yml valid"
 
   # ── 2. Build React UI ───────────────────────────────────
   build-ui:
@@ -76,14 +80,13 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             libarchive-tools fakeroot rpm alien
       - name: Build Linux x64
-        run: |
-          npx electron-builder --linux AppImage deb rpm --x64 --publish never
+        run: npx electron-builder --linux AppImage deb rpm --x64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           OMNIBIOAI_DEV_MODE: false
       - name: Verify
         run: |
-          ls -lh release/*.AppImage release/*.deb release/*.rpm 2>/dev/null
+          ls -lh release/
           echo "✅ Linux x64 packages built"
       - uses: actions/upload-artifact@v4
         with:
@@ -110,28 +113,37 @@ jobs:
         with:
           name: ui-dist
           path: dist/
+
+      # Required: set up QEMU so electron-builder can cross-compile to ARM64
+      - name: Set up QEMU for ARM64 cross-compilation
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Install system deps
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libarchive-tools fakeroot rpm alien
+
       - name: Build Linux ARM64
-        run: |
-          npx electron-builder --linux AppImage deb rpm --arm64 --publish never
+        run: npx electron-builder --linux AppImage deb rpm --arm64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           OMNIBIOAI_DEV_MODE: false
+
       - name: Verify
         run: |
-          ls -lh release/*.AppImage release/*.deb release/*.rpm 2>/dev/null
+          ls -lh release/
           echo "✅ Linux ARM64 packages built"
+
       - uses: actions/upload-artifact@v4
         with:
           name: linux-arm64
           path: |
-            release/*.AppImage
-            release/*.deb
-            release/*.rpm
+            release/*arm64*.AppImage
+            release/*arm64*.deb
+            release/*.aarch64.rpm
           retention-days: 7
 
   # ── 5. Build macOS (DMG arm64 + x64) ───────────────────
@@ -151,8 +163,7 @@ jobs:
           name: ui-dist
           path: dist/
       - name: Build DMG (arm64 + x64)
-        run: |
-          npx electron-builder --mac dmg --x64 --arm64 --publish never
+        run: npx electron-builder --mac dmg --x64 --arm64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           OMNIBIOAI_DEV_MODE: false
@@ -208,6 +219,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed for changelog generation
 
       - uses: actions/download-artifact@v4
         with:
@@ -229,6 +242,27 @@ jobs:
           name: windows-installer
           path: artifacts/windows/
 
+      # Include docker-compose-release.yml and .env.example in the release
+      # so users can run the stack without cloning the repo
+      - name: Stage stack config files
+        run: |
+          cp docker-compose-release.yml artifacts/
+          cp .env.example artifacts/
+
+      - name: List all release artifacts
+        run: |
+          find artifacts/ -type f | sort
+          echo "✅ All artifacts staged"
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          find . -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \
+            -o -name "*.dmg" -o -name "*.exe" \
+            -o -name "docker-compose-release.yml" -o -name ".env.example" \) \
+            | sort | xargs sha256sum > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -238,50 +272,67 @@ jobs:
           body: |
             ## OmniBioAI Studio ${{ github.ref_name }}
 
-            ### 📦 Downloads
+            ### 📦 Installers
 
-            | Platform | Architecture | File | Notes |
-            |---|---|---|---|
-            | macOS | Apple Silicon (M1/M2/M3/M4) | `*-arm64.dmg` | Recommended for Mac |
-            | macOS | Intel | `*-x64.dmg` | For older Macs |
-            | Linux | x64 (Intel/AMD) | `*.AppImage` / `*.deb` / `*.rpm` | Most laptops/servers |
-            | Linux | ARM64 | `*-arm64.AppImage` / `*-arm64.deb` / `*.aarch64.rpm` | DGX/Graviton |
-            | Windows | x64 | `*-Setup-*.exe` | Windows 10/11 |
+            | Platform | Architecture | File |
+            |---|---|---|
+            | macOS | Apple Silicon (M1/M2/M3/M4) | `*-arm64.dmg` |
+            | macOS | Intel | `*-x64.dmg` |
+            | Linux | x64 (Intel/AMD) | `*.x86_64.AppImage` / `*.amd64.deb` / `*.x86_64.rpm` |
+            | Linux | ARM64 (DGX/Graviton/Pi) | `*-arm64.AppImage` / `*-arm64.deb` / `*.aarch64.rpm` |
+            | Windows | x64 | `*-Setup-*.exe` |
 
-            ### 🚀 Quick Start
+            ### 🐳 Headless / Server (no Electron)
 
-            **Linux (DEB - Ubuntu/Debian):**
+            Download `docker-compose-release.yml` and `.env.example` from this release, then:
+
             ```bash
-            sudo dpkg -i omnibioai_*.deb
-            omnibioai-studio
+            # Authenticate with GHCR (token provided with your license key)
+            echo $GHCR_PULL_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
+
+            # Configure
+            cp .env.example .env
+            # Edit .env — set DATA_DIR, WORK_DIR, WORKSPACE_HOST, DB_INIT_DIR
+
+            # Launch
+            docker compose -f docker-compose-release.yml up -d
             ```
 
-            **Linux (RPM - RHEL/Fedora/CentOS):**
+            ### 🚀 Desktop Quick Start
+
+            **Linux (DEB — Ubuntu/Debian):**
             ```bash
-            sudo rpm -i omnibioai-*.rpm
-            omnibioai-studio
+            sudo dpkg -i omnibioai_*.deb && omnibioai-studio
+            ```
+
+            **Linux (RPM — RHEL/Fedora/CentOS):**
+            ```bash
+            sudo rpm -i omnibioai-*.rpm && omnibioai-studio
             ```
 
             **Linux (AppImage):**
             ```bash
-            chmod +x OmniBioAI*.AppImage
-            ./OmniBioAI*.AppImage --no-sandbox
+            chmod +x OmniBioAI*.AppImage && ./OmniBioAI*.AppImage --no-sandbox
             ```
 
             **macOS:**
-            Open DMG → Drag to Applications → Right-click → Open
+            Open DMG → Drag to Applications → Right-click → Open (GateKeeper warning expected — not yet code-signed)
 
             **Windows:**
-            Run installer → Follow wizard → Launch from Start Menu
+            Run installer → Follow wizard → Launch from Start Menu (SmartScreen warning expected — not yet code-signed)
 
             ### 📋 Requirements
-            - Docker Desktop (auto-prompted on first launch)
-            - 16GB RAM minimum (32GB recommended)
-            - 50GB free disk space
-            - License key (get one at omnibioai.org)
+            - Docker Engine 24+ (or Docker Desktop)
+            - 16 GB RAM minimum (32 GB recommended)
+            - 50 GB free disk space
+            - License key — [get beta access](https://omnibioai.org/#request)
 
-            ### 🔑 Get Beta Access
-            Sign up at: https://omnibioai.org/#request
+            ### 🔐 GHCR Authentication
+            Private service images require a GitHub token.
+            **Beta users receive a token automatically with their license key.**
+
+            ### ✅ Checksums
+            See `SHA256SUMS.txt` attached to this release.
 
           files: |
             artifacts/linux-x64/*.AppImage
@@ -292,5 +343,8 @@ jobs:
             artifacts/linux-arm64/*.rpm
             artifacts/mac/*.dmg
             artifacts/windows/*.exe
+            artifacts/docker-compose-release.yml
+            artifacts/.env.example
+            artifacts/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
