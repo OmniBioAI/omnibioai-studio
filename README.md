@@ -6,7 +6,7 @@
 
 ---
 
-## ✨ What's New in v0.2.0-beta
+## ✨ What's New in v0.3.0-beta
 
 - **License key system** — 30-day trial keys (OMNI-XXXX-XXXX-XXXX-XXXX format)
 - **Sentry error tracking** — automatic error reporting across all services
@@ -35,6 +35,30 @@
 - LLM configuration: Ollama (local) + Claude API + OpenAI
 - Cloud execution: AWS Batch / Azure Batch / GCP Batch / Kubernetes
 - HPC execution: Slurm / PBS / LSF via TES
+
+---
+
+## 🖥 Screenshots
+
+### Control Center — Architecture View
+![Architecture](docs/screenshots/architecture.png)
+*Full microservices map with zero-trust security control plane — 8/8 services UP*
+
+### Health Monitoring
+![Health Status](docs/screenshots/health.png)
+*Real-time service health, response latency per service, disk monitoring*
+
+### Code Coverage
+![Code Coverage](docs/screenshots/coverage.png)
+*98.7% average test coverage across 19 repositories*
+
+### Tool SIF Images
+![Docker Images](docs/screenshots/tool-images.png)
+*458 bioinformatics tool images built — 257 GB total*
+
+### Ecosystem Overview
+![Projects](docs/screenshots/projects.png)
+*26 repositories · 1.59M lines of code · workflow-bundles is the largest repo*
 
 ---
 
@@ -239,7 +263,7 @@ npm run build:win        # build EXE (Windows)
 OmniBioAI Studio requires a license key for first launch.
 
 ### Getting a License
-Contact: mandecent.gupta@gmail.com for beta access
+Contact: manish@omnibioai.org for beta access
 
 ### License Key Format
 OMNI-XXXX-XXXX-XXXX-XXXX (30-day trial)
@@ -471,7 +495,7 @@ OmniBioAI Studio is the **desktop control layer** for:
 
 ## 🗺 Roadmap
 
-**v0.2.0-beta — Current Release** ✅
+**v0.3.0-beta — Current Release** ✅
 - License key system (OMNI-XXXX-XXXX-XXXX-XXXX, 30-day trial)
 - Sentry error tracking + in-app bug report button
 - Cython IP protection (.so compiled binaries)
@@ -486,7 +510,7 @@ OmniBioAI Studio is the **desktop control layer** for:
 - Redis token caching with pub/sub invalidation
 - Internal service header propagation
 
-**v0.3 — Beta Launch** (July 4th 2026 target)
+**v0.3 — Beta Launch** ✅ (June 2026 ✅)
 - DMG + AppImage + EXE installers via GitHub Actions
 - Auto-updater for all platforms
 - Cloudflare-integrated beta signup with automatic license delivery
