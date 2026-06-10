@@ -10,3 +10,4 @@ data/
 out/
 *.log
 obsolete/
+.env
