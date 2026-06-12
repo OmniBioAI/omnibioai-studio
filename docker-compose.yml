@@ -60,8 +60,8 @@ services:
       SENTRY_RELEASE: "0.2.0-beta"
       DOCKER_HOST: unix:///var/run/docker.sock
       TOOLSERVER_BASE_URL: http://toolserver:9090
-      TES_TOOLS: /workspace/configs/tools.example.yaml
-      TES_SERVERS: /workspace/configs/servers.example.yaml
+      TES_TOOLS: /workspace/configs/tools
+      TES_SERVERS: /workspace/configs/servers
       TMPDIR: /tmp/omnibioai_tes_runs
       IAM_URL: http://auth-service:8001
       POLICY_URL: http://policy-engine:8002
@@ -104,8 +104,8 @@ services:
         omnibioai-tes serve \
           --host 0.0.0.0 \
           --port 8081 \
-          --tools /workspace/configs/tools.example.yaml \
-          --servers /workspace/configs/servers.example.yaml
+          --tools /workspace/configs/tools \
+          --servers /workspace/configs/servers
     depends_on:
       mysql:
         condition: service_healthy
