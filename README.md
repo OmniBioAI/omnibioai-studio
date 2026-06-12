@@ -8,6 +8,9 @@
 
 ## ✨ What's New in v0.3.0-beta
 
+- **IDE Services** — JupyterLab, RStudio, and VS Code Server managed directly from Studio UI with start/stop/status controls and one-click browser launch
+- **IDE Layer** — dedicated section on the Services page with per-container lifecycle management (Start / Stop / Open) and real-time status polling
+- **Launcher backend** — Express API using Docker socket for IDE container control; no binary dependency, works on ARM64
 - **License key system** — 30-day trial keys (OMNI-XXXX-XXXX-XXXX-XXXX format)
 - **Sentry error tracking** — automatic error reporting across all services
 - **Bug report button** — 🐛 in-app bug reporting via Studio UI
@@ -125,9 +128,19 @@ security-audit :8004  ← async audit log → Redis Streams (never blocks)
 | Workflow Bundles | :8098 | WDL/Nextflow/Snakemake/CWL workflow bundle server |
 | Tool Images | :8097 | Bioinformatics tool image registry |
 | Videos | :8086 | Tutorial and demo video server |
-| SDK Launcher | :5190 | OmniBioAI Python SDK UI |
+| Launcher | :5190 | OmniBioAI SDK UI + IDE container lifecycle API |
 | Ollama | :11434 | Local LLM inference |
 | OPA | :8181 | Open Policy Agent (policy rules backend) |
+
+### IDE Services (managed via Launcher)
+
+| Service | Port | Description | Default credential |
+|---|---|---|---|
+| **JupyterLab** | :8888 | Interactive notebooks — full bioinformatics stack (scanpy, DESeq2, scVelo, cellxgene…) | token: `$JUPYTER_TOKEN` |
+| **RStudio Server** | :8787 | R + Bioconductor — Seurat, DESeq2, scran, monocle3, tidyverse | password: `$RSTUDIO_PASSWORD` |
+| **VS Code Server** | :8083 | Python + R + Nextflow + WDL extensions | password: `$VSCODE_PASSWORD` |
+
+IDE services are started, stopped, and monitored from **Studio → Services → IDE Layer** or **Studio → IDE Services**. They can also be launched directly from the **Launcher** page when opening a registry object in an analysis environment.
 
 ### Plugin images (pulled on-demand by TES)
 
@@ -141,6 +154,40 @@ security-audit :8004  ← async audit log → Redis Streams (never blocks)
 | `omnibioai-plugin-variant-annotation` | Variant annotation (SnpEff/ANNOVAR) |
 | `omnibioai-plugin-marker-identification` | Marker gene identification |
 | `omnibioai-plugin-phenotype-association` | GWAS + phenotype association |
+
+---
+
+## 🧪 IDE Services
+
+OmniBioAI Studio manages three browser-based IDE environments as Docker containers. These are controlled from two places in Studio:
+
+**Services page → IDE Layer** — table view with Start / Stop / Open per service, same as all other platform services.
+
+**IDE Services page** — card view showing status badge (Running / Starting / Stopped) and a direct Open button. When running, JupyterLab opens with the auth token pre-filled for automatic login.
+
+### Starting IDEs
+
+From Studio → Services → IDE Layer, click **Start** on any stopped IDE. The status badge polls every 5 seconds and flips to **Running** once the container is up. Click **Open →** to launch it in your system browser.
+
+Alternatively, from Studio → Launcher, select a registry object and click **Open in JupyterLab**, **Open in VS Code Server**, or **Open in RStudio** — the IDE opens in the browser with object context pre-loaded.
+
+### IDE credentials
+
+Set in `.env` before starting the stack:
+
+```bash
+JUPYTER_TOKEN=devtoken        # passed as ?token= in URL for auto-login
+RSTUDIO_PASSWORD=omnibioai    # RStudio Server login password
+VSCODE_PASSWORD=omnibioai     # VS Code Server login password
+```
+
+### Pre-installed packages
+
+**JupyterLab** — scanpy, anndata, scVelo, squidpy, gseapy, biopython, pysam, cellxgene, leidenalg, harmonypy, decoupler, pydeseq2, omnipath, DESeq2, edgeR, limma, Seurat (via conda)
+
+**RStudio** — DESeq2, edgeR, limma, Seurat, clusterProfiler, EnhancedVolcano, ComplexHeatmap, SingleCellExperiment, scran, scater, monocle3, tidyverse, ggplot2, pheatmap, patchwork
+
+**VS Code Server** — ms-python.python, REditorSupport.r, nextflow-io.nf-lang, broadinstitute.wdl extensions; scanpy, anndata, scVelo, pydeseq2, gseapy, biopython, pysam
 
 ---
 
@@ -307,6 +354,11 @@ VIDEO_DIR=/path/to/videos
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 
+# IDE Services
+JUPYTER_TOKEN=devtoken
+RSTUDIO_PASSWORD=omnibioai
+VSCODE_PASSWORD=omnibioai
+
 # Build
 DEV_MODE=false
 
@@ -409,7 +461,8 @@ To disable: set SENTRY_DSN= (empty) in .env
 │        Docker Compose Runtime           │
 │  Workbench · TES · ToolServer           │
 │  Model Registry · LIMS · RAG            │
-│  Control Center · Dev Hub · SDK         │
+│  Control Center · Dev Hub · Launcher    │
+│  JupyterLab · RStudio · VS Code Server  │
 └──────────────┬──────────────────────────┘
                │
                ▼
@@ -484,7 +537,8 @@ OmniBioAI Studio is the **desktop control layer** for:
 | `omnibioai-dev-hub` | Knowledge graph + embeddings |
 | `omnibioai-workflow-bundles` | WDL/Nextflow/Snakemake bundles |
 | `omnibioai-tool-images` | 80+ bioinformatics tool containers |
-| `omnibioai_sdk` | Python SDK + React launcher |
+| `omnibioai-launcher` | SDK UI + IDE container lifecycle API |
+| `omnibioai_sdk` | Python SDK client |
 | `omnibioai-dev-docker` | DGX/GPU development environment |
 | `omnibioai-security-sdk` | Security SDK for service auth integration |
 | `omnibioai-design-tokens` | Shared design tokens and theme system |
@@ -514,6 +568,10 @@ OmniBioAI Studio is the **desktop control layer** for:
 - DMG + AppImage + EXE installers via GitHub Actions
 - Auto-updater for all platforms
 - Cloudflare-integrated beta signup with automatic license delivery
+- IDE Services — JupyterLab, RStudio, VS Code Server with full lifecycle management
+- IDE Layer on Services page with Start / Stop / Open controls
+- Launcher backend API for IDE container control via Docker socket
+- One-click browser launch with automatic token authentication
 - Public beta announcement
 
 **v0.4 — Cloud & HPC**
@@ -552,6 +610,8 @@ This is expected and harmless for development. For production ARM deployments, r
 - First launch requires internet connection for license validation
 - 7-day offline grace period after initial validation
 - Bug reports sent to Sentry (can be disabled via SENTRY_DSN= in .env)
+- IDE Services status polling requires the Launcher container to be running
+- JupyterLab token must match `JUPYTER_TOKEN` in `.env` for auto-login to work
 
 ---
 

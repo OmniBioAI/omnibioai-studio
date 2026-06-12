@@ -239,6 +239,18 @@ app.whenReady().then(() => {
 
   createWindow();
   // Attempt to tail logs after window loads (only if docker is already running)
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
+      window.addEventListener('message', (e) => {
+        console.log('[Studio] received message:', JSON.stringify(e.data));
+        if (e.data && e.data.type === 'open-external' && e.data.url) {
+          console.log('[Studio] opening external URL:', e.data.url);
+          window.electronAPI.openExternal(e.data.url);
+        }
+      }, true);
+    `);
+  });
+
   mainWindow.webContents.once("did-finish-load", () => {
     const cfg = readConfig();
     const hostIp = cfg?.server?.host_ip || "localhost";

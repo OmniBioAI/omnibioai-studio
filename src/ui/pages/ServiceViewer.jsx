@@ -1,10 +1,22 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 
 export default function ServiceViewer({ url, label, onBack }) {
+  const webviewRef = useRef(null);
+
+  useEffect(() => {
+    const wv = webviewRef.current;
+    if (!wv) return;
+    const handler = (e) => {
+      if (e.channel === 'open-external' && e.args?.[0]) {
+        window.electronAPI.openExternal(e.args[0]);
+      }
+    };
+    wv.addEventListener('ipc-message', handler);
+    return () => wv.removeEventListener('ipc-message', handler);
+  }, []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 0 }}>
-
-      {/* Toolbar */}
       <div style={{
         display: "flex", alignItems: "center", gap: 12, flexShrink: 0,
         padding: "8px 16px",
@@ -38,10 +50,10 @@ export default function ServiceViewer({ url, label, onBack }) {
           {url}
         </span>
       </div>
-
-      {/* Embedded service page */}
       <webview
+        ref={webviewRef}
         src={url}
+        nodeintegration="true"
         style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
       />
     </div>

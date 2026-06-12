@@ -63,6 +63,22 @@ function getHostIp() {
   );
 }
 
+function getJupyterToken() {
+  return (
+    window.__OMNIBIOAI_CONFIG__?.jupyterToken ||
+    localStorage.getItem("omnibioai_jupyter_token") ||
+    "devtoken"
+  );
+}
+
+function openUrl(url) {
+  if (window.electronAPI?.openExternal) {
+    window.electronAPI.openExternal(url);
+  } else {
+    window.open(url, "_blank");
+  }
+}
+
 function launcherUrl(path) {
   return `http://${getHostIp()}:5190${path}`;
 }
@@ -250,8 +266,12 @@ export default function IdeServices() {
     return () => clearInterval(id);
   }, [pollAll]);
 
-  const handleOpen = (port) => {
-    window.open(`http://${getHostIp()}:${port}`, "_blank");
+  const handleOpen = (svc) => {
+    const hostIp = getHostIp();
+    const url = svc.tool === "jupyter"
+      ? `http://${hostIp}:${svc.port}?token=${getJupyterToken()}`
+      : `http://${hostIp}:${svc.port}`;
+    openUrl(url);
   };
 
   return (
@@ -285,7 +305,7 @@ export default function IdeServices() {
             key={svc.tool}
             svc={svc}
             status={statuses[svc.tool]}
-            onOpen={() => handleOpen(svc.port)}
+            onOpen={() => handleOpen(svc)}
           />
         ))}
       </div>

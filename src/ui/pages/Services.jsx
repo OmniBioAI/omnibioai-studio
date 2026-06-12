@@ -9,6 +9,22 @@ function getHostIp() {
   );
 }
 
+function getJupyterToken() {
+  return (
+    window.__OMNIBIOAI_CONFIG__?.jupyterToken ||
+    localStorage.getItem("omnibioai_jupyter_token") ||
+    "devtoken"
+  );
+}
+
+function openUrl(url) {
+  if (window.electronAPI?.openExternal) {
+    window.electronAPI.openExternal(url);
+  } else {
+    window.open(url, "_blank");
+  }
+}
+
 const SERVICES = [
   // Data Layer
   { key:"mysql",              label:"MySQL",              port:3306,  image:"mysql:8.0",                                          group:"Data Layer"             },
@@ -333,7 +349,12 @@ export default function Services({ config }) {
                             {st === "up" && (
                               <>
                                 <button
-                                  onClick={() => window.open(`http://${getHostIp()}:${s.port}`, "_blank")}
+                                  onClick={() => {
+                                    const url = s.key === "jupyter"
+                                      ? `http://${getHostIp()}:${s.port}?token=${getJupyterToken()}`
+                                      : `http://${getHostIp()}:${s.port}`;
+                                    openUrl(url);
+                                  }}
                                   style={{
                                     padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
                                     fontFamily:"var(--mono)", cursor:"pointer",
