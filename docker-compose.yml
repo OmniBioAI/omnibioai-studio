@@ -483,7 +483,7 @@ services:
       PYTHONUNBUFFERED: "1"
     volumes:
       - ${MACHINE_DIR}/omnibioai-tool-images/dockerfiles:/app/dockerfiles:ro
-      - ${DATA_DIR}/tool-images/sif:/app/sif:ro
+      - ${MACHINE_DIR}/omnibioai-tool-images/sif:/app/sif:ro
       - ${MACHINE_DIR}/omnibioai-tool-images/build_logs:/app/build_logs:ro
     restart: on-failure
 
