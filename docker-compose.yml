@@ -59,6 +59,7 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.2.0-beta"
       DOCKER_HOST: unix:///var/run/docker.sock
+      PYTHONPATH: /workspace/src
       TOOLSERVER_BASE_URL: http://toolserver:9090
       TES_TOOLS: /workspace/configs/tools
       TES_SERVERS: /workspace/configs/servers
