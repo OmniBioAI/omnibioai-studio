@@ -17,7 +17,9 @@
 - **Cython IP protection** — core business logic compiled to .so binaries
 - **MySQL-backed license server** — license validation with MySQL persistence
 - **DEV_MODE flag** — replaces BETA_MODE for cleaner build configuration
-- **500+ bioinformatics tools** — 350 HTTP API tools + 144 Slurm execution tools
+- **1010+ bioinformatics tools** — 510 HTTP API tools + 500 Slurm execution tools
+- **600+ workflows (Nextflow/WDL/CWL/Snakemake)**
+- **12 agentic omics pipelines with Human-in-the-Loop (HITL)**
 - **Windows installer** — NSIS .exe installer added alongside DMG and AppImage
 - **Zero-trust security control plane** — JWT authentication + RBAC/ABAC policy enforcement on every request
 - **API Gateway** — single enforced entry point for all service traffic
@@ -57,11 +59,11 @@
 
 ### Tool SIF Images
 ![Docker Images](docs/screenshots/tool-images.png)
-*458 bioinformatics tool images built — 257 GB total*
+*459 bioinformatics tool images built — ~235GB total*
 
 ### Ecosystem Overview
 ![Projects](docs/screenshots/projects.png)
-*26 repositories · 1.59M lines of code · workflow-bundles is the largest repo*
+*26 repositories · 2M+ lines of code · workflow-bundles is the largest repo*
 
 ---
 
@@ -191,9 +193,9 @@ VSCODE_PASSWORD=omnibioai     # VS Code Server login password
 
 ---
 
-## 🧰 Bioinformatics Tools (500+)
+## 🧰 Bioinformatics Tools (1010+)
 
-### HTTP API Tools (350)
+### HTTP API Tools (510)
 Direct REST API integrations — no compute needed:
 - Genomics: Ensembl, NCBI, ClinVar, gnomAD, dbSNP
 - Proteins: UniProt, AlphaFold, PDB, InterPro
@@ -204,7 +206,7 @@ Direct REST API integrations — no compute needed:
 - Metabolomics: HMDB, LipidMaps, MetaboAnalyst
 - And 280+ more across all omics domains
 
-### Slurm/HPC Tools (144)
+### Slurm/HPC Tools (500)
 Compute-heavy tools executed on HPC/cloud:
 - Alignment: BWA, STAR, HISAT2, Minimap2
 - Variant Calling: GATK, DeepVariant, Clair3, Mutect2
@@ -555,7 +557,7 @@ OmniBioAI Studio is the **desktop control layer** for:
 - Cython IP protection (.so compiled binaries)
 - MySQL-backed license server
 - DEV_MODE flag (replaces BETA_MODE)
-- 500+ bioinformatics tools (350 HTTP API + 144 Slurm)
+- 1010+ bioinformatics tools (510 HTTP API + 500 Slurm)
 - Windows NSIS .exe installer
 - Zero-trust JWT authentication on every request
 - RBAC/ABAC policy engine
