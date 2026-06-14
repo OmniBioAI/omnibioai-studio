@@ -1,0 +1,445 @@
+/*
+ * OmniBioAI Prometheus Theme
+ * Token source: omnibioai-design-tokens/tokens.css
+ * All literal values declared ONCE in :root; all rules use var() only.
+ *
+ * Injected into Prometheus pages by nginx sub_filter.
+ * Prometheus uses Bootstrap 3 + a thin custom layer.
+ */
+
+/* ── 1. Design tokens — re-declared from tokens.css ─────────────────────── */
+:root {
+  /* Backgrounds */
+  --color-bg:           #0f1117;
+  --color-bg-surface:   #1a1d2e;
+  --color-bg-surface2:  #20243a;
+  --color-bg-elevated:  #13161f;
+
+  /* Borders */
+  --color-border:        rgba(255,255,255,0.08);
+  --color-border-muted:  rgba(255,255,255,0.07);
+  --color-border-bright: rgba(255,255,255,0.12);
+
+  /* Text */
+  --color-text:           #ffffff;
+  --color-text-soft:      #e8eaf0;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted:     #6b7280;
+
+  /* Brand */
+  --color-accent:        #00e5a0;
+  --color-accent-dim:    rgba(0,229,160,0.10);
+  --color-accent-border: rgba(0,229,160,0.30);
+  --color-blue:          #0094ff;
+  --color-blue-dim:      rgba(0,148,255,0.10);
+  --color-blue-border:   rgba(0,148,255,0.30);
+  --color-on-accent:     #000000;
+
+  /* Status */
+  --color-danger:        #ef4444;
+  --color-danger-dim:    rgba(239,68,68,0.12);
+  --color-danger-border: rgba(239,68,68,0.30);
+  --color-warning:       #f59e0b;
+  --color-warning-dim:   rgba(245,158,11,0.12);
+  --color-warning-border:rgba(245,158,11,0.30);
+  --color-success:       #22c55e;
+  --color-success-dim:   rgba(34,197,94,0.12);
+  --color-success-border:rgba(34,197,94,0.30);
+
+  /* Shadows */
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --shadow-header: 0 2px 8px rgba(0,0,0,0.4);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 13px;
+
+  /* Border radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius:    8px;
+
+  /* Scrollbar */
+  --scrollbar-w: 4px;
+
+  /* Local derived tokens (computed from tokens above; not in tokens.css) */
+  --color-accent-hover:     #00c98e;
+  --color-focus-border:     rgba(0,229,160,0.50);
+  --color-focus-ring:       rgba(0,229,160,0.20);
+  --color-action-hover:     rgba(255,255,255,0.06);
+  --color-action-hover-med: rgba(255,255,255,0.10);
+  --color-table-stripe:     rgba(255,255,255,0.02);
+  --color-table-hover:      rgba(0,229,160,0.06);
+  --shadow-dropdown:        0 4px 24px rgba(0,0,0,0.5);
+  --shadow-inset:           inset 0 1px 3px rgba(0,0,0,0.2);
+  --color-inset-shadow:     rgba(0,0,0,0.2);
+}
+
+/* ── 2. Page & body ──────────────────────────────────────────────────────── */
+body {
+  background-color: var(--color-bg) !important;
+  color: var(--color-text-soft) !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* ── 3. Bootstrap 3 navbar (Prometheus top bar) ──────────────────────────── */
+.navbar-inverse {
+  background-color: var(--color-bg-elevated) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow-header) !important;
+}
+
+.navbar-inverse .navbar-brand {
+  color: var(--color-accent) !important;
+  font-weight: 500 !important;
+}
+
+.navbar-inverse .navbar-brand:hover,
+.navbar-inverse .navbar-brand:focus {
+  color: var(--color-accent-hover) !important;
+}
+
+.navbar-inverse .navbar-nav > li > a {
+  color: var(--color-text-secondary) !important;
+}
+
+.navbar-inverse .navbar-nav > li > a:hover,
+.navbar-inverse .navbar-nav > li > a:focus {
+  color: var(--color-text-soft) !important;
+  background-color: var(--color-action-hover) !important;
+}
+
+.navbar-inverse .navbar-nav > .active > a,
+.navbar-inverse .navbar-nav > .active > a:hover {
+  background-color: var(--color-accent-dim) !important;
+  color: var(--color-accent) !important;
+}
+
+.navbar-inverse .navbar-toggle {
+  border-color: var(--color-border-bright) !important;
+}
+
+.navbar-inverse .navbar-toggle .icon-bar {
+  background-color: var(--color-text-secondary) !important;
+}
+
+/* ── 4. Bootstrap panels (Prometheus uses these for sections) ────────────── */
+.panel {
+  background-color: var(--color-bg-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.panel-default > .panel-heading {
+  background-color: var(--color-bg-surface2) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  color: var(--color-text-soft) !important;
+  border-radius: var(--radius) var(--radius) 0 0 !important;
+}
+
+.panel-title {
+  color: var(--color-text-soft) !important;
+  font-size: var(--font-size-base) !important;
+  font-weight: 500 !important;
+}
+
+.panel-body {
+  background-color: var(--color-bg-surface) !important;
+  color: var(--color-text-soft) !important;
+}
+
+/* ── 5. Bootstrap buttons ────────────────────────────────────────────────── */
+.btn-primary {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--color-accent-hover) !important;
+  border-color: var(--color-accent-hover) !important;
+  color: var(--color-on-accent) !important;
+}
+
+.btn-default {
+  background-color: var(--color-action-hover) !important;
+  border-color: var(--color-border-bright) !important;
+  color: var(--color-text-soft) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.btn-default:hover,
+.btn-default:focus {
+  background-color: var(--color-action-hover-med) !important;
+  color: var(--color-text-soft) !important;
+}
+
+.btn-danger {
+  background-color: var(--color-danger-dim) !important;
+  border-color: var(--color-danger-border) !important;
+  color: var(--color-danger) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ── 6. Inputs / forms ───────────────────────────────────────────────────── */
+input[type="text"],
+input[type="search"],
+input[type="number"],
+input[type="email"],
+select,
+textarea,
+.form-control {
+  background-color: var(--color-bg-surface2) !important;
+  border: 1px solid var(--color-border-bright) !important;
+  color: var(--color-text-soft) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.form-control:focus {
+  border-color: var(--color-focus-border) !important;
+  box-shadow: 0 0 0 1px var(--color-focus-ring) !important;
+  outline: none !important;
+  background-color: var(--color-bg-surface2) !important;
+  color: var(--color-text-soft) !important;
+}
+
+input::placeholder,
+textarea::placeholder,
+.form-control::placeholder {
+  color: var(--color-text-muted) !important;
+}
+
+label {
+  color: var(--color-text-secondary) !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: 500 !important;
+}
+
+/* ── 7. Expression input (Prometheus query bar) ──────────────────────────── */
+#expression-input,
+.expression-input,
+[class*="expression"] input {
+  background-color: var(--color-bg-surface2) !important;
+  border: 1px solid var(--color-border-bright) !important;
+  color: var(--color-text-soft) !important;
+  font-family: var(--font-mono) !important;
+  font-size: var(--font-size-base) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ── 8. Tables ───────────────────────────────────────────────────────────── */
+table,
+.table {
+  color: var(--color-text-soft) !important;
+}
+
+.table > thead > tr > th {
+  background-color: var(--color-bg-surface2) !important;
+  color: var(--color-text-secondary) !important;
+  border-bottom: 1px solid var(--color-border-bright) !important;
+  font-size: var(--font-size-xs) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  font-weight: 500 !important;
+}
+
+.table > tbody > tr > td {
+  border-top: 1px solid var(--color-border-muted) !important;
+  color: var(--color-text-soft) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: var(--color-table-stripe) !important;
+}
+
+.table-hover > tbody > tr:hover {
+  background-color: var(--color-table-hover) !important;
+}
+
+.table-bordered {
+  border-color: var(--color-border) !important;
+}
+
+/* ── 9. Alerts (Bootstrap) ───────────────────────────────────────────────── */
+.alert {
+  border-radius: var(--radius) !important;
+}
+
+.alert-success {
+  background-color: var(--color-success-dim) !important;
+  border-color: var(--color-success-border) !important;
+  color: var(--color-success) !important;
+}
+
+.alert-danger,
+.alert-error {
+  background-color: var(--color-danger-dim) !important;
+  border-color: var(--color-danger-border) !important;
+  color: var(--color-danger) !important;
+}
+
+.alert-warning {
+  background-color: var(--color-warning-dim) !important;
+  border-color: var(--color-warning-border) !important;
+  color: var(--color-warning) !important;
+}
+
+.alert-info {
+  background-color: var(--color-blue-dim) !important;
+  border-color: var(--color-blue-border) !important;
+  color: var(--color-blue) !important;
+}
+
+/* ── 10. Dropdowns ───────────────────────────────────────────────────────── */
+.dropdown-menu {
+  background-color: var(--color-bg-surface2) !important;
+  border: 1px solid var(--color-border-bright) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-dropdown) !important;
+}
+
+.dropdown-menu > li > a {
+  color: var(--color-text-soft) !important;
+}
+
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus {
+  background-color: var(--color-accent-dim) !important;
+  color: var(--color-accent) !important;
+}
+
+.dropdown-menu > .active > a,
+.dropdown-menu > .active > a:hover {
+  background-color: var(--color-accent-dim) !important;
+  color: var(--color-accent) !important;
+}
+
+.dropdown-menu .divider {
+  background-color: var(--color-border) !important;
+}
+
+/* ── 11. Tabs ────────────────────────────────────────────────────────────── */
+.nav-tabs {
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.nav-tabs > li > a {
+  color: var(--color-text-secondary) !important;
+  border-color: transparent !important;
+  background-color: transparent !important;
+}
+
+.nav-tabs > li > a:hover {
+  border-color: var(--color-border) !important;
+  background-color: var(--color-action-hover) !important;
+  color: var(--color-text-soft) !important;
+}
+
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+  background-color: var(--color-bg-surface) !important;
+  border-color: var(--color-border) var(--color-border) transparent !important;
+  color: var(--color-accent) !important;
+  border-bottom-color: transparent !important;
+}
+
+/* ── 12. Links ───────────────────────────────────────────────────────────── */
+a {
+  color: var(--color-blue) !important;
+}
+
+a:hover,
+a:focus {
+  color: var(--color-accent) !important;
+}
+
+/* ── 13. Code / pre ──────────────────────────────────────────────────────── */
+code,
+pre {
+  background-color: var(--color-bg-elevated) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--color-accent) !important;
+  font-family: var(--font-mono) !important;
+}
+
+/* ── 14. Well (Bootstrap info boxes) ────────────────────────────────────── */
+.well {
+  background-color: var(--color-bg-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-inset) !important;
+  color: var(--color-text-soft) !important;
+}
+
+/* ── 15. Status badges ───────────────────────────────────────────────────── */
+.label-success { background-color: var(--color-success) !important; color: var(--color-on-accent) !important; }
+.label-warning { background-color: var(--color-warning) !important; color: var(--color-on-accent) !important; }
+.label-danger  { background-color: var(--color-danger)  !important; color: var(--color-text) !important; }
+.label-info    { background-color: var(--color-blue)    !important; color: var(--color-text) !important; }
+.label-default { background-color: var(--color-border-bright) !important; color: var(--color-text-soft) !important; }
+
+/* ── 16. Pagination ──────────────────────────────────────────────────────── */
+.pagination > li > a,
+.pagination > li > span {
+  background-color: var(--color-bg-surface2) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-soft) !important;
+}
+
+.pagination > li > a:hover {
+  background-color: var(--color-accent-dim) !important;
+  color: var(--color-accent) !important;
+}
+
+.pagination > .active > a,
+.pagination > .active > span {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+}
+
+/* ── 17. Scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: var(--scrollbar-w); height: var(--scrollbar-w); }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-bright);
+  border-radius: var(--radius-xs);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-border);
+}
+
+/* ── 18. Prometheus target health colours ────────────────────────────────── */
+.label[class*="health-up"] { color: var(--color-success) !important; }
+.label[class*="health-down"] { color: var(--color-danger) !important; }
+
+/* ── 19. Graph area (Prometheus built-in graph) ──────────────────────────── */
+.graph svg,
+#graph svg {
+  background-color: var(--color-bg-surface) !important;
+}
+
+.graph svg .grid .tick line,
+.flot-tick-label {
+  stroke: var(--color-border-muted) !important;
+  color: var(--color-text-muted) !important;
+}
+
+/* ── 20. Footer ──────────────────────────────────────────────────────────── */
+footer,
+.navbar-fixed-bottom {
+  background-color: var(--color-bg-elevated) !important;
+  border-top: 1px solid var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+}

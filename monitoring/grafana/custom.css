@@ -1,0 +1,389 @@
+/*
+ * OmniBioAI Grafana Theme — v4
+ * Token source: omnibioai-design-tokens/tokens.css
+ * All literal values declared ONCE in :root; all rules use var() only.
+ *
+ * Injected last by the patched index.html (after emotion CSS-in-JS) so
+ * document order gives us higher cascade priority at equal specificity.
+ */
+
+/* ── 1. Design tokens — re-declared from tokens.css ──────────────────────── */
+:root {
+  /* Backgrounds */
+  --color-bg:           #0f1117;
+  --color-bg-surface:   #1a1d2e;
+  --color-bg-surface2:  #20243a;
+  --color-bg-surface3:  #222536;
+  --color-bg-elevated:  #13161f;
+
+  /* Borders */
+  --color-border:        rgba(255,255,255,0.08);
+  --color-border-muted:  rgba(255,255,255,0.07);
+  --color-border-bright: rgba(255,255,255,0.12);
+
+  /* Text */
+  --color-text:           #ffffff;
+  --color-text-soft:      #e8eaf0;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted:     #6b7280;
+  --color-text-dim:       #4b5563;
+
+  /* Brand */
+  --color-accent:         #00e5a0;
+  --color-accent-dim:     rgba(0,229,160,0.10);
+  --color-accent-surface: rgba(0,229,160,0.07);
+  --color-accent-border:  rgba(0,229,160,0.30);
+  --color-blue:           #0094ff;
+  --color-blue-dim:       rgba(0,148,255,0.10);
+  --color-purple:         #a855f7;
+  --color-purple-dim:     rgba(168,85,247,0.12);
+  --color-on-accent:      #000000;
+
+  /* Status */
+  --color-danger:         #ef4444;
+  --color-danger-dim:     rgba(239,68,68,0.12);
+  --color-danger-border:  rgba(239,68,68,0.30);
+  --color-warning:        #f59e0b;
+  --color-warning-dim:    rgba(245,158,11,0.12);
+  --color-warning-border: rgba(245,158,11,0.30);
+  --color-success:        #22c55e;
+  --color-success-dim:    rgba(34,197,94,0.12);
+  --color-success-border: rgba(34,197,94,0.30);
+  --color-info:           #0094ff;
+  --color-info-dim:       rgba(0,148,255,0.10);
+  --color-info-border:    rgba(0,148,255,0.30);
+
+  /* Shadows */
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --shadow-card:   0 4px 24px rgba(0,0,0,0.3);
+  --shadow-header: 0 2px 8px rgba(0,0,0,0.4);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 13px;
+  --font-size-md:   14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  24px;
+
+  /* Border radius */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius:      8px;
+  --radius-lg:   10px;
+  --radius-xl:   14px;
+  --radius-pill: 9999px;
+
+  /* Layout */
+  --sidebar-w:   200px;
+  --topbar-h:    48px;
+  --scrollbar-w: 4px;
+
+  /* Local derived tokens (computed from tokens above; not in tokens.css) */
+  --color-accent-hover:       #00c98e;
+  --color-focus-border:       rgba(0,229,160,0.50);
+  --color-focus-ring:         rgba(0,229,160,0.20);
+  --color-focus-selected:     rgba(0,229,160,0.15);
+  --color-action-hover:       rgba(255,255,255,0.06);
+  --color-action-disabled-bg: rgba(255,255,255,0.04);
+  --color-border-medium:      rgba(255,255,255,0.14);
+  --color-border-strong:      rgba(255,255,255,0.22);
+  --color-table-stripe:       rgba(255,255,255,0.02);
+  --color-table-hover:        rgba(0,229,160,0.06);
+  --shadow-login:             0 4px 32px rgba(0,0,0,0.6);
+  --shadow-dropdown:          0 4px 24px rgba(0,0,0,0.5);
+}
+
+/* ── 2. Override Grafana's --color-* CSS variable namespace ───────────────── */
+/* Grafana v13 declares these on :root in grafana.dark.*.css.
+   We re-declare here (loaded after) to override via document order. */
+:root,
+.theme-dark,
+[data-theme="dark"] {
+  /* Canvas / surface */
+  --color-bg-canvas:                  var(--color-bg);
+  --color-bg-primary:                 var(--color-bg-surface);
+  --color-bg-secondary:               var(--color-bg-surface2);
+  --color-bg-elevated:                var(--color-bg-elevated);
+
+  /* Borders */
+  --color-border-weak:                var(--color-border);
+  --color-border-medium:              var(--color-border-medium);
+  --color-border-strong:              var(--color-border-strong);
+
+  /* Text */
+  --color-text-primary:               var(--color-text);
+  --color-text-secondary:             var(--color-text-soft);
+  --color-text-disabled:              var(--color-text-muted);
+  --color-text-link:                  var(--color-blue);
+  --color-text-maxContrast:           var(--color-text);
+
+  /* Primary / accent */
+  --color-primary-main:               var(--color-accent);
+  --color-primary-text:               var(--color-on-accent);
+  --color-primary-border:             var(--color-accent-border);
+  --color-primary-shade:              var(--color-accent-hover);
+  --color-primary-transparent:        var(--color-accent-dim);
+  --color-primary-contrastText:       var(--color-on-accent);
+
+  /* Status */
+  --color-success-main:               var(--color-success);
+  --color-success-text:               var(--color-success);
+  --color-success-border:             var(--color-success-border);
+  --color-success-transparent:        var(--color-success-dim);
+  --color-warning-main:               var(--color-warning);
+  --color-warning-text:               var(--color-warning);
+  --color-warning-border:             var(--color-warning-border);
+  --color-error-main:                 var(--color-danger);
+  --color-error-text:                 var(--color-danger);
+  --color-error-border:               var(--color-danger-border);
+  --color-error-transparent:          var(--color-danger-dim);
+  --color-info-main:                  var(--color-info);
+  --color-info-text:                  var(--color-info);
+  --color-info-border:                var(--color-info-border);
+
+  /* Actions */
+  --color-action-hover:               var(--color-action-hover);
+  --color-action-selected:            var(--color-accent-dim);
+  --color-action-selectedBorder:      var(--color-accent-border);
+  --color-action-focus:               var(--color-focus-selected);
+  --color-action-disabledBackground:  var(--color-action-disabled-bg);
+  --color-action-disabledText:        var(--color-text-muted);
+}
+
+/* ── 3. Body & page ───────────────────────────────────────────────────────── */
+body,
+.theme-dark {
+  background-color: var(--color-bg);
+  color: var(--color-text-soft);
+  font-family: var(--font-sans);
+}
+
+/* ── 4. LOGIN PAGE ────────────────────────────────────────────────────────── */
+/* Kill Grafana v13 purple gradient background-image set via React inline style */
+
+body.theme-dark {
+  background-color: var(--color-bg) !important;
+}
+
+#reactRoot > div,
+#reactRoot > div > div:first-child {
+  background-color: var(--color-bg) !important;
+  background-image: none !important;
+}
+
+[class*="LoginPage"],
+[class*="login-page"],
+[data-testid="login-page"] {
+  background-color: var(--color-bg) !important;
+  background-image: none !important;
+}
+
+[class*="LoginPage"] form,
+[class*="LoginContainer"],
+[class*="loginContainer"],
+[data-testid="login-page"] > div {
+  background-color: var(--color-bg-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-login) !important;
+}
+
+/* ── 5. Navigation bar ────────────────────────────────────────────────────── */
+header[class*="navbar"],
+header[class*="NavBar"],
+nav[class*="navbar"],
+[data-testid="nav-bar"],
+[class*="grafana-header"] {
+  background-color: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-header);
+}
+
+/* ── 6. Sidebar ───────────────────────────────────────────────────────────── */
+[class*="sidemenu"],
+[class*="SideMenu"],
+nav[aria-label="Main menu"],
+[data-testid="sidemenu"] {
+  background-color: var(--color-bg-surface);
+  border-right: 1px solid var(--color-border);
+}
+
+[class*="sidemenu"] [class*="active"],
+[class*="SideMenu"] [aria-current="page"] {
+  background-color: var(--color-accent-dim);
+  border-left: 2px solid var(--color-accent);
+}
+
+/* ── 7. Dashboard / panels ────────────────────────────────────────────────── */
+[class*="panel-container"],
+[data-testid="panel-container"],
+[class*="PanelChrome"] {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+[class*="panel-header"],
+[class*="PanelChrome"] header {
+  background-color: var(--color-bg-surface2);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+[class*="dashboard-canvas"],
+[class*="DashboardGrid"],
+[class*="react-grid-layout"] {
+  background-color: var(--color-bg);
+}
+
+/* ── 8. Inputs ────────────────────────────────────────────────────────────── */
+input:not([type="range"]),
+select,
+textarea {
+  background-color: var(--color-bg-surface2);
+  border-color: var(--color-border-bright);
+  color: var(--color-text-soft);
+  font-family: var(--font-sans);
+}
+
+input:not([type="range"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-focus-border);
+  box-shadow: 0 0 0 1px var(--color-focus-ring);
+  outline: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* ── 9. Buttons ───────────────────────────────────────────────────────────── */
+button[class*="primary"],
+[class*="Button"][class*="primary"],
+a[class*="Button"][class*="primary"] {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+button[class*="primary"]:hover,
+[class*="Button"][class*="primary"]:hover {
+  background-color: var(--color-accent-hover) !important;
+  border-color: var(--color-accent-hover) !important;
+}
+
+/* ── 10. Dropdowns ────────────────────────────────────────────────────────── */
+[class*="Select__menu"],
+[role="listbox"],
+[data-testid="dropdown"] {
+  background-color: var(--color-bg-surface2);
+  border: 1px solid var(--color-border-bright);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-dropdown);
+}
+
+[class*="Select__option--is-focused"],
+[role="option"]:hover {
+  background-color: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+[class*="Select__option--is-selected"],
+[role="option"][aria-selected="true"] {
+  background-color: var(--color-focus-selected);
+  color: var(--color-accent);
+}
+
+/* ── 11. Tables ───────────────────────────────────────────────────────────── */
+[role="columnheader"],
+thead th {
+  background-color: var(--color-bg-surface2);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+[role="row"]:hover,
+tbody tr:hover {
+  background-color: var(--color-table-hover);
+}
+
+/* ── 12. Tabs ─────────────────────────────────────────────────────────────── */
+[role="tablist"] {
+  border-bottom: 1px solid var(--color-border);
+}
+
+[role="tab"] {
+  color: var(--color-text-secondary);
+}
+
+[role="tab"][aria-selected="true"] {
+  color: var(--color-accent);
+  border-bottom: 2px solid var(--color-accent);
+}
+
+/* ── 13. Tooltips ─────────────────────────────────────────────────────────── */
+[role="tooltip"],
+[class*="Tooltip"] {
+  background-color: var(--color-bg-surface2) !important;
+  border: 1px solid var(--color-border-bright) !important;
+  border-radius: var(--radius) !important;
+  color: var(--color-text-soft) !important;
+  box-shadow: var(--shadow-dropdown) !important;
+}
+
+/* ── 14. Status alerts ────────────────────────────────────────────────────── */
+[class*="Alert--success"] {
+  background-color: var(--color-success-dim);
+  border-color: var(--color-success-border);
+  color: var(--color-success);
+}
+
+[class*="Alert--error"] {
+  background-color: var(--color-danger-dim);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+}
+
+[class*="Alert--warning"] {
+  background-color: var(--color-warning-dim);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning);
+}
+
+[class*="Alert--info"] {
+  background-color: var(--color-info-dim);
+  border-color: var(--color-info-border);
+  color: var(--color-info);
+}
+
+/* ── 15. Links ────────────────────────────────────────────────────────────── */
+a { color: var(--color-blue); }
+a:hover { color: var(--color-accent); }
+
+/* ── 16. Code ─────────────────────────────────────────────────────────────── */
+code, pre {
+  font-family: var(--font-mono);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+}
+
+/* ── 17. Scrollbar ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: var(--scrollbar-w); height: var(--scrollbar-w); }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-bright);
+  border-radius: var(--radius-xs);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-accent-border); }

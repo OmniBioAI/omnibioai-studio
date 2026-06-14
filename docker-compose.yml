@@ -633,6 +633,7 @@ services:
       - '--storage.tsdb.retention.time=7d'
     restart: unless-stopped
 
+  # ── grafana ──────────────────────────────────────────────────────────────
   grafana:
     image: grafana/grafana:latest
     ports:
@@ -640,41 +641,22 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-omnibioai}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_DEFAULT_THEME: "dark"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_PATHS_DATA: /var/lib/grafana
+      GF_PATHS_LOGS: /var/log/grafana
+      GF_PATHS_PLUGINS: /var/lib/grafana/plugins
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
+      # Theme CSS — loaded last by our patched index.html
+      - ./monitoring/grafana/custom.css:/usr/share/grafana/public/build/custom.css:ro
+      # Patched index.html — re-injects custom.css after emotion runs  ← ADD THIS
+      - ./monitoring/grafana/index.html:/usr/share/grafana/public/views/index.html:ro
     depends_on:
       - prometheus
-    restart: unless-stopped
-
-  nginx-router:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
-      - ${MACHINE_DIR}/omnibioai-docs:/docs:ro
-    depends_on:
-      - workbench
-      - lims
-      - rag
-      - api-gateway
-      - auth-service
-      - control-center
-      - grafana
-      - videos
-      - launcher
-      - model-registry
-      - workflow-bundles
-      - tool-images
-      - dev-hub
-      - tes
-      - toolserver
-      - opa
-      - jupyter
-      - rstudio
-      - vscode
     restart: unless-stopped
 
   license-server:
@@ -698,6 +680,39 @@ services:
     restart: unless-stopped
     networks:
       - default
+
+  nginx-router:
+    image: nginx:latest
+    ports:
+      - "${HOST_IP:-0.0.0.0}:80:80"
+    volumes:
+      - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/static:/etc/nginx/omni-static:ro
+    depends_on:
+      - workbench
+      - lims
+      - rag
+      - api-gateway
+      - auth-service
+      - policy-engine
+      - hpc-policy-engine
+      - security-audit
+      - control-center
+      - grafana
+      - videos
+      - launcher
+      - model-registry
+      - workflow-bundles
+      - tool-images
+      - dev-hub
+      - tes
+      - opa
+      - toolserver
+      - prometheus
+      - jupyter
+      - rstudio
+      - vscode
+    restart: unless-stopped
 
 volumes:
   mysql_data:
