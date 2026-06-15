@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Card, Input, Button, Badge, Spinner } from "@man4ish/ui";
+import { Card, Button, Badge, Spinner } from "@man4ish/ui";
 
-const GRAFANA_BASE  = "http://localhost:3000";
-const DEFAULT_USER  = "admin";
-const DEFAULT_PASS  = window.grafanaConfig?.password ?? "omnibioai";
+const GRAFANA_BASE = "http://localhost:3000";
 
 const QUERY_SUFFIX = "?kiosk=tv&refresh=30s&from=now-1h&to=now";
 
@@ -19,19 +17,17 @@ function dashboardUrl(uid) {
 }
 
 export function GrafanaViewer({ onBack, label }) {
-  const [phase,      setPhase]      = useState("authenticating"); // authenticating | ok | error
-  const [error,      setError]      = useState("");
-  const [user,       setUser]       = useState(DEFAULT_USER);
-  const [pass,       setPass]       = useState(DEFAULT_PASS);
-  const [busy,       setBusy]       = useState(false);
-  const [activeTab,  setActiveTab]  = useState(0);
-  const webviewRef                   = useRef(null);
+  const [phase,     setPhase]     = useState("authenticating"); // authenticating | ok | error
+  const [error,     setError]     = useState("");
+  const [busy,      setBusy]      = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const webviewRef                 = useRef(null);
 
-  const authenticate = async (username, password) => {
+  const authenticate = async () => {
     setBusy(true);
     setError("");
     try {
-      await window.electronAPI.grafanaLogin(username, password);
+      await window.electronAPI.grafanaLogin();
       setPhase("ok");
     } catch (e) {
       setError(e.message || "Auth failed — check Grafana is running");
@@ -41,7 +37,7 @@ export function GrafanaViewer({ onBack, label }) {
     }
   };
 
-  useEffect(() => { authenticate(DEFAULT_USER, DEFAULT_PASS); }, []);
+  useEffect(() => { authenticate(); }, []);
 
   /* ── authenticating ── */
   if (phase === "authenticating") {
@@ -133,58 +129,29 @@ export function GrafanaViewer({ onBack, label }) {
     );
   }
 
-  /* ── error: login form ── */
+  /* ── error: show message with retry ── */
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center",
       height: "100%", background: "var(--color-bg)",
     }}>
-      <div style={{ width: 360 }}>
+      <div style={{ width: 380, textAlign: "center" }}>
         <Card elevated>
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 22 }}>📈</span>
-              <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
-                Metrics Dashboard
-              </span>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>📈</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>
+              Metrics Dashboard
             </div>
             <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
-              Enter your Grafana credentials
+              Could not connect to Grafana
             </div>
           </div>
-
-          <form
-            onSubmit={e => { e.preventDefault(); authenticate(user, pass); }}
-            style={{ display: "flex", flexDirection: "column", gap: 14 }}
-          >
-            {error && <Badge variant="danger">{error}</Badge>}
-
-            <Input
-              label="Username"
-              value={user}
-              onChange={e => setUser(e.target.value)}
-            />
-
-            {/* Input has no type prop; use native input for password masking */}
-            <div className="omni-input-group">
-              <label className="omni-input-label">Password</label>
-              <input
-                type="password"
-                value={pass}
-                onChange={e => setPass(e.target.value)}
-                autoComplete="current-password"
-                className="omni-input"
-              />
-            </div>
-
-            <Button variant="primary" loading={busy} disabled={busy}>
-              {busy ? "Connecting…" : "Connect to Grafana"}
-            </Button>
-          </form>
+          {error && <Badge variant="danger" style={{ marginBottom: 16 }}>{error}</Badge>}
+          <Button variant="primary" loading={busy} disabled={busy} onClick={authenticate}>
+            {busy ? "Connecting…" : "Retry"}
+          </Button>
         </Card>
       </div>
-
-      <style>{`@keyframes omni-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

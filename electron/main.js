@@ -197,12 +197,77 @@ function writeEnvFile(config) {
     `LIMSX_DJANGO_SECRET_KEY=${existing.LIMSX_DJANGO_SECRET_KEY || 'omnibioai-studio-secret'}`,
     `AUTH_SECRET_KEY=${existing.AUTH_SECRET_KEY     || ''}`,
     `GF_ADMIN_PASSWORD=${existing.GF_ADMIN_PASSWORD || ''}`,
+    `GF_STUDIO_TOKEN=${existing.GF_STUDIO_TOKEN    || ''}`,
     `LICENSE_SECRET=${existing.LICENSE_SECRET       || ''}`,
     `ADMIN_KEY=${existing.ADMIN_KEY                 || ''}`,
   ];
 
   fs.mkdirSync(path.dirname(envPath), { recursive: true });
   fs.writeFileSync(envPath, lines.join("\n") + "\n", "utf-8");
+}
+
+// ─── ENV FILE READER ──────────────────────────────────────────────────────────
+function readEnvFile() {
+  const envPath = getEnvPath();
+  const env = {};
+  if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+      const [k, ...v] = line.split('=');
+      if (k) env[k.trim()] = v.join('=').trim();
+    });
+  }
+  return env;
+}
+
+// ─── GRAFANA TOKEN PROVISIONING ───────────────────────────────────────────────
+async function ensureGrafanaToken(adminPassword) {
+  const env = readEnvFile();
+  if (env.GF_STUDIO_TOKEN) return env.GF_STUDIO_TOKEN;
+
+  const base64 = Buffer.from(`admin:${adminPassword}`).toString('base64');
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Basic ${base64}`,
+  };
+  const base = 'http://localhost:3000';
+
+  // Create service account; if name already exists, search for the existing one
+  let saId;
+  const saRes = await fetch(`${base}/api/serviceaccounts`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name: 'omnibioai-studio', role: 'Viewer' }),
+  });
+  const saData = await saRes.json();
+  if (saData.id) {
+    saId = saData.id;
+  } else {
+    const search = await fetch(
+      `${base}/api/serviceaccounts/search?query=omnibioai-studio`,
+      { headers }
+    ).then(r => r.json());
+    saId = search.serviceAccounts?.[0]?.id;
+    if (!saId) throw new Error(`Cannot create Grafana service account: ${JSON.stringify(saData)}`);
+  }
+
+  // Create a new token
+  const tokenRes = await fetch(`${base}/api/serviceaccounts/${saId}/tokens`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name: `studio-token-${Date.now()}` }),
+  });
+  const tokenData = await tokenRes.json();
+  if (!tokenData.key) throw new Error(`Token creation failed: ${JSON.stringify(tokenData)}`);
+
+  // Persist token to .env
+  const envPath = getEnvPath();
+  const envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+  const updated = /^GF_STUDIO_TOKEN=/m.test(envContent)
+    ? envContent.replace(/^GF_STUDIO_TOKEN=.*/m, `GF_STUDIO_TOKEN=${tokenData.key}`)
+    : envContent.trimEnd() + `\nGF_STUDIO_TOKEN=${tokenData.key}\n`;
+  fs.writeFileSync(envPath, updated, 'utf-8');
+
+  return tokenData.key;
 }
 
 // ─── WINDOW ───────────────────────────────────────────────────────────────────
@@ -416,6 +481,24 @@ ipcMain.handle("start-docker", async () => {
         }
         sendLog("All containers started — health checks will update shortly");
         resolve("started");
+
+        // Provision Grafana service account token in background (fire-and-forget)
+        const gfPassword = readEnvFile().GF_ADMIN_PASSWORD || 'omnibioai';
+        (async () => {
+          for (let i = 0; i < 20; i++) {
+            try {
+              const r = await fetch('http://localhost:3000/api/health');
+              if (r.ok) { sendLog('Grafana healthy — provisioning service account…'); break; }
+            } catch {}
+            await new Promise(res2 => setTimeout(res2, 3000));
+          }
+          try {
+            await ensureGrafanaToken(gfPassword);
+            sendLog('Grafana service account token ready');
+          } catch (e) {
+            sendLog(`Grafana token provisioning failed: ${e.message}`);
+          }
+        })().catch(() => {});
       });
 
       up.on("error", reject);
@@ -546,19 +629,23 @@ ipcMain.handle("go-home", async () => {
 });
 
 // ─── GRAFANA AUTH ─────────────────────────────────────────────────────────────
-ipcMain.handle('grafana-login', async (_, user, password) => {
+ipcMain.handle('grafana-login', async () => {
+  const env = readEnvFile();
+  let studioToken = env.GF_STUDIO_TOKEN;
+  if (!studioToken) {
+    const adminPassword = env.GF_ADMIN_PASSWORD || 'omnibioai';
+    studioToken = await ensureGrafanaToken(adminPassword);
+  }
+
   const res = await fetch('http://localhost:3000/api/org', {
-    headers: {
-      'Authorization': 'Basic ' + Buffer.from(`${user}:${password}`).toString('base64'),
-    },
+    headers: { 'Authorization': `Bearer ${studioToken}` },
   });
-  if (!res.ok) throw new Error('Unauthorized');
+  if (!res.ok) throw new Error('Grafana token invalid or Grafana not running');
 
   session.defaultSession.webRequest.onBeforeSendHeaders(
     { urls: ['http://localhost:3000/*'] },
     (details, callback) => {
-      details.requestHeaders['Authorization'] =
-        'Basic ' + Buffer.from(`${user}:${password}`).toString('base64');
+      details.requestHeaders['Authorization'] = `Bearer ${studioToken}`;
       callback({ requestHeaders: details.requestHeaders });
     }
   );
@@ -592,13 +679,10 @@ ipcMain.handle('license-clear', async () => {
 ipcMain.handle('get-credentials', async () => {
   const envPath = getEnvPath();
   if (!fs.existsSync(envPath)) return null;
-  const env = {};
-  fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
-    const [k, ...v] = line.split('=');
-    if (k) env[k.trim()] = v.join('=').trim();
-  });
+  const env = readEnvFile();
   return {
     grafanaPassword: env.GF_ADMIN_PASSWORD  || '',
+    grafanaToken:    env.GF_STUDIO_TOKEN    || '',
     mysqlPassword:   env.MYSQL_ROOT_PASSWORD || '',
     authSecretKey:   env.AUTH_SECRET_KEY     || '',
     envPath,
