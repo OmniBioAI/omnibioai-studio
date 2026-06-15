@@ -21,6 +21,8 @@
     "web:preview": "vite preview"
   },
   "dependencies": {
+    "@man4ish/design-tokens": "file:../omnibioai-design-tokens",
+    "@man4ish/ui": "file:../omnibioai-ui",
     "@sentry/react": "^8.55.2",
     "electron-updater": "^6.8.9",
     "react": "^18.3.0",

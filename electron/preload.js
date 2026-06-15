@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld("api", {
   onUpdateError:     (callback) =>
     ipcRenderer.on("update-error", (_, info) => callback(info)),
 
+  // ─── CREDENTIALS ──────────────────────────────────
+  getCredentials: ()        => ipcRenderer.invoke("get-credentials"),
+
   // ─── WORKBENCH & LINKS ────────────────────────────
   openWorkbench: ()         => ipcRenderer.invoke("open-workbench"),
   openExternal:  (url)      => ipcRenderer.invoke("open-external", url),

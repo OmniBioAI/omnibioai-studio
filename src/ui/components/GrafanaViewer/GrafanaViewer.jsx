@@ -1,17 +1,31 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Card, Input, Button, Badge, Spinner } from "@man4ish/ui";
 
 const GRAFANA_BASE  = "http://localhost:3000";
-const DASHBOARD_URL = `${GRAFANA_BASE}/d/omnibioai-services/omnibioai-services?kiosk=tv&refresh=30s&from=now-1h&to=now`;
 const DEFAULT_USER  = "admin";
 const DEFAULT_PASS  = window.grafanaConfig?.password ?? "omnibioai";
 
+const QUERY_SUFFIX = "?kiosk=tv&refresh=30s&from=now-1h&to=now";
+
+const TABS = [
+  { label: "Services",          uid: "omnibioai-services" },
+  { label: "Platform Overview", uid: "omnibioai-platform-overview" },
+  { label: "LIMS",              uid: "omnibioai-lims" },
+  { label: "RAG",               uid: "omnibioai-rag" },
+];
+
+function dashboardUrl(uid) {
+  return `${GRAFANA_BASE}/d/${uid}/${uid}${QUERY_SUFFIX}`;
+}
+
 export function GrafanaViewer({ onBack, label }) {
-  const [phase, setPhase] = useState("authenticating"); // authenticating | ok | error
-  const [error, setError] = useState("");
-  const [user,  setUser]  = useState(DEFAULT_USER);
-  const [pass,  setPass]  = useState(DEFAULT_PASS);
-  const [busy,  setBusy]  = useState(false);
-  const webviewRef         = useRef(null);
+  const [phase,      setPhase]      = useState("authenticating"); // authenticating | ok | error
+  const [error,      setError]      = useState("");
+  const [user,       setUser]       = useState(DEFAULT_USER);
+  const [pass,       setPass]       = useState(DEFAULT_PASS);
+  const [busy,       setBusy]       = useState(false);
+  const [activeTab,  setActiveTab]  = useState(0);
+  const webviewRef                   = useRef(null);
 
   const authenticate = async (username, password) => {
     setBusy(true);
@@ -29,10 +43,22 @@ export function GrafanaViewer({ onBack, label }) {
 
   useEffect(() => { authenticate(DEFAULT_USER, DEFAULT_PASS); }, []);
 
-  /* ── authenticated: show dashboard webview ── */
+  /* ── authenticating ── */
+  if (phase === "authenticating") {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", background: "var(--color-bg)" }}>
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  /* ── authenticated: show dashboard with tab bar ── */
   if (phase === "ok") {
+    const currentUrl = dashboardUrl(TABS[activeTab].uid);
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+
+        {/* ── top bar ── */}
         <div style={{
           display: "flex", alignItems: "center", gap: 12, flexShrink: 0,
           padding: "8px 16px",
@@ -61,133 +87,104 @@ export function GrafanaViewer({ onBack, label }) {
             fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",
             color: "var(--border2)",
           }}>
-            {DASHBOARD_URL}
+            {currentUrl}
           </span>
         </div>
+
+        {/* ── tab bar ── */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 2, flexShrink: 0,
+          padding: "0 16px",
+          background: "var(--bg2)", borderBottom: "1px solid var(--border)",
+        }}>
+          {TABS.map((tab, i) => {
+            const active = i === activeTab;
+            return (
+              <button
+                key={tab.uid}
+                onClick={() => setActiveTab(i)}
+                style={{
+                  padding: "8px 16px",
+                  background: "transparent",
+                  border: "none",
+                  borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+                  color: active ? "var(--accent)" : "var(--color-text-muted)",
+                  fontFamily: "var(--font)",
+                  fontSize: "var(--font-size-xs)",
+                  fontWeight: active ? 600 : 400,
+                  cursor: "pointer",
+                  transition: "color 0.15s, border-color 0.15s",
+                  marginBottom: -1,
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── dashboard webview ── */}
         <webview
           ref={webviewRef}
-          src={DASHBOARD_URL}
+          src={currentUrl}
           style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
         />
       </div>
     );
   }
 
-  /* ── authenticating / error: centered card ── */
+  /* ── error: login form ── */
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center",
       height: "100%", background: "var(--color-bg)",
     }}>
-      <div style={{
-        width: 360,
-        background: "var(--bg2)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius-lg)",
-        padding: "32px 28px",
-        boxShadow: "0 4px 32px rgba(0,0,0,0.4)",
-      }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            marginBottom: 10,
-          }}>
-            <span style={{ fontSize: 22 }}>📈</span>
-            <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
-              Metrics Dashboard
-            </span>
-          </div>
-          <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
-            {phase === "authenticating" ? "Connecting to Grafana…" : "Enter your Grafana credentials"}
-          </div>
-        </div>
-
-        {phase === "authenticating" && (
-          <div style={{ textAlign: "center", padding: "20px 0" }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: "50%",
-              border: "3px solid var(--border2)", borderTopColor: "var(--accent)",
-              animation: "omni-spin 0.7s linear infinite",
-              margin: "0 auto 12px",
-            }} />
-            <span style={{ fontSize: "var(--font-size-sm)", fontFamily: "var(--mono)", color: "var(--color-text-secondary)" }}>
-              Authenticating…
-            </span>
-          </div>
-        )}
-
-        {phase === "error" && (
-          <form onSubmit={e => { e.preventDefault(); authenticate(user, pass); }}
-            style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {error && (
-              <div style={{
-                padding: "8px 12px",
-                background: "rgba(239,68,68,0.10)",
-                border: "1px solid rgba(239,68,68,0.30)",
-                borderRadius: "var(--radius-sm)",
-                color: "#ef4444",
-                fontSize: "var(--font-size-xs)",
-                fontFamily: "var(--mono)",
-              }}>
-                {error}
-              </div>
-            )}
-            <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)" }}>
-                Username
+      <div style={{ width: 360 }}>
+        <Card elevated>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 22 }}>📈</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
+                Metrics Dashboard
               </span>
-              <input
-                type="text"
-                value={user}
-                onChange={e => setUser(e.target.value)}
-                autoComplete="username"
-                style={inputStyle}
-              />
-            </label>
-            <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)" }}>
-                Password
-              </span>
+            </div>
+            <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+              Enter your Grafana credentials
+            </div>
+          </div>
+
+          <form
+            onSubmit={e => { e.preventDefault(); authenticate(user, pass); }}
+            style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          >
+            {error && <Badge variant="danger">{error}</Badge>}
+
+            <Input
+              label="Username"
+              value={user}
+              onChange={e => setUser(e.target.value)}
+            />
+
+            {/* Input has no type prop; use native input for password masking */}
+            <div className="omni-input-group">
+              <label className="omni-input-label">Password</label>
               <input
                 type="password"
                 value={pass}
                 onChange={e => setPass(e.target.value)}
                 autoComplete="current-password"
-                style={inputStyle}
+                className="omni-input"
               />
-            </label>
-            <button
-              type="submit"
-              disabled={busy}
-              style={{
-                marginTop: 4, padding: "10px 16px",
-                background: busy ? "rgba(0,229,160,0.4)" : "var(--accent)",
-                color: "#000", border: "none",
-                borderRadius: "var(--radius-sm)",
-                fontFamily: "var(--font)", fontSize: "var(--font-size-sm)",
-                fontWeight: 600, cursor: busy ? "not-allowed" : "pointer",
-              }}
-            >
+            </div>
+
+            <Button variant="primary" loading={busy} disabled={busy}>
               {busy ? "Connecting…" : "Connect to Grafana"}
-            </button>
+            </Button>
           </form>
-        )}
+        </Card>
       </div>
 
       <style>{`@keyframes omni-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
-
-const inputStyle = {
-  padding: "8px 10px",
-  background: "var(--bg3)",
-  border: "1px solid var(--border2)",
-  borderRadius: "var(--radius-sm)",
-  color: "#fff",
-  fontFamily: "var(--font)",
-  fontSize: "var(--font-size-sm)",
-  outline: "none",
-  width: "100%",
-  boxSizing: "border-box",
-};

@@ -1,3 +1,5 @@
+import '@man4ish/design-tokens/tokens.css';
+import '@man4ish/ui/dist/style.css';
 import React from "react";
 import ReactDOM from "react-dom/client";
 import * as Sentry from "@sentry/react";

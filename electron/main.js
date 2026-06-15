@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, session } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, session, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { writeConfig, readConfig, resetConfig } = require("../backend/config");
@@ -99,6 +99,41 @@ function ensureDbInit() {
   if (fs.existsSync(src)) fs.cpSync(src, dest, { recursive: true });
 }
 
+// ─── SECRET GENERATION ────────────────────────────────────────────────────────
+function generateSecrets(envPath) {
+  const defaults = {
+    AUTH_SECRET_KEY:     'change-me',
+    MYSQL_ROOT_PASSWORD: 'omnibioai',
+    GF_ADMIN_PASSWORD:   'omnibioai',
+    LICENSE_SECRET:      'omnibioai-secret-change-in-production',
+    ADMIN_KEY:           'admin-secret',
+  };
+
+  let env = {};
+  if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+      const [k, ...v] = line.split('=');
+      if (k) env[k.trim()] = v.join('=').trim();
+    });
+  }
+
+  let changed = false;
+  for (const [key, defaultVal] of Object.entries(defaults)) {
+    if (!env[key] || env[key] === defaultVal) {
+      env[key] = crypto.randomBytes(32).toString('hex');
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    const content = Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n');
+    fs.mkdirSync(path.dirname(envPath), { recursive: true });
+    fs.writeFileSync(envPath, content + '\n');
+    return true;
+  }
+  return false;
+}
+
 // ─── DOCKER HELPERS ───────────────────────────────────────────────────────────
 function composeArgs(...extra) {
   const args = ["compose", "-f", getComposePath()];
@@ -131,6 +166,16 @@ function writeEnvFile(config) {
   const dataDir = settings.data_dir || path.join(home, "omnibioai", "data");
   const workDir = settings.work_dir || path.join(home, "omnibioai", "work");
 
+  // Preserve any generated secrets already written by generateSecrets()
+  const envPath = getEnvPath();
+  const existing = {};
+  if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+      const [k, ...v] = line.split('=');
+      if (k) existing[k.trim()] = v.join('=').trim();
+    });
+  }
+
   const lines = [
     `HOST_IP=0.0.0.0`,
     `ANTHROPIC_API_KEY=${llm.claude_api_key         || ""}`,
@@ -147,13 +192,17 @@ function writeEnvFile(config) {
     `MACHINE_DIR=${path.dirname(path.dirname(workDir))}`,
     `DB_INIT_DIR=${getDbInitPath()}`,
     `VIDEO_DIR=${workDir}/videos`,
-    `MYSQL_ROOT_PASSWORD=omnibioai`,
+    `MYSQL_ROOT_PASSWORD=${existing.MYSQL_ROOT_PASSWORD || 'omnibioai'}`,
     `MYSQL_DEFAULT_DB=omnibioai`,
-    `LIMSX_DJANGO_SECRET_KEY=omnibioai-studio-secret`,
+    `LIMSX_DJANGO_SECRET_KEY=${existing.LIMSX_DJANGO_SECRET_KEY || 'omnibioai-studio-secret'}`,
+    `AUTH_SECRET_KEY=${existing.AUTH_SECRET_KEY     || ''}`,
+    `GF_ADMIN_PASSWORD=${existing.GF_ADMIN_PASSWORD || ''}`,
+    `LICENSE_SECRET=${existing.LICENSE_SECRET       || ''}`,
+    `ADMIN_KEY=${existing.ADMIN_KEY                 || ''}`,
   ];
 
-  fs.mkdirSync(path.dirname(getEnvPath()), { recursive: true });
-  fs.writeFileSync(getEnvPath(), lines.join("\n") + "\n", "utf-8");
+  fs.mkdirSync(path.dirname(envPath), { recursive: true });
+  fs.writeFileSync(envPath, lines.join("\n") + "\n", "utf-8");
 }
 
 // ─── WINDOW ───────────────────────────────────────────────────────────────────
@@ -210,6 +259,17 @@ app.on("web-contents-created", (_, contents) => {
 });
 
 app.whenReady().then(() => {
+  // Generate random secrets on first launch or when defaults are detected
+  const rotated = generateSecrets(getEnvPath());
+  if (rotated) {
+    dialog.showMessageBoxSync({
+      type: 'info',
+      title: 'Security Setup',
+      message: 'OmniBioAI has generated secure random passwords for this installation.\n\nYour credentials are stored in:\n' + getEnvPath(),
+      buttons: ['OK']
+    });
+  }
+
   session.defaultSession.webRequest.onHeadersReceived(
     (details, callback) => {
       if (DEV_MODE) {
@@ -526,4 +586,21 @@ ipcMain.handle('license-clear', async () => {
     fs.unlinkSync(LICENSE_FILE);
   }
   return { cleared: true };
+});
+
+// ─── CREDENTIALS ──────────────────────────────────────────────────────────────
+ipcMain.handle('get-credentials', async () => {
+  const envPath = getEnvPath();
+  if (!fs.existsSync(envPath)) return null;
+  const env = {};
+  fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+    const [k, ...v] = line.split('=');
+    if (k) env[k.trim()] = v.join('=').trim();
+  });
+  return {
+    grafanaPassword: env.GF_ADMIN_PASSWORD  || '',
+    mysqlPassword:   env.MYSQL_ROOT_PASSWORD || '',
+    authSecretKey:   env.AUTH_SECRET_KEY     || '',
+    envPath,
+  };
 });

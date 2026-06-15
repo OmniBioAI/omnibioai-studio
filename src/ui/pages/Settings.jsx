@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, ToggleRow, Btn } from "../components/UI";
 
 export default function Settings({ config, setConfig }) {
   const [saved, setSaved] = useState(false);
+  const [creds, setCreds] = useState(null);
+  const [credsVisible, setCredsVisible] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(null);
   const [settings, setSettings] = useState({
     host_ip:         "localhost",
     update_channel:  "stable",
@@ -33,6 +36,21 @@ export default function Settings({ config, setConfig }) {
   }, []);
 
   const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
+
+  const showCredentials = useCallback(async () => {
+    if (window.api?.getCredentials) {
+      const data = await window.api.getCredentials();
+      setCreds(data);
+      setCredsVisible(true);
+    }
+  }, []);
+
+  const copyToClipboard = (text, key) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1500);
+    });
+  };
 
   const saveSettings = async () => {
     const fullConfig = { ...config, settings };
@@ -315,6 +333,87 @@ export default function Settings({ config, setConfig }) {
         </Panel>
 
       </div>
+
+      {/* ── Security / Credentials ── */}
+      <Panel>
+        <PanelHeader title="Security" icon iconColor="orange" />
+        <PanelBody>
+          <div style={{
+            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
+            marginBottom:12, lineHeight:1.6,
+          }}>
+            Passwords were auto-generated on first launch and stored in your local .env file.
+            Never share these credentials or commit them to version control.
+          </div>
+
+          {!credsVisible ? (
+            <Btn variant="primary" onClick={showCredentials}>Show Credentials</Btn>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {[
+                { label:'Grafana Admin Password', key:'grafanaPassword', value: creds?.grafanaPassword },
+                { label:'MySQL Root Password',    key:'mysqlPassword',   value: creds?.mysqlPassword   },
+                { label:'API Secret Key',         key:'authSecretKey',   value: creds?.authSecretKey   },
+              ].map(({ label, key, value }) => (
+                <div key={key} style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                  <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
+                    {label}
+                  </div>
+                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                    <div style={{
+                      flex:1, padding:'6px 10px', borderRadius:'var(--radius-sm)',
+                      background:"var(--bg2)", border:"1px solid var(--border2)",
+                      fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)',
+                      color:"var(--text)", letterSpacing: key === 'authSecretKey' ? '0.08em' : 'normal',
+                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                    }}>
+                      {key === 'authSecretKey'
+                        ? (value ? value.slice(0, 8) + '••••••••••••••••••••••••' : '—')
+                        : (value || '—')}
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(value || '', key)}
+                      style={{
+                        padding:'6px 12px', borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-xs)',
+                        fontFamily:"var(--mono)", background:"var(--bg2)",
+                        border:"1px solid var(--border2)",
+                        color: copiedKey === key ? "var(--accent)" : "var(--color-text-muted)",
+                        cursor:'pointer', whiteSpace:'nowrap',
+                      }}
+                    >
+                      {copiedKey === key ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {creds?.envPath && (
+                <div style={{
+                  marginTop:4, padding:'8px 10px', borderRadius:'var(--radius-sm)',
+                  background:"rgba(255,165,2,0.06)", border:"1px solid rgba(255,165,2,0.15)",
+                  fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--warn)",
+                }}>
+                  Stored at: {creds.envPath}
+                </div>
+              )}
+
+              <div>
+                <button
+                  onClick={() => setCredsVisible(false)}
+                  style={{
+                    padding:'5px 12px', borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-xs)',
+                    fontFamily:"var(--mono)", background:"var(--bg2)",
+                    border:"1px solid var(--border2)", color:"var(--color-text-muted)", cursor:'pointer',
+                  }}
+                >
+                  Hide
+                </button>
+              </div>
+            </div>
+          )}
+        </PanelBody>
+      </Panel>
+
     </div>
   );
 }
