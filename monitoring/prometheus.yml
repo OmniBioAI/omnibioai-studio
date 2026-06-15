@@ -10,7 +10,12 @@ scrape_configs:
 
   - job_name: omnibioai-rag
     static_configs:
-      - targets: ['192.168.86.234:8090']
+      - targets: ['rag:8096']
+    metrics_path: /metrics
+
+  - job_name: omnibioai-auth
+    static_configs:
+      - targets: ['auth-service:8001']
     metrics_path: /metrics
 
   - job_name: omnibioai-control-center
@@ -21,4 +26,14 @@ scrape_configs:
   - job_name: omnibioai-workbench
     static_configs:
       - targets: ['192.168.86.234:8000']
+    metrics_path: /metrics
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metrics_path: /metrics
+
+  - job_name: redis
+    static_configs:
+      - targets: ['redis-exporter:9121']
     metrics_path: /metrics

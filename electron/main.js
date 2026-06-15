@@ -485,6 +485,26 @@ ipcMain.handle("go-home", async () => {
   }
 });
 
+// ─── GRAFANA AUTH ─────────────────────────────────────────────────────────────
+ipcMain.handle('grafana-login', async (_, user, password) => {
+  const res = await fetch('http://localhost:3000/api/org', {
+    headers: {
+      'Authorization': 'Basic ' + Buffer.from(`${user}:${password}`).toString('base64'),
+    },
+  });
+  if (!res.ok) throw new Error('Unauthorized');
+
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['http://localhost:3000/*'] },
+    (details, callback) => {
+      details.requestHeaders['Authorization'] =
+        'Basic ' + Buffer.from(`${user}:${password}`).toString('base64');
+      callback({ requestHeaders: details.requestHeaders });
+    }
+  );
+  return { message: 'Logged in' };
+});
+
 // ─── LICENSE ──────────────────────────────────────────────────────────────────
 ipcMain.handle('license-validate', async (event, key) => {
   const result = await validateLicense(key);

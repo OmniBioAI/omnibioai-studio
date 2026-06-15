@@ -40,7 +40,8 @@ contextBridge.exposeInMainWorld("api", {
 });
 
 contextBridge.exposeInMainWorld("electronAPI", {
-  validateLicense: (key) => ipcRenderer.invoke("license-validate", key),
-  getLicense:      ()    => ipcRenderer.invoke("license-get-cached"),
-  clearLicense:    ()    => ipcRenderer.invoke("license-clear"),
+  validateLicense: (key)           => ipcRenderer.invoke("license-validate", key),
+  getLicense:      ()              => ipcRenderer.invoke("license-get-cached"),
+  clearLicense:    ()              => ipcRenderer.invoke("license-clear"),
+  grafanaLogin:    (user, password) => ipcRenderer.invoke("grafana-login", user, password),
 });

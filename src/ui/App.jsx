@@ -16,6 +16,7 @@ import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
 import Videos        from "./pages/Videos";
 import IdeServices   from "./pages/IdeServices";
+import { GrafanaViewer } from "./components/GrafanaViewer";
 
 const NAV = [
   { section: "Setup",   items: [
@@ -247,7 +248,9 @@ export default function App() {
           {service
             ? service.url.includes("/_svc/videos")
               ? <Videos onBack={() => setService(null)} />
-              : <ServiceViewer url={service.url} label={service.label} onBack={() => setService(null)} />
+              : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
+                ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
+                : <ServiceViewer url={service.url} label={service.label} onBack={() => setService(null)} />
             : <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>{pages[step]}</div>
           }
         </div>

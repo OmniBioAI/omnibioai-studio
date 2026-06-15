@@ -301,6 +301,17 @@
         // Re-inject once more after full page load to catch any late emotion injections
         window.addEventListener('load', function() {
           setTimeout(injectOmniTheme, 100);
+          // Strip inline background-image from login page + log for debugging
+          setTimeout(function() {
+            var allEls = document.querySelectorAll('*');
+            allEls.forEach(function(el) {
+              if (el.style && el.style.backgroundImage && el.style.backgroundImage !== 'none') {
+                console.log('OMNI-BG:', el.tagName, el.className, el.style.backgroundImage);
+                el.style.backgroundImage = 'none';
+                el.style.backgroundColor = '#0f1117';
+              }
+            });
+          }, 150);
         });
       })();
     </script>

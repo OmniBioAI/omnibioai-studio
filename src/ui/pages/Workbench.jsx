@@ -31,7 +31,7 @@ function buildCategories(BASE) {
         { label:"Launcher",          url:"http://localhost:5190",      icon:"🔬", desc:"Jupyter · RStudio · VS Code"      },
         { label:"Workflows",        url:"/_svc/workflows",           icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
         { label:"Dev Hub",          url:"/_svc/devhub",              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
-        { label:"Prometheus",       url:"http://localhost:9091",        icon:"📊", desc:"Metrics scraper"                  },
+        { label:"Metrics",           url:"http://localhost/_svc/monitor",    icon:"📊", desc:"Grafana dashboard"               },
         { label:"Grafana",          url:"http://localhost:3000",        icon:"📈", desc:"Metrics dashboards"               },
       ]
     },

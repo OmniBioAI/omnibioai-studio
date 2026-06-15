@@ -175,6 +175,21 @@ body.theme-dark {
   background-image: none !important;
 }
 
+/* Target inline style="background-image:..." set by Grafana v13 React login page */
+#reactRoot > div > div[style] {
+  background-image: none !important;
+  background: #0f1117 !important;
+}
+
+#reactRoot [style*="background-image"] {
+  background-image: none !important;
+  background: #0f1117 !important;
+}
+
+body.theme-dark [style*="background"] {
+  background-image: none !important;
+}
+
 [class*="LoginPage"],
 [class*="login-page"],
 [data-testid="login-page"] {

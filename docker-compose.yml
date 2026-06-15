@@ -133,6 +133,11 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       DB_NAME: model_registry
       OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
+      IAM_URL: http://auth-service:8001
+      AUDIT_URL: http://security-audit:8004
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      AUTH_ENABLED: "true"
+
     volumes:
       - ${MACHINE_DIR}/data/local_registry/model_registry:/registry
     depends_on:
@@ -603,6 +608,7 @@ services:
       WORKBENCH_URL: http://workbench:8000
       TOOLSERVER_URL: http://toolserver:9090
       RAG_URL: http://rag:8096
+      MODEL_REGISTRY_URL: http://model-registry:8095
     depends_on:
       redis:
         condition: service_healthy
@@ -624,13 +630,15 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
-    ports:
-      - "9091:9090"
+    # ports:          # removed — access only via nginx /_svc/prometheus
+    #   - "9091:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=7d'
+      - '--web.external-url=http://localhost/_svc/prometheus'
+      - '--web.route-prefix=/'
     restart: unless-stopped
 
   # ── grafana ──────────────────────────────────────────────────────────────
@@ -642,11 +650,18 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-omnibioai}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_USERS_DEFAULT_THEME: "dark"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_NAME: "Main Org."
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
       GF_PATHS_DATA: /var/lib/grafana
       GF_PATHS_LOGS: /var/log/grafana
       GF_PATHS_PLUGINS: /var/lib/grafana/plugins
       GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      GF_SECURITY_COOKIE_SAMESITE: lax
+      GF_SECURITY_COOKIE_SECURE: "false"
+      GF_AUTH_PROXY_ENABLED: "false"
+      GF_SECURITY_CSRF_TRUSTED_ORIGINS: "localhost"
+      GF_SECURITY_CSRF_ADDITIONAL_HEADERS: "X-Requested-With"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
@@ -655,6 +670,15 @@ services:
       - ./monitoring/grafana/custom.css:/usr/share/grafana/public/build/custom.css:ro
       # Patched index.html — re-injects custom.css after emotion runs  ← ADD THIS
       - ./monitoring/grafana/index.html:/usr/share/grafana/public/views/index.html:ro
+      # Replace login background images with solid #0f1117 to kill the purple gradient
+      - ./monitoring/grafana/login-bg.png:/usr/share/grafana/public/img/bg/p0.png:ro
+      - ./monitoring/grafana/login-bg.png:/usr/share/grafana/public/img/bg/p1.png:ro
+      - ./monitoring/grafana/login-bg.png:/usr/share/grafana/public/img/bg/p2.png:ro
+      - ./monitoring/grafana/login-bg.png:/usr/share/grafana/public/img/bg/p3.png:ro
+      - ./monitoring/grafana/login-bg.png:/usr/share/grafana/public/img/bg/p4.png:ro
+      - ./monitoring/grafana/login-bg.png:/usr/share/grafana/public/img/bg/p5.png:ro
+      - ./monitoring/grafana/login-bg.png:/usr/share/grafana/public/img/bg/p6.png:ro
+      - ./monitoring/grafana/login-bg.png:/usr/share/grafana/public/img/background_tease.jpg:ro
     depends_on:
       - prometheus
     restart: unless-stopped
@@ -681,12 +705,41 @@ services:
     networks:
       - default
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: omnibioai-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /cgroup:/cgroup:ro
+    ports:
+      - "8585:8080"
+    restart: unless-stopped
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: omnibioai-redis-exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "9121:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   nginx-router:
     image: nginx:latest
     ports:
-      - "${HOST_IP:-0.0.0.0}:80:80"
+      - "80:80"
     volumes:
       - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${MACHINE_DIR}/omnibioai-docs:/docs:ro
       - ./docker/static:/etc/nginx/omni-static:ro
     depends_on:
       - workbench
@@ -694,9 +747,6 @@ services:
       - rag
       - api-gateway
       - auth-service
-      - policy-engine
-      - hpc-policy-engine
-      - security-audit
       - control-center
       - grafana
       - videos
@@ -706,12 +756,13 @@ services:
       - tool-images
       - dev-hub
       - tes
-      - opa
       - toolserver
-      - prometheus
+      - opa
       - jupyter
       - rstudio
       - vscode
+      - cadvisor
+      - redis-exporter
     restart: unless-stopped
 
 volumes:
