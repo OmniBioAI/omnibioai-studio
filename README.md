@@ -119,6 +119,12 @@ security-audit :8004  ← async audit log → Redis Streams (never blocks)
 | HPC quota | FAIL CLOSED → HTTP 403 |
 | Audit | FAIL OPEN → ignored |
 
+**Internal service access:**
+Control Center (`/_svc/control`) is protected by nginx `auth_request`
+— all browser and API access requires a valid JWT issued by auth-service.
+Direct access on port 7070 is restricted to localhost only (used by
+`generate_report.py` and Prometheus scraping via Docker internal network).
+
 ---
 
 ## 🖥 Services
@@ -407,8 +413,9 @@ OPENAI_API_KEY=
 
 # IDE Services
 JUPYTER_TOKEN=devtoken
-RSTUDIO_PASSWORD=omnibioai
-VSCODE_PASSWORD=omnibioai
+REPORT_SCHEDULE_HOURS=6       # Auto-regenerate ecosystem report every N hours
+RSTUDIO_PASSWORD=change-me    # Change before production use
+VSCODE_PASSWORD=change-me     # Change before production use
 
 # Build
 DEV_MODE=false
@@ -673,6 +680,23 @@ This is expected and harmless for development. For production ARM deployments, r
 - Grafana service account token stored as `GF_STUDIO_TOKEN` in `.env` — regenerate with `docker compose restart grafana` if token is revoked
 - cAdvisor requires privileged mode and `/dev/kmsg` device access
 - Prometheus port not exposed directly — access only via `/_svc/prometheus`
+- Control Center (`/_svc/control`) requires a valid JWT — unauthenticated browser access returns 401. Port 7070 is bound to localhost only and is not accessible from external network.
+- MySQL backups run daily at 4am via cron to `work/backups/mysql/`. Set up with: `0 4 * * * /path/to/omnibioai-studio/scripts/backup-mysql.sh`
+
+---
+
+## 🛠 Maintenance Scripts
+
+| Script | Description | Schedule |
+|--------|-------------|----------|
+| `scripts/backup-mysql.sh` | Dumps all databases to compressed .sql.gz, 7-day rotation | Daily at 4am (cron) |
+| `scripts/check-env.sh` | Validates .env secrets before stack start, exits 1 on weak defaults | Run before `docker compose up` |
+
+### Recommended cron setup
+
+```cron
+0 4 * * * /path/to/omnibioai-studio/scripts/backup-mysql.sh
+```
 
 ---
 
