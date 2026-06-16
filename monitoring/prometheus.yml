@@ -20,7 +20,7 @@ scrape_configs:
 
   - job_name: omnibioai-control-center
     static_configs:
-      - targets: ['192.168.86.234:7070']
+      - targets: ['control-center:7070']
     metrics_path: /metrics
 
   - job_name: omnibioai-workbench
