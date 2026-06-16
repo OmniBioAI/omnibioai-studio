@@ -29,6 +29,17 @@
 - Internal service header propagation (`X-Internal-Service`, `X-Trace-Id`, `X-User-Id`) across all TES calls
 - Fail-closed on auth/policy/HPC failure; fail-open on audit (never blocks requests)
 - **RAG V6 FAISS index** — persistent vector store with recursive document indexing for large literature corpora
+- **Unified Metrics Dashboard** — embedded Grafana dashboard in Studio with 4 tabs (Services, Platform Overview, LIMS, RAG); silent Bearer token auth via service account; no login page
+- **13-panel observability stack** — Service Health, Request Rate, HTTP Error Rate, Response Latency, Container CPU/Memory (cAdvisor), Celery Queue Depth, Redis Health, RAG Query Latency (p50/p95/p99), JWT Auth Rate
+- **django-prometheus instrumentation** — real HTTP metrics from Workbench and LIMS (204+ metric series each)
+- **cAdvisor + redis-exporter** — container resource monitoring + Redis/Celery queue depth metrics
+- **OmniBioAI dark theme** — Grafana and Prometheus themed to match Studio design tokens (`--color-bg: #0f1117`, `--color-accent: #00e5a0`)
+- **@man4ish/ui integration** — GrafanaViewer uses shared Button, Card, Badge, Spinner components from the OmniBioAI UI library
+- **Auto-generated secrets** — `AUTH_SECRET_KEY`, `MYSQL_ROOT_PASSWORD`, `GF_ADMIN_PASSWORD`, `LICENSE_SECRET` generated with `crypto.randomBytes` on first launch; stored in repo `.env`
+- **Grafana service account token auth** — anonymous access disabled; Bearer token provisioned automatically on stack startup
+- **Auth endpoint rate limiting** — nginx rate limits `/auth` to 10r/m burst 5 to prevent brute force
+- **0 npm vulnerabilities** — Electron 28→41, vite 5→8, shell-quote critical RCE fixed, 11 total CVEs resolved
+- **Prometheus routing through nginx** — direct port closed; all traffic via `/_svc/prometheus` with sub_filter theme injection
 
 ### v0.1.0-beta.1
 - Full local stack launch with containerized services
@@ -133,6 +144,11 @@ security-audit :8004  ← async audit log → Redis Streams (never blocks)
 | Launcher | :5190 | OmniBioAI SDK UI + IDE container lifecycle API |
 | Ollama | :11434 | Local LLM inference |
 | OPA | :8181 | Open Policy Agent (policy rules backend) |
+| cAdvisor | :8585 | Docker container CPU/memory metrics for Prometheus |
+| redis-exporter | :9121 | Redis metrics exporter (queue depth, memory, clients) |
+| nginx-router | :80 | Reverse proxy — unified entry point for all web services |
+| Prometheus | internal | Metrics collection (no direct port — access via `/_svc/prometheus`) |
+| Grafana | :3000 | Metrics dashboards (embedded in Studio Metrics tile) |
 
 ### IDE Services (managed via Launcher)
 
@@ -156,6 +172,39 @@ IDE services are started, stopped, and monitored from **Studio → Services → 
 | `omnibioai-plugin-variant-annotation` | Variant annotation (SnpEff/ANNOVAR) |
 | `omnibioai-plugin-marker-identification` | Marker gene identification |
 | `omnibioai-plugin-phenotype-association` | GWAS + phenotype association |
+
+---
+
+## 📊 Observability
+
+OmniBioAI Studio includes a full observability stack accessible from the **Metrics** tile in the Workbench.
+
+### Grafana Dashboards (4)
+
+| Dashboard | Description |
+|---|---|
+| OmniBioAI Services | Service health, request rate, latency, container resources |
+| OmniBioAI Platform Overview | Full platform architecture metrics |
+| OmniBioAI LIMS | Lab information management system metrics |
+| OmniBioAI RAG | RAG pipeline query latency and throughput |
+
+### Prometheus Scrape Targets (7)
+
+| Target | Metrics |
+|---|---|
+| workbench:8000 | Django HTTP requests, latency, errors (django-prometheus) |
+| lims:7000 | Django HTTP requests, latency, errors (django-prometheus) |
+| rag:8096 | RAG query duration histogram, query count |
+| auth-service:8001 | JWT auth success/failure counters |
+| control-center:7070 | Service health metrics |
+| cadvisor:8080 | Container CPU, memory, network per service |
+| redis-exporter:9121 | Redis memory, connected clients, list lengths |
+
+### Security
+
+- Grafana anonymous access disabled — Bearer token auto-provisioned on startup
+- Auth endpoints rate-limited (10 req/min, burst 5)
+- All secrets auto-generated with `crypto.randomBytes(32)` on first launch
 
 ---
 
@@ -575,6 +624,13 @@ OmniBioAI Studio is the **desktop control layer** for:
 - Launcher backend API for IDE container control via Docker socket
 - One-click browser launch with automatic token authentication
 - Public beta announcement
+- Unified Grafana metrics dashboard embedded in Studio
+- Full observability stack: cAdvisor + redis-exporter + django-prometheus
+- OmniBioAI dark theme on Grafana and Prometheus
+- Zero npm vulnerabilities (Electron 28→41 security upgrade)
+- Auto-generated secrets on first launch
+- Grafana service account token auth (anonymous access disabled)
+- @man4ish/ui + @man4ish/design-tokens integrated into Studio
 
 **v0.4 — Cloud & HPC**
 - AWS/Azure/GCP job submission UI
@@ -614,6 +670,9 @@ This is expected and harmless for development. For production ARM deployments, r
 - Bug reports sent to Sentry (can be disabled via SENTRY_DSN= in .env)
 - IDE Services status polling requires the Launcher container to be running
 - JupyterLab token must match `JUPYTER_TOKEN` in `.env` for auto-login to work
+- Grafana service account token stored as `GF_STUDIO_TOKEN` in `.env` — regenerate with `docker compose restart grafana` if token is revoked
+- cAdvisor requires privileged mode and `/dev/kmsg` device access
+- Prometheus port not exposed directly — access only via `/_svc/prometheus`
 
 ---
 
