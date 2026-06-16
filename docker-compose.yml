@@ -326,7 +326,11 @@ services:
       target: backend
     # image: ghcr.io/man4ish/omnibioai-control-center:latest
     ports:
-      - "${HOST_IP:-0.0.0.0}:7070:7070"
+      # Bound to localhost only — blocks all external network access
+      # generate_report.py can still reach it via 127.0.0.1:7070 on the host
+      # All browser/API access goes through nginx /_svc/control (JWT required)
+      # Prometheus scrapes via Docker internal network (unaffected)
+      - "127.0.0.1:7070:7070"
     environment:
       WORKSPACE_ROOT: /workspace
       OMNIBIOAI_BASE: /workspace/omnibioai
