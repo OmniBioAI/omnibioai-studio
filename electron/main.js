@@ -81,7 +81,7 @@ function getComposePath() {
 }
 
 function getEnvPath() {
-  return path.join(app.getPath("userData"), ".env");
+  return path.join(app.getAppPath(), '.env');
 }
 
 function getDbInitPath() {
@@ -325,15 +325,24 @@ app.on("web-contents-created", (_, contents) => {
 
 app.whenReady().then(() => {
   // Generate random secrets on first launch or when defaults are detected
-  const rotated = generateSecrets(getEnvPath());
+  const repoEnvPath = getEnvPath();
+  const rotated = generateSecrets(repoEnvPath);
   if (rotated) {
     dialog.showMessageBoxSync({
       type: 'info',
       title: 'Security Setup',
-      message: 'OmniBioAI has generated secure random passwords for this installation.\n\nYour credentials are stored in:\n' + getEnvPath(),
+      message: 'OmniBioAI has generated secure random passwords for this installation.\n\nYour credentials are stored in:\n' + repoEnvPath,
       buttons: ['OK']
     });
   }
+
+  // Ensure Docker Compose always starts with the repo .env
+  const upProc = spawn("docker", ["compose", "--env-file", repoEnvPath, "-f", getComposePath(), "up", "-d"], {
+    env: process.env,
+    detached: true,
+    stdio: 'ignore',
+  });
+  upProc.unref();
 
   session.defaultSession.webRequest.onHeadersReceived(
     (details, callback) => {
