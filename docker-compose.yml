@@ -2,6 +2,7 @@ services:
 
   mysql:
     image: mysql:8.0
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
@@ -18,6 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6380:6379"
     volumes:
@@ -30,6 +32,7 @@ services:
 
   toolserver:
     image: ghcr.io/man4ish/omnibioai-toolserver:latest
+    restart: on-failure
     ports:
       - "${HOST_IP:-0.0.0.0}:9090:9090"
     environment:
@@ -48,6 +51,7 @@ services:
       context: ${MACHINE_DIR}/omnibioai-tes
       dockerfile: Dockerfile
       target: backend
+    restart: on-failure
     ports:
       - "${HOST_IP:-0.0.0.0}:8081:8081"
       - "${HOST_IP:-0.0.0.0}:5177:5177"
@@ -120,6 +124,7 @@ services:
       context: ${MACHINE_DIR}/omnibioai-model-registry
       dockerfile: Dockerfile
       target: backend
+    restart: on-failure
     # image: ghcr.io/man4ish/omnibioai-model-registry:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8095:8095"
@@ -150,6 +155,7 @@ services:
       dockerfile: Dockerfile
       target: backend
     image: omnibioai-lims-local
+    restart: on-failure
     ports:
       - "7000:7000"
     environment:
@@ -177,6 +183,7 @@ services:
 
   ollama:
     image: ollama/ollama
+    restart: unless-stopped
     ports:
       - "11434:11434"
     volumes:
@@ -187,6 +194,7 @@ services:
       context: ${MACHINE_DIR}/omnibioai-rag
       dockerfile: Dockerfile
       target: backend
+    restart: on-failure
     # image: ghcr.io/man4ish/omnibioai-rag:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8090:8096"
@@ -207,6 +215,7 @@ services:
       context: ${MACHINE_DIR}/omnibioai
       dockerfile: Dockerfile.app
       target: backend
+    restart: on-failure
     # image: ghcr.io/man4ish/omnibioai-app:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
@@ -285,6 +294,7 @@ services:
       context: ${MACHINE_DIR}/omnibioai
       dockerfile: Dockerfile.app
       target: backend
+    restart: on-failure
     # image: ghcr.io/man4ish/omnibioai-app:latest
     environment:
       DEBUG: "1"
@@ -324,6 +334,7 @@ services:
       context: ${MACHINE_DIR}/omnibioai-control-center
       dockerfile: Dockerfile
       target: backend
+    restart: on-failure
     # image: ghcr.io/man4ish/omnibioai-control-center:latest
     ports:
       # Bound to localhost only — blocks all external network access
@@ -500,6 +511,7 @@ services:
 
   videos:
     image: ghcr.io/man4ish/omnibioai-videos:latest
+    restart: on-failure
     ports:
       - "8086:8086"
     volumes:
@@ -507,6 +519,7 @@ services:
 
   opa:
     image: openpolicyagent/opa:latest
+    restart: on-failure
     ports:
       - "8181:8181"
     command: ["run", "--server", "--addr=0.0.0.0:8181"]
