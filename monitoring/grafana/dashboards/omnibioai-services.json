@@ -20,8 +20,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red",   "value": null },
-              { "color": "green", "value": 1 }
+              { "color": "#ef4444", "value": null },
+              { "color": "#22c55e", "value": 1 }
             ]
           },
           "mappings": [
@@ -336,9 +336,14 @@
       "options": { "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "expr": "rate(django_http_requests_total_by_method_total{job=\"omnibioai-workbench\"}[5m])",
-          "legendFormat": "{{method}}",
+          "expr": "sum(rate(django_http_requests_total_by_method_total{job=\"omnibioai-workbench\"}[5m])) by (method)",
+          "legendFormat": "{{job}} {{method}}",
           "refId": "A"
+        },
+        {
+          "expr": "sum(rate(django_http_requests_total_by_method_total{job=\"omnibioai-lims\"}[5m])) by (method)",
+          "legendFormat": "{{job}} {{method}}",
+          "refId": "B"
         }
       ],
       "title": "Request Rate per Service (req/s)",
@@ -350,9 +355,8 @@
         "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": { "lineWidth": 2, "fillOpacity": 10 },
-          "unit": "percent",
-          "min": 0,
-          "max": 100
+          "unit": "short",
+          "min": 0
         },
         "overrides": []
       },
@@ -361,8 +365,8 @@
       "options": { "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "expr": "rate(django_http_responses_total_by_status_total{status=~\"5..\",job=\"omnibioai-workbench\"}[5m]) / rate(django_http_requests_total_by_method_total{job=\"omnibioai-workbench\"}[5m]) * 100",
-          "legendFormat": "5xx %",
+          "expr": "sum(rate(django_http_responses_total_by_status_total{status=~\"5..\",job=~\"omnibioai-workbench|omnibioai-lims\"}[5m])) by (job)",
+          "legendFormat": "{{job}}",
           "refId": "A"
         }
       ],
@@ -385,17 +389,17 @@
       "options": { "tooltip": { "mode": "multi" } },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, rate(django_http_requests_latency_seconds_by_view_method_bucket{job=\"omnibioai-workbench\"}[5m]))",
+          "expr": "histogram_quantile(0.50, sum(rate(django_http_requests_latency_seconds_by_view_method_bucket{job=\"omnibioai-workbench\"}[5m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, rate(django_http_requests_latency_seconds_by_view_method_bucket{job=\"omnibioai-workbench\"}[5m]))",
+          "expr": "histogram_quantile(0.95, sum(rate(django_http_requests_latency_seconds_by_view_method_bucket{job=\"omnibioai-workbench\"}[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.99, rate(django_http_requests_latency_seconds_by_view_method_bucket{job=\"omnibioai-workbench\"}[5m]))",
+          "expr": "histogram_quantile(0.99, sum(rate(django_http_requests_latency_seconds_by_view_method_bucket{job=\"omnibioai-workbench\"}[5m])) by (le))",
           "legendFormat": "p99",
           "refId": "C"
         }

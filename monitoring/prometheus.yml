@@ -5,7 +5,7 @@ global:
 scrape_configs:
   - job_name: omnibioai-lims
     static_configs:
-      - targets: ['192.168.86.234:7000']
+      - targets: ['lims:7000']
     metrics_path: /metrics
 
   - job_name: omnibioai-rag
@@ -25,7 +25,7 @@ scrape_configs:
 
   - job_name: omnibioai-workbench
     static_configs:
-      - targets: ['192.168.86.234:8000']
+      - targets: ['workbench:8000']
     metrics_path: /metrics
 
   - job_name: cadvisor
