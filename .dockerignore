@@ -3,7 +3,7 @@ work/
 out/
 tmpdata/
 images/
-node_modules/
+**/node_modules
 .git/
 __pycache__/
 *.log
@@ -12,5 +12,5 @@ __pycache__/
 *.ckpt
 *.pt
 install/
-build/
-dist/
+**/build
+**/dist
