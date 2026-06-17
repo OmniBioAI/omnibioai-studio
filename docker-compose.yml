@@ -344,6 +344,7 @@ services:
       - "127.0.0.1:7070:7070"
     environment:
       WORKSPACE_ROOT: /workspace
+      WORK_DIR: ${WORK_DIR:-/workspace/omnibioai-work}
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
       SENTRY_DSN: ${SENTRY_DSN:-}
