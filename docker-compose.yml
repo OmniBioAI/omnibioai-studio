@@ -194,8 +194,12 @@ services:
       context: ${MACHINE_DIR}/omnibioai-rag
       dockerfile: Dockerfile
       target: backend
+      args:
+        GITHUB_TOKEN: ${GHCR_PULL_TOKEN}      # required: read:packages for @man4ish/ui
+        RAGBIO_API_KEY: ${RAGBIO_API_KEY}  # embedded as VITE_RAGBIO_API_KEY in JS bundle
     restart: on-failure
     # image: ghcr.io/man4ish/omnibioai-rag:latest
+    # Frontend served at http://localhost:8090/ via nginx (port 5175 inside container)
     ports:
       - "${HOST_IP:-0.0.0.0}:8090:8096"
       - "${HOST_IP:-0.0.0.0}:5175:5175"
@@ -207,6 +211,15 @@ services:
       GATEWAY_URL: http://api-gateway:8080
       RAGBIO_API_KEY: ${RAGBIO_API_KEY}
       RAGBIO_HOST: 0.0.0.0
+      RAG_QUERY_TIMEOUT: "300"
+      RAG_LLM_TIMEOUT: "300"
+      NCBI_EMAIL: ${NCBI_EMAIL}
+      NCBI_API_KEY: ${NCBI_API_KEY}
+      RAG_DATA_DIR: /workspace/data/PubMed
+      FAISS_INDEX_DIR: /workspace/data/Index
+    volumes:
+      - ${DATA_DIR}/PubMed:/workspace/data/PubMed
+      - ${DATA_DIR}/Index:/workspace/data/Index
     depends_on:
       - ollama
 
