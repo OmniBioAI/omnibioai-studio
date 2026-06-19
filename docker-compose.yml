@@ -251,6 +251,9 @@ services:
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CODE_LLM_MODEL: ${CODE_LLM_MODEL:-qwen2.5-coder:32b}
+      REASONING_LLM_MODEL: ${REASONING_LLM_MODEL:-deepseek-r1:32b}
+      RAG_LLM_MODEL: ${RAG_LLM_MODEL:-deepseek-r1:32b}
       OMNIBIOAI_TES_URL: http://tes:8081
       OMNIBIOAI_HOST_APP_PREFIX: ${WORKSPACE_HOST}
       OMNIBIOAI_WORK_DIR: ${WORK_DIR}
@@ -327,6 +330,9 @@ services:
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CODE_LLM_MODEL: ${CODE_LLM_MODEL:-qwen2.5-coder:32b}
+      REASONING_LLM_MODEL: ${REASONING_LLM_MODEL:-deepseek-r1:32b}
+      RAG_LLM_MODEL: ${RAG_LLM_MODEL:-deepseek-r1:32b}
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
