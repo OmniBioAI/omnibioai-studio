@@ -22,7 +22,7 @@ function buildCategories(BASE) {
         { label:"Getting Started",  url:"/docs/", action:openDocs,    icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
         { label:"Workbench",        url:"/_svc/workbench/",          icon:"🏠", desc:"Dashboard"                        },
-        { label:"Control Center",   url:"/_svc/control",             icon:"🖥️", desc:"Health + Docker imgs"             },
+        { label:"Control Center",   url:"http://127.0.0.1:7070",     icon:"🖥️", desc:"Health + Docker imgs"             },
         { label:"LIMS",             url:"/_svc/lims/",               icon:"🧪", desc:"Lab data management"              },
         { label:"Model Registry",   url:"/_svc/modelregistry",       icon:"🧬", desc:"ML model versioning"              },
         { label:"RAG / Lit AI",     url:"/_svc/rag",                 icon:"📚", desc:"PubMed RAG + DeepSeek"            },

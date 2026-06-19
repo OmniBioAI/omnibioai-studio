@@ -128,7 +128,7 @@ const HEALTH_URLS = {
   "rag":               "/_svc/rag",
   "model-registry":    "/_svc/modelregistry",
   "dev-hub":           "/_svc/devhub",
-  "control-center":    "/_svc/control",
+  "control-center":    "http://127.0.0.1:7070",
   "ollama":            "/_svc/ollama",
   "lims":              "/_svc/lims/",
 }
