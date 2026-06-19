@@ -375,6 +375,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
       - ${MACHINE_DIR}/omnibioai-control-center/backend/src:/app/src
+      - ${MACHINE_DIR}/omnibioai-control-center/scripts:/app/scripts
       - ${MACHINE_DIR}/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
       - ${MACHINE_DIR}/omnibioai-control-center/config:/config:ro
       - ${MACHINE_DIR}/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
