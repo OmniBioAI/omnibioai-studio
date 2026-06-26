@@ -183,6 +183,10 @@ services:
 
   ollama:
     image: ollama/ollama
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     restart: unless-stopped
     ports:
       - "11434:11434"
@@ -363,7 +367,7 @@ services:
       - "127.0.0.1:7070:7070"
     environment:
       WORKSPACE_ROOT: /workspace
-      WORK_DIR: ${WORK_DIR:-/workspace/omnibioai-work}
+      WORK_DIR: /workspace/omnibioai-work
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
       SENTRY_DSN: ${SENTRY_DSN:-}
