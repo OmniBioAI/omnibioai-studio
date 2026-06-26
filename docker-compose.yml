@@ -193,6 +193,21 @@ services:
     volumes:
       - ollama_data:/root/.ollama
 
+  neo4j:
+    image: neo4j:5.15
+    restart: unless-stopped
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/omnibioai
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_heap_max__size: 4G
+      NEO4J_dbms_memory_pagecache_size: 2G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
   rag:
     build:
       context: ${MACHINE_DIR}/omnibioai-rag
@@ -224,11 +239,17 @@ services:
       RAG_QUERY_EXPANSION: "true"
       RAG_RERANKING: "true"
       RAG_RERANKER_MODEL: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: omnibioai
+      NEO4J_ENABLED: "true"
+      HYBRID_SEARCH_ENABLED: "true"
     volumes:
       - ${DATA_DIR}/PubMed:/workspace/data/PubMed
       - ${DATA_DIR}/PubMed/Index:/workspace/data/Index
     depends_on:
       - ollama
+      - neo4j
 
   workbench:
     build:
@@ -814,3 +835,5 @@ volumes:
   redis_data:
   ollama_data:
   grafana_data:
+  neo4j_data:
+  neo4j_logs:
