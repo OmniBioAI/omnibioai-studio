@@ -221,6 +221,9 @@ services:
       NCBI_API_KEY: ${NCBI_API_KEY}
       RAG_DATA_DIR: /workspace/data/PubMed
       FAISS_INDEX_DIR: /workspace/data/Index
+      RAG_QUERY_EXPANSION: "true"
+      RAG_RERANKING: "true"
+      RAG_RERANKER_MODEL: "cross-encoder/ms-marco-MiniLM-L-6-v2"
     volumes:
       - ${DATA_DIR}/PubMed:/workspace/data/PubMed
       - ${DATA_DIR}/Index:/workspace/data/Index
