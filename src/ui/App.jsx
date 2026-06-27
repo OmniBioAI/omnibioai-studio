@@ -117,6 +117,15 @@ export default function App() {
     setStep(7); // return to Workbench
   }
 
+  // Electron webview bypasses Vite proxy for relative URLs; prefix /_svc/*
+  // with the Vite dev server so the proxy routes them correctly.
+  const resolveServiceUrl = (url) => {
+    if (url && url.startsWith('/_svc/') && import.meta.env.DEV) {
+      return `http://localhost:5174${url}`;
+    }
+    return url;
+  };
+
   // ─── Don't render until config is loaded ───────────────
   if (!ready) {
     return (
@@ -250,7 +259,7 @@ export default function App() {
               ? <Videos onBack={() => setService(null)} />
               : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
-                : <ServiceViewer url={service.url} label={service.label} onBack={() => setService(null)} />
+                : <ServiceViewer url={resolveServiceUrl(service.url)} label={service.label} onBack={() => setService(null)} />
             : <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>{pages[step]}</div>
           }
         </div>

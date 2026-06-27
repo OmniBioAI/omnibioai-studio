@@ -134,7 +134,15 @@ export default function Workbench() {
   }, [BASE]);
 
   const open = (url, label) => {
-    const absolute = url.startsWith('/') ? `http://localhost${url}` : url;
+    let absolute;
+    if (url.startsWith('/')) {
+      const devHost = url.startsWith('/_svc/') && import.meta.env.DEV
+        ? 'http://localhost:5174'
+        : 'http://localhost';
+      absolute = `${devHost}${url}`;
+    } else {
+      absolute = url;
+    }
     window.dispatchEvent(new CustomEvent("open-service", { detail: { url: absolute, label: label || url } }));
   };
 
