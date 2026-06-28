@@ -244,6 +244,7 @@ services:
       NEO4J_PASSWORD: omnibioai
       NEO4J_ENABLED: "true"
       HYBRID_SEARCH_ENABLED: "true"
+      KG_EXTRACT_MODEL: "llama3:latest"
     volumes:
       - ${DATA_DIR}/PubMed:/workspace/data/PubMed
       - ${DATA_DIR}/PubMed/Index:/workspace/data/Index
@@ -536,6 +537,24 @@ services:
       DB_NAME: omnibioai
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      # Bundle path that resolves identically inside the container and on the
+      # host — required so that `docker run -v {bundle_path}:/workspace` mounts
+      # the correct host directory when spawning sibling runner containers.
+      BUNDLES_ROOT: ${MACHINE_DIR}/omnibioai-workflow-bundles
+      # Shared runs dir mounted at its host path so `-v {run_out_dir}:/runs`
+      # in the spawned container resolves from the host filesystem.
+      RUNS_ROOT: ${RUNS_DIR:-/tmp/omnibioai-runs}
+      RUNNER_IMAGE: ghcr.io/man4ish/omnibioai-plugin-workflow-runner:1.0.0
+    volumes:
+      # Docker socket — lets api/server.py spawn sibling runner containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+      # Bundles mounted at the same absolute path as on the host so that the
+      # path used in `docker run -v` is valid from Docker's (host) perspective
+      - ${MACHINE_DIR}/omnibioai-workflow-bundles:${MACHINE_DIR}/omnibioai-workflow-bundles
+      # Shared runs dir — inputs.json written here by the API is visible to
+      # the runner container via the same host path
+      - ${RUNS_DIR:-/tmp/omnibioai-runs}:${RUNS_DIR:-/tmp/omnibioai-runs}
     depends_on:
       mysql:
         condition: service_healthy
