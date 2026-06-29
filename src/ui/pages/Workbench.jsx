@@ -25,7 +25,7 @@ function buildCategories(BASE) {
         { label:"Control Center",   url:"http://127.0.0.1:7070",     icon:"🖥️", desc:"Health + Docker imgs"             },
         { label:"LIMS",             url:"/_svc/lims/",               icon:"🧪", desc:"Lab data management"              },
         { label:"Model Registry",   url:"/_svc/modelregistry",       icon:"🧬", desc:"ML model versioning"              },
-        { label:"RAG / Lit AI",     url:"/_svc/rag",                 icon:"📚", desc:"PubMed RAG + DeepSeek"            },
+        { label:"RAG / Lit AI",     url:"/_svc/rag/",                icon:"📚", desc:"PubMed RAG + DeepSeek"            },
         { label:"TES / Jobs",       url:"/_svc/tes",                 icon:"🚀", desc:"Slurm/AWS/Azure/GCP"              },
         { label:"Tool Images",      url:"/_svc/toolimages",          icon:"🐳", desc:"ARM64 SIF dashboard"              },
         { label:"Launcher",          url:"http://localhost:5190",      icon:"🔬", desc:"Jupyter · RStudio · VS Code"      },
@@ -88,7 +88,7 @@ function buildCategories(BASE) {
       color: "#a78bfa",
       links: [
         { label:"Drug Target AI",   url:"/_svc/workbench/plugins/drug_target_intelligence/",   icon:"💊", desc:"Drug target analysis"  },
-        { label:"Literature AI",    url:"/_svc/rag",                                            icon:"📚", desc:"PubMed RAG + DeepSeek" },
+        { label:"Literature AI",    url:"/_svc/rag/",                                           icon:"📚", desc:"PubMed RAG + DeepSeek" },
         { label:"Pathway Enrichment",url:"/_svc/workbench/plugins/pathway_enrichment/",        icon:"🔗", desc:"Pathway analysis"      },
         { label:"Bio Hypothesis",   url:"/_svc/workbench/plugins/bio_hypothesis_ai/",          icon:"🧠", desc:"Hypothesis generation" },
         { label:"Literature Summarizer", url:"/_svc/workbench/plugins/literature_summarizer/", icon:"📄", desc:"AI-powered paper summarization" },

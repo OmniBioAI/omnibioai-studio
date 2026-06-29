@@ -230,6 +230,7 @@ services:
       GATEWAY_URL: http://api-gateway:8080
       RAGBIO_API_KEY: ${RAGBIO_API_KEY}
       RAGBIO_HOST: 0.0.0.0
+      CORS_ORIGINS: "http://localhost,http://localhost:5174,http://localhost:5175"
       RAG_QUERY_TIMEOUT: "300"
       RAG_LLM_TIMEOUT: "300"
       NCBI_EMAIL: ${NCBI_EMAIL}

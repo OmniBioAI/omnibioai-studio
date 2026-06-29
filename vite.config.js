@@ -37,7 +37,7 @@ export default defineConfig({
       "/_svc/tes":       { target: `http://${HOST}:5177`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/tes/, "") || "/" },
       "/_tes":           { target: `http://${HOST}:8081`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_tes/, "") },
       "/_svc/toolserver":{ target: `http://${HOST}:9090`, changeOrigin: true, rewrite: () => "/health" },
-      "/_svc/rag":       { target: `http://${HOST}:5175`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/rag/, "") || "/" },
+      "/_svc/rag":       { target: `http://${HOST}`, changeOrigin: true },
       "/_svc/modelregistry": { target: `http://${HOST}:5176`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/modelregistry/, "") || "/" },
       "/_svc/devhub":    { target: `http://${HOST}:5173`, changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/devhub/, "") || "/" },
       "/_svc/control":   { target: "http://127.0.0.1:7070", changeOrigin: true, rewrite: (p) => p.replace(/^\/_svc\/control/, "") || "/" },
