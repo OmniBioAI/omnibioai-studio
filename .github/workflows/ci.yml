@@ -1,0 +1,300 @@
+name: CI/CD — OmniBioAI Studio
+
+on:
+  push:
+    branches: [main, dev, "feature/**"]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ── 1. Lint & Validate ──────────────────────────────────
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Validate JSON configs
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json'))" \
+            && echo "✅ package.json valid"
+          node -e "JSON.parse(require('fs').readFileSync('electron-builder.json'))" \
+            && echo "✅ electron-builder.json valid"
+      - name: Validate docker-compose
+        run: |
+          docker compose -f docker-compose.yml config --quiet \
+            && echo "✅ docker-compose.yml valid"
+
+  # ── 2. Build React UI ───────────────────────────────────
+  build-ui:
+    name: Build UI
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Build React UI
+        run: cross-env OMNIBIOAI_DEV_MODE=false npm run build:ui
+      - name: Verify dist
+        run: |
+          test -f dist/index.html || (echo "❌ dist/index.html missing" && exit 1)
+          echo "✅ UI built — $(du -sh dist | cut -f1)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+          retention-days: 1
+
+  # ── 3. Build Linux x64 (AppImage + DEB + RPM) ──────────
+  build-linux-x64:
+    name: Build Linux x64
+    runs-on: ubuntu-latest
+    needs: build-ui
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libarchive-tools fakeroot rpm alien
+      - name: Build Linux x64
+        run: |
+          npx electron-builder --linux AppImage deb rpm --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          OMNIBIOAI_DEV_MODE: false
+      - name: Verify
+        run: |
+          ls -lh release/*.AppImage release/*.deb release/*.rpm 2>/dev/null
+          echo "✅ Linux x64 packages built"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+          retention-days: 7
+
+  # ── 4. Build Linux ARM64 (AppImage + DEB + RPM) ─────────
+  build-linux-arm64:
+    name: Build Linux ARM64
+    runs-on: ubuntu-latest
+    needs: build-ui
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libarchive-tools fakeroot rpm alien
+      - name: Build Linux ARM64
+        run: |
+          npx electron-builder --linux AppImage deb rpm --arm64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          OMNIBIOAI_DEV_MODE: false
+      - name: Verify
+        run: |
+          ls -lh release/*.AppImage release/*.deb release/*.rpm 2>/dev/null
+          echo "✅ Linux ARM64 packages built"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+          retention-days: 7
+
+  # ── 5. Build macOS (DMG arm64 + x64) ───────────────────
+  build-mac:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    needs: build-ui
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+      - name: Build DMG (arm64 + x64)
+        run: |
+          npx electron-builder --mac dmg --x64 --arm64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          OMNIBIOAI_DEV_MODE: false
+      - name: Verify
+        run: |
+          ls -lh release/*.dmg
+          echo "✅ macOS DMGs built"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-dmg
+          path: release/*.dmg
+          retention-days: 7
+
+  # ── 6. Build Windows EXE ────────────────────────────────
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    needs: build-ui
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - uses: actions/download-artifact@v4
+        with:
+          name: ui-dist
+          path: dist/
+      - name: Build NSIS installer
+        run: npx electron-builder --win nsis --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          OMNIBIOAI_DEV_MODE: false
+      - name: Verify
+        shell: pwsh
+        run: |
+          Get-ChildItem release/*.exe | Format-List Name, Length
+          Write-Host "✅ Windows installer built"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/*.exe
+          retention-days: 7
+
+  # ── 7. GitHub Release (tags only) ───────────────────────
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-linux-x64, build-linux-arm64, build-mac, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-x64
+          path: artifacts/linux-x64/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-arm64
+          path: artifacts/linux-arm64/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: mac-dmg
+          path: artifacts/mac/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: artifacts/windows/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "OmniBioAI Studio ${{ github.ref_name }}"
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          generate_release_notes: true
+          body: |
+            ## OmniBioAI Studio ${{ github.ref_name }}
+
+            ### 📦 Downloads
+
+            | Platform | Architecture | File | Notes |
+            |---|---|---|---|
+            | macOS | Apple Silicon (M1/M2/M3/M4) | `*-arm64.dmg` | Recommended for Mac |
+            | macOS | Intel | `*-x64.dmg` | For older Macs |
+            | Linux | x64 (Intel/AMD) | `*.AppImage` / `*.deb` / `*.rpm` | Most laptops/servers |
+            | Linux | ARM64 | `*-arm64.AppImage` / `*-arm64.deb` / `*.aarch64.rpm` | DGX/Graviton |
+            | Windows | x64 | `*-Setup-*.exe` | Windows 10/11 |
+
+            ### 🚀 Quick Start
+
+            **Linux (DEB - Ubuntu/Debian):**
+            ```bash
+            sudo dpkg -i omnibioai_*.deb
+            omnibioai-studio
+            ```
+
+            **Linux (RPM - RHEL/Fedora/CentOS):**
+            ```bash
+            sudo rpm -i omnibioai-*.rpm
+            omnibioai-studio
+            ```
+
+            **Linux (AppImage):**
+            ```bash
+            chmod +x OmniBioAI*.AppImage
+            ./OmniBioAI*.AppImage --no-sandbox
+            ```
+
+            **macOS:**
+            Open DMG → Drag to Applications → Right-click → Open
+
+            **Windows:**
+            Run installer → Follow wizard → Launch from Start Menu
+
+            ### 📋 Requirements
+            - Docker Desktop (auto-prompted on first launch)
+            - 16GB RAM minimum (32GB recommended)
+            - 50GB free disk space
+            - License key (get one at omnibioai.org)
+
+            ### 🔑 Get Beta Access
+            Sign up at: https://omnibioai.org/#request
+
+          files: |
+            artifacts/linux-x64/*.AppImage
+            artifacts/linux-x64/*.deb
+            artifacts/linux-x64/*.rpm
+            artifacts/linux-arm64/*.AppImage
+            artifacts/linux-arm64/*.deb
+            artifacts/linux-arm64/*.rpm
+            artifacts/mac/*.dmg
+            artifacts/windows/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
