@@ -6,7 +6,7 @@
   "main": "electron/main.js",
   "scripts": {
     "predev": "fuser -k 5174/tcp 2>/dev/null; true",
-    "dev": "cross-env OMNIBIOAI_DEV_MODE=true concurrently \"npm run vite\" \"npx --no-install electron . --no-sandbox --disable-gpu-sandbox\"",
+    "dev": "cross-env OMNIBIOAI_DEV_MODE=true concurrently \"npm run vite\" \"npx --no-install electron . --no-sandbox --disable-gpu-sandbox --disable-gpu --disable-software-rasterizer --in-process-gpu\"",
     "vite": "vite",
     "build:ui": "vite build",
     "build:dev": "cross-env OMNIBIOAI_DEV_MODE=true npm run build:ui && electron-builder --linux --arch arm64",
