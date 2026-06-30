@@ -247,12 +247,19 @@ services:
       HYBRID_SEARCH_ENABLED: "true"
       KG_EXTRACT_MODEL: "llama3:latest"
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      RAG_CACHE_ENABLED: "true"
+      RAG_CACHE_TTL: "3600"
+      REDIS_URL: redis://redis:6379
     volumes:
       - ${DATA_DIR}/PubMed:/workspace/data/PubMed
       - ${DATA_DIR}/PubMed/Index:/workspace/data/Index
     depends_on:
-      - ollama
-      - neo4j
+      ollama:
+        condition: service_started
+      neo4j:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   workbench:
     build:
