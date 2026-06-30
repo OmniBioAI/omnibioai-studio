@@ -246,6 +246,7 @@ services:
       NEO4J_ENABLED: "true"
       HYBRID_SEARCH_ENABLED: "true"
       KG_EXTRACT_MODEL: "llama3:latest"
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
     volumes:
       - ${DATA_DIR}/PubMed:/workspace/data/PubMed
       - ${DATA_DIR}/PubMed/Index:/workspace/data/Index
@@ -309,6 +310,7 @@ services:
       SENTRY_RELEASE: "0.4.0-beta"
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_ML_TUTORIALS_DIR: /workspace/omnibioai-docs/tutorials/ml
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${MACHINE_DIR}/omnibioai-docs:/workspace/omnibioai-docs:ro
@@ -400,6 +402,7 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.4.0-beta"
       REPORT_SCHEDULE_HOURS: ${REPORT_SCHEDULE_HOURS:-6}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
     volumes:
       - ${MACHINE_DIR}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
