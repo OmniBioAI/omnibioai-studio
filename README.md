@@ -482,7 +482,7 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 | v0.2.0-beta | ✅ Released | License system, zero-trust security, 1010 tools, Windows installer |
 | v0.3.0-beta | ✅ Released | IDE Services, Grafana observability, auto-secrets, npm security |
 | **v0.4.0-beta** | ✅ **Current** | Version unification, 23 services, 7 exec servers, claude-sonnet-4 |
-| v0.5.0 | 🔜 July 15, 2026 | 225 plugins, 36M abstract RAG index, full beta launch |
+| v0.5.0-beta | 🔜 July 15, 2026 | 225 plugins, 36M abstract RAG index, full beta launch |
 | v0.6.0 | 🔜 Planned | SSO/SAML, role management UI, HIPAA compliance reporting |
 
 ---
