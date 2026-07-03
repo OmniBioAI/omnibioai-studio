@@ -61,7 +61,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: rm -f package-lock.json && npm install
       - name: Build React UI
         run: npx cross-env OMNIBIOAI_DEV_MODE=false npm run build:ui
       - name: Verify dist
