@@ -1,0 +1,142 @@
+import { StandardSchemaV1 } from '@standard-schema/spec';
+import { JSONRPCRequest } from 'json-rpc-2.0';
+import { JsonSchemaAdapter } from '../adapter.js';
+import {
+	GetPromptResult,
+	CallToolResult,
+	ReadResourceResult,
+	CompleteResult,
+	InitializeRequestParams,
+	Resource,
+	ServerCapabilities,
+	LoggingLevel,
+	ToolAnnotations,
+	Icons
+} from '../validation/index.js';
+import { ExtractURITemplateVariables } from './uri-template.js';
+
+declare const created_tool: unique symbol;
+declare const created_prompt: unique symbol;
+declare const created_resource: unique symbol;
+declare const created_template: unique symbol;
+
+export type AllSame<T, U> = [T] extends [U] ? true : false;
+
+export type PromptOptions<TSchema extends StandardSchemaV1 | undefined = undefined> = { 
+	name: string; 
+	description: string; 
+	title?: string; 
+	enabled?: ()=>boolean | Promise<boolean>; 
+	schema?: StandardSchemaV1.InferInput<TSchema extends undefined ? never : TSchema> extends Record<string, unknown> ? TSchema : never;
+	complete?: NoInfer<TSchema extends undefined ? never : Partial<Record<keyof (StandardSchemaV1.InferInput<TSchema extends undefined ? never : TSchema>), Completion>>> 
+} & Icons
+
+export type ToolOptions<TSchema extends StandardSchemaV1 | undefined = undefined, TOutputSchema extends StandardSchemaV1 | undefined = undefined> = {
+	name: string;
+	_meta?: Record<string, any>;
+	description: string;
+	title?: string;
+	enabled?: () => boolean | Promise<boolean>;
+	schema?: StandardSchemaV1.InferInput<TSchema extends undefined ? never : TSchema> extends Record<string, unknown> ? TSchema : never;
+	outputSchema?: StandardSchemaV1.InferOutput<TOutputSchema extends undefined ? never : TOutputSchema> extends Record<string, unknown> ? TOutputSchema : never;
+	annotations?: ToolAnnotations;
+} & Icons;
+
+export type ResourceOptions = { 
+	name: string;
+	description: string; 
+	title?: string; 
+	uri: string;
+	mimeType?: string;
+	enabled?: ()=>boolean | Promise<boolean>; 
+} & Icons
+
+export type TemplateOptions<TUri extends string = string, TVariables extends ExtractURITemplateVariables<TUri> = ExtractURITemplateVariables<TUri>> = { 
+	name: string;
+	description: string;
+	title?: string;
+	mimeType?: string;
+	enabled?: ()=>boolean | Promise<boolean>;
+	uri: TUri;
+	complete?: NoInfer<TVariables extends never ? never : Partial<Record<TVariables, Completion>>>;
+	list?: () => Promise<Array<Resource>> | Array<Resource> 
+} & Icons
+
+export type CreatedTool<TSchema extends StandardSchemaV1 | undefined = undefined, TOutputSchema extends StandardSchemaV1 | undefined = undefined> = ToolOptions<TSchema, TOutputSchema> & { [created_tool]: created_tool };
+export type CreatedPrompt<TSchema extends StandardSchemaV1 | undefined = undefined> = PromptOptions<TSchema> & { [created_prompt]: created_prompt };
+export type CreatedResource = ResourceOptions & { [created_resource]: created_resource };
+export type CreatedTemplate<TUri extends string = string> = TemplateOptions<TUri> & { [created_template]: created_template };
+
+export type Tool<TSchema extends StandardSchemaV1 = StandardSchemaV1<any>, TOutputSchema extends StandardSchemaV1 = StandardSchemaV1<any>> = ToolOptions<TSchema, TOutputSchema> & {
+	execute: (
+		input?: StandardSchemaV1.InferInput<TSchema>,
+	) => Promise<CallToolResult> | CallToolResult;
+};
+
+export type Completion = (
+	query: string,
+	context: { arguments: Record<string, string> },
+) => CompleteResult | Promise<CompleteResult>;
+
+export type Prompt<TSchema extends StandardSchemaV1 = StandardSchemaV1<any>> = PromptOptions<TSchema> & {
+	execute: (
+		input?: StandardSchemaV1.InferInput<TSchema>,
+	) => Promise<GetPromptResult> | GetPromptResult;
+};
+
+export type StoredResource =
+	| TemplateOptions<string, string> & {
+			template: true;
+			list_resources?: () =>
+				| Promise<Array<Resource>>
+				| Array<Resource>;
+			execute: (
+				uri: string,
+				params: Record<string, string | string[]>,
+			) => Promise<ReadResourceResult> | ReadResourceResult;
+	  }
+	| ResourceOptions & {
+			template: false;
+			execute: (
+				uri: string,
+			) => Promise<ReadResourceResult> | ReadResourceResult;
+	  };
+
+export type ServerOptions<TSchema extends StandardSchemaV1 | undefined> = {
+	capabilities?: ServerCapabilities;
+	instructions?: string;
+	adapter: JsonSchemaAdapter<TSchema> | undefined;
+	pagination?: {
+		tools?: { size?: number };
+		resources?: { size?: number };
+		prompts?: { size?: number };
+	};
+	logging?: {
+		default: LoggingLevel;
+	}
+};
+
+export type ChangedArgs = {
+	'resource': [id: string];
+	'tools': [];
+	'prompts': [];
+	'resources': [];
+}
+
+type SubscriptionsKeysObj = {
+	[K in keyof ChangedArgs as ChangedArgs[K]["length"] extends 0 ? "without_args" : "with_args"]: K
+};
+
+export type SubscriptionsKeys = SubscriptionsKeysObj["with_args"];
+
+export type McpEvents = {
+	send: (message: {
+		request: JSONRPCRequest;
+	}) => void;
+	broadcast: (message: {
+		request: JSONRPCRequest;
+	}) => void;
+	initialize: (initialize_request: InitializeRequestParams) => void;
+	subscription: (subscriptions_request: { uri: string, action?: "add" | "remove" }) => void;
+	loglevelchange: (change: { level: LoggingLevel }) => void;
+};

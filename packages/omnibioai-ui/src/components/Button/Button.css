@@ -1,0 +1,53 @@
+.omni-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.omni-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.omni-btn--sm   { padding: 4px 10px;  font-size: var(--font-size-xs); }
+.omni-btn--md   { padding: 7px 14px;  font-size: var(--font-size-sm); }
+.omni-btn--lg   { padding: 10px 20px; font-size: var(--font-size-base); }
+
+.omni-btn--primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: 0.5px solid var(--color-accent);
+}
+.omni-btn--primary:hover:not(:disabled) { opacity: 0.88; }
+
+.omni-btn--secondary {
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+  border: 0.5px solid var(--color-border);
+}
+.omni-btn--secondary:hover:not(:disabled) { background: var(--color-bg-surface2); }
+
+.omni-btn--danger {
+  background: var(--color-danger-dim);
+  color: var(--color-danger);
+  border: 0.5px solid var(--color-danger-border);
+}
+.omni-btn--danger:hover:not(:disabled) { opacity: 0.88; }
+
+.omni-btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 0.5px solid var(--color-border);
+}
+.omni-btn--ghost:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-bg-surface2);
+}

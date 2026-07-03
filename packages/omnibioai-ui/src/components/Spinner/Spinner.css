@@ -1,0 +1,16 @@
+.omni-spinner {
+  display: inline-block;
+  border-style: solid;
+  border-color: var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: omni-spin 0.7s linear infinite;
+}
+
+.omni-spinner--sm { width: 12px; height: 12px; border-width: 1.5px; }
+.omni-spinner--md { width: 18px; height: 18px; border-width: 2px; }
+.omni-spinner--lg { width: 28px; height: 28px; border-width: 3px; }
+
+@keyframes omni-spin {
+  to { transform: rotate(360deg); }
+}

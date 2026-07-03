@@ -1,0 +1,11 @@
+import { Meta, StoryObj } from '@storybook/react-vite';
+import { Badge } from './Badge';
+declare const meta: Meta<typeof Badge>;
+export default meta;
+type Story = StoryObj<typeof Badge>;
+export declare const AllVariants: Story;
+export declare const Success: Story;
+export declare const Warning: Story;
+export declare const Danger: Story;
+export declare const Info: Story;
+export declare const Neutral: Story;

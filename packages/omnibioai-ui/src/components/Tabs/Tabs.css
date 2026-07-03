@@ -1,0 +1,43 @@
+.omni-tabs {}
+
+.omni-tab-nav {
+  display: flex;
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 4px 4px 0;
+  gap: 2px;
+  border-bottom: 0.5px solid var(--color-border);
+}
+
+.omni-tab-btn {
+  padding: 9px 18px;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-bottom: -1px;
+  font-family: var(--font-sans);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: color 0.15s;
+}
+
+.omni-tab-btn:hover {
+  color: var(--color-text-secondary);
+}
+
+.omni-tab-btn.active {
+  color: var(--color-text);
+  border-bottom-color: var(--color-accent);
+}
+
+.omni-tab-panel {
+  background: var(--color-bg-surface);
+  border: 0.5px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: 18px 20px;
+}

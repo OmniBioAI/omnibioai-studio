@@ -1,0 +1,115 @@
+:root {
+  /* Backgrounds */
+  --color-bg:           #0f1117;
+  --color-bg-surface:   #1a1d2e;
+  --color-bg-surface2:  #20243a;
+  --color-bg-surface3:  #222536;
+  --color-bg-elevated:  #13161f;
+
+  /* Borders */
+  --color-border:        rgba(255,255,255,0.08);
+  --color-border-muted:  rgba(255,255,255,0.07);
+  --color-border-bright: rgba(255,255,255,0.12);
+
+  /* Text */
+  --color-text:           #ffffff;
+  --color-text-soft:      #e8eaf0;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted:     #6b7280;
+  --color-text-dim:       #4b5563;
+
+  /* Brand */
+  --color-accent:         #00e5a0;
+  --color-accent-dim:     rgba(0,229,160,0.10);
+  --color-accent-surface: rgba(0,229,160,0.07);
+  --color-accent-border:  rgba(0,229,160,0.30);
+  --color-blue:           #0094ff;
+  --color-blue-dim:       rgba(0,148,255,0.10);
+  --color-purple:         #a855f7;
+  --color-purple-dim:     rgba(168,85,247,0.12);
+  --color-on-accent:      #000000;
+
+  /* Status */
+  --color-danger:         #ef4444;
+  --color-danger-dim:     rgba(239,68,68,0.12);
+  --color-danger-border:  rgba(239,68,68,0.30);
+  --color-warning:        #f59e0b;
+  --color-warning-dim:    rgba(245,158,11,0.12);
+  --color-warning-border: rgba(245,158,11,0.30);
+  --color-success:        #22c55e;
+  --color-success-dim:    rgba(34,197,94,0.12);
+  --color-success-border: rgba(34,197,94,0.30);
+  --color-info:           #0094ff;
+  --color-info-dim:       rgba(0,148,255,0.10);
+  --color-info-border:    rgba(0,148,255,0.30);
+
+  /* Shadows */
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --shadow-card:   0 4px 24px rgba(0,0,0,0.3);
+  --shadow-header: 0 2px 8px rgba(0,0,0,0.4);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 13px;
+  --font-size-md:   14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  24px;
+
+  /* Border radius */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius:      8px;
+  --radius-lg:   10px;
+  --radius-xl:   14px;
+  --radius-pill: 9999px;
+
+  /* Layout */
+  --sidebar-w:   200px;
+  --topbar-h:    48px;
+  --scrollbar-w: 4px;
+}
+
+/* Scrollbar baseline */
+::-webkit-scrollbar { width: var(--scrollbar-w); }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-xs);
+}
+
+/* Aliases for @man4ish/ui component compatibility */
+:root {
+  --color-background-primary:   var(--color-bg-elevated);
+  --color-background-secondary: var(--color-bg-surface);
+  --color-background-tertiary:  var(--color-bg);
+  --color-background-info:      var(--color-info-dim);
+  --color-background-danger:    var(--color-danger-dim);
+  --color-background-success:   var(--color-success-dim);
+  --color-background-warning:   var(--color-warning-dim);
+
+  --color-text-primary:   var(--color-text);
+  --color-text-secondary: var(--color-text-soft);
+  --color-text-tertiary:  var(--color-text-muted);
+  --color-text-info:      var(--color-blue);
+  --color-text-danger:    var(--color-danger);
+  --color-text-success:   var(--color-success);
+  --color-text-warning:   var(--color-warning);
+
+  --color-border-primary:   var(--color-border-bright);
+  --color-border-secondary: var(--color-border);
+  --color-border-tertiary:  var(--color-border-muted);
+  --color-border-info:      var(--color-info-border);
+  --color-border-danger:    var(--color-danger-border);
+  --color-border-success:   var(--color-success-border);
+  --color-border-warning:   var(--color-warning-border);
+
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}

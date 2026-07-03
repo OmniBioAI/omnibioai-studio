@@ -1,0 +1,47 @@
+.omni-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.omni-input-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.omni-input {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--color-bg-surface);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.omni-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-dim);
+}
+
+.omni-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.omni-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.omni-input--error {
+  border-color: var(--color-danger);
+}
+
+.omni-input-error {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+}

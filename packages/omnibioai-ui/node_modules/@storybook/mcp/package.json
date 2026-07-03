@@ -1,0 +1,48 @@
+{
+  "name": "@storybook/mcp",
+  "version": "0.7.0",
+  "description": "MCP server that serves knowledge about your components based on your Storybook stories and documentation",
+  "keywords": [
+    "mcp",
+    "storybook"
+  ],
+  "homepage": "https://github.com/storybookjs/mcp/blob/main/packages/mcp/README.md",
+  "license": "MIT",
+  "author": "Storybook Core Team",
+  "repository": {
+    "url": "git+https://github.com/storybookjs/mcp.git",
+    "directory": "packages/mcp"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@tmcp/adapter-valibot": "^0.1.5",
+    "@tmcp/transport-http": "^0.8.5",
+    "tmcp": "^1.19.3",
+    "valibot": "1.2.0"
+  },
+  "devDependencies": {
+    "@tmcp/transport-stdio": "^0.4.2",
+    "react-docgen": "^8.0.2",
+    "react-docgen-typescript": "^2.4.0",
+    "srvx": "^0.8.16",
+    "tinyexec": "^1.0.2"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "node --watch ./serve.ts",
+    "inspect": "mcp-inspector --config ../../.mcp.inspect.json --server storybook-mcp",
+    "publint": "publint",
+    "test": "cd ../.. && pnpm vitest --project=@storybook/mcp",
+    "typecheck": "tsc"
+  }
+}

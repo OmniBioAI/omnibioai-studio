@@ -1,0 +1,62 @@
+{
+  "name": "@tmcp/transport-http",
+  "version": "0.8.6",
+  "license": "MIT",
+  "description": "Transport for TMCP using HTTP",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/**/*"
+  ],
+  "peerDependencies": {
+    "tmcp": "^1.18.0",
+    "@tmcp/auth": "^0.3.3 || ^0.4.0"
+  },
+  "peerDependenciesMeta": {
+    "@tmcp/auth": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "tmcp",
+    "http",
+    "transport"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paoloricciuti/tmcp.git",
+    "directory": "packages/transport-http"
+  },
+  "dependencies": {
+    "esm-env": "^1.2.2",
+    "@tmcp/session-manager": "^0.2.2"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.1",
+    "@remix-run/node-fetch-server": "^0.13.0",
+    "@types/node": "^24.0.15",
+    "dts-buddy": "^0.6.2",
+    "publint": "^0.3.12",
+    "valibot": "^1.1.0",
+    "vitest": "^4.0.0",
+    "@tmcp/adapter-valibot": "^0.1.6",
+    "@tmcp/auth": "^0.4.1",
+    "tmcp": "^1.19.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "generate:types": "dts-buddy && publint",
+    "prepublish": "pnpm generate:types",
+    "test": "vitest --run"
+  }
+}

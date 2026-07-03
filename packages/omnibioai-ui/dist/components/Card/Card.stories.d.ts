@@ -1,0 +1,10 @@
+import { Meta, StoryObj } from '@storybook/react-vite';
+import { Card } from './Card';
+declare const meta: Meta<typeof Card>;
+export default meta;
+type Story = StoryObj<typeof Card>;
+export declare const Basic: Story;
+export declare const WithTitle: Story;
+export declare const WithActions: Story;
+export declare const Elevated: Story;
+export declare const Clickable: Story;

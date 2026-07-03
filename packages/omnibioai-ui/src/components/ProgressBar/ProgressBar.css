@@ -1,0 +1,39 @@
+.omni-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.omni-progress-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-bg-surface2);
+  overflow: hidden;
+}
+
+.omni-progress-track--sm { height: 4px; }
+.omni-progress-track--md { height: 6px; }
+.omni-progress-track--lg { height: 10px; }
+
+.omni-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  min-width: 2px;
+  transition: width 0.3s ease;
+}
+
+.omni-progress-fill--success { background: var(--color-success); }
+.omni-progress-fill--danger  { background: var(--color-danger);  }
+.omni-progress-fill--warning { background: var(--color-warning); }
+.omni-progress-fill--accent  { background: var(--color-accent);  }
+.omni-progress-fill--info    { background: var(--color-info);    }
+
+.omni-progress-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  min-width: 36px;
+  text-align: right;
+}

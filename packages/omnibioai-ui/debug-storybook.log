@@ -1,0 +1,325 @@
+[23:09:46.315] [INFO] This command is running via an AI agent: claude-code_2-1-177_agent. Proceeding with agentic installation flow.
+[23:09:46.407] [INFO] Initializing Storybook
+[23:09:46.469] [DEBUG] Getting package.json info for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:46.469] [INFO] Package manager: npm
+[23:09:46.470] [DEBUG] Getting CLI versions from NPM for storybook...
+[23:09:46.470] [DEBUG] Executing command: npm info storybook version
+[23:09:46.843] [INFO] Adding Storybook version 10.4.4 to your project
+[23:09:46.844] [DEBUG] Executing command: npm config get min-release-age --workspaces=false --include-workspace-root
+[23:09:46.904] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:46.904] [DEBUG] Project type detected: react
+[23:09:46.905] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:46.905] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:46.905] [INFO] Framework detected: react-vite
+[23:09:46.906] [DEBUG] Getting installed version for vitest...
+[23:09:46.906] [DEBUG] Executing command: npm ls --json --depth=99 2>/dev/null
+[23:09:47.157] [DEBUG] Executing command: npm ls --json --depth=0 2>/dev/null
+[23:09:47.384] [DEBUG] Error finding installations for vitest: ExecaError: Command failed with exit code 1: npm ls --json '--depth=0' '2>/dev/null'
+
+{
+  "version": "1.0.0",
+  "name": "@man4ish/ui"
+}
+[23:09:47.384] [DEBUG] No installations found for vitest
+[23:09:47.384] [DEBUG] Getting installed version for msw...
+[23:09:47.384] [DEBUG] Executing command: npm ls --json --depth=99 2>/dev/null
+[23:09:47.625] [DEBUG] Executing command: npm ls --json --depth=0 2>/dev/null
+[23:09:47.836] [DEBUG] Error finding installations for msw: ExecaError: Command failed with exit code 1: npm ls --json '--depth=0' '2>/dev/null'
+
+{
+  "version": "1.0.0",
+  "name": "@man4ish/ui"
+}
+[23:09:47.836] [DEBUG] No installations found for msw
+[23:09:47.839] [INFO] Storybook collects completely anonymous usage telemetry. We use it to shape Storybook's roadmap and prioritize features. You can learn more, including how to opt out, at https://storybook.js.org/telemetry
+[23:09:48.086] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:48.086] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:48.086] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:48.087] [DEBUG] Using cached version for storybook...
+[23:09:48.087] [DEBUG] Getting CLI versions from NPM for @storybook/react-vite...
+[23:09:48.087] [DEBUG] Executing command: npm info @storybook/react-vite version
+[23:09:48.091] [DEBUG] Getting CLI versions from NPM for @chromatic-com/storybook...
+[23:09:48.091] [DEBUG] Executing command: npm info @chromatic-com/storybook version
+[23:09:48.096] [DEBUG] Getting CLI versions from NPM for @storybook/addon-vitest...
+[23:09:48.096] [DEBUG] Executing command: npm info @storybook/addon-vitest version
+[23:09:48.100] [DEBUG] Getting CLI versions from NPM for @storybook/addon-a11y...
+[23:09:48.100] [DEBUG] Executing command: npm info @storybook/addon-a11y version
+[23:09:48.104] [DEBUG] Getting CLI versions from NPM for @storybook/addon-docs...
+[23:09:48.104] [DEBUG] Executing command: npm info @storybook/addon-docs version
+[23:09:48.108] [DEBUG] Getting CLI versions from NPM for @storybook/addon-mcp...
+[23:09:48.108] [DEBUG] Executing command: npm info @storybook/addon-mcp version
+[23:09:48.849] [INFO] - Configuring main.ts
+[23:09:48.850] [INFO] - Configuring preview.ts
+[23:09:48.850] [INFO] - Adding Storybook command to package.json
+[23:09:48.850] [DEBUG] Getting package.json info for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:48.850] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:48.850] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:48.851] [INFO] - Copying framework templates
+[23:09:48.858] [DEBUG] Executing command: npm config get registry --workspaces=false --include-workspace-root
+[23:09:49.078] [INFO] Storybook configuration generated
+[23:09:49.078] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:49.078] [DEBUG] Using cached installed version for vitest...
+[23:09:49.079] [DEBUG] Getting installed version for @vitest/coverage-v8...
+[23:09:49.079] [DEBUG] Executing command: npm ls --json --depth=99 2>/dev/null
+[23:09:49.341] [DEBUG] Executing command: npm ls --json --depth=0 2>/dev/null
+[23:09:49.569] [DEBUG] Error finding installations for @vitest/coverage-v8: ExecaError: Command failed with exit code 1: npm ls --json '--depth=0' '2>/dev/null'
+
+{
+  "version": "1.0.0",
+  "name": "@man4ish/ui"
+}
+[23:09:49.569] [DEBUG] No installations found for @vitest/coverage-v8
+[23:09:49.569] [DEBUG] Getting installed version for @vitest/coverage-istanbul...
+[23:09:49.569] [DEBUG] Executing command: npm ls --json --depth=99 2>/dev/null
+[23:09:49.798] [DEBUG] Executing command: npm ls --json --depth=0 2>/dev/null
+[23:09:50.014] [DEBUG] Error finding installations for @vitest/coverage-istanbul: ExecaError: Command failed with exit code 1: npm ls --json '--depth=0' '2>/dev/null'
+
+{
+  "version": "1.0.0",
+  "name": "@man4ish/ui"
+}
+[23:09:50.014] [DEBUG] No installations found for @vitest/coverage-istanbul
+[23:09:50.014] [INFO] Adding devDependencies:
+- storybook@^10.4.4
+- @storybook/react-vite@^10.4.4
+- @chromatic-com/storybook@^5.2.1
+- @storybook/addon-vitest@^10.4.4
+- @storybook/addon-a11y@^10.4.4
+- @storybook/addon-docs@^10.4.4
+- @storybook/addon-mcp@^0.6.0
+- playwright
+- @vitest/browser-playwright@^4.1.8
+- @vitest/coverage-v8@^4.1.8
+[23:09:50.016] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:50.016] [DEBUG] Using cached version for storybook...
+[23:09:50.016] [DEBUG] Using cached version for @storybook/react-vite...
+[23:09:50.016] [DEBUG] Using cached version for @chromatic-com/storybook...
+[23:09:50.016] [DEBUG] Using cached version for @storybook/addon-vitest...
+[23:09:50.016] [DEBUG] Using cached version for @storybook/addon-a11y...
+[23:09:50.016] [DEBUG] Using cached version for @storybook/addon-docs...
+[23:09:50.016] [DEBUG] Using cached version for @storybook/addon-mcp...
+[23:09:50.016] [DEBUG] Getting CLI versions from NPM for playwright...
+[23:09:50.016] [DEBUG] Executing command: npm info playwright version
+[23:09:50.414] [DEBUG] Getting CLI versions from NPM for @vitest/browser-playwright...
+[23:09:50.414] [DEBUG] Executing command: npm info @vitest/browser-playwright version
+[23:09:50.767] [DEBUG] Getting CLI versions from NPM for @vitest/coverage-v8...
+[23:09:50.767] [DEBUG] Executing command: npm info @vitest/coverage-v8 version
+[23:09:51.031] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:09:51.031] [INFO] Dependencies added to package.json
+[23:09:51.032] [INFO] Installing dependencies...
+[23:09:51.032] [INFO] Installing dependencies...
+[23:09:51.032] [DEBUG] Executing command: npm install
+[23:10:02.973] [INFO] Installing dependencies...: 
+added 141 packages, and audited 331 packages in 12s
+
+76 packages are looking for funding
+  run `npm fund` for details
+
+[23:10:02.973] [INFO] Installing dependencies...: added 141 packages, and a
+[23:10:02.977] [INFO] Installing dependencies...: 
+2 vulnerabilities (1 moderate, 1 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+[23:10:02.977] [INFO] Installing dependencies...: 2 vulnerabilities (1 mode
+[23:10:03.007] [INFO] Dependencies installed
+[23:10:03.007] [INFO] Dependencies installed
+[23:10:03.009] [INFO] Configuring @chromatic-com/storybook...
+[23:10:03.010] [INFO] @chromatic-com/storybook configured
+
+[23:10:03.010] [INFO] Configuring @storybook/addon-vitest...
+[23:10:03.012] [DEBUG] Getting package.json info for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:10:03.012] [DEBUG] Using cached package.json for /home/manish/Desktop/machine/omnibioai-ui/package.json...
+[23:10:03.012] [DEBUG] Getting installed version for vitest...
+[23:10:03.012] [DEBUG] Executing command: npm ls --json --depth=99 2>/dev/null
+[23:10:03.232] [DEBUG] Executing command: npm ls --json --depth=0 2>/dev/null
+[23:10:03.405] [DEBUG] Error finding installations for vitest: ExecaError: Command failed with exit code 1: npm ls --json '--depth=0' '2>/dev/null'
+
+{
+  "version": "1.0.0",
+  "name": "@man4ish/ui"
+}
+[23:10:03.405] [DEBUG] No installations found for vitest
+[23:10:03.405] [DEBUG] Vitest version specifier: 4.1.8
+[23:10:03.492] [DEBUG] Using cached installed version for vitest...
+[23:10:03.492] [DEBUG] Getting installed version for msw...
+[23:10:03.492] [DEBUG] Executing command: npm ls --json --depth=99 2>/dev/null
+[23:10:03.730] [DEBUG] Executing command: npm ls --json --depth=0 2>/dev/null
+[23:10:03.906] [DEBUG] Error finding installations for msw: ExecaError: Command failed with exit code 1: npm ls --json '--depth=0' '2>/dev/null'
+
+{
+  "version": "1.0.0",
+  "name": "@man4ish/ui"
+}
+[23:10:03.906] [DEBUG] No installations found for msw
+[23:10:03.944] [INFO] Updating your Vite config file:
+[23:10:03.944] [INFO]   /home/manish/Desktop/machine/omnibioai-ui/vite.config.ts
+[23:10:03.953] [INFO] Setting up a11y addon for @storybook/addon-vitest
+[23:10:03.953] [INFO] Setting up a11y addon for @storybook/addon-vitest
+[23:10:03.953] [DEBUG] Executing command: npx storybook@10.4.4 automigrate addon-a11y-addon-test --loglevel silent --yes --skip-doctor --package-manager npm --skip-install
+[23:10:23.689] [INFO] a11y addon setup successfully
+[23:10:23.689] [INFO] a11y addon setup successfully
+[23:10:23.690] [INFO] @storybook/addon-vitest setup completed successfully
+[23:10:23.690] [INFO] @storybook/addon-vitest is now configured and you're ready to run your tests!
+Here are a couple of tips to get you started:
+
+• You can run tests with "npx vitest --project=storybook"
+• Vitest IDE extension shows all stories as tests in your editor!
+
+Check the documentation for more information about its features and options at:
+https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
+[23:10:23.696] [INFO] @storybook/addon-vitest configured
+
+[23:10:23.696] [INFO] Configuring @storybook/addon-a11y...
+[23:10:23.696] [DEBUG] Executing command: npx storybook@10.4.4 automigrate addon-a11y-addon-test --loglevel silent --skip-doctor --yes --package-manager npm --config-dir .storybook
+[23:10:25.793] [INFO] @storybook/addon-a11y configured
+
+[23:10:25.793] [INFO] Configuring @storybook/addon-docs...
+[23:10:25.796] [INFO] @storybook/addon-docs configured
+
+[23:10:25.796] [INFO] Configuring @storybook/addon-mcp...
+[23:10:25.797] [INFO] @storybook/addon-mcp configured
+
+[23:10:25.797] [INFO] Addons configured successfully
+[23:10:25.798] [INFO] ✅ @chromatic-com/storybook
+[23:10:25.798] [INFO] ✅ @storybook/addon-vitest
+[23:10:25.798] [INFO] ✅ @storybook/addon-a11y
+[23:10:25.798] [INFO] ✅ @storybook/addon-docs
+[23:10:25.798] [INFO] ✅ @storybook/addon-mcp
+[23:10:25.798] [INFO] Installing Playwright browser binaries (press "c" to abort)
+[23:10:25.798] [INFO] Installing Playwright browser binaries (press "c" to abort)
+[23:10:25.799] [DEBUG] Executing command: npx playwright install chromium
+[23:10:26.200] [INFO] Installing Playwright browser binaries (press "c" to abort): Downloading Chrome for Testing 148.0.7778.96 (playwright chromium v1223)[2m from https://cdn.playwright.dev/dbazure/download/playwright/builds/chromium/1223/chromium-linux-arm64.zip[22m
+
+[23:10:26.200] [INFO] Installing Playwright browser binaries (press "c" to abort): Downloading Chrome for Te
+[23:10:27.246] [INFO] Installing Playwright browser binaries (press "c" to abort): |                                                                                |   0% of 185.7 MiB
+
+[23:10:27.246] [INFO] Installing Playwright browser binaries (press "c" to abort): |                        
+[23:10:27.864] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■                                                                        |  10% of 185.7 MiB
+
+[23:10:27.864] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■                
+[23:10:28.714] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■                                                                |  20% of 185.7 MiB
+
+[23:10:28.714] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■        
+[23:10:29.308] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 185.7 MiB
+
+[23:10:29.308] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:29.892] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 185.7 MiB
+
+[23:10:29.892] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:30.639] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 185.7 MiB
+
+[23:10:30.639] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:31.495] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 185.7 MiB
+
+[23:10:31.495] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:32.193] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 185.7 MiB
+
+[23:10:32.193] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:32.820] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 185.7 MiB
+
+[23:10:32.820] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:33.395] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 185.7 MiB
+
+[23:10:33.395] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:33.940] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 185.7 MiB
+
+[23:10:33.940] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:37.717] [INFO] Installing Playwright browser binaries (press "c" to abort): Chrome for Testing 148.0.7778.96 (playwright chromium v1223) downloaded to /home/manish/.cache/ms-playwright/chromium-1223
+
+[23:10:37.717] [INFO] Installing Playwright browser binaries (press "c" to abort): Chrome for Testing 148.0.
+[23:10:37.717] [INFO] Installing Playwright browser binaries (press "c" to abort): Downloading FFmpeg (playwright ffmpeg v1011)[2m from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux-arm64.zip[22m
+
+[23:10:37.717] [INFO] Installing Playwright browser binaries (press "c" to abort): Downloading FFmpeg (playw
+[23:10:38.738] [INFO] Installing Playwright browser binaries (press "c" to abort): |                                                                                |   0% of 1.6 MiB
+
+[23:10:38.738] [INFO] Installing Playwright browser binaries (press "c" to abort): |                        
+[23:10:38.768] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■                                                                        |  10% of 1.6 MiB
+
+[23:10:38.768] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■                
+[23:10:38.781] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■                                                                |  20% of 1.6 MiB
+
+[23:10:38.781] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■        
+[23:10:38.792] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 1.6 MiB
+
+[23:10:38.792] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:38.800] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 1.6 MiB
+
+[23:10:38.800] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:38.804] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 1.6 MiB
+
+[23:10:38.804] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:38.811] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 1.6 MiB
+
+[23:10:38.811] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:38.817] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 1.6 MiB
+
+[23:10:38.817] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:38.822] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 1.6 MiB
+
+[23:10:38.822] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:38.830] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 1.6 MiB
+
+[23:10:38.830] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:38.834] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 1.6 MiB
+
+[23:10:38.834] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:38.895] [INFO] Installing Playwright browser binaries (press "c" to abort): FFmpeg (playwright ffmpeg v1011) downloaded to /home/manish/.cache/ms-playwright/ffmpeg-1011
+
+[23:10:38.895] [INFO] Installing Playwright browser binaries (press "c" to abort): FFmpeg (playwright ffmpeg
+[23:10:38.895] [INFO] Installing Playwright browser binaries (press "c" to abort): Downloading Chrome Headless Shell 148.0.7778.96 (playwright chromium-headless-shell v1223)[2m from https://cdn.playwright.dev/dbazure/download/playwright/builds/chromium/1223/chromium-headless-shell-linux-arm64.zip[22m
+
+[23:10:38.895] [INFO] Installing Playwright browser binaries (press "c" to abort): Downloading Chrome Headle
+[23:10:39.870] [INFO] Installing Playwright browser binaries (press "c" to abort): |                                                                                |   0% of 109.4 MiB
+
+[23:10:39.870] [INFO] Installing Playwright browser binaries (press "c" to abort): |                        
+[23:10:40.213] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■                                                                        |  10% of 109.4 MiB
+
+[23:10:40.213] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■                
+[23:10:40.498] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■                                                                |  20% of 109.4 MiB
+
+[23:10:40.498] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■        
+[23:10:40.798] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 109.4 MiB
+
+[23:10:40.798] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:41.083] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 109.4 MiB
+
+[23:10:41.083] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:41.385] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 109.4 MiB
+
+[23:10:41.385] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:41.673] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 109.4 MiB
+
+[23:10:41.673] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:41.997] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 109.4 MiB
+
+[23:10:41.997] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:42.283] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 109.4 MiB
+
+[23:10:42.283] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:42.580] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 109.4 MiB
+
+[23:10:42.580] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:42.871] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 109.4 MiB
+
+[23:10:42.871] [INFO] Installing Playwright browser binaries (press "c" to abort): |■■■■■■■■■■■■■■■■■■■■■■■■
+[23:10:44.633] [INFO] Installing Playwright browser binaries (press "c" to abort): Chrome Headless Shell 148.0.7778.96 (playwright chromium-headless-shell v1223) downloaded to /home/manish/.cache/ms-playwright/chromium_headless_shell-1223
+
+[23:10:44.633] [INFO] Installing Playwright browser binaries (press "c" to abort): Chrome Headless Shell 148
+[23:10:44.694] [INFO] Playwright browser binaries installed successfully
+[23:10:44.694] [INFO] Playwright browser binaries installed successfully
+[23:10:44.695] [WARN] Playwright was installed without system dependencies. Depending on your operating system, you may need to install additional libraries for Playwright to work correctly.
+To check for missing dependencies, run Storybook Test from the Storybook UI — it will report any libraries that need to be installed.
+On MacOS, Windows, Debian and Ubuntu, you can install system dependencies manually by running:
+npx playwright install chromium --with-deps
+[23:10:45.326] [INFO] [38;2;255;71;133mStorybook is installed but is not entirely set up yet.
+To finish setting up, now run `npx storybook ai setup` and follow its instructions precisely.[39m
+[23:10:45.327] [INFO] To run Storybook, run npm run storybook. CTRL+C to stop.
+[23:10:45.327] [INFO] Official documentation reference: https://storybook.js.org/llms.txt
+[23:10:45.327] [INFO] To finalize setting up with AI, paste this prompt to your AI agent:
+
+[38;2;255;71;133mRun `npx storybook ai setup` and follow its instructions precisely.[39m
+[23:10:45.920] [INFO] 

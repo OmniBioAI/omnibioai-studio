@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/manish/Desktop/machine/**)",
+      "Read(//home/manish/Desktop/machine/omnibioai-design-tokens/**)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(cat .npmrc)",
+      "Bash(ls node_modules/.bin/vite)",
+      "Bash(cat vite.config.ts)",
+      "Bash(cat vite.config.js)",
+      "Bash(npx tsc *)",
+      "Bash(grep -rn \"#[0-9a-fA-F]\\\\{3,6\\\\}\" src/ --include=\"*.tsx\" --include=\"*.css\")",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(npx storybook@latest *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git pull *)",
+      "Bash(grep *)",
+      "Bash(git commit *)",
+      "Bash(npx vitest *)",
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(git branch *)"
+    ]
+  }
+}

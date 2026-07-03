@@ -1,0 +1,48 @@
+{
+  "name": "@tmcp/adapter-valibot",
+  "version": "0.1.6",
+  "license": "MIT",
+  "description": "Valibot adapter for TMCP JSON Schema conversion",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "tmcp": "^1.17.0",
+    "valibot": "^1.1.0"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0",
+    "@valibot/to-json-schema": "^1.3.0",
+    "valibot": "^1.1.0"
+  },
+  "keywords": [
+    "tmcp",
+    "valibot",
+    "jsonschema",
+    "adapter"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paoloricciuti/tmcp.git",
+    "directory": "packages/adapter-valibot"
+  },
+  "devDependencies": {
+    "dts-buddy": "^0.6.2",
+    "publint": "^0.3.12",
+    "tmcp": "^1.19.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "generate:types": "dts-buddy && publint",
+    "prepublish": "pnpm generate:types"
+  }
+}

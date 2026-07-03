@@ -1,0 +1,98 @@
+.omni-table-wrap {
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+table.omni-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+}
+
+.omni-table thead th {
+  padding: 8px 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface2);
+  border-bottom: 0.5px solid var(--color-border);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.omni-table thead th.sortable {
+  cursor: pointer;
+}
+
+.omni-table thead th.sortable:hover {
+  color: var(--color-text-secondary);
+}
+
+.omni-table thead th.sorted-asc::after  { content: ' ↑'; }
+.omni-table thead th.sorted-desc::after { content: ' ↓'; }
+
+.omni-table thead th.r,
+.omni-table tbody td.r { text-align: right; }
+
+.omni-table tbody td {
+  padding: 8px 12px;
+  border-bottom: 0.5px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.omni-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.omni-table tbody tr:hover td {
+  background: var(--color-bg-surface2);
+}
+
+.omni-table-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  padding: 8px 12px;
+  border-top: 0.5px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.omni-pg-btn {
+  padding: 4px 10px;
+  font-size: var(--font-size-xs);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface2);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: color 0.15s;
+}
+
+.omni-pg-btn:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.omni-pg-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.omni-pg-btn.active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+
+.omni-pg-info {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0 4px;
+}

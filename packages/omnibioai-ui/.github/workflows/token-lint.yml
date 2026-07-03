@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'fix/**', 'feat/**', 'docs/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      STORYBOOK_DISABLE_TELEMETRY: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for hardcoded hex colors in src/
+        run: |
+          if grep -rn "#[0-9a-fA-F]\{3,6\}\b" src/ \
+             --include="*.css" --include="*.tsx" --include="*.ts" \
+             --exclude="*.test.tsx" --exclude="*.stories.tsx"; then
+            echo "❌ Hardcoded hex values found. Use design tokens instead."
+            exit 1
+          else
+            echo "✓ No hardcoded hex values found."
+          fi
+
+      - name: Run unit tests
+        run: npx vitest run --project unit
+
+      - name: Build library
+        run: npm run build
+
+      - name: Check type declarations were generated
+        run: test -f dist/index.d.ts && echo "✓ index.d.ts exists"
