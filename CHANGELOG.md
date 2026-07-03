@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 ---
 
+## [0.5.0-beta] - Unreleased
+### Added
+- 225 bioinformatics plugins updated and tested
+- 36M PubMed abstracts indexed for RAG pipeline
+- Enhanced literature AI with full corpus coverage
+### Changed
+- Beta launch date moved to July 15, 2026
+
+---
+
 ## [0.4.0-beta] - 2026-07-03
 ### Added
 - Screenshots added to README (Mode, Workbench, LLM, Cloud, HPC, Launch, Services, IDE Services, Logs, Jobs, Settings, Bug Report)
