@@ -37,7 +37,7 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
           fontSize:'var(--font-size-xs)', color:"var(--color-text-muted)", fontFamily:"var(--mono)",
           letterSpacing:"0.06em", paddingLeft:32,
         }}>
-          STUDIO v0.2.0
+          STUDIO v0.4.0
         </div>
       </div>
 
