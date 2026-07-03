@@ -5,6 +5,33 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 ---
 
+## [0.4.0-beta] - 2026-07-03
+### Added
+- Screenshots added to README (Mode, Workbench, LLM, Cloud, HPC, Launch, Services, IDE Services, Logs, Jobs, Settings, Bug Report)
+- `packages/` directory — design-tokens and ui bundled as regular files for CI reproducibility
+- `package-lock.json` now tracked in git for deterministic CI installs
+- `exports` field added to `@man4ish/design-tokens` package.json for vite/rolldown subpath resolution
+- Dummy `.env` creation step in CI lint job to fix docker compose validation
+- `npx cross-env` used in CI build:ui step for cross-platform compatibility
+### Fixed
+- Version strings unified across all UI components (was v0.1.0/v0.2.0, now v0.4.0 everywhere)
+  - `src/ui/App.jsx` — top-right badge
+  - `src/ui/components/Sidebar.jsx` — sidebar logo
+  - `src/ui/pages/Settings.jsx` — About panel Studio Version
+  - `src/ui/pages/Logs.jsx` — startup log message
+- CI lint job failing due to missing `.env` (MACHINE_DIR, DB_INIT_DIR, DATA_DIR, WORK_DIR blank)
+- CI build-ui failing with `cross-env: command not found`
+- CI build-ui failing with rolldown native binding error (ARM64 lock file used on x64 runner)
+- `@man4ish/design-tokens/tokens.css` unresolvable in CI (packages were git submodules, not regular files)
+- X11 forwarding for Electron app over SSH — XQuartz + ForwardX11Trusted + XAuthLocation in ~/.ssh/config
+- Electron GPU errors over X11 (`--disable-gpu --disable-software-rasterizer --in-process-gpu` flags added to dev script)
+### Changed
+- `npm run dev` now includes `--disable-gpu --disable-software-rasterizer --in-process-gpu` for X11 remote dev
+- `packages/omnibioai-design-tokens` and `packages/omnibioai-ui` moved into repo (were external `file:../` references)
+- README.md fully regenerated from actual app screenshots and live service data
+- `docs/screenshots/` directory added with 15 annotated screenshots
+
+---
 ## [0.3.0-beta] - 2026-06-10
 
 ### Added
