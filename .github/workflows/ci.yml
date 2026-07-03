@@ -30,6 +30,22 @@ jobs:
             && echo "✅ package.json valid"
           node -e "JSON.parse(require('fs').readFileSync('electron-builder.json'))" \
             && echo "✅ electron-builder.json valid"
+      - name: Create .env for compose validation
+        run: |
+          cat > .env << 'ENVEOF'
+          MACHINE_DIR=/tmp/omnibioai
+          DATA_DIR=/tmp/omnibioai/data
+          WORK_DIR=/tmp/omnibioai/work
+          WORKSPACE_HOST=/tmp/omnibioai
+          DB_INIT_DIR=/tmp/omnibioai/db-init
+          VIDEO_DIR=/tmp/omnibioai/videos
+          GHCR_PULL_TOKEN=placeholder
+          RAGBIO_API_KEY=placeholder
+          NCBI_API_KEY=placeholder
+          NCBI_EMAIL=ci@omnibioai.org
+          MYSQL_ROOT_PASSWORD=cipassword
+          AUTH_SECRET_KEY=cikey
+          ENVEOF
       - name: Validate docker-compose
         run: |
           docker compose -f docker-compose.yml config --quiet \
