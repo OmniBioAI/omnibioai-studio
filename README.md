@@ -118,7 +118,7 @@
 | Linux ARM64 RPM | `OmniBioAI-Studio-arm64.rpm` | RHEL / Fedora ARM64 |
 | Windows | `OmniBioAI-Studio-Setup.exe` | Windows 10/11 + WSL2 |
 
-Download from: https://github.com/man4ish/omnibioai-studio/releases/latest
+Download from: https://github.com/OmniBioAI/omnibioai-studio/releases/latest
 
 ---
 
@@ -327,7 +327,7 @@ Also required: `jq` (`sudo apt install jq`), Docker Compose v2 (included with En
 
 ### Beta Cloud (no Docker needed)
 
-1. Download installer for your platform from [Releases](https://github.com/man4ish/omnibioai-studio/releases/latest)
+1. Download installer for your platform from [Releases](https://github.com/OmniBioAI/omnibioai-studio/releases/latest)
 2. Launch OmniBioAI Studio and enter your license key
 3. Select **Beta Cloud** on the Mode page
 4. Click through the setup wizard (Steps 1–5)
@@ -336,7 +336,7 @@ Also required: `jq` (`sudo apt install jq`), Docker Compose v2 (included with En
 ### Local Stack (Docker)
 
 ```bash
-git clone https://github.com/man4ish/omnibioai-studio
+git clone https://github.com/OmniBioAI/omnibioai-studio
 cd omnibioai-studio
 cp .env.example .env
 # Edit .env — set DATA_DIR, WORK_DIR, and secrets
