@@ -142,6 +142,8 @@ services:
       AUDIT_URL: http://security-audit:8004
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       AUTH_ENABLED: "true"
+      HF_TOKEN: ${HF_TOKEN:-}
+      HF_DEFAULT_NAMESPACE: ${HF_DEFAULT_NAMESPACE:-man4sihg}
 
     volumes:
       - ${MACHINE_DIR}/data/local_registry/model_registry:/registry
