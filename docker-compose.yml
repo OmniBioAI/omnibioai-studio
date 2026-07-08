@@ -143,7 +143,7 @@ services:
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       AUTH_ENABLED: "true"
       HF_TOKEN: ${HF_TOKEN:-}
-      HF_DEFAULT_NAMESPACE: ${HF_DEFAULT_NAMESPACE:-man4sihg}
+      HF_DEFAULT_NAMESPACE: ${HF_DEFAULT_NAMESPACE:-omnibioai}
 
     volumes:
       - ${MACHINE_DIR}/data/local_registry/model_registry:/registry
