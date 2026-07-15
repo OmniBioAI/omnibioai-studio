@@ -162,33 +162,33 @@ security-audit :8004    ← async audit log → Redis Streams (never blocks)
 ### Security Control Plane
 | Service | Port | Image |
 |---------|------|-------|
-| API Gateway | :8080 | ghcr.io/man4ish/omnibioai-api-gateway:latest |
-| Auth Service | :8081 | ghcr.io/man4ish/omnibioai-auth:latest |
-| Policy Engine | :8082 | ghcr.io/man4ish/omnibioai-policy-engine:latest |
-| HPC Policy Engine | :8083 | ghcr.io/man4ish/omnibioai-hpc-policy-engine:latest |
-| Security Audit | :8084 | ghcr.io/man4ish/omnibioai-security-audit:latest |
+| API Gateway | :8080 | ghcr.io/omnibioai/omnibioai-api-gateway:latest |
+| Auth Service | :8081 | ghcr.io/omnibioai/omnibioai-auth:latest |
+| Policy Engine | :8082 | ghcr.io/omnibioai/omnibioai-policy-engine:latest |
+| HPC Policy Engine | :8083 | ghcr.io/omnibioai/omnibioai-hpc-policy-engine:latest |
+| Security Audit | :8084 | ghcr.io/omnibioai/omnibioai-security-audit:latest |
 
 ### Execution Layer
 | Service | Port | Image |
 |---------|------|-------|
-| Workbench | :8000 | ghcr.io/man4ish/omnibioai-app:latest |
+| Workbench | :8000 | ghcr.io/omnibioai/omnibioai-app:latest |
 | TES | :8081 | omnibioai-tes-local |
-| ToolServer | :9090 | ghcr.io/man4ish/omnibioai-toolserver:latest |
-| Model Registry | :8095 | ghcr.io/man4ish/omnibioai-model-registry:latest |
-| LIMS | :7000 | ghcr.io/man4ish/omnibioai-lims:latest |
-| Control Center | :7070 | ghcr.io/man4ish/omnibioai-control-center:latest |
+| ToolServer | :9090 | ghcr.io/omnibioai/omnibioai-toolserver:latest |
+| Model Registry | :8095 | ghcr.io/omnibioai/omnibioai-model-registry:latest |
+| LIMS | :7000 | ghcr.io/omnibioai/omnibioai-lims:latest |
+| Control Center | :7070 | ghcr.io/omnibioai/omnibioai-control-center:latest |
 
 ### AI Layer
 | Service | Port | Image |
 |---------|------|-------|
 | Ollama | :11434 | ollama/ollama |
-| RAG | :8090 | ghcr.io/man4ish/omnibioai-rag:latest |
-| Dev Hub | :8082 | ghcr.io/man4ish/omnibioai-dev-hub:latest |
+| RAG | :8090 | ghcr.io/omnibioai/omnibioai-rag:latest |
+| Dev Hub | :8082 | ghcr.io/omnibioai/omnibioai-dev-hub:latest |
 
 ### Developer Layer
 | Service | Port | Image |
 |---------|------|-------|
-| Launcher | :5190 | ghcr.io/man4ish/omnibioai-launcher:latest |
+| Launcher | :5190 | ghcr.io/omnibioai/omnibioai-launcher:latest |
 
 ### IDE Services (managed via Launcher :5190)
 | Service | Port | Stack |

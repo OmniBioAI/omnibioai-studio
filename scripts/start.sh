@@ -118,7 +118,7 @@ else
     if [ ! -f "$SIF_PATH" ]; then
       echo "  Downloading ${tool}..."
       singularity pull "$SIF_PATH" \
-        oras://ghcr.io/man4ish/omnibioai-sif/${tool}:arm64 \
+        oras://ghcr.io/omnibioai/omnibioai-sif/${tool}:arm64 \
         2>/dev/null || echo "  [WARN] Could not download ${tool}"
     else
       echo "  [OK] ${tool} already present"

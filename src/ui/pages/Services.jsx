@@ -31,35 +31,35 @@ const SERVICES = [
   { key:"redis",              label:"Redis",              port:6379,  image:"redis:7-alpine",                                     group:"Data Layer"             },
 
   // Security Control Plane
-  { key:"api-gateway",        label:"API Gateway",        port:8080,  image:"ghcr.io/man4ish/omnibioai-api-gateway:latest",       group:"Security Control Plane" },
-  { key:"auth-service",       label:"Auth Service",       port:8001,  image:"ghcr.io/man4ish/omnibioai-auth:latest",              group:"Security Control Plane" },
-  { key:"policy-engine",      label:"Policy Engine",      port:8002,  image:"ghcr.io/man4ish/omnibioai-policy-engine:latest",     group:"Security Control Plane" },
-  { key:"hpc-policy-engine",  label:"HPC Policy Engine",  port:8003,  image:"ghcr.io/man4ish/omnibioai-hpc-policy-engine:latest", group:"Security Control Plane" },
-  { key:"security-audit",     label:"Security Audit",     port:8004,  image:"ghcr.io/man4ish/omnibioai-security-audit:latest",    group:"Security Control Plane" },
+  { key:"api-gateway",        label:"API Gateway",        port:8080,  image:"ghcr.io/omnibioai/omnibioai-api-gateway:latest",       group:"Security Control Plane" },
+  { key:"auth-service",       label:"Auth Service",       port:8001,  image:"ghcr.io/omnibioai/omnibioai-auth:latest",              group:"Security Control Plane" },
+  { key:"policy-engine",      label:"Policy Engine",      port:8002,  image:"ghcr.io/omnibioai/omnibioai-policy-engine:latest",     group:"Security Control Plane" },
+  { key:"hpc-policy-engine",  label:"HPC Policy Engine",  port:8003,  image:"ghcr.io/omnibioai/omnibioai-hpc-policy-engine:latest", group:"Security Control Plane" },
+  { key:"security-audit",     label:"Security Audit",     port:8004,  image:"ghcr.io/omnibioai/omnibioai-security-audit:latest",    group:"Security Control Plane" },
 
   // Execution Layer
-  { key:"workbench",          label:"Workbench",          port:8000,  image:"ghcr.io/man4ish/omnibioai-app:latest",               group:"Execution Layer"        },
+  { key:"workbench",          label:"Workbench",          port:8000,  image:"ghcr.io/omnibioai/omnibioai-app:latest",               group:"Execution Layer"        },
   { key:"tes",                label:"TES",                port:8081,  image:"omnibioai-tes-local",                                group:"Execution Layer"        },
-  { key:"toolserver",         label:"ToolServer",         port:9090,  image:"ghcr.io/man4ish/omnibioai-toolserver:latest",        group:"Execution Layer"        },
-  { key:"model-registry",     label:"Model Registry",     port:8095,  image:"ghcr.io/man4ish/omnibioai-model-registry:latest",    group:"Execution Layer"        },
-  { key:"lims",               label:"LIMS",               port:7000,  image:"ghcr.io/man4ish/omnibioai-lims:latest",              group:"Execution Layer"        },
-  { key:"control-center",     label:"Control Center",     port:7070,  image:"ghcr.io/man4ish/omnibioai-control-center:latest",    group:"Execution Layer"        },
+  { key:"toolserver",         label:"ToolServer",         port:9090,  image:"ghcr.io/omnibioai/omnibioai-toolserver:latest",        group:"Execution Layer"        },
+  { key:"model-registry",     label:"Model Registry",     port:8095,  image:"ghcr.io/omnibioai/omnibioai-model-registry:latest",    group:"Execution Layer"        },
+  { key:"lims",               label:"LIMS",               port:7000,  image:"ghcr.io/omnibioai/omnibioai-lims:latest",              group:"Execution Layer"        },
+  { key:"control-center",     label:"Control Center",     port:7070,  image:"ghcr.io/omnibioai/omnibioai-control-center:latest",    group:"Execution Layer"        },
 
   // AI Layer
   { key:"ollama",             label:"Ollama",             port:11434, image:"ollama/ollama",                                      group:"AI Layer"               },
-  { key:"rag",                label:"RAG",                port:8090,  image:"ghcr.io/man4ish/omnibioai-rag:latest",               group:"AI Layer"               },
-  { key:"dev-hub",            label:"Dev Hub",            port:8082,  image:"ghcr.io/man4ish/omnibioai-dev-hub:latest",           group:"AI Layer"               },
+  { key:"rag",                label:"RAG",                port:8090,  image:"ghcr.io/omnibioai/omnibioai-rag:latest",               group:"AI Layer"               },
+  { key:"dev-hub",            label:"Dev Hub",            port:8082,  image:"ghcr.io/omnibioai/omnibioai-dev-hub:latest",           group:"AI Layer"               },
 
   // Developer Layer
-  { key:"launcher",           label:"Launcher",           port:5190,  image:"ghcr.io/man4ish/omnibioai-launcher:latest",          group:"Developer Layer"        },
-  { key:"workflow-bundles",   label:"Workflow Bundles",   port:8098,  image:"ghcr.io/man4ish/omnibioai-workflow-bundles:latest",   group:"Developer Layer"        },
-  { key:"tool-images",        label:"Tool Images",        port:8097,  image:"ghcr.io/man4ish/omnibioai-tool-images:latest",       group:"Developer Layer"        },
+  { key:"launcher",           label:"Launcher",           port:5190,  image:"ghcr.io/omnibioai/omnibioai-launcher:latest",          group:"Developer Layer"        },
+  { key:"workflow-bundles",   label:"Workflow Bundles",   port:8098,  image:"ghcr.io/omnibioai/omnibioai-workflow-bundles:latest",   group:"Developer Layer"        },
+  { key:"tool-images",        label:"Tool Images",        port:8097,  image:"ghcr.io/omnibioai/omnibioai-tool-images:latest",       group:"Developer Layer"        },
   { key:"opa",                label:"OPA",                port:8181,  image:"openpolicyagent/opa:latest",                         group:"Developer Layer"        },
 
   // IDE Layer
-  { key:"jupyter", label:"JupyterLab", port:8888, image:"ghcr.io/man4ish/omnibioai-jupyter:1.0", group:"IDE Layer", tool:"jupyter" },
-  { key:"rstudio", label:"RStudio",    port:8787, image:"ghcr.io/man4ish/omnibioai-rstudio:1.0", group:"IDE Layer", tool:"rstudio" },
-  { key:"vscode",  label:"VS Code",    port:8083, image:"ghcr.io/man4ish/omnibioai-vscode:1.0",  group:"IDE Layer", tool:"vscode"  },
+  { key:"jupyter", label:"JupyterLab", port:8888, image:"ghcr.io/omnibioai/omnibioai-jupyter:1.0", group:"IDE Layer", tool:"jupyter" },
+  { key:"rstudio", label:"RStudio",    port:8787, image:"ghcr.io/omnibioai/omnibioai-rstudio:1.0", group:"IDE Layer", tool:"rstudio" },
+  { key:"vscode",  label:"VS Code",    port:8083, image:"ghcr.io/omnibioai/omnibioai-vscode:1.0",  group:"IDE Layer", tool:"vscode"  },
 ];
 
 const GROUPS = [

@@ -31,7 +31,7 @@ services:
       retries: 30
 
   toolserver:
-    image: ghcr.io/man4ish/omnibioai-toolserver:latest
+    image: ghcr.io/omnibioai/omnibioai-toolserver:latest
     restart: on-failure
     ports:
       - "${HOST_IP:-0.0.0.0}:9090:9090"
@@ -125,7 +125,7 @@ services:
       dockerfile: Dockerfile
       target: backend
     restart: on-failure
-    # image: ghcr.io/man4ish/omnibioai-model-registry:latest
+    # image: ghcr.io/omnibioai/omnibioai-model-registry:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8095:8095"
       - "${HOST_IP:-0.0.0.0}:5176:5176"
@@ -219,7 +219,7 @@ services:
         GITHUB_TOKEN: ${GHCR_PULL_TOKEN}      # required: read:packages for @man4ish/ui
         RAGBIO_API_KEY: ${RAGBIO_API_KEY}  # embedded as VITE_RAGBIO_API_KEY in JS bundle
     restart: on-failure
-    # image: ghcr.io/man4ish/omnibioai-rag:latest
+    # image: ghcr.io/omnibioai/omnibioai-rag:latest
     # Frontend served at http://localhost:8090/ via nginx (port 5175 inside container)
     ports:
       - "${HOST_IP:-0.0.0.0}:8090:8096"
@@ -269,7 +269,7 @@ services:
       dockerfile: Dockerfile.app
       target: backend
     restart: on-failure
-    # image: ghcr.io/man4ish/omnibioai-app:latest
+    # image: ghcr.io/omnibioai/omnibioai-app:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
     environment:
@@ -352,7 +352,7 @@ services:
       dockerfile: Dockerfile.app
       target: backend
     restart: on-failure
-    # image: ghcr.io/man4ish/omnibioai-app:latest
+    # image: ghcr.io/omnibioai/omnibioai-app:latest
     environment:
       DEBUG: "1"
       CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-192.168.86.234}:5174,http://${HOST_IP:-192.168.86.234}:8000"
@@ -395,7 +395,7 @@ services:
       dockerfile: Dockerfile
       target: backend
     restart: on-failure
-    # image: ghcr.io/man4ish/omnibioai-control-center:latest
+    # image: ghcr.io/omnibioai/omnibioai-control-center:latest
     ports:
       # Bound to localhost only — blocks all external network access
       # generate_report.py can still reach it via 127.0.0.1:7070 on the host
@@ -488,7 +488,7 @@ services:
         condition: service_started
 
   jupyter:
-    image: ghcr.io/man4ish/omnibioai-jupyter:1.0
+    image: ghcr.io/omnibioai/omnibioai-jupyter:1.0
     container_name: omnibioai-jupyter
     ports:
       - "${HOST_IP:-0.0.0.0}:8888:8888"
@@ -504,7 +504,7 @@ services:
         condition: service_started
 
   rstudio:
-    image: ghcr.io/man4ish/omnibioai-rstudio:1.0
+    image: ghcr.io/omnibioai/omnibioai-rstudio:1.0
     container_name: omnibioai-rstudio
     ports:
       - "${HOST_IP:-0.0.0.0}:8787:8787"
@@ -520,7 +520,7 @@ services:
         condition: service_started
 
   vscode:
-    image: ghcr.io/man4ish/omnibioai-vscode:1.0
+    image: ghcr.io/omnibioai/omnibioai-vscode:1.0
     container_name: omnibioai-vscode
     ports:
       - "${HOST_IP:-0.0.0.0}:8083:8080"
@@ -539,7 +539,7 @@ services:
       context: ${MACHINE_DIR}/omnibioai-workflow-bundles
       dockerfile: Dockerfile
       target: backend
-    # image: ghcr.io/man4ish/omnibioai-workflow-bundles:latest
+    # image: ghcr.io/omnibioai/omnibioai-workflow-bundles:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8098:8098"
       - "${HOST_IP:-0.0.0.0}:5178:5178"
@@ -557,7 +557,7 @@ services:
       # Shared runs dir mounted at its host path so `-v {run_out_dir}:/runs`
       # in the spawned container resolves from the host filesystem.
       RUNS_ROOT: ${RUNS_DIR:-/tmp/omnibioai-runs}
-      RUNNER_IMAGE: ghcr.io/man4ish/omnibioai-plugin-workflow-runner:1.0.0
+      RUNNER_IMAGE: ghcr.io/omnibioai/omnibioai-plugin-workflow-runner:1.0.0
     volumes:
       # Docker socket — lets api/server.py spawn sibling runner containers
       - /var/run/docker.sock:/var/run/docker.sock
@@ -578,7 +578,7 @@ services:
       context: ${MACHINE_DIR}/omnibioai-tool-images
       dockerfile: Dockerfile
       target: backend
-    # image: ghcr.io/man4ish/omnibioai-tool-images:latest
+    # image: ghcr.io/omnibioai/omnibioai-tool-images:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8097:8097"
       - "${HOST_IP:-0.0.0.0}:5179:5179"
@@ -591,7 +591,7 @@ services:
     restart: on-failure
 
   videos:
-    image: ghcr.io/man4ish/omnibioai-videos:latest
+    image: ghcr.io/omnibioai/omnibioai-videos:latest
     restart: on-failure
     ports:
       - "8086:8086"
@@ -606,17 +606,17 @@ services:
     command: ["run", "--server", "--addr=0.0.0.0:8181"]
 
   # Plugin images (pulled on-demand by TES, not persistent services):
-  # ghcr.io/man4ish/omnibioai-plugin-scanpy:latest
-  # ghcr.io/man4ish/omnibioai-plugin-fastq-qc:latest
-  # ghcr.io/man4ish/omnibioai-plugin-fastq-trimmer:latest
-  # ghcr.io/man4ish/omnibioai-plugin-rnaseq-analysis:latest
-  # ghcr.io/man4ish/omnibioai-plugin-workflow-runner:latest
-  # ghcr.io/man4ish/omnibioai-plugin-marker-identification:latest
-  # ghcr.io/man4ish/omnibioai-plugin-phenotype-association:latest
-  # ghcr.io/man4ish/omnibioai-plugin-variant-annotation:latest
+  # ghcr.io/omnibioai/omnibioai-plugin-scanpy:latest
+  # ghcr.io/omnibioai/omnibioai-plugin-fastq-qc:latest
+  # ghcr.io/omnibioai/omnibioai-plugin-fastq-trimmer:latest
+  # ghcr.io/omnibioai/omnibioai-plugin-rnaseq-analysis:latest
+  # ghcr.io/omnibioai/omnibioai-plugin-workflow-runner:latest
+  # ghcr.io/omnibioai/omnibioai-plugin-marker-identification:latest
+  # ghcr.io/omnibioai/omnibioai-plugin-phenotype-association:latest
+  # ghcr.io/omnibioai/omnibioai-plugin-variant-annotation:latest
 
   auth-service:
-    image: ghcr.io/man4ish/omnibioai-auth:latest
+    image: ghcr.io/omnibioai/omnibioai-auth:latest
     build:
       context: ${MACHINE_DIR}/omnibioai-auth
     ports:
@@ -680,7 +680,7 @@ services:
     restart: on-failure
 
   security-audit:
-    image: ghcr.io/man4ish/omnibioai-security-audit:latest
+    image: ghcr.io/omnibioai/omnibioai-security-audit:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8004:8004"
     environment:
@@ -692,7 +692,7 @@ services:
     restart: on-failure
 
   api-gateway:
-    image: ghcr.io/man4ish/omnibioai-api-gateway:latest
+    image: ghcr.io/omnibioai/omnibioai-api-gateway:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8080:8080"
     environment:

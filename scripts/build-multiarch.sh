@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build OmniBioAI Docker images for linux/amd64 from this ARM64 build machine
-# and push to ghcr.io/man4ish.
+# and push to ghcr.io/omnibioai.
 #
 # Cross-compilation strategy (ARM64 host → amd64 target):
 #   - Node build stages use --platform=$BUILDPLATFORM so npm runs natively on arm64
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
-REGISTRY="ghcr.io/man4ish"
+REGISTRY="ghcr.io/omnibioai"
 PLATFORM="linux/amd64"
 BUILDER="omnibioai-multiarch"
 BASE="/home/manish/Desktop/machine"

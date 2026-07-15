@@ -29,7 +29,7 @@ services:
       retries: 30
 
   toolserver:
-    image: ghcr.io/man4ish/omnibioai-toolserver:latest
+    image: ghcr.io/omnibioai/omnibioai-toolserver:latest
     ports:
       - "9090:9090"
     environment:
@@ -41,7 +41,7 @@ services:
         condition: service_healthy
 
   tes:
-    image: ghcr.io/man4ish/omnibioai-tes:latest
+    image: ghcr.io/omnibioai/omnibioai-tes:latest
     ports:
       - "8081:8081"
     environment:
@@ -59,7 +59,7 @@ services:
         condition: service_started
 
   model-registry:
-    image: ghcr.io/man4ish/omnibioai-model-registry:latest
+    image: ghcr.io/omnibioai/omnibioai-model-registry:latest
     ports:
       - "8095:8095"
     environment:
@@ -75,7 +75,7 @@ services:
         condition: service_healthy
 
   lims:
-    image: ghcr.io/man4ish/omnibioai-lims:latest
+    image: ghcr.io/omnibioai/omnibioai-lims:latest
     ports:
       - "7000:7000"
     environment:
@@ -100,7 +100,7 @@ services:
       - ollama_data:/root/.ollama
 
   rag:
-    image: ghcr.io/man4ish/omnibioai-rag:latest
+    image: ghcr.io/omnibioai/omnibioai-rag:latest
     ports:
       - "8090:8096"
     environment:
@@ -111,7 +111,7 @@ services:
       - ollama
 
   workbench:
-    image: ghcr.io/man4ish/omnibioai-app:latest
+    image: ghcr.io/omnibioai/omnibioai-app:latest
     ports:
       - "8000:8000"
     environment:
@@ -146,7 +146,7 @@ services:
     command: ["bash", "-lc", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"]
 
   control-center:
-    image: ghcr.io/man4ish/omnibioai-control-center:latest
+    image: ghcr.io/omnibioai/omnibioai-control-center:latest
     ports:
       - "7070:7070"
     environment:
@@ -161,7 +161,7 @@ services:
       - toolserver
 
   dev-hub:
-    image: ghcr.io/man4ish/omnibioai-dev-hub:latest
+    image: ghcr.io/omnibioai/omnibioai-dev-hub:latest
     ports:
       - "5173:5173"
       - "8082:8082"
@@ -172,7 +172,7 @@ services:
       - ollama
 
   sdk:
-    image: ghcr.io/man4ish/omnibioai-sdk:latest
+    image: ghcr.io/omnibioai/omnibioai-sdk:latest
     ports:
       - "5190:5190"
     environment:
