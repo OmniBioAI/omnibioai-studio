@@ -6,11 +6,18 @@
 
 ---
 
-## ✨ What's New in v0.4.0-beta
+## ✨ What's New in v0.5.0-beta
 
+- **225+ bioinformatics/ML plugins** — full coverage across scRNA-seq, WGS, WES, proteomics, spatial
+- **36M PubMed abstracts indexed** — 150-domain RAG pipeline with PubMedBERT FAISS, BM25 + vector retrieval, RRF reranking, Neo4j knowledge graph
+- **1,025 container images** — 225 Docker + 800 ARM64 SIF, migrated to `ghcr.io/omnibioai`
+- **600+ workflow bundles** across Nextflow, WDL, CWL, Snakemake
+- **Live platform metrics dashboard** — architecture, coverage, and health now publicly viewable at [control.omnibioai.org](https://control.omnibioai.org)
+
+### v0.4.0-beta ✅
 - **Version unification** — all UI components, sidebar, badge, logs, and settings now consistently report `v0.4.0-beta`
 - **23 services fully operational** — all layers (Data, Security Control Plane, Execution, AI, Developer) green
-- **1010 registered tools** — confirmed live in Jobs → Registered Tools panel
+- **1,010 registered tools** — confirmed live in Jobs → Registered Tools panel *(platform-wide tooling, including HPC/cloud/orchestration integrations, totals 11,000+ — see Bioinformatics Tools section below)*
 - **7 execution servers** — `local_real`, `slurm_local`, `aws_batch_prod`, `aws_batch_demo`, `azure_batch_demo`, `gcp_batch_demo`, `enrichment_remote`
 - **claude-sonnet-4-20250514** as default orchestrator model in LLM configuration
 - **IDE Services all RUNNING** — JupyterLab (:8888), RStudio (:8787), VS Code Server (:8883)
@@ -92,7 +99,7 @@
 
 ### Jobs — TES Execution Engine
 ![Jobs](docs/screenshots/jobs.png)
-*1010 registered tools · 7 execution servers (local, Slurm, AWS, Azure, GCP, enrichment_remote)*
+*1,010 registered tools · 7 execution servers (local, Slurm, AWS, Azure, GCP, enrichment_remote)*
 
 ### Settings
 ![Settings](docs/screenshots/settings.png)
@@ -119,6 +126,14 @@
 | Windows | `OmniBioAI-Studio-Setup.exe` | Windows 10/11 + WSL2 |
 
 Download from: https://github.com/OmniBioAI/omnibioai-studio/releases/latest
+
+---
+
+## 📊 Live Platform Proof
+
+Real-time architecture, codebase metrics, coverage, and service health are publicly viewable at:
+
+**[control.omnibioai.org](https://control.omnibioai.org)**
 
 ---
 
@@ -157,16 +172,16 @@ security-audit :8004    ← async audit log → Redis Streams (never blocks)
 | Service | Port | Image |
 |---------|------|-------|
 | MySQL | :3306 | mysql:8.0 |
-| Redis | :6379 | redis:7-alpine |
+| Redis | :6379 (mapped :6380 on host) | redis:7-alpine |
 
 ### Security Control Plane
 | Service | Port | Image |
 |---------|------|-------|
 | API Gateway | :8080 | ghcr.io/omnibioai/omnibioai-api-gateway:latest |
-| Auth Service | :8081 | ghcr.io/omnibioai/omnibioai-auth:latest |
-| Policy Engine | :8082 | ghcr.io/omnibioai/omnibioai-policy-engine:latest |
-| HPC Policy Engine | :8083 | ghcr.io/omnibioai/omnibioai-hpc-policy-engine:latest |
-| Security Audit | :8084 | ghcr.io/omnibioai/omnibioai-security-audit:latest |
+| Auth Service | :8001 | ghcr.io/omnibioai/omnibioai-auth:latest |
+| Policy Engine | :8002 | ghcr.io/omnibioai/omnibioai-policy-engine:latest |
+| HPC Policy Engine | :8003 | ghcr.io/omnibioai/omnibioai-hpc-policy-engine:latest |
+| Security Audit | :8004 | ghcr.io/omnibioai/omnibioai-security-audit:latest |
 
 ### Execution Layer
 | Service | Port | Image |
@@ -176,14 +191,17 @@ security-audit :8004    ← async audit log → Redis Streams (never blocks)
 | ToolServer | :9090 | ghcr.io/omnibioai/omnibioai-toolserver:latest |
 | Model Registry | :8095 | ghcr.io/omnibioai/omnibioai-model-registry:latest |
 | LIMS | :7000 | ghcr.io/omnibioai/omnibioai-lims:latest |
-| Control Center | :7070 | ghcr.io/omnibioai/omnibioai-control-center:latest |
+| Control Center | :7070 (localhost-only, JWT-gated via nginx `/_svc/control`) | ghcr.io/omnibioai/omnibioai-control-center:latest |
+| Workflow Bundles | :8098 | ghcr.io/omnibioai/omnibioai-workflow-bundles:latest |
+| Tool Images | :8097 | ghcr.io/omnibioai/omnibioai-tool-images:latest |
 
 ### AI Layer
 | Service | Port | Image |
 |---------|------|-------|
 | Ollama | :11434 | ollama/ollama |
-| RAG | :8090 | ghcr.io/omnibioai/omnibioai-rag:latest |
+| RAG | :8090 (external) / :8096 (internal) | ghcr.io/omnibioai/omnibioai-rag:latest |
 | Dev Hub | :8082 | ghcr.io/omnibioai/omnibioai-dev-hub:latest |
+| Neo4j | :7474 / :7687 | neo4j:5.15 |
 
 ### Developer Layer
 | Service | Port | Image |
@@ -197,9 +215,23 @@ security-audit :8004    ← async audit log → Redis Streams (never blocks)
 | RStudio Server | :8787 | R + Bioconductor (Seurat, DESeq2, scran, monocle3, tidyverse) |
 | VS Code Server | :8883 | Python + R + Nextflow + WDL extensions |
 
+### Observability & Platform Infrastructure
+| Service | Port | Image |
+|---------|------|-------|
+| Grafana | :3000 | grafana/grafana:latest |
+| Prometheus | internal only, via `/_svc/prometheus` | prom/prometheus:latest |
+| cAdvisor | :8585 | gcr.io/cadvisor/cadvisor:latest |
+| Redis Exporter | :9121 | oliver006/redis_exporter:latest |
+| License Server | :8099 | internal build |
+| OPA (Open Policy Agent) | :8181 | openpolicyagent/opa:latest |
+| Videos | :8086 | ghcr.io/omnibioai/omnibioai-videos:latest |
+| Nginx Router | :80 | nginx:latest |
+
 ---
 
-## 🧰 Bioinformatics Tools (1010+)
+## 🧰 Bioinformatics Tools (11,000+)
+
+**1,010 tools** are actively registered and runnable today (confirmed live in Jobs → Registered Tools panel). The broader platform catalog — including all execution, cloud, HPC, and orchestration tooling across every service — totals **11,000+**.
 
 ### Execution Servers (7)
 | Server ID | Adapter |
@@ -245,7 +277,7 @@ Drug Target AI · Literature AI · Pathway Enrichment · Bio Hypothesis · Liter
 ## 🖥 Runtime Modes
 
 | Mode | Status | Description |
-|------|--------|-------------|
+|------|--------|--------------|
 | **Beta Cloud** | ✅ Available | Connects to `app.omnibioai.org` — no local Docker needed |
 | Local | Coming soon | Docker + local GPU/CPU, offline-first, Slurm support |
 | HPC | Coming soon | Slurm / PBS / LSF, Apptainer remote execution |
@@ -312,7 +344,7 @@ workbench:8000 · lims:7000 · rag:8096 · auth-service:8001 · control-center:7
 ## 📋 System Requirements
 
 | Component | Minimum | Recommended |
-|-----------|---------|-------------|
+|-----------|---------|--------------|
 | RAM | 16 GB | 32 GB (64 GB with local LLM) |
 | Disk | 50 GB free | 100 GB free |
 | Docker | Engine 24+ | Docker Desktop |
@@ -369,7 +401,7 @@ Expected layout:
 
 ### Service Ports (configurable)
 | Service | Default Port |
-|---------|-------------|
+|---------|---------------|
 | Workbench | 8000 |
 | TES | 8081 |
 | ToolServer | 9090 |
@@ -381,10 +413,10 @@ Expected layout:
 - Data Dir mounted as `/data` in all containers
 - Work Dir mounted as `/workspace/work` in all containers
 
-### About (v0.4.0-beta)
+### About (v0.5.0-beta)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.4.0-beta |
+| Studio Version | v0.5.0-beta |
 | Electron | web |
 | Node.js | web |
 | Platform | Linux x86_64 |
@@ -397,7 +429,7 @@ Expected layout:
 OmniBioAI Studio requires a license key for first launch.
 
 - **Format:** `OMNI-XXXX-XXXX-XXXX-XXXX` (30-day trial)
-- **Get access:** [omnibioai.org/#request](https://omnibioai.org/#request) or email manish@omnibioai.org
+- **Get access:** [omnibioai.org/#request](https://omnibioai.org/#request)
 - **Offline grace period:** 7 days after initial validation
 - Beta users receive a GitHub token automatically with their license key
 
@@ -477,12 +509,12 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 ## 🗺 Roadmap
 
 | Version | Status | Highlights |
-|---------|--------|------------|
+|---------|--------|-------------|
 | v0.1.0-beta | ✅ Released | Local stack, health monitoring, Dev Hub, LLM config |
-| v0.2.0-beta | ✅ Released | License system, zero-trust security, 1010 tools, Windows installer |
+| v0.2.0-beta | ✅ Released | License system, zero-trust security, 1,010 tools, Windows installer |
 | v0.3.0-beta | ✅ Released | IDE Services, Grafana observability, auto-secrets, npm security |
-| **v0.4.0-beta** | ✅ **Current** | Version unification, 23 services, 7 exec servers, claude-sonnet-4 |
-| v0.5.0-beta | 🔜 July 15, 2026 | 225 plugins, 36M abstract RAG index, full beta launch |
+| v0.4.0-beta | ✅ Released | Version unification, 23 services, 7 exec servers, claude-sonnet-4 |
+| **v0.5.0-beta** | ✅ **Current** | 225+ plugins, 36M-abstract RAG index, 1,025 container images, full beta launch |
 | v0.6.0 | 🔜 Planned | SSO/SAML, role management UI, HIPAA compliance reporting |
 
 ---
@@ -493,7 +525,6 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 - `GITHUB_TOKEN` must be set manually for private image pull
 - macOS DMG not yet code-signed (GateKeeper warning expected)
 - Windows installer not yet code-signed
-- policy-engine and hpc-policy-engine return 404 on `/health` (services are running)
 - First launch requires internet for license validation; 7-day offline grace period after
 - cAdvisor requires privileged mode and `/dev/kmsg` device access
 - Prometheus not exposed directly — access only via `/_svc/prometheus`
@@ -504,12 +535,16 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 ## 🛠 Maintenance Scripts
 
 | Script | Description | Schedule |
-|--------|-------------|----------|
+|--------|--------------|----------|
 | `scripts/backup-mysql.sh` | Dumps all DBs to compressed `.sql.gz`, 7-day rotation | Daily at 4am |
 | `scripts/check-env.sh` | Validates `.env` secrets before stack start | Before `docker compose up` |
+| `omnibioai-control-center/scripts/run_coverage_host.py` | Rebuilds ecosystem coverage report | Daily at 2am |
+| `omnibioai-dev-hub/scripts/check_and_reindex.sh` | Rebuilds RAG FAISS index on new Studio release | Hourly (checks for new release tag) |
 
 ```cron
-0 4 * * * /path/to/omnibioai-studio/scripts/backup-mysql.sh
+0 4 * * * /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-mysql.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-backup.log 2>&1
+0 2 * * * python3 /home/manish/Desktop/machine/omnibioai-control-center/scripts/run_coverage_host.py --root /home/manish/Desktop/machine >> /home/manish/Desktop/machine/work/backups/omnibioai-coverage.log 2>&1
+0 * * * * /home/manish/Desktop/machine/omnibioai-dev-hub/scripts/check_and_reindex.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-reindex.log 2>&1
 ```
 
 ---
