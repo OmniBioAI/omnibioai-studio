@@ -1,5 +1,5 @@
 {
-  "name": "@man4ish/design-tokens",
+  "name": "@omnibioai/design-tokens",
   "version": "1.0.1",
   "description": "OmniBioAI unified design tokens",
   "main": "tokens.js",

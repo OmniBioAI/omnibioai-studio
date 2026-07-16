@@ -1,5 +1,5 @@
 {
-  "name": "@man4ish/ui",
+  "name": "@omnibioai/ui",
   "version": "1.1.0",
   "description": "OmniBioAI shared React component library",
   "main": "dist/index.js",
@@ -13,7 +13,7 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@man4ish/design-tokens": "file:../omnibioai-design-tokens"
+    "@omnibioai/design-tokens": "file:../omnibioai-design-tokens"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.2.1",
