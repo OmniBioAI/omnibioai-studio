@@ -5,13 +5,26 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 ---
 
-## [0.5.0-beta] - Unreleased
+## [0.5.0-beta] - 2026-07-19
 ### Added
-- 225 bioinformatics plugins updated and tested
-- 36M PubMed abstracts indexed for RAG pipeline
+- 225+ bioinformatics/ML plugins updated and tested — full coverage across scRNA-seq, WGS, WES, proteomics, spatial
+- 36M PubMed abstracts indexed for RAG pipeline — 150-domain coverage with PubMedBERT FAISS, BM25 + vector retrieval, RRF reranking, Neo4j knowledge graph
 - Enhanced literature AI with full corpus coverage
+- 1,025 container images migrated to `ghcr.io/omnibioai` — 225 Docker + 800 ARM64 SIF
+- 600+ workflow bundles across Nextflow, WDL, CWL, Snakemake
+- Live platform metrics dashboard publicly available at control.omnibioai.org — architecture, codebase stats, and service health
+- `omnibioai-dev-hub` RAG index now rebuilds automatically on each Studio release via `check_and_reindex.sh` (hourly cron on spark-70f0)
+- Sudoers rule for passwordless dev-hub service restarts post-reindex
+
+### Fixed
+- `build_index.py` no longer silently exits 0 on zero-vector runs — now exits non-zero so failed reindex attempts are never mistaken for success
+- Dev Hub reindex now runs via `docker exec` inside the container (correct `REPO_BASE=/repos` and `ollama` DNS resolution), rather than on the bare host where neither resolved correctly
+- Auth Service port corrected in documentation (was incorrectly listed as :8081, actually :8001)
+
 ### Changed
-- Beta launch date moved to July 15, 2026
+- Beta launch date moved to July 15, 2026, full release July 19, 2026
+- README overhauled with corrected port mappings, reconciled tool/service counts, and a live-proof stats link
+- Roadmap table updated — v0.5.0-beta marked Current
 
 ---
 

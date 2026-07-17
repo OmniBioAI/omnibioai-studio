@@ -1,6 +1,6 @@
 # OmniBioAI Studio - Release configuration
 # Uses pre-built images from ghcr.io
-# Version: v0.4.0-beta
+# Version: v0.5.0-beta
 #
 # Setup:
 #   cp .env.example .env
@@ -201,7 +201,7 @@ services:
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.4.0-beta"
+      SENTRY_RELEASE: "0.5.0-beta"
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
@@ -269,7 +269,7 @@ services:
       LIMS_API_TOKEN: ""
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.4.0-beta"
+      SENTRY_RELEASE: "0.5.0-beta"
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
@@ -409,7 +409,7 @@ services:
       TOOL_IMAGES_BASE: /workspace/tool-images
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.4.0-beta"
+      SENTRY_RELEASE: "0.5.0-beta"
     volumes:
       - ${DATA_DIR}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock

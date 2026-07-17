@@ -61,7 +61,7 @@ services:
       PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/docker
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.4.0-beta"
+      SENTRY_RELEASE: "0.5.0-beta"
       DOCKER_HOST: unix:///var/run/docker.sock
       PYTHONPATH: /workspace/src
       TOOLSERVER_BASE_URL: http://toolserver:9090
@@ -316,7 +316,7 @@ services:
       LIMS_API_TOKEN: ""
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.4.0-beta"
+      SENTRY_RELEASE: "0.5.0-beta"
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_ML_TUTORIALS_DIR: /workspace/omnibioai-docs/tutorials/ml
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
@@ -409,7 +409,7 @@ services:
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.4.0-beta"
+      SENTRY_RELEASE: "0.5.0-beta"
       REPORT_SCHEDULE_HOURS: ${REPORT_SCHEDULE_HOURS:-6}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
     volumes:

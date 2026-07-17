@@ -5,7 +5,7 @@ const SOURCES = ["all", "mysql", "redis", "workbench", "tes", "toolserver", "oll
 const LEVEL_COLOR = { INFO:"#0094ff", OK:"var(--accent)", WARN:"var(--color-warning)", ERR:"var(--color-danger)", DEBUG:"var(--color-text-muted)" };
 
 const DEMO_LOGS = [
-  { time:"08:14:01", source:"workbench",  level:"INFO", msg:"Starting OmniBioAI Workbench v0.4.0" },
+  { time:"08:14:01", source:"workbench",  level:"INFO", msg:"Starting OmniBioAI Workbench v0.5.0" },
   { time:"08:14:02", source:"mysql",      level:"OK",   msg:"MySQL ready on port 3306" },
   { time:"08:14:02", source:"redis",      level:"OK",   msg:"Redis connected, memory: 2.1MB" },
   { time:"08:14:03", source:"tes",        level:"INFO", msg:"TES initializing task scheduler" },

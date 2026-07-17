@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Card, Button, Badge, Spinner } from "@man4ish/ui";
+import { Card, Button, Badge, Spinner } from "@omnibioai/ui";
 
 const GRAFANA_BASE = "http://localhost:3000";
 

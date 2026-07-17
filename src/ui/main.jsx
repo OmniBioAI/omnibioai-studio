@@ -1,5 +1,5 @@
-import '@man4ish/design-tokens/tokens.css';
-import '@man4ish/ui/dist/index.css';
+import '@omnibioai/design-tokens/tokens.css';
+import '@omnibioai/ui/dist/index.css';
 import React from "react";
 import ReactDOM from "react-dom/client";
 import * as Sentry from "@sentry/react";
