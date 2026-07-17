@@ -15,7 +15,7 @@
 - **Live platform metrics dashboard** — architecture, coverage, and health now publicly viewable at [control.omnibioai.org](https://control.omnibioai.org)
 
 ### v0.4.0-beta ✅
-- **Version unification** — all UI components, sidebar, badge, logs, and settings now consistently report `v0.5.0-beta`
+- **Version unification** — all UI components, sidebar, badge, logs, and settings now consistently report `v0.4.0-beta`
 - **23 services fully operational** — all layers (Data, Security Control Plane, Execution, AI, Developer) green
 - **1,010 registered tools** — confirmed live in Jobs → Registered Tools panel *(platform-wide tooling, including HPC/cloud/orchestration integrations, totals 11,000+ — see Bioinformatics Tools section below)*
 - **7 execution servers** — `local_real`, `slurm_local`, `aws_batch_prod`, `aws_batch_demo`, `azure_batch_demo`, `gcp_batch_demo`, `enrichment_remote`
@@ -515,7 +515,8 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 | v0.3.0-beta | ✅ Released | IDE Services, Grafana observability, auto-secrets, npm security |
 | v0.4.0-beta | ✅ Released | Version unification, 23 services, 7 exec servers, claude-sonnet-4 |
 | **v0.5.0-beta** | ✅ **Current** | 225+ plugins, 36M-abstract RAG index, 1,025 container images, full beta launch |
-| v0.6.0 | 🔜 Planned | SSO/SAML, role management UI, HIPAA compliance reporting |
+| v0.6.0 | 🔜 Planned | SSO/SAML, role management UI |
+| **v0.7.0** | 🔜 Planned | HIPAA compliance reporting |
 
 ---
 
