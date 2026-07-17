@@ -16,9 +16,11 @@ import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
 import Videos        from "./pages/Videos";
 import IdeServices   from "./pages/IdeServices";
+import RoleManagement from "./pages/RoleManagement";
 import { GrafanaViewer } from "./components/GrafanaViewer";
+import { getCurrentUser, onSessionChange } from "./lib/session";
 
-const NAV = [
+const BASE_NAV = [
   { section: "Setup",   items: [
     { name:"Mode",      idx:0 },
     { name:"LLM",       idx:1 },
@@ -38,12 +40,24 @@ const NAV = [
   ]},
 ];
 
+// "Roles" nav item is inserted only for users holding manage_roles — non-admins
+// never see it, per the Role Management definition of done.
+function buildNav(canManageRoles) {
+  if (!canManageRoles) return BASE_NAV;
+  return [
+    BASE_NAV[0],
+    BASE_NAV[1],
+    { section: "Security", items: [{ name: "Roles", idx: 11 }] },
+    BASE_NAV[2],
+  ];
+}
+
 const WIZARD_STEPS = ["Mode","LLM","Cloud","HPC","Launch"];
 const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","workbench","settings","jobs","ide-services"
+  "services","logs","workbench","settings","jobs","ide-services","roles"
 ];
 
 export default function App() {
@@ -54,6 +68,7 @@ export default function App() {
     mode: "beta", llm: {}, cloud: {}, hpc: {}, settings: {},
   });
   const [service,      setService]      = useState(null); // { url, label } when viewing a service
+  const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
 
   // ─── Load saved config + first-run detection ───────────
   useEffect(() => {
@@ -95,6 +110,24 @@ export default function App() {
     return () => window.removeEventListener("open-service", handler);
   }, []);
 
+  // ─── Track the signed-in user (drives the Roles nav item + page gate) ──
+  useEffect(() => {
+    let mounted = true;
+    const refreshUser = async () => {
+      const user = await getCurrentUser();
+      if (mounted) setCurrentUser(user);
+    };
+    refreshUser();
+    const unsubscribe = onSessionChange(refreshUser);
+    return () => { mounted = false; unsubscribe(); };
+  }, []);
+
+  // Keep the nav item visible while signed out (or still loading) so there's
+  // an entry point to sign in — only hide it once we positively know the
+  // signed-in user lacks manage_roles.
+  const showRolesNav = currentUser === null || currentUser.permissions?.includes("manage_roles");
+  const nav = buildNav(showRolesNav);
+
   const pages = [
     <Mode      config={config} setConfig={setConfig} />,
     <LLM       config={config} setConfig={setConfig} />,
@@ -107,6 +140,7 @@ export default function App() {
     <Settings  config={config} setConfig={setConfig} />,
     <Jobs         />,
     <IdeServices  />,
+    <RoleManagement currentUser={currentUser} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -163,7 +197,7 @@ export default function App() {
         flexShrink: 0,
       }}>
         <Sidebar
-          nav={NAV} step={step} setStep={setStep} systemStatus={systemStatus}
+          nav={nav} step={step} setStep={setStep} systemStatus={systemStatus}
           isServiceView={!!service} onStudioClick={handleStudioClick}
         />
       </div>
