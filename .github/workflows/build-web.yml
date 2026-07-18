@@ -1,0 +1,31 @@
+name: Build Web UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'packages/**'
+      - 'Dockerfile.web'
+      - 'docker/nginx-web.conf'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Required for GITHUB_TOKEN to push to ghcr.io — without this the
+    # `docker push` step below fails with 403, since the default token
+    # permissions don't include package write access.
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push
+        run: |
+          docker build -f Dockerfile.web -t ghcr.io/omnibioai/omnibioai-web:latest -t ghcr.io/omnibioai/omnibioai-web:${{ github.sha }} .
+          docker push ghcr.io/omnibioai/omnibioai-web:latest
+          docker push ghcr.io/omnibioai/omnibioai-web:${{ github.sha }}

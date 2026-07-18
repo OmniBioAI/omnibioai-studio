@@ -6,6 +6,21 @@ WORKDIR /app
 COPY package*.json ./
 COPY packages ./packages
 RUN npm ci
+# @omnibioai/ui is a file: dependency consumed as prebuilt dist/ output
+# (its package.json main/module/css all point into dist/). .dockerignore
+# excludes **/dist from the build context, so unlike a host checkout where
+# dist/ was already built once, the copied packages/omnibioai-ui here has
+# none — it has to be built explicitly or `npm run web:build` fails to
+# resolve "@omnibioai/ui/dist/index.css" from src/ui/main.jsx.
+# @omnibioai/design-tokens needs no such step — it ships plain source files
+# (tokens.css/.js/.ts) directly, per its package.json.
+# npm ci here fails: packages/omnibioai-ui/package-lock.json is out of sync
+# with its own package.json (missing the @omnibioai/design-tokens entry) —
+# a pre-existing issue in that package (it has its own repo, see its
+# package.json "repository" field), not something to hand-patch in a
+# vendored lockfile from here. `npm install` reconciles it instead of
+# failing strict the way `ci` does.
+RUN cd packages/omnibioai-ui && npm install && npm run build
 COPY . .
 RUN npm run web:build
 
