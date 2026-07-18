@@ -1,25 +1,22 @@
-// Minimal session layer for omnibioai-studio.
+// Web-build session layer. Isolated copy of ../session.js — NOT imported by
+// any Electron code path, and does not modify the original file. Swapped in
+// for the "../lib/session" import only under `vite build --mode web` via the
+// resolve.alias in vite.config.js, so the Electron build is unaffected.
 //
-// Provider-agnostic by design: `setSession(accessToken)` is the single entry
-// point that stores a token and refreshes the cached user, regardless of how
-// the token was obtained. `loginWithPassword` is today's only provider; OAuth2
-// SSO (Google/GitHub/Microsoft, a later session) should add its own
-// `loginWithOAuthToken`-style function that also just calls `setSession`.
+// The only real difference from ../session.js: authUrl() below is relative
+// (same-origin) instead of a direct http://<lan-ip>:8001 fetch. A browser at
+// https://app.omnibioai.org can't reach a private Docker-network host on a
+// raw port — it has to go through nginx-router.conf's `location ^~ /auth/`
+// passthrough (docker/nginx-router.conf), which forwards to auth-service
+// with no path rewrite — auth-service's own routes already live under
+// /auth/*, so every call site below (which already passes a path starting
+// with "/auth/...") just needs that path used as-is, same-origin.
 
-const AUTH_PORT = 8001;
 const TOKEN_KEY = "omnibioai_access_token";
 const SESSION_EVENT = "omnibioai-session-changed";
 
-function getHostIp() {
-  return (
-    window.__OMNIBIOAI_CONFIG__?.hostIp ||
-    localStorage.getItem("omnibioai_host_ip") ||
-    "192.168.86.234"
-  );
-}
-
 export function authUrl(path) {
-  return `http://${getHostIp()}:${AUTH_PORT}${path}`;
+  return path;
 }
 
 let cachedUser = null;
@@ -99,12 +96,9 @@ export function onSessionChange(callback) {
   return () => window.removeEventListener(SESSION_EVENT, callback);
 }
 
-// ── OAuth2 SSO ────────────────────────────────────────────────────────────────
-// Web build only — the Electron app keeps email/password per its landing
-// page copy. Electron also disables webSecurity, so a provider's redirect
-// back to a browser origin wouldn't land inside the app window anyway.
+// Always true here — this module only ever loads inside the web build.
 export function isElectron() {
-  return !!(window.electronAPI || window.api);
+  return false;
 }
 
 const OAUTH_PROVIDERS = ["google", "github", "microsoft"];
@@ -133,13 +127,6 @@ export async function confirmOAuthLink(linkToken, password) {
   return getCurrentUser({ force: true });
 }
 
-// Reads the query params the auth-service's GET /auth/{provider}/callback
-// redirects back with — status=ok|link_required|error, see omnibioai-auth's
-// routes_oauth.py — applies them, and strips them from the URL so a page
-// refresh doesn't reprocess a stale token or link_token. Returns null if
-// there was nothing OAuth-related to process. Path-agnostic (keys off query
-// params, not pathname) since it's not yet settled which URL in production
-// the provider redirect actually lands the browser on.
 export function consumeOAuthRedirectParams() {
   const url = new URL(window.location.href);
   const params = url.searchParams;
@@ -164,7 +151,6 @@ export function consumeOAuthRedirectParams() {
     }
   }
 
-  // Drop the query string so refresh/back doesn't replay a one-time token.
   window.history.replaceState({}, "", url.pathname);
 
   return result;

@@ -842,6 +842,18 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # OmniBioAI Studio web SPA — served as static files behind nginx-router
+  # (see docker/nginx-router.conf's `web-ui` upstream / `location /`).
+  # Same in-repo build-context pattern as workbench/control-center use for
+  # their own Dockerfiles, just pointed at this repo instead of a sibling
+  # ${MACHINE_DIR}/... checkout, since Dockerfile.web lives here.
+  web-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    # image: ghcr.io/omnibioai/omnibioai-web:latest
+    restart: unless-stopped
+
   nginx-router:
     image: nginx:latest
     ports:
@@ -852,6 +864,7 @@ services:
       - ./docker/static:/etc/nginx/omni-static:ro
     depends_on:
       - workbench
+      - web-ui
       - lims
       - rag
       - api-gateway

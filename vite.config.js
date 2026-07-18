@@ -1,12 +1,45 @@
+import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 const HOST = process.env.VITE_HOST || "192.168.86.234";
 
-export default defineConfig({
+// mode is only ever 'web' when invoked via `--mode web` (npm run web /
+// web:build / web:preview). The default Electron-facing scripts (dev,
+// build:ui, build:linux, etc.) never pass --mode, so `mode` is 'production'
+// or 'development' there and every branch below is a no-op — outDir stays
+// "dist" and the resolve.alias swap never applies. Electron build is
+// untouched.
+export default defineConfig(({ mode }) => {
+  const isWeb = mode === "web";
+
+  return {
   plugins: [react()],
+  resolve: {
+    alias: isWeb
+      ? [
+          // Swaps every "…/lib/session" import to the isolated web-only
+          // implementation (src/ui/lib/web/session.js) — same-origin /auth/*
+          // paths instead of a direct http://<lan-ip>:8001 fetch, which a
+          // real browser at app.omnibioai.org can't reach. Matches by
+          // resolved-path suffix so it applies regardless of which file
+          // does the importing, without editing any of those files.
+          //
+          // The regex must match the WHOLE specifier (^...$), not just a
+          // trailing chunk of it — vite's builtin alias plugin substitutes
+          // only the matched substring in place, so a suffix-only match like
+          // /\/lib\/session$/ leaves the leading "./" or "../" in front of
+          // the absolute replacement path and produces a bogus specifier
+          // (e.g. "./lib/session" -> "./" + "/abs/path" -> "./home/...").
+          {
+            find: /^\.\.?\/(?:.*\/)?lib\/session(\.js)?$/,
+            replacement: fileURLToPath(new URL("./src/ui/lib/web/session.js", import.meta.url)),
+          },
+        ]
+      : [],
+  },
   build: {
-    outDir: "dist",
+    outDir: isWeb ? "dist/web" : "dist",
     emptyOutDir: true,
     sourcemap: false
   },
@@ -15,6 +48,10 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
     proxy: {
+      // Web-mode-only: session.js (web version) hits relative /auth/* paths;
+      // this mirrors nginx-router.conf's `location ^~ /auth/` passthrough so
+      // `npm run web` works against a real backend during local dev.
+      ...(isWeb ? { "/auth": { target: `https://app.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
       "/_svc/gateway":   { target: `http://${HOST}:8080`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/auth":      { target: `http://${HOST}:8001`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/policy":    { target: `http://${HOST}:8002`, changeOrigin: true, rewrite: () => "/docs" },
@@ -61,4 +98,5 @@ export default defineConfig({
       "/_svc/grafana":    { target: "http://localhost:3000", changeOrigin: true, secure: false, rewrite: (p) => p.replace(/^\/_svc\/grafana/, "") || "/" },
     }
   }
+  };
 });

@@ -17,8 +17,9 @@ import ServiceViewer from "./pages/ServiceViewer";
 import Videos        from "./pages/Videos";
 import IdeServices   from "./pages/IdeServices";
 import RoleManagement from "./pages/RoleManagement";
+import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import { GrafanaViewer } from "./components/GrafanaViewer";
-import { getCurrentUser, onSessionChange } from "./lib/session";
+import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams } from "./lib/session";
 
 const BASE_NAV = [
   { section: "Setup",   items: [
@@ -69,6 +70,7 @@ export default function App() {
   });
   const [service,      setService]      = useState(null); // { url, label } when viewing a service
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
+  const [oauthNotice,  setOauthNotice]  = useState(null); // result of an OAuth redirect: link_required | error
 
   // ─── Load saved config + first-run detection ───────────
   useEffect(() => {
@@ -120,6 +122,16 @@ export default function App() {
     refreshUser();
     const unsubscribe = onSessionChange(refreshUser);
     return () => { mounted = false; unsubscribe(); };
+  }, []);
+
+  // ─── Consume an OAuth provider redirect back into the app, once ──
+  // A successful redirect already called setSession() internally (see
+  // consumeOAuthRedirectParams), which the listener above picks up; this only
+  // needs to handle what setSession alone can't: prompting for account-link
+  // confirmation, or surfacing a failed-sign-in message.
+  useEffect(() => {
+    const result = consumeOAuthRedirectParams();
+    if (result && result.type !== "success") setOauthNotice(result);
   }, []);
 
   // Keep the nav item visible while signed out (or still loading) so there's
@@ -359,6 +371,31 @@ export default function App() {
         )}
       </div>
     </div>
+
+      {oauthNotice?.type === "link_required" && (
+        <OAuthLinkConfirm
+          linkToken={oauthNotice.linkToken}
+          provider={oauthNotice.provider}
+          email={oauthNotice.email}
+          onDone={() => setOauthNotice(null)}
+          onCancel={() => setOauthNotice(null)}
+        />
+      )}
+
+      {oauthNotice?.type === "error" && (
+        <div style={{
+          position: "fixed", top: 16, right: 16, zIndex: 1000,
+          maxWidth: 360, padding: "10px 14px",
+          background: "rgba(255,71,87,0.12)", border: "1px solid rgba(255,71,87,0.3)",
+          borderRadius: "var(--radius-sm)", color: "var(--danger)",
+          fontFamily: "var(--mono)", fontSize: "var(--font-size-xs)",
+          display: "flex", alignItems: "flex-start", gap: 10,
+        }}>
+          <div style={{ flex: 1 }}>Sign-in failed: {oauthNotice.message}</div>
+          <div style={{ cursor: "pointer" }} onClick={() => setOauthNotice(null)}>✕</div>
+        </div>
+      )}
+
       <BugReport />
     </LicenseGate>
   );
