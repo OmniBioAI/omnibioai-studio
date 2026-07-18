@@ -114,3 +114,15 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - LLM configuration: Ollama + Claude API + OpenAI
 - Cloud execution: AWS/Azure/GCP Batch + Kubernetes
 - HPC execution: Slurm / PBS / LSF via TES
+## v0.6.0-beta (2026-07-18)
+
+### New Features
+- 🌐 Web version at app.omnibioai.org
+- 🔐 SSO/OAuth2 (Google, GitHub, Microsoft)
+- 🛡 Cloudflare Access email whitelist
+- 🤗 HuggingFace Push button in Model Registry
+- 📦 800 ARM64 SIF images
+- 🛠 12,000+ bioinformatics tools
+- 90 Kubernetes tool definitions
+- 1,200 HTTP API tools
+- YAML validation fixes
