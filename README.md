@@ -521,9 +521,10 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 | v0.2.0-beta | ✅ Released | License system, zero-trust security, 1,010 tools, Windows installer |
 | v0.3.0-beta | ✅ Released | IDE Services, Grafana observability, auto-secrets, npm security |
 | v0.4.0-beta | ✅ Released | Version unification, 23 services, 7 exec servers, claude-sonnet-4 |
-| **v0.6.0-beta** | ✅ **Current** | 225+ plugins, 36M-abstract RAG index, 1,120+ container images, full beta launch |
-| v0.6.0 | 🔜 Planned | SSO/SAML, role management UI |
-| **v0.7.0** | 🔜 Planned | HIPAA compliance reporting |
+| v0.5.0-beta | ✅ Released | 225+ plugins, 36M-abstract RAG index, 1,120+ container images, full beta launch |
+| **v0.6.0-beta** | ✅ **Current** | Web version (app.omnibioai.org), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, HuggingFace integration, Model Registry HF push button |
+| **v0.7.0** | 🔜 Planned | Complete 36M PubMed RAG (GPU embeddings), 20 trained ML models on HuggingFace, 1,000 ARM64 SIF images, GHCR migration to omnibioai org, Demo video, Web app PWA support, workbench.omnibioai.org |
+| **v0.8.0** | 🔜 Planned | HIPAA compliance reporting, SAML/enterprise SSO, multi-user workspaces, team management, usage analytics, billing integration, mobile responsive UI |
 
 ---
 
