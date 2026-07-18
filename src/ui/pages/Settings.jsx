@@ -303,7 +303,7 @@ export default function Settings({ config, setConfig }) {
               fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             }}>
               {[
-                ["Studio Version", "v0.5.0-beta"],
+                ["Studio Version", "v0.6.0-beta"],
                 ["Electron",       typeof process !== "undefined" ? process.versions?.electron || "28.x" : "web"],
                 ["Node.js",        typeof process !== "undefined" ? process.versions?.node     || "18.x" : "web"],
                 ["Platform",       navigator.platform],

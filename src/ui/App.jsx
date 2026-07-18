@@ -282,7 +282,7 @@ export default function App() {
               borderRadius:'var(--radius-xs)', letterSpacing:"0.08em",
               background:"rgba(0,148,255,0.12)", color:"var(--accent2)",
               border:"1px solid rgba(0,148,255,0.2)",
-            }}>v0.5.0</span>
+            }}>v0.6.0</span>
 
             <span style={{
               fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)', padding:"3px 8px",

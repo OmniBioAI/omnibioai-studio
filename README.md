@@ -6,11 +6,18 @@
 
 ---
 
-## ✨ What's New in v0.5.0-beta
+## ✨ What's New in v0.6.0-beta
+- **Web version** at app.omnibioai.org — no download needed!
+- **SSO/OAuth2** — Google, GitHub, Microsoft login
+- **Cloudflare Access** — invite-only email whitelist
+- **12,000+ tools** — HTTP, ARM64, x86, Kubernetes
+- **800 ARM64 SIF images** on HuggingFace
+- **HuggingFace Push** button in Model Registry
+- **1,120+ container images** on ghcr.io/omnibioai
 
 - **225+ bioinformatics/ML plugins** — full coverage across scRNA-seq, WGS, WES, proteomics, spatial
 - **36M PubMed abstracts indexed** — 150-domain RAG pipeline with PubMedBERT FAISS, BM25 + vector retrieval, RRF reranking, Neo4j knowledge graph
-- **1,025 container images** — 225 Docker + 800 ARM64 SIF, migrated to `ghcr.io/omnibioai`
+- **1,120+ container images** — 320 Docker + 800 ARM64 SIF, migrated to `ghcr.io/omnibioai`
 - **600+ workflow bundles** across Nextflow, WDL, CWL, Snakemake
 - **Live platform metrics dashboard** — architecture, coverage, and health now publicly viewable at [control.omnibioai.org](https://control.omnibioai.org)
 
@@ -413,10 +420,10 @@ Expected layout:
 - Data Dir mounted as `/data` in all containers
 - Work Dir mounted as `/workspace/work` in all containers
 
-### About (v0.5.0-beta)
+### About (v0.6.0-beta)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.5.0-beta |
+| Studio Version | v0.6.0-beta |
 | Electron | web |
 | Node.js | web |
 | Platform | Linux x86_64 |
@@ -514,7 +521,7 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 | v0.2.0-beta | ✅ Released | License system, zero-trust security, 1,010 tools, Windows installer |
 | v0.3.0-beta | ✅ Released | IDE Services, Grafana observability, auto-secrets, npm security |
 | v0.4.0-beta | ✅ Released | Version unification, 23 services, 7 exec servers, claude-sonnet-4 |
-| **v0.5.0-beta** | ✅ **Current** | 225+ plugins, 36M-abstract RAG index, 1,025 container images, full beta launch |
+| **v0.6.0-beta** | ✅ **Current** | 225+ plugins, 36M-abstract RAG index, 1,120+ container images, full beta launch |
 | v0.6.0 | 🔜 Planned | SSO/SAML, role management UI |
 | **v0.7.0** | 🔜 Planned | HIPAA compliance reporting |
 
