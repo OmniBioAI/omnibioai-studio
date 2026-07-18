@@ -19,3 +19,5 @@ debug_delete_*.png
 gh_auth_state.json
 migration_verification_report.txt
 .env
+.npmrc
+.npmrc
