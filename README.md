@@ -7,19 +7,20 @@
 ---
 
 ## ✨ What's New in v0.6.0-beta
-- **Web version** at app.omnibioai.org — no download needed!
-- **SSO/OAuth2** — Google, GitHub, Microsoft login
-- **Cloudflare Access** — invite-only email whitelist
-- **12,000+ tools** — HTTP, ARM64, x86, Kubernetes
-- **800 ARM64 SIF images** on HuggingFace
-- **HuggingFace Push** button in Model Registry
-- **1,120+ container images** on ghcr.io/omnibioai
 
-- **225+ bioinformatics/ML plugins** — full coverage across scRNA-seq, WGS, WES, proteomics, spatial
-- **36M PubMed abstracts indexed** — 150-domain RAG pipeline with PubMedBERT FAISS, BM25 + vector retrieval, RRF reranking, Neo4j knowledge graph
-- **1,120+ container images** — 320 Docker + 800 ARM64 SIF, migrated to `ghcr.io/omnibioai`
-- **600+ workflow bundles** across Nextflow, WDL, CWL, Snakemake
-- **Live platform metrics dashboard** — architecture, coverage, and health now publicly viewable at [control.omnibioai.org](https://control.omnibioai.org)
+- 🌐 **Web version** at app.omnibioai.org — no installation required
+- 🔐 **SSO & OAuth2** — Google, GitHub, and Microsoft sign-in
+- 🛡️ **Cloudflare Access** — secure invite-only email whitelist
+
+- 🧬 **12,000+ bioinformatics tools** across HTTP APIs, ARM64, x86, and Kubernetes
+- 📦 **1,120+ container images** (320 Docker + 800 ARM64 SIF) hosted on GHCR and Hugging Face
+- 🔌 **225+ bioinformatics & AI plugins** covering scRNA-seq, WGS, WES, proteomics, spatial, and more
+- ⚙️ **600+ workflow bundles** for Nextflow, WDL, CWL, and Snakemake
+
+- 🤖 **36M PubMed abstracts indexed** with a 150-domain RAG pipeline (PubMedBERT, FAISS, BM25, RRF, Neo4j)
+- 🤗 **One-click Hugging Face Push** from the Model Registry
+
+- 📊 **Live platform metrics dashboard** with architecture, service health, and coverage
 
 ### v0.4.0-beta ✅
 - **Version unification** — all UI components, sidebar, badge, logs, and settings now consistently report `v0.4.0-beta`
