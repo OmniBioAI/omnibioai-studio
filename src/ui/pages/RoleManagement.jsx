@@ -1,86 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Card, Button, Badge, Table, Input, Tabs } from "@omnibioai/ui";
 import { Panel, PanelHeader, PanelBody, FormRow } from "../components/UI";
-import { loginWithPassword } from "../lib/session";
+import Login from "../components/Login";
 import * as rolesApi from "../lib/rolesApi";
 
 const MANAGE_ROLES = "manage_roles";
 
 export default function RoleManagement({ currentUser }) {
   if (!currentUser) {
-    return <LoginGate />;
+    return <Login title="Sign in required" description="Role management requires an authenticated OmniBioAI account." />;
   }
   if (!currentUser.permissions?.includes(MANAGE_ROLES)) {
     return <AccessDenied email={currentUser.email} />;
   }
   return <RoleManagementConsole />;
-}
-
-// ── Sign-in gate ──────────────────────────────────────────────────────────────
-// This is a stopgap: the wider Studio app has no login flow yet. Session 3/4
-// (OAuth2 SSO) should replace this with a real login screen; this component
-// only needs `session.setSession()` to have been called by then.
-
-function LoginGate() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      await loginWithPassword(email, password);
-      // A successful login dispatches omnibioai-session-changed; App.jsx
-      // listens for that and re-renders this page with currentUser set.
-    } catch (err) {
-      setError(err.message || "Login failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div style={{ display: "flex", justifyContent: "center", paddingTop: 60 }}>
-      <div style={{ width: 340 }}>
-        <Card title="Sign in required">
-          <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)", marginBottom: 16 }}>
-            Role management requires an authenticated OmniBioAI account.
-          </div>
-          <form onSubmit={submit}>
-            <div style={{ marginBottom: 12 }}>
-              <Input label="Email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@omnibioai" />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{
-                fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)", color: "var(--color-text-muted)",
-                letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, display: "block",
-              }}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                style={{
-                  width: "100%", boxSizing: "border-box",
-                  background: "var(--bg2)", border: "1px solid var(--border2)",
-                  borderRadius: "var(--radius-sm)", padding: "7px 10px",
-                  fontSize: "var(--font-size-sm)", fontFamily: "var(--mono)",
-                  color: "var(--text)", outline: "none",
-                }}
-              />
-            </div>
-            {error && <div style={{ marginBottom: 12 }}><Badge variant="danger">{error}</Badge></div>}
-            <Button variant="primary" loading={busy} disabled={busy}>
-              {busy ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
-        </Card>
-      </div>
-    </div>
-  );
 }
 
 function AccessDenied({ email }) {
