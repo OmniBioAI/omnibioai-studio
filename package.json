@@ -16,9 +16,9 @@
     "build:all": "cross-env OMNIBIOAI_DEV_MODE=false npm run build:ui && electron-builder --linux --mac --win",
     "build": "npm run build:linux",
     "dist": "npm run build",
-    "web": "vite",
-    "web:build": "vite build",
-    "web:preview": "vite preview"
+    "web": "vite --mode web",
+    "web:build": "vite build --mode web",
+    "web:preview": "vite preview --mode web --port 4173"
   },
   "dependencies": {
     "@omnibioai/design-tokens": "file:./packages/omnibioai-design-tokens",
