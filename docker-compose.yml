@@ -413,14 +413,18 @@ services:
       REPORT_SCHEDULE_HOURS: ${REPORT_SCHEDULE_HOURS:-6}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
     volumes:
-      - ${MACHINE_DIR}:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker:ro
-      - ${MACHINE_DIR}/omnibioai-control-center/backend/src:/app/src
-      - ${MACHINE_DIR}/omnibioai-control-center/scripts:/app/scripts
-      - ${MACHINE_DIR}/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
-      - ${MACHINE_DIR}/omnibioai-control-center/config:/config:ro
-      - ${MACHINE_DIR}/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
+        - ${MACHINE_DIR}:/workspace
+        - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
+        - /media/manish/OmniBioAI-SIFs/reference:/media/manish/OmniBioAI-SIFs/reference
+        - /media/manish/OmniBioAI-SIFs/omnibioai-test-data:/media/manish/OmniBioAI-SIFs/omnibioai-test-data
+        - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /usr/bin/docker:/usr/bin/docker:ro
+        - ${MACHINE_DIR}/omnibioai-control-center/backend/src:/app/src
+        - ${MACHINE_DIR}/omnibioai-control-center/scripts:/app/scripts
+        - ${MACHINE_DIR}/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
+        - ${MACHINE_DIR}/omnibioai-control-center/config:/config:ro
+        - ${MACHINE_DIR}/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
     command: >-
       sh -c "/usr/local/bin/pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
       exec /usr/local/bin/uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
