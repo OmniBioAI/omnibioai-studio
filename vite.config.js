@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 
 const HOST = process.env.VITE_HOST || "192.168.86.234";
 
@@ -14,7 +15,46 @@ export default defineConfig(({ mode }) => {
   const isWeb = mode === "web";
 
   return {
-  plugins: [react()],
+  plugins: [
+    react(),
+    // PWA (manifest + service worker) only applies to the web build
+    // (app.omnibioai.org); the Electron build has no use for it.
+    ...(isWeb
+      ? [
+          VitePWA({
+            registerType: "autoUpdate",
+            includeAssets: ["pwa-192x192.png", "pwa-512x512.png"],
+            manifest: {
+              name: "OmniBioAI Studio",
+              short_name: "OmniBioAI",
+              description: "AI-powered bioinformatics orchestration platform",
+              theme_color: "#0a0c10",
+              background_color: "#0a0c10",
+              display: "standalone",
+              start_url: "/",
+              icons: [
+                {
+                  src: "pwa-192x192.png",
+                  sizes: "192x192",
+                  type: "image/png",
+                },
+                {
+                  src: "pwa-512x512.png",
+                  sizes: "512x512",
+                  type: "image/png",
+                },
+                {
+                  src: "pwa-512x512.png",
+                  sizes: "512x512",
+                  type: "image/png",
+                  purpose: "maskable",
+                },
+              ],
+            },
+          }),
+        ]
+      : []),
+  ],
   resolve: {
     alias: isWeb
       ? [
