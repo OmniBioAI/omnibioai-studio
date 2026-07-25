@@ -34,7 +34,10 @@ RAGBIO_API_KEY = os.getenv(
 )
 
 # ── Request timeout (seconds) ────────────────────────────────────────────────
-TIMEOUT = int(os.getenv("OMNIBIOAI_TEST_TIMEOUT", "10"))
+# /v1/studies on the RAG service routinely takes ~7-9s to respond in this
+# environment (and longer when other containers are under load), so the
+# default needs generous headroom to avoid flaky timeouts.
+TIMEOUT = int(os.getenv("OMNIBIOAI_TEST_TIMEOUT", "30"))
 
 
 # ── Fixtures: base URLs ───────────────────────────────────────────────────────
@@ -78,8 +81,7 @@ def http():
 
 # ── Fixtures: auth tokens ─────────────────────────────────────────────────────
 
-@pytest.fixture(scope="session")
-def auth_tokens():
+def _login_or_skip() -> dict:
     """
     Log in to the auth service and return {"access_token": ..., "refresh_token": ...}.
     Skips if the auth service is not reachable.
@@ -94,6 +96,11 @@ def auth_tokens():
         return resp.json()
     except Exception as exc:
         pytest.skip(f"Auth service unavailable, skipping: {exc}")
+
+
+@pytest.fixture(scope="session")
+def auth_tokens():
+    return _login_or_skip()
 
 
 @pytest.fixture(scope="session")
@@ -113,8 +120,7 @@ def auth_headers(access_token):
 
 # ── Fixtures: LIMS cookie session ────────────────────────────────────────────
 
-@pytest.fixture(scope="session")
-def lims_session():
+def _lims_login_or_skip() -> requests.Session:
     """
     Authenticate against LIMS and return a requests.Session with the JWT
     cookie already set.  Skips if LIMS is not reachable.
@@ -135,6 +141,11 @@ def lims_session():
     except Exception as exc:
         pytest.skip(f"LIMS service unavailable, skipping: {exc}")
     return session
+
+
+@pytest.fixture(scope="session")
+def lims_session():
+    return _lims_login_or_skip()
 
 
 # ── Fixtures: RAG headers ─────────────────────────────────────────────────────

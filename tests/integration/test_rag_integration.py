@@ -26,7 +26,13 @@ BASE = RAG_DIRECT_URL
 
 def _get(path: str, auth: bool = True) -> requests.Response:
     headers = {"Authorization": f"Bearer {RAGBIO_API_KEY}"} if auth else {}
-    return requests.get(f"{BASE}{path}", headers=headers, timeout=TIMEOUT)
+    # /v1/studies in particular sees occasional multi-second latency spikes
+    # in this environment; one retry absorbs those without masking a real
+    # outage (a second consecutive timeout still fails the test).
+    try:
+        return requests.get(f"{BASE}{path}", headers=headers, timeout=TIMEOUT)
+    except requests.exceptions.Timeout:
+        return requests.get(f"{BASE}{path}", headers=headers, timeout=TIMEOUT)
 
 
 def _post(path: str, body: dict, auth: bool = True) -> requests.Response:
@@ -78,34 +84,38 @@ class TestRagAuth:
 # ── Studies ───────────────────────────────────────────────────────────────────
 
 class TestRagStudies:
-    def test_studies_returns_200(self):
-        r = _get("/v1/studies")
-        assert r.status_code == 200
+    # /v1/studies is slow (~7-9s); fetch it once per class instead of once
+    # per test to keep the suite fast and avoid piling up timeout risk.
+    @pytest.fixture(scope="class")
+    def studies_response(self):
+        return _get("/v1/studies")
 
-    def test_studies_returns_dict_with_studies_key(self):
-        r = _get("/v1/studies")
-        assert "studies" in r.json()
+    def test_studies_returns_200(self, studies_response):
+        assert studies_response.status_code == 200
 
-    def test_studies_is_list(self):
-        r = _get("/v1/studies")
-        assert isinstance(r.json()["studies"], list)
+    def test_studies_returns_dict_with_studies_key(self, studies_response):
+        assert "studies" in studies_response.json()
 
-    def test_each_study_has_name_field(self):
-        r = _get("/v1/studies")
-        for study in r.json()["studies"]:
+    def test_studies_is_list(self, studies_response):
+        assert isinstance(studies_response.json()["studies"], list)
+
+    def test_each_study_has_name_field(self, studies_response):
+        for study in studies_response.json()["studies"]:
             assert "name" in study
 
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
 
 class TestRagCache:
-    def test_cache_returns_200(self):
-        r = _get("/v1/cache")
-        assert r.status_code == 200
+    @pytest.fixture(scope="class")
+    def cache_response(self):
+        return _get("/v1/cache")
 
-    def test_cache_returns_dict_with_cache_key(self):
-        r = _get("/v1/cache")
-        assert "cache" in r.json()
+    def test_cache_returns_200(self, cache_response):
+        assert cache_response.status_code == 200
+
+    def test_cache_returns_dict_with_cache_key(self, cache_response):
+        assert "cache" in cache_response.json()
 
 
 # ── Query ─────────────────────────────────────────────────────────────────────

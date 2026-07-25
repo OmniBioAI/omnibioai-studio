@@ -269,3 +269,9 @@ SERVICES = [
 @pytest.mark.parametrize("name,url", SERVICES)
 def test_service_is_up(name, url):
     assert _is_up(url), f"Service '{name}' is not reachable at {url}"
+
+
+def test_is_up_returns_false_for_unreachable_url():
+    # Port 1 is reserved and nothing listens there, so this should raise a
+    # RequestException that _is_up() swallows and turns into False.
+    assert _is_up("http://localhost:1/health") is False
