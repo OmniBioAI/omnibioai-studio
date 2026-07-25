@@ -147,6 +147,7 @@ services:
 
     volumes:
       - ${MACHINE_DIR}/data/local_registry/model_registry:/registry
+      - ${WORK_DIR}/runs:/app/work/runs:ro
     depends_on:
       mysql:
         condition: service_healthy
@@ -284,10 +285,12 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6380"
       CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
       TES_BASE_URL: http://tes:8081
       OLLAMA_BASE_URL: http://ollama:11434
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -333,6 +336,7 @@ services:
       - /usr/bin/docker:/usr/bin/docker:ro
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
       - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+      - /media:/media:ro
     depends_on:
       mysql:
         condition: service_healthy
@@ -365,6 +369,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6380"
       CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
       TES_BASE_URL: http://tes:8081
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
@@ -395,6 +400,7 @@ services:
       dockerfile: Dockerfile
       target: backend
     restart: on-failure
+    runtime: nvidia
     # image: ghcr.io/omnibioai/omnibioai-control-center:latest
     ports:
       # Bound to localhost only — blocks all external network access
@@ -403,6 +409,8 @@ services:
       # Prometheus scrapes via Docker internal network (unaffected)
       - "127.0.0.1:7070:7070"
     environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
       WORKSPACE_ROOT: /workspace
       WORK_DIR: /workspace/omnibioai-work
       OMNIBIOAI_BASE: /workspace/omnibioai
@@ -412,6 +420,15 @@ services:
       SENTRY_RELEASE: "0.6.0-beta"
       REPORT_SCHEDULE_HOURS: ${REPORT_SCHEDULE_HOURS:-6}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      REDIS_URL: redis://redis:6379/0
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: omnibioai
+      GHCR_PULL_TOKEN: ${GHCR_PULL_TOKEN:-}
     volumes:
         - ${MACHINE_DIR}:/workspace
         - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
@@ -747,6 +764,11 @@ services:
     image: prom/prometheus:latest
     # ports:          # removed — access only via nginx /_svc/prometheus
     #   - "9091:9090"
+    extra_hosts:
+      # node-exporter runs with network_mode: host (required to see host-level
+      # metrics), so it's not reachable via a normal bridge-network service
+      # name -- host-gateway resolves to the docker bridge's host IP instead.
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
@@ -844,6 +866,20 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: omnibioai-node-exporter
+    pid: host
+    network_mode: host
+    volumes:
+      - /:/host:ro,rslave
+    command:
+      - '--path.rootfs=/host'
+      # disabled by default (reads /proc/*/status for every process) --
+      # needed for node_processes_pids/threads (processes_total/threads_total)
+      - '--collector.processes'
     restart: unless-stopped
 
   # OmniBioAI Studio web SPA — served as static files behind nginx-router
