@@ -37,3 +37,10 @@ scrape_configs:
     static_configs:
       - targets: ['redis-exporter:9121']
     metrics_path: /metrics
+
+  - job_name: node
+    static_configs:
+      # node-exporter runs with network_mode: host, so it's reached via the
+      # docker bridge's host-gateway alias, not a normal service name.
+      - targets: ['host.docker.internal:9100']
+    metrics_path: /metrics
