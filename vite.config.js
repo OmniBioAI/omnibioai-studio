@@ -83,7 +83,7 @@ export default defineConfig(({ mode }) => {
     emptyOutDir: true,
     sourcemap: false
   },
-  base: "./",
+  base: isWeb ? "/" : "./",
   server: {
     port: 5174,
     strictPort: true,
