@@ -433,6 +433,14 @@ services:
       # model-registry -- lets require_admin() validate omnibioai-auth-issued
       # JWTs locally (HS256) without a network round trip.
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      # Narrow, single-file mount (not the whole /var/spool/cron directory)
+      # for POST /cron/jobs/{id}/pause|resume and PUT .../schedule. The
+      # container runs as root, so it can read/write this file regardless of
+      # its manish:crontab ownership -- no crontab CLI/package needed, since
+      # standard Debian cron polls each spool file's mtime and reloads
+      # automatically, without requiring the change to go through the
+      # crontab binary itself.
+      CRONTAB_SPOOL_PATH: /var/spool/cron/crontabs/manish
     volumes:
         - ${MACHINE_DIR}:/workspace
         - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
@@ -441,6 +449,7 @@ services:
         - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
         - /var/run/docker.sock:/var/run/docker.sock
         - /usr/bin/docker:/usr/bin/docker:ro
+        - /var/spool/cron/crontabs/manish:/var/spool/cron/crontabs/manish
         - ${MACHINE_DIR}/omnibioai-control-center/backend/src:/app/src
         - ${MACHINE_DIR}/omnibioai-control-center/scripts:/app/scripts
         - ${MACHINE_DIR}/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
