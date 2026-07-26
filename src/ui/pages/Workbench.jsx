@@ -4,7 +4,7 @@ function getInitialHost() {
   return (
     window.__OMNIBIOAI_SERVER__ ||
     import.meta.env.VITE_HOST ||
-    "app.omnibioai.org"
+    "webstudio.omnibioai.org"
   );
 }
 

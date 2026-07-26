@@ -388,7 +388,7 @@ app.whenReady().then(() => {
   mainWindow.webContents.once("did-finish-load", () => {
     const cfg = readConfig();
     const hostIp = cfg?.server?.host_ip || "localhost";
-    const server = DEV_MODE ? "app.omnibioai.org" : (hostIp || "localhost");
+    const server = DEV_MODE ? "webstudio.omnibioai.org" : (hostIp || "localhost");
     mainWindow.webContents.executeJavaScript(
       `window.__OMNIBIOAI_SERVER__ = ${JSON.stringify(server)}`
     );

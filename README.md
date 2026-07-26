@@ -8,7 +8,7 @@
 
 ## ✨ What's New in v0.6.0-beta
 
-- 🌐 **Web version** at app.omnibioai.org — no installation required
+- 🌐 **Web version** at webstudio.omnibioai.org — no installation required
 - 🔐 **SSO & OAuth2** — Google, GitHub, and Microsoft sign-in
 - 🛡️ **Cloudflare Access** — secure invite-only email whitelist
 
@@ -29,7 +29,7 @@
 - **7 execution servers** — `local_real`, `slurm_local`, `aws_batch_prod`, `aws_batch_demo`, `azure_batch_demo`, `gcp_batch_demo`, `enrichment_remote`
 - **claude-sonnet-4-20250514** as default orchestrator model in LLM configuration
 - **IDE Services all RUNNING** — JupyterLab (:8888), RStudio (:8787), VS Code Server (:8883)
-- **Beta Cloud mode** — connects to `app.omnibioai.org`; MySQL, Workbench, TES, Ollama tunnels all reachable
+- **Beta Cloud mode** — connects to `webstudio.omnibioai.org`; MySQL, Workbench, TES, Ollama tunnels all reachable
 - **Report Bug modal** — title, description, email, severity (Low / Medium / High / Critical) with Submit Bug Report
 
 ### v0.3.0-beta ✅
@@ -286,7 +286,7 @@ Drug Target AI · Literature AI · Pathway Enrichment · Bio Hypothesis · Liter
 
 | Mode | Status | Description |
 |------|--------|--------------|
-| **Beta Cloud** | ✅ Available | Connects to `app.omnibioai.org` — no local Docker needed |
+| **Beta Cloud** | ✅ Available | Connects to `webstudio.omnibioai.org` — no local Docker needed |
 | Local | Coming soon | Docker + local GPU/CPU, offline-first, Slurm support |
 | HPC | Coming soon | Slurm / PBS / LSF, Apptainer remote execution |
 | Cloud | Coming soon | AWS Batch / Azure Batch, elastic auto-scaling |

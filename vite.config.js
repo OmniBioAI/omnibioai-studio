@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
   plugins: [
     react(),
     // PWA (manifest + service worker) only applies to the web build
-    // (app.omnibioai.org); the Electron build has no use for it.
+    // (webstudio.omnibioai.org); the Electron build has no use for it.
     ...(isWeb
       ? [
           VitePWA({
@@ -61,7 +61,7 @@ export default defineConfig(({ mode }) => {
           // Swaps every "…/lib/session" import to the isolated web-only
           // implementation (src/ui/lib/web/session.js) — same-origin /auth/*
           // paths instead of a direct http://<lan-ip>:8001 fetch, which a
-          // real browser at app.omnibioai.org can't reach. Matches by
+          // real browser at webstudio.omnibioai.org can't reach. Matches by
           // resolved-path suffix so it applies regardless of which file
           // does the importing, without editing any of those files.
           //
@@ -91,7 +91,7 @@ export default defineConfig(({ mode }) => {
       // Web-mode-only: session.js (web version) hits relative /auth/* paths;
       // this mirrors nginx-router.conf's `location ^~ /auth/` passthrough so
       // `npm run web` works against a real backend during local dev.
-      ...(isWeb ? { "/auth": { target: `https://app.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
+      ...(isWeb ? { "/auth": { target: `https://webstudio.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
       "/_svc/gateway":   { target: `http://${HOST}:8080`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/auth":      { target: `http://${HOST}:8001`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/policy":    { target: `http://${HOST}:8002`, changeOrigin: true, rewrite: () => "/docs" },

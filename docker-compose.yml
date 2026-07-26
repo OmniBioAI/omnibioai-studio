@@ -172,7 +172,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-omnibioai-studio-secret}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
-      CORS_ALLOWED_ORIGINS: "https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
+      CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
@@ -662,7 +662,7 @@ services:
 
       REDIS_URL: redis://redis:6379
 
-      CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ORIGINS:-http://localhost:5174,http://127.0.0.1:5174,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org}
+      CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ORIGINS:-http://localhost:5174,http://127.0.0.1:5174,https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org}
 
       # OAuth2 SSO — optional; empty values keep SSO disabled without blocking startup.
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
@@ -671,8 +671,8 @@ services:
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
       MICROSOFT_OAUTH_CLIENT_ID: ${MICROSOFT_OAUTH_CLIENT_ID:-}
       MICROSOFT_OAUTH_CLIENT_SECRET: ${MICROSOFT_OAUTH_CLIENT_SECRET:-}
-      OAUTH_REDIRECT_BASE_URL: ${OAUTH_REDIRECT_BASE_URL:-https://app.omnibioai.org}
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://app.omnibioai.org}
+      OAUTH_REDIRECT_BASE_URL: ${OAUTH_REDIRECT_BASE_URL:-https://webstudio.omnibioai.org}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://webstudio.omnibioai.org}
 
     depends_on:
       mysql:

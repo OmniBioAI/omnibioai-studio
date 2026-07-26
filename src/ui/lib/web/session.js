@@ -5,7 +5,7 @@
 //
 // The only real difference from ../session.js: authUrl() below is relative
 // (same-origin) instead of a direct http://<lan-ip>:8001 fetch. A browser at
-// https://app.omnibioai.org can't reach a private Docker-network host on a
+// https://webstudio.omnibioai.org can't reach a private Docker-network host on a
 // raw port — it has to go through nginx-router.conf's `location ^~ /auth/`
 // passthrough (docker/nginx-router.conf), which forwards to auth-service
 // with no path rewrite — auth-service's own routes already live under

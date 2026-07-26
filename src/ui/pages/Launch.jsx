@@ -63,7 +63,7 @@ export default function Launch({ config, onStatusChange }) {
   });
   const [logs, setLogs] = useState(
     isBeta
-      ? [{ time: timestamp(), type:"ok",  msg:"Beta mode — connected to app.omnibioai.org" }]
+      ? [{ time: timestamp(), type:"ok",  msg:"Beta mode — connected to webstudio.omnibioai.org" }]
       : [{ time:"—:—:—",     type:"info", msg:"Studio initialized — waiting for boot" }]
   );
   const logRef  = useRef(null);
@@ -209,7 +209,7 @@ export default function Launch({ config, onStatusChange }) {
               Connected to Cloud
             </span>
             <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
-              app.omnibioai.org
+              webstudio.omnibioai.org
             </span>
           </div>
         ) : (

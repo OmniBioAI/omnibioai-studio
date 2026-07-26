@@ -5,7 +5,7 @@ const MODES = [
   {
     id: "beta",
     title: "Beta Cloud",
-    desc: "Connects to app.omnibioai.org\nNo local docker needed",
+    desc: "Connects to webstudio.omnibioai.org\nNo local docker needed",
   },
   {
     id: "local",

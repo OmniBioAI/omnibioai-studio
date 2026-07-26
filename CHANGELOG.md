@@ -4,6 +4,11 @@ All notable changes to OmniBioAI Studio are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com)
 
 ---
+## [Unreleased]
+
+- 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
+
+---
 ## v0.6.0-beta (2026-07-18)
 
 ### New Features
