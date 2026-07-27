@@ -380,6 +380,7 @@ services:
       REASONING_LLM_MODEL: ${REASONING_LLM_MODEL:-deepseek-r1:32b}
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-deepseek-r1:32b}
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
@@ -418,8 +419,15 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.6.0-beta"
+      SENTRY_API_TOKEN: ${SENTRY_API_TOKEN:-}
+      SENTRY_ORG: ${SENTRY_ORG:-}
+      SENTRY_PROJECT_SLUGS: ${SENTRY_PROJECT_SLUGS:-}
       REPORT_SCHEDULE_HOURS: ${REPORT_SCHEDULE_HOURS:-6}
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      # Separate webhook from DISCORD_WEBHOOK_URL above (GPU temp alerts) --
+      # fires only for genuinely new high-severity known-issue entries.
+      # Empty default disables alerting gracefully, same as SENTRY_DSN.
+      DISCORD_ALERT_WEBHOOK_URL: ${DISCORD_ALERT_WEBHOOK_URL:-}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_USER: root
