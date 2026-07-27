@@ -368,12 +368,11 @@ services:
   lims:
     image: ghcr.io/omnibioai/omnibioai-lims:latest
     ports:
-      - "${HOST_IP:-0.0.0.0}:7000:7000"
+      - "127.0.0.1:7000:7000"
     environment:
       DJANGO_SETTINGS_MODULE: lab_data_manager.settings
       DJANGO_ENV: prod
       DJANGO_DEBUG: "false"
-      DJANGO_SECURE_SSL_REDIRECT: "false"
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_DATABASE: limsdb
@@ -631,7 +630,7 @@ services:
   nginx-router:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
     volumes:
       - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
