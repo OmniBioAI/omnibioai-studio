@@ -371,7 +371,7 @@ Also required: `jq` (`sudo apt install jq`), Docker Compose v2 (included with En
 2. Launch OmniBioAI Studio and enter your license key
 3. Select **Beta Cloud** on the Mode page
 4. Click through the setup wizard (Steps 1–5)
-5. Click **Launch** — tunnels connect to `app.omnibioai.org` automatically
+5. Click **Launch** — tunnels connect to `webstudio.omnibioai.org` automatically
 
 ### Local Stack (Docker)
 
@@ -523,7 +523,7 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 | v0.3.0-beta | ✅ Released | IDE Services, Grafana observability, auto-secrets, npm security |
 | v0.4.0-beta | ✅ Released | Version unification, 23 services, 7 exec servers, claude-sonnet-4 |
 | v0.5.0-beta | ✅ Released | 225+ plugins, 36M-abstract RAG index, 1,120+ container images, full beta launch |
-| **v0.6.0-beta** | ✅ **Current** | Web version (app.omnibioai.org), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, HuggingFace integration, Model Registry HF push button |
+| **v0.6.0-beta** | ✅ **Current** | Web version (webstudio.omnibioai.org), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, HuggingFace integration, Model Registry HF push button |
 | **v0.7.0** | 🔜 Planned | Complete 36M PubMed RAG (GPU embeddings), 20 trained ML models on HuggingFace, 1,000 ARM64 SIF images, GHCR migration to omnibioai org, Demo video, Web app PWA support, workbench.omnibioai.org, **Omni Assistant v2** (tool-aware responses, agentic pipeline suggestions, multi-step reasoning, context-aware analysis), **Unified License Key** (one OMNI-XXXX key works for both web and desktop, replaces Cloudflare Access email whitelist, single approval process, usage tracking, expiry management) |
 | **v0.8.0** | 🔜 Planned | HIPAA compliance reporting, SAML/enterprise SSO, multi-user workspaces, team management, usage analytics, billing integration, mobile responsive UI |
 
