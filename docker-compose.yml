@@ -164,13 +164,15 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: lab_data_manager.settings
       DJANGO_ENV: prod
-      DJANGO_DEBUG: "true"
+      DJANGO_DEBUG: "false"
+      DJANGO_SECURE_SSL_REDIRECT: "false"
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_DATABASE: limsdb
       MYSQL_USER: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-omnibioai-studio-secret}
+      FIELD_ENCRYPTION_KEY: ${LIMSX_FIELD_ENCRYPTION_KEY}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
       CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
       REDIS_URL: redis://redis:6379/0
