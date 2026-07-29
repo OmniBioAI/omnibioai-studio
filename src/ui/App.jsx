@@ -18,8 +18,9 @@ import Videos        from "./pages/Videos";
 import IdeServices   from "./pages/IdeServices";
 import RoleManagement from "./pages/RoleManagement";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
+import Login from "./components/Login";
 import { GrafanaViewer } from "./components/GrafanaViewer";
-import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams } from "./lib/session";
+import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron } from "./lib/session";
 
 const BASE_NAV = [
   { section: "Setup",   items: [
@@ -70,6 +71,7 @@ export default function App() {
   });
   const [service,      setService]      = useState(null); // { url, label } when viewing a service
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
+  const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
   const [oauthNotice,  setOauthNotice]  = useState(null); // result of an OAuth redirect: link_required | error
 
   // ─── Load saved config + first-run detection ───────────
@@ -117,7 +119,7 @@ export default function App() {
     let mounted = true;
     const refreshUser = async () => {
       const user = await getCurrentUser();
-      if (mounted) setCurrentUser(user);
+      if (mounted) { setCurrentUser(user); setAuthChecked(true); }
     };
     refreshUser();
     const unsubscribe = onSessionChange(refreshUser);
@@ -172,8 +174,10 @@ export default function App() {
     return url;
   };
 
-  // ─── Don't render until config is loaded ───────────────
-  if (!ready) {
+  // ─── Don't render until config is loaded, and (web only) until we know ──
+  // whether there's a valid session — Electron gates access via LicenseGate
+  // instead, so it doesn't wait on authChecked.
+  if (!ready || (!isElectron() && !authChecked)) {
     return (
       <div style={{
         display:"flex", height:"100vh",
@@ -194,8 +198,23 @@ export default function App() {
     );
   }
 
+  // Web only — Electron authenticates via LicenseGate's own license check.
+  const showLogin = !isElectron() && !currentUser;
+
   return (
     <LicenseGate>
+    {showLogin ? (
+    <div style={{
+      display:"flex", height:"100vh",
+      background:"var(--bg)", color:"var(--text)",
+      fontFamily:"var(--font)", overflow:"hidden",
+    }}>
+      <Login
+        title="Welcome to OmniBioAI Studio"
+        description="Sign in or enter your license key to access the platform"
+      />
+    </div>
+    ) : (
     <div style={{
       display:"flex", height:"100vh",
       background:"var(--bg)", color:"var(--text)",
@@ -371,6 +390,7 @@ export default function App() {
         )}
       </div>
     </div>
+    )}
 
       {oauthNotice?.type === "link_required" && (
         <OAuthLinkConfirm

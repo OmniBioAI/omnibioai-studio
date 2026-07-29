@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { Card, Button, Badge, Input } from "@omnibioai/ui";
-import { loginWithPassword, isElectron, getOAuthLoginUrl, oauthProviders } from "../lib/session";
+import { loginWithPassword, loginWithLicenseKey, isElectron, getOAuthLoginUrl, oauthProviders } from "../lib/session";
 
 const PROVIDER_LABELS = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
 export default function Login({ title = "Sign in required", description }) {
+  const [mode, setMode] = useState("password"); // "password" | "license"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [licenseKey, setLicenseKey] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -15,7 +17,11 @@ export default function Login({ title = "Sign in required", description }) {
     setBusy(true);
     setError("");
     try {
-      await loginWithPassword(email, password);
+      if (mode === "license") {
+        await loginWithLicenseKey(licenseKey.trim(), email, isElectron() ? "desktop" : "web");
+      } else {
+        await loginWithPassword(email, password);
+      }
       // Success dispatches omnibioai-session-changed; listeners (e.g. App.jsx)
       // pick up the new currentUser and re-render past this screen.
     } catch (err) {
@@ -38,29 +44,71 @@ export default function Login({ title = "Sign in required", description }) {
               {description}
             </div>
           )}
+          <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+            {["password", "license"].map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => { setMode(m); setError(""); }}
+                style={{
+                  flex: 1, padding: "6px 0", cursor: "pointer",
+                  fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                  background: mode === m ? "var(--bg2)" : "transparent",
+                  color: mode === m ? "var(--text)" : "var(--color-text-muted)",
+                  border: "1px solid var(--border2)",
+                  borderRadius: "var(--radius-sm)",
+                }}
+              >
+                {m === "password" ? "Password" : "License Key"}
+              </button>
+            ))}
+          </div>
           <form onSubmit={submit}>
             <div style={{ marginBottom: 12 }}>
               <Input label="Email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@omnibioai" />
             </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{
-                fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)", color: "var(--color-text-muted)",
-                letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, display: "block",
-              }}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                style={{
-                  width: "100%", boxSizing: "border-box",
-                  background: "var(--bg2)", border: "1px solid var(--border2)",
-                  borderRadius: "var(--radius-sm)", padding: "7px 10px",
-                  fontSize: "var(--font-size-sm)", fontFamily: "var(--mono)",
-                  color: "var(--text)", outline: "none",
-                }}
-              />
-            </div>
+            {mode === "password" ? (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{
+                  fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)", color: "var(--color-text-muted)",
+                  letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, display: "block",
+                }}>Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={{
+                    width: "100%", boxSizing: "border-box",
+                    background: "var(--bg2)", border: "1px solid var(--border2)",
+                    borderRadius: "var(--radius-sm)", padding: "7px 10px",
+                    fontSize: "var(--font-size-sm)", fontFamily: "var(--mono)",
+                    color: "var(--text)", outline: "none",
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{
+                  fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)", color: "var(--color-text-muted)",
+                  letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, display: "block",
+                }}>License Key</label>
+                <input
+                  type="text"
+                  value={licenseKey}
+                  onChange={(e) => setLicenseKey(e.target.value)}
+                  placeholder="OMNI-XXXX-XXXX-XXXX-XXXX"
+                  style={{
+                    width: "100%", boxSizing: "border-box",
+                    background: "var(--bg2)", border: "1px solid var(--border2)",
+                    borderRadius: "var(--radius-sm)", padding: "7px 10px",
+                    fontSize: "var(--font-size-sm)", fontFamily: "var(--mono)",
+                    color: "var(--text)", outline: "none", textTransform: "uppercase",
+                  }}
+                />
+              </div>
+            )}
             {error && <div style={{ marginBottom: 12 }}><Badge variant="danger">{error}</Badge></div>}
             <Button variant="primary" loading={busy} disabled={busy}>
               {busy ? "Signing in…" : "Sign in"}

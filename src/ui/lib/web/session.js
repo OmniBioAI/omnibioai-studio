@@ -55,6 +55,29 @@ export async function loginWithPassword(email, password) {
   return getCurrentUser({ force: true });
 }
 
+const LICENSE_ERROR_MESSAGES = {
+  invalid_key: "Invalid license key",
+  revoked: "This license key has been revoked",
+  expired: "This license key has expired",
+  usage_exhausted: "This license key has already been used",
+  platform_mismatch: "This license key isn't valid for this platform",
+  email_mismatch: "This license key isn't registered to that email",
+};
+
+export async function loginWithLicenseKey(key, email, platform = "web") {
+  const res = await fetch(authUrl("/license/validate"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, email, platform }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.valid) {
+    throw new Error(LICENSE_ERROR_MESSAGES[data.reason] || "License validation failed");
+  }
+  setSession(data.access_token);
+  return getCurrentUser({ force: true });
+}
+
 export async function getCurrentUser({ force = false } = {}) {
   const token = getToken();
   if (!token) return null;
