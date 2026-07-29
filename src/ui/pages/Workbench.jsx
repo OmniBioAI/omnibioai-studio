@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { isElectron } from "../lib/session";
 
 function getInitialHost() {
   return (
@@ -31,7 +32,7 @@ function buildCategories(BASE) {
         { label:"Launcher",          url:"http://localhost:5190",      icon:"🔬", desc:"Jupyter · RStudio · VS Code"      },
         { label:"Workflows",        url:"/_svc/workflows",           icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
         { label:"Dev Hub",          url:"/_svc/devhub",              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
-        { label:"Metrics",           url:"http://localhost/_svc/monitor",    icon:"📊", desc:"Grafana dashboard"               },
+        { label:"Metrics",           url:"/_svc/monitor",              icon:"📊", desc:"Grafana dashboard"               },
         { label:"Grafana",          url:"http://localhost:3000",        icon:"📈", desc:"Metrics dashboards"               },
       ]
     },
@@ -133,9 +134,15 @@ export default function Workbench() {
     return () => clearInterval(id);
   }, [BASE]);
 
+  // Electron's <webview> needs a fully-qualified src (it isn't part of the
+  // host page's browsing context, so relative URLs won't resolve). In a
+  // browser tab — web/beta mode — relative /_svc/* URLs must stay relative:
+  // nginx-router already proxies them on the same origin, and prefixing
+  // them with http://localhost causes mixed-content blocks on HTTPS and
+  // resolves to the visitor's own machine instead of the server.
   const open = (url, label) => {
     let absolute;
-    if (url.startsWith('/')) {
+    if (url.startsWith('/') && isElectron()) {
       const devHost = url.startsWith('/_svc/') && import.meta.env.DEV
         ? 'http://localhost:5174'
         : 'http://localhost';
