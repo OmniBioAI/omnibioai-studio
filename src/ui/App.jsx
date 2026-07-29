@@ -204,16 +204,10 @@ export default function App() {
   return (
     <LicenseGate>
     {showLogin ? (
-    <div style={{
-      display:"flex", height:"100vh",
-      background:"var(--bg)", color:"var(--text)",
-      fontFamily:"var(--font)", overflow:"hidden",
-    }}>
       <Login
         title="Welcome to OmniBioAI Studio"
         description="Sign in or enter your license key to access the platform"
       />
-    </div>
     ) : (
     <div style={{
       display:"flex", height:"100vh",

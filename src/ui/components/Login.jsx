@@ -122,6 +122,7 @@ export default function Login({ title, description }) {
     <div
       style={{
         minHeight: "100vh",
+        width: "100vw",
         background: PAGE_BG,
         display: "flex",
         alignItems: "center",
@@ -129,6 +130,7 @@ export default function Login({ title, description }) {
         position: "relative",
         overflow: "hidden",
         padding: 24,
+        boxSizing: "border-box",
       }}
     >
       <div
