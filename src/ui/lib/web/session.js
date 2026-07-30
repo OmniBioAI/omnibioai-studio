@@ -29,14 +29,32 @@ export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+// Control Center is loaded in an <iframe src="/_svc/control">, which can't
+// carry the Authorization header the rest of the app authenticates with —
+// an iframe navigation can only send what the browser attaches
+// automatically, i.e. cookies. nginx-router.conf's /internal/auth/verify
+// falls back to this same-named cookie when no Authorization header is
+// present (see its $control_authorization map), so it must be kept in sync
+// with the token in localStorage.
+function setTokenCookie(token) {
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax${secure}`;
+}
+
+function clearTokenCookie() {
+  document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+}
+
 export function setSession(accessToken) {
   localStorage.setItem(TOKEN_KEY, accessToken);
+  setTokenCookie(accessToken);
   cachedUser = null;
   notify();
 }
 
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
+  clearTokenCookie();
   cachedUser = null;
   notify();
 }
@@ -81,6 +99,12 @@ export async function loginWithLicenseKey(key, email, platform = "web") {
 export async function getCurrentUser({ force = false } = {}) {
   const token = getToken();
   if (!token) return null;
+  // Re-assert the cookie on every session restore (app mount), not just at
+  // login — localStorage survives a browser restart but a session cookie
+  // (or one the user's browser otherwise dropped) doesn't, and that gap
+  // would only surface as Control Center's iframe specifically 401ing
+  // while the rest of the already-logged-in app kept working fine.
+  setTokenCookie(token);
   if (cachedUser && !force) return cachedUser;
 
   try {
