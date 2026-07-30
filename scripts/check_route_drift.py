@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""check_route_drift.py — find bare backend routes nginx-router.conf doesn't proxy.
+
+Detects the recurring bug class this repo has hit four times now: a backend
+defines a route at a bare (non-/_svc/*) path, but nginx-router.conf has no
+location for it, so the request silently falls through to the catch-all
+`location /` (web-ui) — which returns index.html with a 200 instead of a
+real response. That masquerades as a frontend "blank page" or "JSON parse
+error" bug instead of an obvious routing error. Already hand-fixed for:
+/license/, /roles, /users/*/roles (auth-service), then /static/, /admin/,
+/api/, /health, /health/, /home/, /ws/ (workbench) in one pass — see
+~/nginx-workbench-collision-audit.md for the methodology this automates.
+
+WHAT THIS DOES:
+  1. Extracts every bare (non-/_svc/*) route each backend actually defines:
+       - vite.config.{js,ts} dev-proxy table keys, across every frontend
+         found under MACHINE_DIR (proxy keys are the most reliable signal
+         of "a route exists and isn't already namespaced" without needing
+         a full backend-source parse for every service).
+       - auth-service's FastAPI routers (omnibioai-auth/app/api/routes_*.py)
+         — APIRouter(prefix=...) + each @router.<verb>("path") decorator.
+       - workbench's Django urls.py top-level path()/re_path() calls with a
+         literal string first argument (omnibioai/urls.py,
+         plugins/home/urls.py).
+  2. Extracts every `location` prefix currently in nginx-router.conf.
+  3. Diffs the two: any bare path claimed in (1) with no covering location
+     in (2) is printed as a drift hit.
+
+WHAT THIS DOES NOT DO (known gaps — flagged loudly, not silently missed):
+  - Does NOT resolve Django's dynamic plugin-mount loop in
+    omnibioai/urls.py (`for p in <plugin registry>: patterns.append(path(
+    p.django.mount_path, include(p.django.urls)))`) — those mount paths
+    come from a runtime plugin registry, not a static string in urls.py,
+    so this script can't see them. It prints a warning when it detects
+    that pattern so this gap stays visible instead of silently passing.
+  - Does NOT recursively resolve arbitrary `include()`d sub-urlconfs beyond
+    the one-level-deep cases wired in explicitly above (plugins/home/urls.py).
+    A truly general Django urlconf walker (handling every include(),
+    re_path() regex prefix, and namespace) is a materially bigger project
+    than this pass — this is a pragmatic first cut covering the concrete
+    cases in this repo today, not a general-purpose Django route extractor.
+  - Only checks backends known to matter for bare-path routing today
+    (auth-service, workbench) plus the 5 Vite frontends. A new backend
+    service needs a new extractor added here — see CHECKS below.
+
+USAGE:
+    python3 scripts/check_route_drift.py
+    npm run check-routes
+
+Exit code 0 = no drift found, 1 = drift found (or a gap was hit that could
+hide drift — see WARNINGS in the output).
+
+NOT WIRED INTO CI (yet) — and not a quick fix. This script needs every
+sibling service repo checked out as a sibling of this one (MACHINE_DIR =
+this repo's parent directory) to see their route definitions. That's true
+locally, but GitHub Actions' checkout only pulls *this* single repo, so
+there'd be nothing under MACHINE_DIR for it to scan. Making this work in CI
+needs either (a) checking out ~15+ sibling repos in the CI job — slow, and
+needs cross-repo access configured — or (b) redesigning this so each
+service repo publishes its own small route manifest that a CI-side checker
+consumes instead of reading source directly. Either is a separate, larger
+piece of work; run this locally (`npm run check-routes`) before a
+release/deploy in the meantime.
+"""
+
+import os
+import re
+import sys
+from pathlib import Path
+
+PRUNE_DIRS = {"node_modules", ".git", "dist", "build", "__pycache__", ".venv", "venv"}
+
+
+def find_files(root: Path, filename_pattern: re.Pattern, max_depth: int = 4) -> list[Path]:
+    """os.walk with early directory pruning AND a depth cap. Pruning by name
+    (node_modules etc.) isn't enough here — several sibling repos have huge
+    non-source trees under unpredictable names (omnibioai-workflow-bundles'
+    ~71k pipeline definition files, omnibioai-launcher's ~42k files, Electron
+    release/ build output, .sif container images, ...). Every vite.config.*
+    this script actually needs is within 3 levels of its repo root, so a
+    depth cap sidesteps the need to enumerate every huge/irrelevant dir name
+    — this is what made the first version of this script hang for minutes.
+    """
+    found = []
+    root_depth = len(root.parts)
+    for dirpath, dirnames, filenames in os.walk(root):
+        depth = len(Path(dirpath).parts) - root_depth
+        if depth >= max_depth:
+            dirnames[:] = []
+            continue
+        dirnames[:] = [d for d in dirnames if d not in PRUNE_DIRS]
+        for fn in filenames:
+            if filename_pattern.match(fn):
+                found.append(Path(dirpath) / fn)
+    return found
+
+STUDIO_DIR = Path(__file__).resolve().parent.parent
+MACHINE_DIR = STUDIO_DIR.parent
+NGINX_CONF = STUDIO_DIR / "docker" / "nginx-router.conf"
+
+# Paths nginx covers for reasons other than a `location` block matching the
+# literal bare path (internal-only, named, or the router's own endpoints) —
+# not real drift candidates, exclude them from the "uncovered" report.
+IGNORE_PATHS = {"/_health", "/internal/auth/verify", "@cc_unauthorized"}
+
+
+def extract_nginx_locations(conf_text: str) -> list[tuple[str, str]]:
+    """Returns [(modifier, path), ...] for every `location` directive."""
+    locations = []
+    for m in re.finditer(
+        r"location\s+(=|~\*|~|\^~)?\s*([^\s{]+)\s*\{", conf_text
+    ):
+        modifier, path = m.group(1) or "", m.group(2)
+        locations.append((modifier, path))
+    return locations
+
+
+def is_covered(bare_path: str, nginx_locations: list[tuple[str, str]]) -> bool:
+    """A bare path is covered if some non-regex nginx location prefix-matches
+    it (exact `=` locations must match exactly; `^~`/plain prefixes match as
+    a string prefix). Regex (`~`, `~*`) locations are skipped — too varied
+    to safely reason about generically, and none currently claim bare paths
+    other than the /_svc/control public-routes case, which is /_svc/*
+    anyway and irrelevant to this check.
+    """
+    for modifier, loc_path in nginx_locations:
+        if loc_path.startswith("/_svc/") or loc_path in IGNORE_PATHS:
+            continue
+        if modifier in ("~", "~*"):
+            continue
+        # `location /` (the web-ui SPA catch-all) trivially prefix-matches
+        # every path — that's the exact failure mode this script exists to
+        # catch (a request silently falling through to it), not a valid
+        # "this bare path is handled" signal. Must not count as coverage.
+        if loc_path == "/":
+            continue
+        if modifier == "=":
+            if bare_path == loc_path or bare_path == loc_path.rstrip("/"):
+                return True
+        else:
+            # Segment-boundary-aware prefix match, normalized to a trailing
+            # slash on both sides. A naive bare_path.startswith(loc_path)
+            # both misses real matches (bare_path="/admin" from a vite proxy
+            # key has no trailing slash, loc_path="/admin/" does) and
+            # produces false positives (bare_path="/apikeys" should NOT
+            # match loc_path="/api/", but would via plain string prefixing).
+            norm_bare = bare_path if bare_path.endswith("/") else bare_path + "/"
+            norm_loc = loc_path if loc_path.endswith("/") else loc_path + "/"
+            if norm_bare.startswith(norm_loc):
+                return True
+    return False
+
+
+def extract_vite_proxy_routes(machine_dir: Path) -> dict[str, list[str]]:
+    """{frontend_label: [bare proxy keys]} across every vite.config.{js,ts}
+    under machine_dir, skipping keys already namespaced under /_svc/.
+    """
+    results: dict[str, list[str]] = {}
+    vite_pattern = re.compile(r"^vite\.config\.(js|ts)$")
+    for org_dir in machine_dir.glob("omnibioai-*"):
+        # Symlinked entries here are data/work-directory mounts (e.g.
+        # omnibioai-data -> .../data, omnibioai-work -> an external drive),
+        # not source repos — never contain a vite.config, and walking them
+        # is what made earlier versions of this script hang for minutes.
+        if org_dir.is_symlink() or not org_dir.is_dir():
+            continue
+        for cfg in find_files(org_dir, vite_pattern):
+            text = cfg.read_text(errors="ignore")
+            proxy_match = re.search(r"proxy\s*:\s*\{(.*?)\n\s{0,6}\}", text, re.S)
+            if not proxy_match:
+                continue
+            keys = re.findall(r'["\']([^"\']+)["\']\s*:\s*\{', proxy_match.group(1))
+            bare_keys = [k for k in keys if k.startswith("/") and not k.startswith("/_svc/")]
+            if bare_keys:
+                label = f"{cfg.parent.name} ({cfg.relative_to(machine_dir)})"
+                results[label] = sorted(set(bare_keys))
+    return results
+
+
+def extract_auth_service_routes(machine_dir: Path) -> list[str]:
+    """Bare top-level path segments from omnibioai-auth's FastAPI routers."""
+    routes_dir = machine_dir / "omnibioai-auth" / "app" / "api"
+    if not routes_dir.is_dir():
+        return []
+    bare_paths: set[str] = set()
+    for f in routes_dir.glob("routes_*.py"):
+        text = f.read_text(errors="ignore")
+        prefix_match = re.search(r'APIRouter\(\s*prefix\s*=\s*["\']([^"\']*)["\']', text)
+        prefix = prefix_match.group(1) if prefix_match else ""
+        for m in re.finditer(
+            r'@router\.(?:get|post|put|delete|patch)\(\s*["\']([^"\']*)["\']', text
+        ):
+            full = (prefix + m.group(1)) or "/"
+            segment = "/" + full.strip("/").split("/")[0]
+            bare_paths.add(segment if full.strip("/") else "/")
+    return sorted(bare_paths)
+
+
+def extract_workbench_routes(machine_dir: Path) -> tuple[list[str], list[str]]:
+    """Returns (bare_paths, warnings). Only scans the two urls.py files this
+    repo actually mounts at the site root today — see module docstring for
+    why this doesn't attempt a general urlconf walk.
+    """
+    urls_files = [
+        machine_dir / "omnibioai" / "omnibioai" / "urls.py",
+        machine_dir / "omnibioai" / "plugins" / "home" / "urls.py",
+    ]
+    bare_paths: set[str] = set()
+    warnings: list[str] = []
+    for f in urls_files:
+        if not f.is_file():
+            warnings.append(f"workbench: expected urls.py not found at {f}")
+            continue
+        text = f.read_text(errors="ignore")
+        for m in re.finditer(r'\bpath\(\s*["\']([^"\']*)["\']', text):
+            raw = m.group(1)
+            if not raw:
+                continue  # path("", ...) — site root, not a distinct bare path
+            segment = "/" + raw.strip("/").split("/")[0]
+            bare_paths.add(segment)
+        if "for p in" in text and ".mount_path" in text:
+            warnings.append(
+                f"workbench: {f.relative_to(machine_dir)} has a dynamic "
+                "plugin-mount loop (path(p.django.mount_path, ...)) — those "
+                "routes come from a runtime registry, not a static string, "
+                "and are NOT checked by this script. Any bare path a plugin "
+                "mounts there could still silently drift undetected."
+            )
+    return sorted(bare_paths), warnings
+
+
+def main() -> int:
+    conf_text = NGINX_CONF.read_text()
+    nginx_locations = extract_nginx_locations(conf_text)
+
+    drift_hits: list[str] = []
+    warnings: list[str] = []
+
+    print(f"nginx-router.conf: {len(nginx_locations)} location blocks found\n")
+
+    vite_routes = extract_vite_proxy_routes(MACHINE_DIR)
+    for label, bare_keys in vite_routes.items():
+        for path in bare_keys:
+            if not is_covered(path, nginx_locations):
+                drift_hits.append(f"[{label}] {path}  (from vite dev-proxy table)")
+
+    auth_routes = extract_auth_service_routes(MACHINE_DIR)
+    for path in auth_routes:
+        if not is_covered(path, nginx_locations):
+            drift_hits.append(f"[auth-service] {path}  (FastAPI router)")
+
+    wb_routes, wb_warnings = extract_workbench_routes(MACHINE_DIR)
+    warnings.extend(wb_warnings)
+    for path in wb_routes:
+        if not is_covered(path, nginx_locations):
+            drift_hits.append(f"[workbench] {path}  (Django urls.py)")
+
+    if warnings:
+        print("WARNINGS (coverage gaps in this script itself, not necessarily drift):")
+        for w in warnings:
+            print(f"  ! {w}")
+        print()
+
+    if drift_hits:
+        print(f"DRIFT FOUND — {len(drift_hits)} bare route(s) with no covering nginx location:")
+        for hit in drift_hits:
+            print(f"  x {hit}")
+        print(
+            "\nEach of these needs a `location` block in docker/nginx-router.conf "
+            "(see /roles, /users/, or the workbench block for the pattern), after "
+            "confirming — same as the workbench collision audit did — that no "
+            "other frontend or backend already depends on that bare path meaning "
+            "something else."
+        )
+        return 1
+
+    print("No drift found — every bare route this script can see is covered.")
+    if warnings:
+        print("(But see the WARNINGS above — this is not a full guarantee.)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

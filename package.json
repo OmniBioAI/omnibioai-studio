@@ -18,7 +18,8 @@
     "dist": "npm run build",
     "web": "vite --mode web",
     "web:build": "vite build --mode web",
-    "web:preview": "vite preview --mode web --port 4173"
+    "web:preview": "vite preview --mode web --port 4173",
+    "check-routes": "python3 scripts/check_route_drift.py"
   },
   "dependencies": {
     "@omnibioai/design-tokens": "file:./packages/omnibioai-design-tokens",
