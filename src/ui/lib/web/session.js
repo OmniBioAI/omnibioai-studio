@@ -13,6 +13,7 @@
 // with "/auth/...") just needs that path used as-is, same-origin.
 
 const TOKEN_KEY = "omnibioai_access_token";
+const REFRESH_TOKEN_KEY = "omnibioai_refresh_token";
 const SESSION_EVENT = "omnibioai-session-changed";
 
 export function authUrl(path) {
@@ -27,6 +28,10 @@ function notify() {
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 // Control Center is loaded in an <iframe src="/_svc/control">, which can't
@@ -45,8 +50,9 @@ function clearTokenCookie() {
   document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }
 
-export function setSession(accessToken) {
+export function setSession(accessToken, refreshToken) {
   localStorage.setItem(TOKEN_KEY, accessToken);
+  if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   setTokenCookie(accessToken);
   cachedUser = null;
   notify();
@@ -54,9 +60,58 @@ export function setSession(accessToken) {
 
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
   clearTokenCookie();
   cachedUser = null;
   notify();
+}
+
+// POSTs to /auth/logout with both tokens (revokes the refresh token
+// server-side, blacklists the access token's jti for its remaining
+// lifetime — see routes_auth.py's LogoutRequest/_blacklist_access_token).
+// Fails open on any network/server error, same philosophy as that
+// endpoint's own blacklist call: never let a logout attempt get stuck
+// because the network call failed, always clear local state regardless.
+export async function logout() {
+  const refreshToken = getRefreshToken();
+  const accessToken = getToken();
+  if (refreshToken) {
+    try {
+      await fetch(authUrl("/auth/logout"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken, access_token: accessToken }),
+      });
+    } catch (_) {
+      // fail open — clearSession() below still runs
+    }
+  }
+  clearSession();
+}
+
+// POSTs to /auth/refresh; on success, re-runs setSession with the new
+// access token (the refresh token itself isn't rotated — routes_auth.py's
+// /auth/refresh echoes the same one back). Returns the new access token,
+// or null (and clears the session) if the refresh token is invalid/expired.
+export async function refresh() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+  try {
+    const res = await fetch(authUrl("/auth/refresh"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) {
+      clearSession();
+      return null;
+    }
+    const data = await res.json();
+    setSession(data.access_token, data.refresh_token);
+    return data.access_token;
+  } catch (_) {
+    return null;
+  }
 }
 
 export async function loginWithPassword(email, password) {
@@ -69,7 +124,7 @@ export async function loginWithPassword(email, password) {
     throw new Error(res.status === 401 ? "Invalid email or password" : "Login failed");
   }
   const data = await res.json();
-  setSession(data.access_token);
+  setSession(data.access_token, data.refresh_token);
   return getCurrentUser({ force: true });
 }
 
@@ -92,7 +147,7 @@ export async function loginWithLicenseKey(key, email, platform = "web") {
   if (!res.ok || !data.valid) {
     throw new Error(LICENSE_ERROR_MESSAGES[data.reason] || "License validation failed");
   }
-  setSession(data.access_token);
+  setSession(data.access_token, data.refresh_token);
   return getCurrentUser({ force: true });
 }
 
@@ -170,7 +225,7 @@ export async function confirmOAuthLink(linkToken, password) {
     throw new Error(detail);
   }
   const data = await res.json();
-  setSession(data.access_token);
+  setSession(data.access_token, data.refresh_token);
   return getCurrentUser({ force: true });
 }
 
@@ -194,7 +249,7 @@ export function consumeOAuthRedirectParams() {
   } else {
     result = { type: "success" };
     if (params.has("access_token")) {
-      setSession(params.get("access_token"));
+      setSession(params.get("access_token"), params.get("refresh_token"));
     }
   }
 

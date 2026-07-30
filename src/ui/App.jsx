@@ -224,6 +224,7 @@ export default function App() {
         <Sidebar
           nav={nav} step={step} setStep={setStep} systemStatus={systemStatus}
           isServiceView={!!service} onStudioClick={handleStudioClick}
+          currentUser={currentUser}
         />
       </div>
 

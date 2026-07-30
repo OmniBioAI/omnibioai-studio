@@ -1,4 +1,5 @@
 import React from "react";
+import { logout } from "../lib/session";
 
 const statusColor = {
   idle:     "var(--color-text-muted)",
@@ -14,7 +15,7 @@ const statusLabel = {
   error:    "ERROR",
 };
 
-export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick }) {
+export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser }) {
   return (
     <div style={{
       width:200, background:"var(--bg2)",
@@ -105,6 +106,34 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
           </div>
         ))}
       </nav>
+
+      {/* Signed-in user + sign-out — App.jsx's onSessionChange subscription
+          picks up logout()'s clearSession() automatically, no callback prop
+          needed here. */}
+      {currentUser && (
+        <div style={{
+          padding:"10px 16px", borderTop:"1px solid var(--border)",
+          display:"flex", alignItems:"center", justifyContent:"space-between", gap:8,
+        }}>
+          <div style={{
+            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+            color:"var(--color-text-muted)", overflow:"hidden",
+            textOverflow:"ellipsis", whiteSpace:"nowrap",
+          }} title={currentUser.email}>
+            {currentUser.email}
+          </div>
+          <div
+            onClick={() => logout()}
+            style={{
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", fontWeight:600,
+              color:"var(--color-text-muted)", cursor:"pointer", flexShrink:0,
+            }}
+            title="Sign out"
+          >
+            Sign out
+          </div>
+        </div>
+      )}
 
       {/* System status */}
       <div style={{ padding:"12px 16px", borderTop:"1px solid var(--border)" }}>
