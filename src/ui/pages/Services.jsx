@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
+import { isElectron } from "../lib/session";
 
 function getHostIp() {
   return (
@@ -23,6 +24,13 @@ function openUrl(url) {
   } else {
     window.open(url, "_blank");
   }
+}
+
+// Electron talks to the launcher directly on the LAN IP; a browser tab (web
+// build) can't reach that host/port, so it goes through nginx-router's
+// /_svc/sdk proxy instead (docker/nginx-router.conf).
+function launcherUrl(path) {
+  return isElectron() ? `http://${getHostIp()}:5190${path}` : `/_svc/sdk${path}`;
 }
 
 const SERVICES = [
@@ -128,7 +136,9 @@ const HEALTH_URLS = {
   "rag":               "/_svc/rag",
   "model-registry":    "/_svc/modelregistry",
   "dev-hub":           "/_svc/devhub",
-  "control-center":    "http://127.0.0.1:7070",
+  // /_svc/control/health is one of the public, no-JWT-required routes
+  // carved out in nginx-router.conf; the rest of /_svc/control needs auth.
+  "control-center":    "/_svc/control/health",
   "ollama":            "/_svc/ollama",
   "lims":              "/_svc/lims/",
 }
@@ -155,7 +165,7 @@ export default function Services({ config }) {
   const fetchIdeStatus = useCallback(async (key, tool) => {
     try {
       const res = await fetch(
-        `http://${getHostIp()}:5190/api/launcher/status/${tool}/`,
+        launcherUrl(`/api/launcher/status/${tool}/`),
         { signal: AbortSignal.timeout(2000) }
       );
       if (!res.ok) { setStatuses(s => ({ ...s, [key]: "down" })); return; }
@@ -232,14 +242,14 @@ export default function Services({ config }) {
     }
     try {
       if (action === "restart") {
-        await fetch(`http://${getHostIp()}:5190/api/launcher/stop/${tool}/`, {
+        await fetch(launcherUrl(`/api/launcher/stop/${tool}/`), {
           method: "POST", signal: AbortSignal.timeout(10000),
         });
-        await fetch(`http://${getHostIp()}:5190/api/launcher/start/${tool}/`, {
+        await fetch(launcherUrl(`/api/launcher/start/${tool}/`), {
           method: "POST", signal: AbortSignal.timeout(10000),
         });
       } else {
-        await fetch(`http://${getHostIp()}:5190/api/launcher/${action}/${tool}/`, {
+        await fetch(launcherUrl(`/api/launcher/${action}/${tool}/`), {
           method: "POST", signal: AbortSignal.timeout(10000),
         });
       }
@@ -350,9 +360,19 @@ export default function Services({ config }) {
                               <>
                                 <button
                                   onClick={() => {
-                                    const url = s.key === "jupyter"
-                                      ? `http://${getHostIp()}:${s.port}?token=${getJupyterToken()}`
-                                      : `http://${getHostIp()}:${s.port}`;
+                                    let url;
+                                    if (isElectron()) {
+                                      url = s.key === "jupyter"
+                                        ? `http://${getHostIp()}:${s.port}?token=${getJupyterToken()}`
+                                        : `http://${getHostIp()}:${s.port}`;
+                                    } else {
+                                      // Web build — same-origin, nginx-router-proxied
+                                      // path (docker/nginx-router.conf's /jupyter/,
+                                      // /rstudio/, /vscode/ locations).
+                                      url = s.key === "jupyter"
+                                        ? `/jupyter/?token=${getJupyterToken()}`
+                                        : `/${s.key}/`;
+                                    }
                                     openUrl(url);
                                   }}
                                   style={{

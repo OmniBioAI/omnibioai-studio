@@ -10,7 +10,10 @@ function getInitialHost() {
 }
 
 const openDocs = () => {
-  const url = 'http://192.168.86.234/docs/guides/getting-started.html';
+  // Relative — nginx-router.conf proxies /docs/ on the same origin as the
+  // app (`location ^~ /docs/`); a hardcoded LAN IP here isn't reachable
+  // from a browser tab in the web build.
+  const url = '/docs/guides/getting-started.html';
   window.dispatchEvent(new CustomEvent("open-service", { detail: { url, label: "Getting Started" } }));
 };
 
@@ -23,17 +26,16 @@ function buildCategories(BASE) {
         { label:"Getting Started",  url:"/docs/", action:openDocs,    icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
         { label:"Workbench",        url:"/_svc/workbench/",          icon:"🏠", desc:"Dashboard"                        },
-        { label:"Control Center",   url:"http://127.0.0.1:7070",     icon:"🖥️", desc:"Health + Docker imgs"             },
+        { label:"Control Center",   url:"/_svc/control",             icon:"🖥️", desc:"Health + Docker imgs"             },
         { label:"LIMS",             url:"/_svc/lims/",               icon:"🧪", desc:"Lab data management"              },
         { label:"Model Registry",   url:"/_svc/modelregistry",       icon:"🧬", desc:"ML model versioning"              },
         { label:"RAG / Lit AI",     url:"/_svc/rag/",                icon:"📚", desc:"PubMed RAG + DeepSeek"            },
         { label:"TES / Jobs",       url:"/_svc/tes",                 icon:"🚀", desc:"Slurm/AWS/Azure/GCP"              },
         { label:"Tool Images",      url:"/_svc/toolimages",          icon:"🐳", desc:"ARM64 SIF dashboard"              },
-        { label:"Launcher",          url:"http://localhost:5190",      icon:"🔬", desc:"Jupyter · RStudio · VS Code"      },
+        { label:"Launcher",          url:"/_svc/sdk",                 icon:"🔬", desc:"Jupyter · RStudio · VS Code"      },
         { label:"Workflows",        url:"/_svc/workflows",           icon:"⚡", desc:"WDL/NF/Snake/CWL"                },
         { label:"Dev Hub",          url:"/_svc/devhub",              icon:"🛠️", desc:"Knowledge graph · RAG search"    },
         { label:"Metrics",           url:"/_svc/monitor",              icon:"📊", desc:"Grafana dashboard"               },
-        { label:"Grafana",          url:"http://localhost:3000",        icon:"📈", desc:"Metrics dashboards"               },
       ]
     },
     {

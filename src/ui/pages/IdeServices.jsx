@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { isElectron } from "../lib/session";
 
 function JupyterIcon() {
   return (
@@ -79,8 +80,11 @@ function openUrl(url) {
   }
 }
 
+// Electron talks to the launcher directly on the LAN IP; a browser tab (web
+// build) can't reach that host/port, so it goes through nginx-router's
+// /_svc/sdk proxy instead (docker/nginx-router.conf).
 function launcherUrl(path) {
-  return `http://${getHostIp()}:5190${path}`;
+  return isElectron() ? `http://${getHostIp()}:5190${path}` : `/_svc/sdk${path}`;
 }
 
 function StatusBadge({ status }) {
@@ -267,10 +271,19 @@ export default function IdeServices() {
   }, [pollAll]);
 
   const handleOpen = (svc) => {
-    const hostIp = getHostIp();
+    if (isElectron()) {
+      const hostIp = getHostIp();
+      const url = svc.tool === "jupyter"
+        ? `http://${hostIp}:${svc.port}?token=${getJupyterToken()}`
+        : `http://${hostIp}:${svc.port}`;
+      openUrl(url);
+      return;
+    }
+    // Web build — same-origin, nginx-router-proxied paths (see
+    // docker/nginx-router.conf's /jupyter/, /rstudio/, /vscode/ locations).
     const url = svc.tool === "jupyter"
-      ? `http://${hostIp}:${svc.port}?token=${getJupyterToken()}`
-      : `http://${hostIp}:${svc.port}`;
+      ? `/jupyter/?token=${getJupyterToken()}`
+      : `/${svc.tool}/`;
     openUrl(url);
   };
 

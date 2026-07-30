@@ -1,9 +1,12 @@
 import React, { useRef, useEffect } from "react";
+import { isElectron } from "../lib/session";
 
 export default function ServiceViewer({ url, label, onBack }) {
   const webviewRef = useRef(null);
+  const electron = isElectron();
 
   useEffect(() => {
+    if (!electron) return;
     const wv = webviewRef.current;
     if (!wv) return;
     const handler = (e) => {
@@ -13,7 +16,7 @@ export default function ServiceViewer({ url, label, onBack }) {
     };
     wv.addEventListener('ipc-message', handler);
     return () => wv.removeEventListener('ipc-message', handler);
-  }, []);
+  }, [electron]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 0 }}>
@@ -50,12 +53,23 @@ export default function ServiceViewer({ url, label, onBack }) {
           {url}
         </span>
       </div>
-      <webview
-        ref={webviewRef}
-        src={url}
-        nodeintegration="true"
-        style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
-      />
+      {electron ? (
+        <webview
+          ref={webviewRef}
+          src={url}
+          nodeintegration="true"
+          style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
+        />
+      ) : (
+        // <webview> is a Chromium/Electron-only element — in a real browser
+        // tab (web build) it isn't a recognized custom element and renders
+        // nothing, which is why service pages appeared blank there.
+        <iframe
+          src={url}
+          title={label || url}
+          style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
+        />
+      )}
     </div>
   );
 }

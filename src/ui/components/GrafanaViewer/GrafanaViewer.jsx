@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Card, Button, Badge, Spinner } from "@omnibioai/ui";
+import { isElectron } from "../../lib/session";
 
-const GRAFANA_BASE = "http://localhost:3000";
+// Electron talks to Grafana directly; a browser tab (web build) can't reach
+// that LAN/localhost port, so it goes through nginx-router's /_svc/monitor
+// proxy instead (same route as the Workbench "Metrics" tile).
+const GRAFANA_BASE = isElectron() ? "http://localhost:3000" : "/_svc/monitor";
 
 const QUERY_SUFFIX = "?kiosk=tv&refresh=30s&from=now-1h&to=now";
 
@@ -24,6 +28,14 @@ export function GrafanaViewer({ onBack, label }) {
   const webviewRef                 = useRef(null);
 
   const authenticate = async () => {
+    // grafanaLogin() is an Electron-only IPC call (electron/preload.js) that
+    // signs into Grafana directly on localhost:3000. The web build reaches
+    // Grafana through nginx-router's /_svc/monitor proxy instead, which
+    // passes through Grafana's own session cookie — no separate login step.
+    if (!isElectron()) {
+      setPhase("ok");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -119,12 +131,20 @@ export function GrafanaViewer({ onBack, label }) {
           })}
         </div>
 
-        {/* ── dashboard webview ── */}
-        <webview
-          ref={webviewRef}
-          src={currentUrl}
-          style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
-        />
+        {/* ── dashboard ── */}
+        {isElectron() ? (
+          <webview
+            ref={webviewRef}
+            src={currentUrl}
+            style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
+          />
+        ) : (
+          <iframe
+            src={currentUrl}
+            title={label || "Metrics Dashboard"}
+            style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
+          />
+        )}
       </div>
     );
   }
