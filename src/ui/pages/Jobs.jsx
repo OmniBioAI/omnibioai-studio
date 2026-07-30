@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { isElectron } from "../lib/session";
 
 function getHost() {
   return (
@@ -8,10 +9,12 @@ function getHost() {
   );
 }
 
-// In dev mode use Vite proxy (/_tes) to avoid CORS; in prod call TES directly.
+// Electron talks to TES directly on the LAN IP; a browser tab (dev or prod
+// web build) can't reach that host/port, so it goes through the /_tes proxy
+// instead (vite dev-proxy locally, nginx-router's /_tes location in prod —
+// see docker/nginx-router.conf).
 function tesUrl(path) {
-  if (import.meta.env.DEV) return `/_tes${path}`;
-  return `http://${getHost()}:8081${path}`;
+  return isElectron() ? `http://${getHost()}:8081${path}` : `/_tes${path}`;
 }
 
 async function apiFetch(path, opts = {}) {
