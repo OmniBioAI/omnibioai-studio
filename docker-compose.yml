@@ -284,7 +284,7 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       REDIS_HOST: redis
-      REDIS_PORT: "6380"
+      REDIS_PORT: "6379"
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       TES_BASE_URL: http://tes:8081
@@ -368,7 +368,7 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       REDIS_HOST: redis
-      REDIS_PORT: "6380"
+      REDIS_PORT: "6379"
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       TES_BASE_URL: http://tes:8081
