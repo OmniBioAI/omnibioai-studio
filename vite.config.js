@@ -24,6 +24,22 @@ export default defineConfig(({ mode }) => {
           VitePWA({
             registerType: "autoUpdate",
             includeAssets: ["pwa-192x192.png", "pwa-512x512.png"],
+            workbox: {
+              // generateSW's default SPA fallback registers a Workbox
+              // NavigationRoute matching every same-origin navigation
+              // (request.mode === 'navigate' — this includes iframe/webview
+              // sub-frame loads, not just the top-level tab) and serves the
+              // cached index.html instead of hitting the network. That
+              // silently hijacked every Workbench tile's iframe (LIMS,
+              // Control Center, all /_svc/workbench/plugins/*, etc.),
+              // always showing the app's own shell no matter which module
+              // was clicked. This app has exactly one real client route —
+              // "/" — so only that path should ever fall back to the cached
+              // shell; every nginx-router-proxied path must reach the
+              // network. Matched against url.pathname only (query strings,
+              // e.g. an OAuth redirect's "/?status=...", still match "/").
+              navigateFallbackAllowlist: [/^\/$/],
+            },
             manifest: {
               name: "OmniBioAI Studio",
               short_name: "OmniBioAI",
