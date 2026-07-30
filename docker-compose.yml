@@ -688,6 +688,16 @@ services:
 
       CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ORIGINS:-http://localhost:5174,http://127.0.0.1:5174,https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org}
 
+      # Encrypts GlobalConfig's LLM/cloud credential fields at rest
+      # (app/core/crypto.py). Deliberately empty by default, NOT a
+      # placeholder value like AUTH_SECRET_KEY's :-change-me below --
+      # empty means the config-write feature is simply unavailable until
+      # set (service still starts fine); a real committed-to-the-repo
+      # default here would mean every deployment shares the same
+      # encryption key, defeating the point. Generate one with:
+      #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:-}
+
       # OAuth2 SSO — optional; empty values keep SSO disabled without blocking startup.
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
