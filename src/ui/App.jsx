@@ -62,6 +62,25 @@ const PAGE_NAMES = [
   "services","logs","workbench","settings","jobs","ide-services","roles"
 ];
 
+// Same-origin relative paths only -- must start with exactly one "/",
+// never "//" (browsers treat a leading "//" as protocol-relative, an open
+// redirect to any host), and must not resolve to a different origin.
+// Scoped to password/license login for v1 -- OAuth's redirect goes through
+// a separate provider round-trip that doesn't carry return_to through its
+// state token today (routes_oauth.py), so this only fires for the direct
+// password/license path, same as wherever ?return_to= actually gets set.
+function getSafeReturnTo() {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("return_to");
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  try {
+    if (new URL(raw, window.location.origin).origin !== window.location.origin) return null;
+  } catch (_) {
+    return null;
+  }
+  return raw;
+}
+
 export default function App() {
   const [step,         setStep]         = useState(0);
   const [systemStatus, setSystemStatus] = useState("idle");
@@ -73,6 +92,7 @@ export default function App() {
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
   const [oauthNotice,  setOauthNotice]  = useState(null); // result of an OAuth redirect: link_required | error
+  const [returnTo,     setReturnTo]     = useState(() => getSafeReturnTo()); // ?return_to= target, captured once
 
   // ─── Load saved config + first-run detection ───────────
   useEffect(() => {
@@ -135,6 +155,27 @@ export default function App() {
     const result = consumeOAuthRedirectParams();
     if (result && result.type !== "success") setOauthNotice(result);
   }, []);
+
+  // ─── Strip ?return_to= from the address bar once captured ──
+  // Held in returnTo state (already captured via getSafeReturnTo's lazy
+  // init above) until the redirect effect below actually uses it — this
+  // just keeps it from lingering in the URL / replaying on reload.
+  useEffect(() => {
+    if (!returnTo) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("return_to");
+    window.history.replaceState({}, "", url.pathname + url.search);
+  }, []);
+
+  // ─── Redirect back to the originating service once signed in ──
+  // Fires whenever both are true, whether currentUser resolved instantly
+  // (already had a valid session) or only after the user just logged in —
+  // both are the same "send them back now" case from here.
+  useEffect(() => {
+    if (returnTo && currentUser) {
+      window.location.href = returnTo;
+    }
+  }, [returnTo, currentUser]);
 
   // Keep the nav item visible while signed out (or still loading) so there's
   // an entry point to sign in — only hide it once we positively know the
