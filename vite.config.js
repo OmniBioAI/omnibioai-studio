@@ -87,6 +87,17 @@ export default defineConfig(({ mode }) => {
           // /\/lib\/session$/ leaves the leading "./" or "../" in front of
           // the absolute replacement path and produces a bogus specifier
           // (e.g. "./lib/session" -> "./" + "/abs/path" -> "./home/...").
+          //
+          // Requiring the literal "lib/" segment (rather than matching any
+          // "…/session" specifier) is deliberate, not just incidental: this
+          // alias applies to every resolved import in the whole bundle, our
+          // own source and node_modules alike, and at least one dependency
+          // (@sentry/core) has its own unrelated internal "./session.js" --
+          // widening this to match bare "./session" once caught that too
+          // and broke the build (MISSING_EXPORT on Sentry's own session
+          // helpers). rolesApi.js (src/ui/lib/rolesApi.js) needed the
+          // "../lib/session" spelling for exactly this reason -- see its
+          // own import comment.
           {
             find: /^\.\.?\/(?:.*\/)?lib\/session(\.js)?$/,
             replacement: fileURLToPath(new URL("./src/ui/lib/web/session.js", import.meta.url)),

@@ -1,5 +1,15 @@
 // Client for the role-management endpoints added to omnibioai-auth (Session 1).
-import { authUrl, getToken, clearSession } from "./session";
+//
+// Spelled "../lib/session" rather than the shorter sibling-relative
+// "./session" (this file already lives in lib/) on purpose: vite.config.js's
+// web-build alias, which swaps this import for the web-only session module
+// (same-origin /auth/* instead of a direct http://<lan-ip>:8001 fetch),
+// matches on a literal "lib/session" segment -- "./session" silently missed
+// it, so the web build kept the Electron session module's hardcoded-LAN-IP
+// authUrl() and every Roles/Users fetch failed in production (issue #16).
+// Both spellings resolve to the exact same file; this one is just visible
+// to that alias.
+import { authUrl, getToken, clearSession } from "../lib/session";
 
 async function request(path, options = {}) {
   const token = getToken();
