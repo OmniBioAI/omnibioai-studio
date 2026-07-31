@@ -445,6 +445,8 @@ services:
       OLLAMA_URL: http://ollama:11434/api
       OLLAMA_HOST: http://ollama:11434
       REPO_BASE: /repos
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
+      AUTH_ENABLED: "true"
     volumes:
       - ${DATA_DIR}/dev-hub:/app/data
     depends_on:

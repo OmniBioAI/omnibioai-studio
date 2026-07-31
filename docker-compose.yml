@@ -492,6 +492,8 @@ services:
       OLLAMA_URL: http://ollama:11434/api
       OLLAMA_HOST: http://ollama:11434
       REPO_BASE: /repos
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      AUTH_ENABLED: "true"
     volumes:
       - ${MACHINE_DIR}/omnibioai-dev-hub/data:/app/data
       - ${MACHINE_DIR}/omnibioai:/repos/omnibioai:ro
