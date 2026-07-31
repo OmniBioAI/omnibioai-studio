@@ -70,6 +70,24 @@ function loadCachedLicense() {
   return null;
 }
 
+// Fetched on demand right before a docker pull, never cached to disk --
+// /validate no longer returns this credential at all (see license_server.py).
+async function fetchPullToken(key, machineId) {
+  try {
+    const response = await fetch(`${LICENSE_SERVER}/api/license/pull-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, machine_id: machineId })
+    });
+    if (!response.ok) return '';
+    const data = await response.json();
+    return data.ghcr_token || '';
+  } catch (e) {
+    console.error('Pull-token fetch error:', LICENSE_SERVER, e.message);
+    return '';
+  }
+}
+
 let mainWindow;
 
 // ─── PATH HELPERS ─────────────────────────────────────────────────────────────
@@ -441,11 +459,18 @@ const DEV_RESPONSE = { devMode: true, message: "Not available in Dev mode — us
 ipcMain.handle("start-docker", async () => {
   if (DEV_MODE) return DEV_RESPONSE;
   ensureDbInit();
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     sendLog("Pulling latest images — this may take several minutes...");
 
     // Login to ghcr.io so private images can be pulled
-    const ghcrToken = process.env.GHCR_TOKEN || loadCachedLicense()?.ghcr_token || '';
+    let ghcrToken = process.env.GHCR_TOKEN || '';
+    if (!ghcrToken) {
+      const cachedKey = loadCachedLicense()?.key;
+      if (cachedKey) {
+        ghcrToken = await fetchPullToken(cachedKey, getMachineId());
+        if (ghcrToken) process.env.GHCR_TOKEN = ghcrToken;
+      }
+    }
     if (ghcrToken) {
       try {
         sendLog('Logging into ghcr.io...');
@@ -665,9 +690,10 @@ ipcMain.handle('grafana-login', async () => {
 ipcMain.handle('license-validate', async (event, key) => {
   const result = await validateLicense(key);
   if (result.valid) {
-    saveLicense(result);
-    if (result.ghcr_token) {
-      process.env.GHCR_TOKEN = result.ghcr_token;
+    saveLicense({ ...result, key });
+    const ghcrToken = await fetchPullToken(key, getMachineId());
+    if (ghcrToken) {
+      process.env.GHCR_TOKEN = ghcrToken;
     }
   }
   return result;

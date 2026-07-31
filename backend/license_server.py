@@ -78,6 +78,7 @@ class GenerateRequest(BaseModel):
     email: str
     days: int = 30
     tier: str = "beta"
+    admin_key: str = ""
 
 
 class ValidateRequest(BaseModel):
@@ -91,8 +92,47 @@ def generate_key(email: str, tier: str, expiry: datetime.date) -> str:
     return f"OMNI-{cs[:4]}-{cs[4:8]}-{cs[8:12]}-{cs[12:16]}"
 
 
+def _require_admin(admin_key: str) -> None:
+    if admin_key != os.getenv("ADMIN_KEY", "admin-secret"):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+
+def _load_valid_license(key: str):
+    """Core license lookup shared by /validate and /pull-token. Raises the
+    same HTTPExceptions either endpoint would raise on its own."""
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute("SELECT `key`, email, tier, expiry, machine_id, created_at, activated_at, is_active FROM licenses WHERE `key` = %s", (key,))
+        row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Invalid license key")
+
+    key, email, tier, expiry, machine_id, created_at, activated_at, is_active = row
+
+    if not is_active:
+        raise HTTPException(status_code=403, detail="License deactivated")
+
+    expiry_date = datetime.date.fromisoformat(expiry)
+    today = datetime.date.today()
+
+    if today > expiry_date:
+        raise HTTPException(status_code=402, detail="License expired")
+
+    return {
+        "key": key,
+        "email": email,
+        "tier": tier,
+        "expiry": expiry,
+        "machine_id": machine_id,
+        "days_remaining": (expiry_date - today).days,
+    }
+
+
 @app.post("/api/license/generate")
 def generate(req: GenerateRequest):
+    _require_admin(req.admin_key)
     expiry = datetime.date.today() + datetime.timedelta(days=req.days)
     key = generate_key(req.email, req.tier, expiry)
     conn = get_conn()
@@ -114,54 +154,42 @@ def generate(req: GenerateRequest):
 
 @app.post("/api/license/validate")
 def validate(req: ValidateRequest):
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute("SELECT `key`, email, tier, expiry, machine_id, created_at, activated_at, is_active FROM licenses WHERE `key` = %s", (req.key,))
-        row = cur.fetchone()
-    conn.close()
-
-    if not row:
-        raise HTTPException(status_code=404, detail="Invalid license key")
-
-    key, email, tier, expiry, machine_id, created_at, activated_at, is_active = row
-
-    if not is_active:
-        raise HTTPException(status_code=403, detail="License deactivated")
-
-    expiry_date = datetime.date.fromisoformat(expiry)
-    today = datetime.date.today()
-
-    if today > expiry_date:
-        raise HTTPException(status_code=402, detail="License expired")
-
-    days_remaining = (expiry_date - today).days
+    lic = _load_valid_license(req.key)
 
     # Bind to machine on first use
-    if not machine_id:
+    if not lic["machine_id"]:
         conn = get_conn()
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE licenses SET machine_id = %s, activated_at = %s WHERE `key` = %s",
-                (req.machine_id, str(today), req.key),
+                (req.machine_id, str(datetime.date.today()), req.key),
             )
         conn.commit()
         conn.close()
 
     return {
         "valid": True,
-        "email": email,
-        "tier": tier,
-        "expiry": expiry,
-        "days_remaining": days_remaining,
-        "ghcr_token": os.getenv("GHCR_PULL_TOKEN", ""),
-        "message": f"License valid for {days_remaining} more days",
+        "email": lic["email"],
+        "tier": lic["tier"],
+        "expiry": lic["expiry"],
+        "days_remaining": lic["days_remaining"],
+        "message": f"License valid for {lic['days_remaining']} more days",
     }
+
+
+@app.post("/api/license/pull-token")
+def pull_token(req: ValidateRequest):
+    """Separate from /validate so the GHCR credential is only ever handed to
+    a client that is specifically about to pull private images (Docker
+    startup), not returned on every routine license check. Requires the
+    exact same active/non-expired license as /validate."""
+    _load_valid_license(req.key)
+    return {"ghcr_token": os.getenv("GHCR_PULL_TOKEN", "")}
 
 
 @app.get("/api/license/list")
 def list_licenses(admin_key: str = ""):
-    if admin_key != os.getenv("ADMIN_KEY", "admin-secret"):
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    _require_admin(admin_key)
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute("SELECT `key`, email, tier, expiry, is_active FROM licenses")
