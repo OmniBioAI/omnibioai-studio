@@ -3,8 +3,23 @@ import {
   Panel, PanelHeader, PanelBody,
   FormRow, Input, Select, ToggleRow,
 } from "../components/UI";
+import RequirePermission from "../components/RequirePermission";
 
-export default function HPC({ config, setConfig }) {
+const MANAGE_CONFIG = "manage_config";
+
+export default function HPC({ config, setConfig, currentUser }) {
+  return (
+    <RequirePermission
+      currentUser={currentUser}
+      permission={MANAGE_CONFIG}
+      description="HPC configuration requires an authenticated OmniBioAI account."
+    >
+      <HPCConsole config={config} setConfig={setConfig} />
+    </RequirePermission>
+  );
+}
+
+function HPCConsole({ config, setConfig }) {
   const hpc = config.hpc || {};
 
   const set = (field, value) =>

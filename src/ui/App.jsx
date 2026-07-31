@@ -185,9 +185,9 @@ export default function App() {
 
   const pages = [
     <Mode      config={config} setConfig={setConfig} currentUser={currentUser} />,
-    <LLM       config={config} setConfig={setConfig} />,
-    <Cloud     config={config} setConfig={setConfig} />,
-    <HPC       config={config} setConfig={setConfig} />,
+    <LLM       config={config} setConfig={setConfig} currentUser={currentUser} />,
+    <Cloud     config={config} setConfig={setConfig} currentUser={currentUser} />,
+    <HPC       config={config} setConfig={setConfig} currentUser={currentUser} />,
     <Launch    config={config} onStatusChange={setSystemStatus} />,
     <Services  config={config} currentUser={currentUser} />,
     <Logs      />,
@@ -277,10 +277,10 @@ export default function App() {
 
         {/* Topbar */}
         <div style={{
-          height:48, background:"var(--bg2)",
+          minHeight:48, background:"var(--bg2)",
           borderBottom:"1px solid var(--border)",
-          display:"flex", alignItems:"center",
-          padding:"0 20px", gap:12, flexShrink:0,
+          display:"flex", alignItems:"center", flexWrap:"wrap",
+          padding:"8px 20px", gap:12, flexShrink:0,
         }}>
           <div style={{
             fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
@@ -309,7 +309,7 @@ export default function App() {
             </div>
           )}
 
-          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", flexWrap:"wrap", gap:8 }}>
             {/* System status */}
             <span style={{
               fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)',
@@ -345,6 +345,19 @@ export default function App() {
               background:"rgba(255,107,53,0.12)", color:"var(--accent3)",
               border:"1px solid rgba(255,107,53,0.2)",
             }}>BETA</span>
+
+            <a
+              href="https://control.omnibioai.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)', padding:"3px 8px",
+                borderRadius:'var(--radius-xs)', letterSpacing:"0.08em",
+                background:"rgba(255,255,255,0.05)", color:"var(--color-text-muted)",
+                border:"1px solid rgba(255,255,255,0.08)",
+                textDecoration:"none", whiteSpace:"nowrap",
+              }}
+            >Platform Health &rarr;</a>
           </div>
         </div>
 

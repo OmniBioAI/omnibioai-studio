@@ -3,8 +3,23 @@ import {
   Panel, PanelHeader, PanelBody,
   FormRow, Input, Select, Textarea, ToggleRow,
 } from "../components/UI";
+import RequirePermission from "../components/RequirePermission";
 
-export default function Cloud({ config, setConfig }) {
+const MANAGE_CONFIG = "manage_config";
+
+export default function Cloud({ config, setConfig, currentUser }) {
+  return (
+    <RequirePermission
+      currentUser={currentUser}
+      permission={MANAGE_CONFIG}
+      description="Cloud configuration requires an authenticated OmniBioAI account."
+    >
+      <CloudConsole config={config} setConfig={setConfig} />
+    </RequirePermission>
+  );
+}
+
+function CloudConsole({ config, setConfig }) {
   const cloud = config.cloud || {};
 
   const set = (field, value) =>

@@ -3,8 +3,23 @@ import {
   Panel, PanelHeader, PanelBody,
   FormRow, Input, Select, ToggleRow,
 } from "../components/UI";
+import RequirePermission from "../components/RequirePermission";
 
-export default function LLM({ config, setConfig }) {
+const MANAGE_CONFIG = "manage_config";
+
+export default function LLM({ config, setConfig, currentUser }) {
+  return (
+    <RequirePermission
+      currentUser={currentUser}
+      permission={MANAGE_CONFIG}
+      description="LLM configuration requires an authenticated OmniBioAI account."
+    >
+      <LLMConsole config={config} setConfig={setConfig} />
+    </RequirePermission>
+  );
+}
+
+function LLMConsole({ config, setConfig }) {
   const llm = config.llm || {};
 
   const set = (field, value) =>

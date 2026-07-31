@@ -72,6 +72,19 @@ export default defineConfig(({ mode }) => {
       : []),
   ],
   resolve: {
+    // @omnibioai/ui is a local `file:./packages/omnibioai-ui` dependency
+    // (not an npm workspace), so it ships its own nested
+    // node_modules/react + react-dom rather than sharing the root
+    // project's copy. Two separate React module instances -> any hook
+    // called from a component defined against the nested copy (e.g.
+    // Tabs's useState) gets a null dispatcher, since the active renderer
+    // lives on the *other* React instance -- "Cannot read properties of
+    // null (reading 'useState')", crashing with no error boundary to
+    // catch it (see RoleManagement.jsx's <Tabs>, the only @omnibioai/ui
+    // hook-using component this app renders). Forcing Vite to resolve
+    // both specifiers to the single root copy is the same fix Vite's own
+    // docs recommend for this exact symlinked-local-package scenario.
+    dedupe: ["react", "react-dom"],
     alias: isWeb
       ? [
           // Swaps every "…/lib/session" import to the isolated web-only
