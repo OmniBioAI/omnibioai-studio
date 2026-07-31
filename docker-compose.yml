@@ -521,6 +521,17 @@ services:
     build:
       context: ${MACHINE_DIR}/omnibioai-launcher
       dockerfile: Dockerfile
+      # CRA bakes REACT_APP_* vars in at `npm run build` time, not at container
+      # runtime -- the `environment:` block below only reaches the already-built
+      # bundle's (irrelevant) process.env, so these have to be repeated here as
+      # build args or the src/*.jsx hardcoded fallbacks are the only value that
+      # ever actually ships.
+      args:
+        REACT_APP_OMNIBIOAI_BASE_URL: ${OMNIBIOAI_BASE_URL:-http://192.168.86.234:8000}
+        REACT_APP_OMNIBIOAI_TOKEN: ${OMNIBIOAI_TOKEN:-dev}
+        REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://192.168.86.234:8890}
+        REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-devtoken}
+        REACT_APP_USE_MOCK: "false"
     ports:
       - "${HOST_IP:-0.0.0.0}:5190:5190"
     environment:
@@ -825,7 +836,34 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-omnibioai}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_USERS_DEFAULT_THEME: "dark"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      # Grafana only ever exists here to be embedded read-only, kiosk-mode,
+      # inside webstudio's Metrics tile -- anonymous access is scoped to
+      # Viewer (no edit/admin/datasource capability), matching exactly what
+      # the iframe already shows any signed-in webstudio user. Without this,
+      # Grafana demands its own login for the iframe; that login redirect
+      # (see GF_SERVER_ROOT_URL/SERVE_FROM_SUB_PATH below for why it escaped
+      # the /_svc/monitor prefix) was landing on webstudio's own SPA
+      # catch-all instead, recursively booting a second copy of the app
+      # inside the iframe.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      # nginx-router.conf proxies Grafana at /_svc/monitor (prefix stripped
+      # before reaching Grafana) -- without telling Grafana about that
+      # prefix, it generates root-relative URLs (including the login
+      # redirect above) as if it owned "/", which nginx has no route for
+      # and silently swallows into webstudio's own catch-all. The %(...)s
+      # macros resolve from the actual incoming request's Host/scheme
+      # (nginx-router.conf already forwards both via its server-level
+      # proxy_set_header Host/X-Forwarded-Proto), so this works whether
+      # Grafana is reached via localhost, webstudio.omnibioai.org, or any
+      # other domain the tunnel maps to it.
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/_svc/monitor/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # Grafana's default response header is X-Frame-Options: deny -- the
+      # browser refuses to render it in an <iframe> at all regardless of
+      # auth/sub-path being correct. This is the one setting that actually
+      # permits the Metrics tile's embed to render.
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
       GF_PATHS_DATA: /var/lib/grafana
       GF_PATHS_LOGS: /var/log/grafana
       GF_PATHS_PLUGINS: /var/lib/grafana/plugins
