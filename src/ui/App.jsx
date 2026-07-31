@@ -189,12 +189,12 @@ export default function App() {
     <Cloud     config={config} setConfig={setConfig} />,
     <HPC       config={config} setConfig={setConfig} />,
     <Launch    config={config} onStatusChange={setSystemStatus} />,
-    <Services  config={config} />,
+    <Services  config={config} currentUser={currentUser} />,
     <Logs      />,
     <Workbench />,
     <Settings  config={config} setConfig={setConfig} currentUser={currentUser} />,
     <Jobs         />,
-    <IdeServices  />,
+    <IdeServices  currentUser={currentUser} />,
     <RoleManagement currentUser={currentUser} />,
   ];
 

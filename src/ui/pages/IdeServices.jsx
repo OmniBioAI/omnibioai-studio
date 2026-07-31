@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { isElectron } from "../lib/session";
+import RequirePermission from "../components/RequirePermission";
+
+const MANAGE_CONFIG = "manage_config";
 
 function JupyterIcon() {
   return (
@@ -240,7 +243,19 @@ function IdeCard({ svc, status, onOpen }) {
   );
 }
 
-export default function IdeServices() {
+export default function IdeServices({ currentUser }) {
+  return (
+    <RequirePermission
+      currentUser={currentUser}
+      permission={MANAGE_CONFIG}
+      description="IDE Services requires an authenticated OmniBioAI account."
+    >
+      <IdeServicesConsole />
+    </RequirePermission>
+  );
+}
+
+function IdeServicesConsole() {
   const [statuses, setStatuses] = useState(() =>
     Object.fromEntries(IDE_SERVICES.map(s => [s.tool, "unknown"]))
   );

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
 import { isElectron } from "../lib/session";
+import RequirePermission from "../components/RequirePermission";
+
+const MANAGE_CONFIG = "manage_config";
 
 function getHostIp() {
   return (
@@ -153,7 +156,19 @@ async function checkUrl(url) {
   }
 }
 
-export default function Services({ config }) {
+export default function Services({ config, currentUser }) {
+  return (
+    <RequirePermission
+      currentUser={currentUser}
+      permission={MANAGE_CONFIG}
+      description="Services requires an authenticated OmniBioAI account."
+    >
+      <ServicesConsole config={config} />
+    </RequirePermission>
+  );
+}
+
+function ServicesConsole({ config }) {
   const isBeta = config?.mode === "beta";
   const [statuses, setStatuses] = useState(() =>
     Object.fromEntries(SERVICES.map(s => [s.key, "unknown"]))
