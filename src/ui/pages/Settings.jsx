@@ -1,7 +1,22 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, ToggleRow, Btn } from "../components/UI";
+import RequirePermission from "../components/RequirePermission";
 
-export default function Settings({ config, setConfig }) {
+const MANAGE_CONFIG = "manage_config";
+
+export default function Settings({ config, setConfig, currentUser }) {
+  return (
+    <RequirePermission
+      currentUser={currentUser}
+      permission={MANAGE_CONFIG}
+      description="Settings requires an authenticated OmniBioAI account."
+    >
+      <SettingsConsole config={config} setConfig={setConfig} />
+    </RequirePermission>
+  );
+}
+
+function SettingsConsole({ config, setConfig }) {
   const [saved, setSaved] = useState(false);
   const [creds, setCreds] = useState(null);
   const [credsVisible, setCredsVisible] = useState(false);

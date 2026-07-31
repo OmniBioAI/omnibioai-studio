@@ -192,7 +192,7 @@ export default function App() {
     <Services  config={config} />,
     <Logs      />,
     <Workbench />,
-    <Settings  config={config} setConfig={setConfig} />,
+    <Settings  config={config} setConfig={setConfig} currentUser={currentUser} />,
     <Jobs         />,
     <IdeServices  />,
     <RoleManagement currentUser={currentUser} />,
