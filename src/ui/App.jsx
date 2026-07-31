@@ -184,7 +184,7 @@ export default function App() {
   const nav = buildNav(showRolesNav);
 
   const pages = [
-    <Mode      config={config} setConfig={setConfig} />,
+    <Mode      config={config} setConfig={setConfig} currentUser={currentUser} />,
     <LLM       config={config} setConfig={setConfig} />,
     <Cloud     config={config} setConfig={setConfig} />,
     <HPC       config={config} setConfig={setConfig} />,

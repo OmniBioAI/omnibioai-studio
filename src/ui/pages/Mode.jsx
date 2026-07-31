@@ -1,5 +1,8 @@
 import React from "react";
 import { Panel, PanelHeader, PanelBody, HealthCard } from "../components/UI";
+import RequirePermission from "../components/RequirePermission";
+
+const MANAGE_CONFIG = "manage_config";
 
 const MODES = [
   {
@@ -45,7 +48,19 @@ const HEALTH = [
   { label: "RAG",      status: "unknown", port: ":8090"  },
 ];
 
-export default function Mode({ config, setConfig }) {
+export default function Mode({ config, setConfig, currentUser }) {
+  return (
+    <RequirePermission
+      currentUser={currentUser}
+      permission={MANAGE_CONFIG}
+      description="Mode configuration requires an authenticated OmniBioAI account."
+    >
+      <ModeConsole config={config} setConfig={setConfig} />
+    </RequirePermission>
+  );
+}
+
+function ModeConsole({ config, setConfig }) {
   const selected = config.mode;
 
   return (
