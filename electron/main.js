@@ -14,9 +14,18 @@ const DEV_MODE = app.isPackaged
   : (process.env.OMNIBIOAI_DEV_MODE === 'true');
 
 // ─── LICENSE ──────────────────────────────────────────────────────────────────
+// Phase 1 PR4: repointed from the standalone license_server.py (Railway/Render,
+// its own DB) onto the unified auth-service -- /license/* here has no /api
+// prefix, unlike the old server's /api/license/*. Dev port 8001 is
+// auth-service's own mapped port (docker-compose.yml); prod goes through the
+// same router (docker/nginx-router.conf's `location ^~ /license/`) that
+// already fronts auth-service for the web app. license.omnibioai.org itself
+// gets DNS-cut-over to this same backend separately (see PR4's deployment
+// steps) so already-installed builds still pointing at the old hostname keep
+// working through the soak period.
 const LICENSE_SERVER = DEV_MODE
-  ? 'http://localhost:8099'
-  : 'https://license.omnibioai.org';
+  ? 'http://localhost:8001'
+  : 'https://webstudio.omnibioai.org';
 const LICENSE_FILE = path.join(app.getPath('userData'), 'license.json');
 
 function getMachineId() {
@@ -27,7 +36,7 @@ function getMachineId() {
 async function validateLicense(key) {
   const machineId = getMachineId();
   try {
-    const response = await fetch(`${LICENSE_SERVER}/api/license/validate`, {
+    const response = await fetch(`${LICENSE_SERVER}/license/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key, machine_id: machineId })
@@ -71,10 +80,12 @@ function loadCachedLicense() {
 }
 
 // Fetched on demand right before a docker pull, never cached to disk --
-// /validate no longer returns this credential at all (see license_server.py).
+// /validate doesn't return this credential (see routes_license.py's
+// /license/pull-token, Phase 1 PR4's cutover of the same split
+// license_server.py used).
 async function fetchPullToken(key, machineId) {
   try {
-    const response = await fetch(`${LICENSE_SERVER}/api/license/pull-token`, {
+    const response = await fetch(`${LICENSE_SERVER}/license/pull-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key, machine_id: machineId })
@@ -690,7 +701,13 @@ ipcMain.handle('grafana-login', async () => {
 ipcMain.handle('license-validate', async (event, key) => {
   const result = await validateLicense(key);
   if (result.valid) {
-    saveLicense({ ...result, key });
+    // Phase 1 PR4: /license/validate now also returns access_token/
+    // refresh_token (it doubles as an auth-service login). license.json is
+    // an offline-grace license cache on disk, not a credential store --
+    // never persist the JWTs there, only the license-shape fields the rest
+    // of this file and LicenseGate.jsx actually read.
+    const { access_token, refresh_token, token_type, ...licenseFields } = result;
+    saveLicense({ ...licenseFields, key });
     const ghcrToken = await fetchPullToken(key, getMachineId());
     if (ghcrToken) {
       process.env.GHCR_TOKEN = ghcrToken;
