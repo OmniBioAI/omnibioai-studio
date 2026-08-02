@@ -128,6 +128,13 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       REDIS_URL: redis://redis:6379
+      # SSO Phase 2 PR2 (JWT consumer audit): same shared secret
+      # auth-service signs with and api-gateway/control-center already
+      # verify with (all AUTH_SECRET_KEY) -- previously unset here, so
+      # api/deps.py::require_platform_admin and
+      # audit/identity.py::validate_identity_token both fell back to the
+      # public literal "change-me" instead of the real secret.
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
     depends_on:
       redis:
         condition: service_healthy
@@ -419,6 +426,13 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.6.0-beta"
+      # SSO Phase 2 PR1: same shared secret auth-service signs with and
+      # api-gateway already verifies with (both above, AUTH_SECRET_KEY) --
+      # this was previously unset here, so core/auth.py::require_admin's
+      # os.environ.get("JWT_SECRET", "change-me") fallback silently
+      # verified tokens against the public literal "change-me" instead of
+      # the real secret.
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
     volumes:
       - ${DATA_DIR}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
