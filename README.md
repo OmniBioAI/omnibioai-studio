@@ -174,6 +174,78 @@ security-audit :8004    ← async audit log → Redis Streams (never blocks)
 
 ---
 
+## 🔐 Browser Authentication
+
+The diagram above is the *server-side* request pipeline; this section
+covers how the Studio SPA itself holds and presents a session in the
+browser. Login/refresh/logout all go through the standard
+`omnibioai-auth` endpoints — see
+[omnibioai-auth's README](../omnibioai-auth#authentication) for the full
+token model.
+
+### Session cookies
+
+Studio's web build still manages its own session client-side —
+`localStorage["omnibioai_access_token"]` and
+`localStorage["omnibioai_refresh_token"]` — rather than relying on
+`omnibioai-auth`'s server-set, `HttpOnly` `omnibioai_session` cookie (see
+that repo's [Session Cookies](../omnibioai-auth#session-cookies) section).
+It additionally mirrors the access token into a **non-`HttpOnly`,
+JS-writable cookie** of the same name (`omnibioai_access_token`,
+`SameSite=Lax`, `Secure` over HTTPS) purely so an embedded iframe can
+authenticate — see [iframe authentication](#iframe-authentication) below.
+This is a distinct mechanism from `omnibioai-auth`'s own session cookie:
+same-looking pattern, different cookie, different owner (browser JS here,
+vs. server-set and `HttpOnly` there).
+
+### Control Center integration
+
+`omnibioai-control-center`'s Admin tab, when embedded under Studio's own
+origin, reads this same `localStorage["omnibioai_access_token"]` key —
+an existing Studio login is recognized automatically with no separate
+sign-in, since both apps share one browser origin in that deployment path.
+See [Control Center's Authentication section](../omnibioai-control-center#authentication)
+for the admin-side detail.
+
+### iframe authentication
+
+Control Center is embedded via `<iframe src="/_svc/control">` in the web
+build (an Electron `<webview>` in the desktop build). An iframe's initial
+document navigation can't carry a custom `Authorization` header, so
+`docker/nginx-router.conf` falls back to the mirrored `omnibioai_access_token`
+cookie: it maps the cookie's value into a synthesized
+`Authorization: Bearer <token>` header for the `/_svc/control` location
+and for the shared `/internal/auth/verify` subrequest, so the iframe's
+first request authenticates even though no JavaScript ran inside it yet.
+Subsequent same-origin `fetch`/XHR calls made *from inside* the iframe
+read `localStorage` directly, same as the parent page. (Grafana is also
+embedded via iframe/webview, but authenticates with its own session
+cookie, unrelated to this mechanism.)
+
+### Refresh flow
+
+`refresh()` (posts to `/auth/refresh` with the `refresh_token` read from
+`localStorage`) exists and is exported, but nothing in the current UI
+calls it automatically — there is no refresh timer and no fetch
+interceptor wired up. The one place that handles a 401 today
+(`rolesApi.js`) clears the session outright rather than attempting a
+refresh-and-retry. In practice this means an expired access token
+currently forces a fresh login rather than transparently rotating — unlike
+`omnibioai-control-center`'s cc-ui, which does schedule a silent refresh
+against the cookie-based session (see that repo's README). Wiring an
+automatic refresh here, or migrating this app onto the same
+`omnibioai_session`-cookie pattern control-center now uses, is tracked as
+follow-up work, not part of this documentation pass.
+
+### Logout
+
+`logout()` posts both the stored `refresh_token` and `access_token` to
+`/auth/logout` (fails open on a network error), then always clears both
+`localStorage` keys and the mirrored `omnibioai_access_token` cookie —
+regardless of whether the server call itself succeeded.
+
+---
+
 ## 🖥 Services
 
 ### Data Layer
