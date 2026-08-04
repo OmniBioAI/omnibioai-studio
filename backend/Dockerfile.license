@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN pip install fastapi uvicorn pymysql sqlalchemy --no-cache-dir
+RUN pip install fastapi uvicorn pymysql sqlalchemy requests --no-cache-dir
 
 COPY license_server.py .
 
