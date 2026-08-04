@@ -904,8 +904,21 @@ services:
       - "8099:8099"
     environment:
       LICENSE_SECRET: ${LICENSE_SECRET:-omnibioai-secret-change-in-production}
-      ADMIN_KEY: ${ADMIN_KEY:-admin-secret}
+      # PR11: ADMIN_KEY removed -- /api/license/generate and
+      # /api/license/list are now IAM-authorized (Bearer JWT +
+      # manage_licenses permission via omnibioai-auth), replacing the
+      # static shared-secret check.
       GHCR_PULL_TOKEN: ${GHCR_PULL_TOKEN:-}
+      IAM_URL: http://auth-service:8001
+      # Optional: this service's own client_credentials identity (PR9),
+      # used only for the startup self-check in license_server.py --
+      # never for authorizing the manage_licenses-gated actions above.
+      # Populated after registering license-server as an OAuth client via
+      # POST /orgs/{org_id}/oauth-clients against omnibioai-auth; left
+      # empty by default so a fresh environment starts up cleanly without
+      # it configured yet.
+      STUDIO_SERVICE_CLIENT_ID: ${STUDIO_SERVICE_CLIENT_ID:-}
+      STUDIO_SERVICE_CLIENT_SECRET: ${STUDIO_SERVICE_CLIENT_SECRET:-}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_USER: ${MYSQL_USER:-root}
@@ -914,6 +927,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      auth-service:
+        condition: service_started
     restart: unless-stopped
     networks:
       - default
