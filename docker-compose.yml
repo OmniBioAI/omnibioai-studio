@@ -69,6 +69,10 @@ services:
       TES_SERVERS: /workspace/configs/servers
       TMPDIR: /tmp/omnibioai_tes_runs
       IAM_URL: http://auth-service:8001
+      # TES IAM integration: HS256 fallback secret for the shared IAM
+      # client's local decode -- same var name/value already wired into
+      # every other JWT_SECRET consumer in this file.
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       POLICY_URL: http://policy-engine:8002
       HPC_POLICY_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
