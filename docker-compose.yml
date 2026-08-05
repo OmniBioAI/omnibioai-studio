@@ -48,9 +48,11 @@ services:
   tes:
     image: omnibioai-tes-local
     build:
-      context: ${MACHINE_DIR}/omnibioai-tes
-      dockerfile: Dockerfile
+      context: ${MACHINE_DIR}
+      dockerfile: omnibioai-tes/Dockerfile
       target: backend
+      secrets:
+        - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
     restart: on-failure
     ports:
       - "${HOST_IP:-0.0.0.0}:8081:8081"
@@ -125,9 +127,11 @@ services:
 
   model-registry:
     build:
-      context: ${MACHINE_DIR}/omnibioai-model-registry
-      dockerfile: Dockerfile
+      context: ${MACHINE_DIR}
+      dockerfile: omnibioai-model-registry/Dockerfile
       target: backend
+      secrets:
+        - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
     restart: on-failure
     # image: ghcr.io/omnibioai/omnibioai-model-registry:latest
     ports:
@@ -158,9 +162,11 @@ services:
 
   lims:
     build:
-      context: ${MACHINE_DIR}/omnibioai-lims
-      dockerfile: Dockerfile
+      context: ${MACHINE_DIR}
+      dockerfile: omnibioai-lims/Dockerfile
       target: backend
+      secrets:
+        - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
     image: omnibioai-lims-local
     restart: on-failure
     ports:
@@ -229,12 +235,14 @@ services:
 
   rag:
     build:
-      context: ${MACHINE_DIR}/omnibioai-rag
-      dockerfile: Dockerfile
+      context: ${MACHINE_DIR}
+      dockerfile: omnibioai-rag/Dockerfile
       target: backend
       args:
-        GITHUB_TOKEN: ${GHCR_PULL_TOKEN}      # required: read:packages for @man4ish/ui
+        GITHUB_TOKEN: ${GHCR_PULL_TOKEN}      # required: read:packages for @man4ish/ui (pre-existing npm auth, ui-builder stage only)
         RAGBIO_API_KEY: ${RAGBIO_API_KEY}  # embedded as VITE_RAGBIO_API_KEY in JS bundle
+      secrets:
+        - github_token      # required: repo/Contents:Read on private omnibioai-iam-client (backend stage, separate from the npm ARG above)
     restart: on-failure
     # image: ghcr.io/omnibioai/omnibioai-rag:latest
     # Frontend served at http://localhost:8090/ via nginx (port 5175 inside container)
@@ -1028,6 +1036,16 @@ services:
       - cadvisor
       - redis-exporter
     restart: unless-stopped
+
+secrets:
+  # BuildKit secret for the private omnibioai-iam-client git+https install
+  # (tes, model-registry, lims, rag). Sourced from the same GHCR_PULL_TOKEN
+  # already used for @man4ish npm auth -- requires repo/Contents:Read scope
+  # on omnibioai-iam-client in addition to whatever scope it already has.
+  # Never printed to build logs and never persisted in an image layer,
+  # unlike a plain build.args ARG.
+  github_token:
+    environment: GHCR_PULL_TOKEN
 
 volumes:
   mysql_data:
