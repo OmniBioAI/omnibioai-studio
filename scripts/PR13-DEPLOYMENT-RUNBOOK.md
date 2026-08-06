@@ -213,19 +213,30 @@ downgrade is idempotent against a database that's already pre-`0016`).
 
 ### Step 4 — Checkout previous release
 
-```bash
-for repo in omnibioai-auth omnibioai-policy-engine omnibioai-api-gateway \
-            omnibioai-control-center omnibioai-docs omnibioai-studio; do
-  cd ~/Desktop/machine/$repo
-  git checkout <pre-PR13-main-commit>
-done
-```
+**Pre-PR13 `main` HEAD commits**, recorded immediately before the PR13
+merges were performed (each is the merge-base between `main` and
+`feature/pr13-dynamic-rbac-activation` in that repo — i.e., exactly what
+`main` pointed to the moment before its PR13 merge commit landed):
 
-Use each repo's `main` HEAD *as it was immediately before* the PR13 merge
-commits from step 2 of the deployment procedure above — record those
-commit hashes at merge time (`git log --oneline -1 main` per repo, right
-before merging) specifically so this step has a real target instead of a
-placeholder when it's actually needed.
+| Repo | Pre-PR13 `main` HEAD |
+|---|---|
+| `omnibioai-auth` | `d3a6cc1da68edacdc30792c618cfcb07208556e4` |
+| `omnibioai-policy-engine` | `600f8940c4700c473b2ae3e5756b270a83dfb482` |
+| `omnibioai-api-gateway` | `9903f9877c01fdff4b41a47d9f4ec52666bea1fc` |
+| `omnibioai-control-center` | `6623239a1c47de2a04e4b616e29ebdbb6b18e522` |
+| `omnibioai-studio` | `1d99ca3f53b33d7d66621e87d1c7313e909c3204` |
+| `omnibioai-docs` | `ec437871f65fe91e0ca7c6cd5daa47e0dd5d7501` |
+
+```bash
+git checkout main -- .   # or: git reset --hard <hash above>, per your repo's convention
+
+cd ~/Desktop/machine/omnibioai-auth               && git checkout d3a6cc1da68edacdc30792c618cfcb07208556e4
+cd ~/Desktop/machine/omnibioai-policy-engine       && git checkout 600f8940c4700c473b2ae3e5756b270a83dfb482
+cd ~/Desktop/machine/omnibioai-api-gateway         && git checkout 9903f9877c01fdff4b41a47d9f4ec52666bea1fc
+cd ~/Desktop/machine/omnibioai-control-center      && git checkout 6623239a1c47de2a04e4b616e29ebdbb6b18e522
+cd ~/Desktop/machine/omnibioai-studio              && git checkout 1d99ca3f53b33d7d66621e87d1c7313e909c3204
+cd ~/Desktop/machine/omnibioai-docs                && git checkout ec437871f65fe91e0ca7c6cd5daa47e0dd5d7501
+```
 
 ### Step 5 — Rebuild previous images
 
