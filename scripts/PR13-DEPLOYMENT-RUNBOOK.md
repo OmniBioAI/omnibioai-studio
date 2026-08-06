@@ -141,3 +141,129 @@ If any expected result doesn't match, stop and do not consider the
 deployment complete — see PR13's implementation report for the security
 rationale behind each of these four checks (Finding 1 for the
 scientist/viewer 200/403 pair, Finding 2 for the two Org-Admin rows).
+
+---
+
+## 8. Rollback Procedure
+
+Trigger rollback if:
+- migration fails
+- smoke tests fail
+- authentication failures occur
+- RBAC permission evaluation errors occur
+
+### Step 1 — Stop PR13 services
+
+```bash
+cd ~/Desktop/machine/omnibioai-studio
+docker compose stop \
+  auth-service \
+  policy-engine \
+  api-gateway \
+  control-center
+```
+
+### Step 2 — Restore database
+
+> **`scripts/restore-mysql.sh` does not exist in this repo as of PR13** —
+> only `backup-mysql.sh` (and per-service `backup-config.sh`/
+> `backup-neo4j.sh`/`backup-nvme.sh`) exist. Writing that script is a
+> prerequisite for this rollback plan to be real, not just aspirational —
+> until it exists, restore manually. `backup-mysql.sh` produces a
+> `mysqldump | gzip` file at `work/backups/mysql/omnibioai_<timestamp>.sql.gz`
+> (see step 1 of the deployment procedure above for the exact path printed
+> at backup time):
+>
+> ```bash
+> gunzip -c work/backups/mysql/omnibioai_<timestamp>.sql.gz \
+>   | docker exec -i omnibioai-studio-mysql-1 mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-root}"
+> ```
+
+Verify:
+
+```sql
+SELECT version_num FROM alembic_version;
+```
+
+Expected:
+
+```
+0015_refresh_token_length
+```
+
+### Step 3 — Downgrade migration (if DB restore unavailable)
+
+```bash
+cd ~/Desktop/machine/omnibioai-auth
+alembic downgrade 0015_refresh_token_length
+```
+
+Verify `roles` table does not contain `organization_id`:
+
+```bash
+docker exec omnibioai-studio-mysql-1 mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-root}" \
+  -N -e "DESCRIBE omnibioai.roles;" | grep organization_id
+# expect no output
+```
+
+Only one of Step 2 or Step 3 is needed, not both — a full DB restore (Step
+2) already reverts the schema; Step 3 is the fallback when no usable
+backup exists. Running both is redundant, not harmful (the migration's
+downgrade is idempotent against a database that's already pre-`0016`).
+
+### Step 4 — Checkout previous release
+
+```bash
+for repo in omnibioai-auth omnibioai-policy-engine omnibioai-api-gateway \
+            omnibioai-control-center omnibioai-docs omnibioai-studio; do
+  cd ~/Desktop/machine/$repo
+  git checkout <pre-PR13-main-commit>
+done
+```
+
+Use each repo's `main` HEAD *as it was immediately before* the PR13 merge
+commits from step 2 of the deployment procedure above — record those
+commit hashes at merge time (`git log --oneline -1 main` per repo, right
+before merging) specifically so this step has a real target instead of a
+placeholder when it's actually needed.
+
+### Step 5 — Rebuild previous images
+
+```bash
+cd ~/Desktop/machine/omnibioai-studio
+docker compose build \
+  auth-service \
+  policy-engine \
+  api-gateway \
+  control-center
+```
+
+Same `api-gateway` caveat as the deployment procedure's step 6 applies here
+too (no `build:` stanza in `docker-compose.yml` — build it manually from
+its own Dockerfile if that gap is still open).
+
+### Step 6 — Restart previous stack
+
+```bash
+docker compose up -d --no-deps --force-recreate \
+  auth-service policy-engine api-gateway control-center
+docker compose ps
+```
+
+### Step 7 — Validate rollback
+
+Verify:
+- login works (`POST /auth/login` against a known account)
+- JWT validation works (`POST /auth/validate`)
+- existing roles resolve (`GET /orgs/{org_id}/roles` for an org created
+  before PR13 — should list `org_admin`/`org_member` with no
+  `organization_id` field, since that response shape reverts with the code)
+- API gateway authorization works (`GET /model-registry/v1` with a valid
+  token — 401/403/200 behavior matches pre-PR13 expectations)
+- Control Center loads (Roles & Permissions page renders the pre-PR13
+  read-only view — no Create/Edit/Delete controls, since that UI reverted
+  too)
+
+Rollback is complete only when all 5 checks above pass. If any fails, this
+is now a live incident beyond what this runbook covers — escalate rather
+than continuing to improvise against production.
