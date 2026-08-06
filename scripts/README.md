@@ -20,6 +20,10 @@ this one, rather than duplicating it.
 ### Manual run
 ./scripts/test-enterprise-security.sh
 
+See `PR13-DEPLOYMENT-RUNBOOK.md` (this directory) for the full deployment
+procedure this script is step 7 of — backup, merge, migrate, restart,
+verify. Documented only; not yet executed as of PR13.
+
 ## backup-mysql.sh
 Daily MySQL backup with 7-day retention.
 
