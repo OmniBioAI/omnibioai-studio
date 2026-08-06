@@ -1,5 +1,22 @@
 # OmniBioAI Scripts
 
+## test-enterprise-security.sh (PR12)
+IAM/RBAC smoke test: auth/gateway/policy-engine/control-center health, JWT
+issuance+validation, and RBAC enforcement (401/401/403) against the live
+stack. See `docs/security/IAM-RBAC.md` (in `omnibioai-docs`) for the full
+architecture writeup.
+
+**Temporary home**: this script lives here, and the accompanying doc lives
+in `omnibioai-docs/security/IAM-RBAC.md`, because `omnibioai-ecosystem` —
+the intended long-term home for both — was mid an interactive git rebase
+(history rewrite removing private-repo gitlinks) when PR12 was written, and
+was unsafe to commit to. Once that rebase completes, migrate both there;
+optionally leave a wrapper script in `omnibioai-ecosystem` that just invokes
+this one, rather than duplicating it.
+
+### Manual run
+./scripts/test-enterprise-security.sh
+
 ## backup-mysql.sh
 Daily MySQL backup with 7-day retention.
 
