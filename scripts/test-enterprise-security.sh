@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# PR12 — Enterprise IAM/RBAC Smoke Test
+# PR12/PR13 — Enterprise IAM/RBAC Smoke Test
 # ============================================================
 # Validates the live local stack end to end:
 #   - Auth Service, API Gateway, Policy Engine, Control Center health
@@ -12,10 +12,17 @@
 #     either operator-set via ADMIN_BOOTSTRAP_PASSWORD or a one-time
 #     random value printed at first boot, neither of which this script
 #     can rely on).
+#   - PR13: the 200 path -- a role that actually holds the required
+#     permission gets through. Seeds a throwaway scientist-role and
+#     viewer-role user directly via MySQL (this script's existing
+#     "docker compose" dependency, now also used for this) since there's
+#     no HTTP-reachable way to get a self-registered user into an
+#     org-scoped role without either an operator-provided admin token or
+#     DB access -- see the case 4 comment below for why.
 #
 # This complements, not replaces, the existing broader
 # ../test_integration.sh (docker health, redis, audit, HPC checks) --
-# this one is scoped specifically to PR12's IAM/RBAC validation.
+# this one is scoped specifically to PR12/PR13's IAM/RBAC validation.
 #
 # Usage:
 #   chmod +x scripts/test-enterprise-security.sh
@@ -158,19 +165,92 @@ else
     fail "Skipping insufficient-permission check -- no token from login"
 fi
 
-# Case 4: valid JWT with the required permission -> 200.
-# Not exercised here without a way to grant dataset.read to the
-# smoke-test user without operator credentials -- covered by this PR's
-# automated test suites instead (omnibioai-policy-engine's
-# test_role_hierarchy_fixtures.py, omnibioai-api-gateway's
-# test_pr12_middleware_chain_e2e.py). If ADMIN_BOOTSTRAP_TOKEN is set
-# (a pre-issued token for a user known to hold model.use), this checks
-# the real 200 path too.
+# Case 4 (PR13): valid JWT WITH the required permission -> 200, and the
+# converse -- a valid JWT from a role that deliberately lacks it -> 403.
+#
+# Through PR12 this was unexercisable without an operator-provided
+# ADMIN_BOOTSTRAP_TOKEN: no role granted workflow.execute/dataset.read/
+# model.use to anyone, and there's no HTTP-reachable way for this
+# self-registered smoke-test user to get itself INTO an org-scoped role
+# that holds one -- org creation makes you that org's org_admin
+# automatically (manage_org, not model.use), and the only other path
+# (being invited into someone else's org) has no accept-invite endpoint
+# to move the membership from "invited" to "active" via the API at all.
+# PR13 seeds real scientist/viewer roles (org_service.ensure_default_
+# org_roles, granted workflow.execute/dataset.read/model.use and
+# dataset.read/workflow.read respectively), so this now seeds the
+# assignment directly via MySQL -- the same "Requires: ... docker
+# compose" dependency this script already declared, just exercised here
+# instead of only for orchestration. ADMIN_BOOTSTRAP_TOKEN, if set,
+# still works as a direct override (used as the request token itself,
+# unchanged from PR12) for an operator who'd rather not grant this
+# script DB access.
 if [ -n "${ADMIN_BOOTSTRAP_TOKEN:-}" ]; then
     check_http_status "Gateway: token with model.use permission" \
         "$GATEWAY/model-registry/v1" 200 GET "" "Authorization: Bearer $ADMIN_BOOTSTRAP_TOKEN"
+elif command -v docker >/dev/null 2>&1 && docker compose exec -T mysql true >/dev/null 2>&1; then
+    MYSQL_CONTAINER_EXEC="docker compose exec -T mysql mysql -uroot -p${MYSQL_ROOT_PASSWORD:-root} -N -e"
+
+    seed_role_and_get_token() {
+        local role_name=$1 email_prefix=$2
+        local email="pr13-${email_prefix}-$(date +%s)@omnibioai.test"
+        local password="Pr13SmokeTest123!"
+
+        curl -s -o /dev/null --max-time "$TIMEOUT" -X POST "$AUTH/auth/register" \
+            -H "Content-Type: application/json" -d "{\"email\":\"$email\",\"password\":\"$password\"}"
+
+        local first_login org_id
+        first_login=$(curl -s --max-time "$TIMEOUT" -X POST "$AUTH/auth/login" \
+            -H "Content-Type: application/json" -d "{\"email\":\"$email\",\"password\":\"$password\"}")
+        local first_token
+        first_token=$(echo "$first_login" | json_field access_token)
+        [ -z "$first_token" ] && return 1
+
+        org_id=$(curl -s --max-time "$TIMEOUT" -X POST "$AUTH/orgs" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $first_token" \
+            -d "{\"name\":\"PR13 Smoke $email_prefix\",\"slug\":\"pr13-smoke-${email_prefix}-$(date +%s)\"}" \
+            | json_field id)
+        [ -z "$org_id" ] && return 1
+
+        local user_id
+        user_id=$(curl -s --max-time "$TIMEOUT" -X POST "$AUTH/auth/validate" \
+            -H "Content-Type: application/json" -d "{\"token\":\"$first_token\"}" | json_field user_id)
+        [ -z "$user_id" ] && return 1
+
+        # Replace this membership's role (org_admin, from org creation)
+        # with the target role -- membership_roles is a bare join table
+        # (0002_multi_tenant_schema), no per-row metadata to preserve.
+        local role_id
+        role_id=$($MYSQL_CONTAINER_EXEC "SELECT id FROM omnibioai.roles WHERE name='$role_name' AND organization_id IS NULL LIMIT 1;" 2>/dev/null)
+        [ -z "$role_id" ] && return 1
+        local membership_id
+        membership_id=$($MYSQL_CONTAINER_EXEC "SELECT id FROM omnibioai.organization_memberships WHERE organization_id=$org_id AND user_id=$user_id LIMIT 1;" 2>/dev/null)
+        [ -z "$membership_id" ] && return 1
+        $MYSQL_CONTAINER_EXEC "DELETE FROM omnibioai.membership_roles WHERE membership_id=$membership_id; INSERT INTO omnibioai.membership_roles (membership_id, role_id) VALUES ($membership_id, $role_id);" >/dev/null 2>&1
+
+        # Fresh login -- the first token's permissions claim predates the
+        # role swap above (built at the moment of that earlier login).
+        curl -s --max-time "$TIMEOUT" -X POST "$AUTH/auth/login" \
+            -H "Content-Type: application/json" -d "{\"email\":\"$email\",\"password\":\"$password\"}" | json_field access_token
+    }
+
+    SCIENTIST_TOKEN=$(seed_role_and_get_token scientist scientist)
+    if [ -n "$SCIENTIST_TOKEN" ]; then
+        check_http_status "Gateway: scientist token (model.use) -> model-registry" \
+            "$GATEWAY/model-registry/v1" 200 GET "" "Authorization: Bearer $SCIENTIST_TOKEN"
+    else
+        fail "Gateway: scientist token (model.use) -> model-registry -- could not seed scientist-role user"
+    fi
+
+    VIEWER_TOKEN=$(seed_role_and_get_token viewer viewer)
+    if [ -n "$VIEWER_TOKEN" ]; then
+        check_http_status "Gateway: viewer token (no model.use) -> model-registry" \
+            "$GATEWAY/model-registry/v1" 403 GET "" "Authorization: Bearer $VIEWER_TOKEN"
+    else
+        fail "Gateway: viewer token (no model.use) -> model-registry -- could not seed viewer-role user"
+    fi
 else
-    echo -e "${YELLOW}  [SKIP]${NC} Gateway: token with model.use permission -- set ADMIN_BOOTSTRAP_TOKEN to exercise this"
+    echo -e "${YELLOW}  [SKIP]${NC} Gateway: scientist/viewer permission checks -- set ADMIN_BOOTSTRAP_TOKEN, or run this against the docker-compose stack (mysql service) to exercise them"
 fi
 
 # ============================================================
