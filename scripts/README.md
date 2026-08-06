@@ -1,10 +1,13 @@
 # OmniBioAI Scripts
 
-## test-enterprise-security.sh (PR12)
+## test-enterprise-security.sh (PR12/PR13)
 IAM/RBAC smoke test: auth/gateway/policy-engine/control-center health, JWT
-issuance+validation, and RBAC enforcement (401/401/403) against the live
-stack. See `docs/security/IAM-RBAC.md` (in `omnibioai-docs`) for the full
-architecture writeup.
+issuance+validation, and RBAC enforcement (401/401/403/200) against the live
+stack -- PR13 added the 200 path (a scientist-role token succeeds where a
+viewer-role token gets 403), seeded via direct MySQL access since there's no
+HTTP-only way to get a throwaway user into an org-scoped role. See
+`docs/security/IAM-RBAC.md` (in `omnibioai-docs`) for the full architecture
+writeup.
 
 **Temporary home**: this script lives here, and the accompanying doc lives
 in `omnibioai-docs/security/IAM-RBAC.md`, because `omnibioai-ecosystem` —
