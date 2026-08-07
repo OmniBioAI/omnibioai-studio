@@ -5,3 +5,10 @@
 CREATE DATABASE IF NOT EXISTS omnibioai    CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 CREATE DATABASE IF NOT EXISTS limsdb       CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 CREATE DATABASE IF NOT EXISTS model_registry CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+-- PR14.5D: omnibioai-billing's app/main.py (Base.metadata.create_all) and
+-- billing-worker both connect to DB_NAME=omnibioai_billing on startup --
+-- create_all only creates tables, never the database itself, and this
+-- file only runs once against an empty data volume, so this was missing
+-- entirely until now, breaking billing-service before it ever gets to
+-- app code.
+CREATE DATABASE IF NOT EXISTS omnibioai_billing CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;

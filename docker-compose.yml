@@ -140,6 +140,8 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "8095"
+      USAGE_REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis:6379
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
@@ -158,6 +160,53 @@ services:
       - ${WORK_DIR}/runs:/app/work/runs:ro
     depends_on:
       mysql:
+        condition: service_healthy
+
+  billing-service:
+    build:
+      context: ${MACHINE_DIR}/omnibioai-billing
+      dockerfile: Dockerfile
+      secrets:
+        - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
+    restart: on-failure
+    ports:
+      - "${HOST_IP:-0.0.0.0}:8005:8005"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai_billing
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      USAGE_REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis:6379
+      IAM_URL: http://auth-service:8001
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  billing-worker:
+    build:
+      context: ${MACHINE_DIR}/omnibioai-billing
+      dockerfile: Dockerfile.worker
+      secrets:
+        - github_token      # required: repo/Contents:Read on private omnibioai-iam-client (pre-existing gap, same as billing-service above -- Dockerfile.worker's requirements.txt install needs it too, just never hit a cold build until now)
+    restart: on-failure
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai_billing
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      USAGE_REDIS_URL: redis://redis:6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   lims:
@@ -252,6 +301,8 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "8096"
+      USAGE_REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       OLLAMA_BASE_URL: http://ollama:11434
       IAM_URL: http://auth-service:8001
       GATEWAY_URL: http://api-gateway:8080
@@ -293,6 +344,8 @@ services:
       context: ${MACHINE_DIR}/omnibioai
       dockerfile: Dockerfile.app
       target: backend
+      secrets:
+        - github_token      # required: repo/Contents:Read on private omnibioai-usage-client, omnibioai-iam-client
     restart: on-failure
     # image: ghcr.io/omnibioai/omnibioai-app:latest
     ports:
@@ -307,6 +360,7 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       REDIS_HOST: redis
+      USAGE_REDIS_URL: redis://redis:6379
       REDIS_PORT: "6379"
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
@@ -391,6 +445,7 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       REDIS_HOST: redis
+      USAGE_REDIS_URL: redis://redis:6379
       REDIS_PORT: "6379"
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
@@ -465,6 +520,13 @@ services:
       # model-registry -- lets require_admin() validate omnibioai-auth-issued
       # JWTs locally (HS256) without a network round trip.
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      # PR14.5D: routes_billing_proxy.py's httpx relay target. Matches its
+      # own os.environ.get(..., "http://billing-service:8005") default
+      # already, so this isn't functionally required -- set explicitly
+      # anyway, same as every other cross-service URL in this file
+      # (RAG_BASE_URL, MODEL_REGISTRY_BASE_URL, GATEWAY_URL, ...), so the
+      # wiring is discoverable here instead of only in the other repo.
+      BILLING_URL: http://billing-service:8005
       # Narrow, single-file mount (not the whole /var/spool/cron directory)
       # for POST /cron/jobs/{id}/pause|resume and PUT .../schedule. The
       # container runs as root, so it can read/write this file regardless of
@@ -494,6 +556,7 @@ services:
       - workbench
       - tes
       - toolserver
+      - billing-service
 
   dev-hub:
     build:
