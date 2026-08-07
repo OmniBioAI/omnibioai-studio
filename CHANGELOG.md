@@ -161,3 +161,4 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 📦 1,000 ARM64 SIF images
 - 🔧 Control Center web service added
 - 💰 Billing service integrated
+- 🔧 Admin Console at admin.omnibioai.org
