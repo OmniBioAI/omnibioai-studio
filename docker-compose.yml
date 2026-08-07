@@ -558,6 +558,27 @@ services:
       - toolserver
       - billing-service
 
+  # PR14.7B: control-center's Stage 3 (nginx) -- serves both frontend
+  # bundles (dist-control/dist-admin, host-based split by Host header,
+  # see omnibioai-control-center/docker/nginx/control-center.conf) and
+  # proxies every API path through to the SAME control-center backend
+  # service above (no second backend, no duplicated container). Bound to
+  # localhost only, matching that service's own convention. Not yet
+  # reachable from outside this host -- /etc/cloudflared/config.yml still
+  # points control.omnibioai.org directly at control-center:7070; wiring
+  # this port in there (and adding admin.omnibioai.org) is deliberately
+  # separate follow-up work, not part of this PR.
+  control-center-web:
+    build:
+      context: ${MACHINE_DIR}/omnibioai-control-center
+      dockerfile: Dockerfile
+      target: frontend
+    restart: on-failure
+    ports:
+      - "127.0.0.1:5174:5174"
+    depends_on:
+      - control-center
+
   dev-hub:
     build:
       context: ${MACHINE_DIR}/omnibioai-dev-hub
