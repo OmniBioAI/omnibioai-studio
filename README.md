@@ -6,21 +6,28 @@
 
 ---
 
-## ✨ What's New in v0.7.0-beta
+## ✨ What's New in v0.7.0
 
-- 🌐 **Web version** at webstudio.omnibioai.org — no installation required
-- 🔐 **SSO & OAuth2** — Google, GitHub, and Microsoft sign-in
-- 🛡️ **Cloudflare Access** — secure invite-only email whitelist
+- 🔐 **Unified license key system** (`OMNI-XXXX-XXXX-XXXX-XXXX`) — one key works for web + desktop, auto-creates user on first validation, same JWT as OAuth login
+- 🌐 **webstudio.omnibioai.org fully working** — license key login enforced, all workbench pages loading correctly, service worker fixed, nginx routes fixed (`/license/`, `/roles/`), Control Center JWT cookie fallback
+- 👥 **Team expansion** — Dr. Rajnish Kumar (Scientific Consultant, SR University), Praveen C.V. Raghavulu (Scientific Advisor, KUMC); About page restructured as company team page
+- 🛠 **12,110 bioinformatics tools** (up from 11,577) — 100+ new HTTP API tools added, all tools validated (100% clean), 0 duplicates, 0 ToolSpec errors
+- 🤖 **Tool selection AI improved** — GPU enabled for Ollama (57x faster: 120s → 2.1s), accuracy 0% → 60%, Recall@K 60% → 85%
+- 📦 **1,000 ARM64 SIF images**
+- 🔧 **Control Center web service** added
+- 💰 **Billing service** integrated
 
-- 🧬 **12,000+ bioinformatics tools** across HTTP APIs, ARM64, x86, and Kubernetes
-- 📦 **1,120+ container images** (320 Docker + 800 ARM64 SIF) hosted on GHCR and Hugging Face
-- 🔌 **225+ bioinformatics & AI plugins** covering scRNA-seq, WGS, WES, proteomics, spatial, and more
-- ⚙️ **600+ workflow bundles** for Nextflow, WDL, CWL, and Snakemake
-
-- 🤖 **36M PubMed abstracts indexed** with a 150-domain RAG pipeline (PubMedBERT, FAISS, BM25, RRF, Neo4j)
-- 🤗 **One-click Hugging Face Push** from the Model Registry
-
-- 📊 **Live platform metrics dashboard** with architecture, service health, and coverage
+### v0.7.0-beta ✅
+- 🌐 Web version at webstudio.omnibioai.org — no installation required
+- 🔐 SSO & OAuth2 — Google, GitHub, and Microsoft sign-in
+- 🛡️ Cloudflare Access — secure invite-only email whitelist
+- 🧬 12,000+ bioinformatics tools across HTTP APIs, ARM64, x86, and Kubernetes
+- 📦 1,120+ container images (320 Docker + 800 ARM64 SIF) hosted on GHCR and Hugging Face
+- 🔌 225+ bioinformatics & AI plugins covering scRNA-seq, WGS, WES, proteomics, spatial, and more
+- ⚙️ 600+ workflow bundles for Nextflow, WDL, CWL, and Snakemake
+- 🤖 36M PubMed abstracts indexed with a 150-domain RAG pipeline (PubMedBERT, FAISS, BM25, RRF, Neo4j)
+- 🤗 One-click Hugging Face Push from the Model Registry
+- 📊 Live platform metrics dashboard with architecture, service health, and coverage
 
 ### v0.4.0-beta ✅
 - **Version unification** — all UI components, sidebar, badge, logs, and settings now consistently report `v0.4.0-beta`
@@ -493,10 +500,10 @@ Expected layout:
 - Data Dir mounted as `/data` in all containers
 - Work Dir mounted as `/workspace/work` in all containers
 
-### About (v0.7.0-beta)
+### About (v0.7.0)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.7.0-beta |
+| Studio Version | v0.7.0 |
 | Electron | web |
 | Node.js | web |
 | Platform | Linux x86_64 |
@@ -595,8 +602,8 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 | v0.3.0-beta     | ✅ Released    | IDE Services, Grafana observability, auto-secrets, npm security                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | v0.4.0-beta     | ✅ Released    | Version unification, 23 services, 7 execution servers, Claude Sonnet 4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | v0.5.0-beta     | ✅ Released    | 225+ plugins, 36M-abstract RAG index, 1,120+ container images, full beta launch                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **v0.7.0-beta** | ✅ **Current** | Web version (`webstudio.omnibioai.org`), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, Hugging Face integration, Model Registry HF push button                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **v0.7.0**      | 🔜 Planned    | Complete 36M PubMed RAG with GPU embeddings, **5 trained ML models on Hugging Face, 5 fine-tuned ML model plugins**, 1,000 ARM64 SIF images, GHCR migration to the OmniBioAI organization, demo video, Web App PWA support, `webstudio.omnibioai.org`, `workbench.omnibioai.org`, `admin.omnibioai.org`, **OmniBioAI Billing & Enterprise Subscription System** (plans, subscriptions, entitlements, usage metering, invoices, billing audit), and **Unified License Key** (one `OMNI-XXXX` key for web + desktop, replacing the Cloudflare Access email whitelist with a single approval, usage tracking, and expiry workflow) |
+| v0.7.0-beta     | ✅ Released    | Web version (`webstudio.omnibioai.org`), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, Hugging Face integration, Model Registry HF push button                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **v0.7.0**      | ✅ **Current** | Unified License Key (one `OMNI-XXXX` key for web + desktop, auto-creates user, same JWT as OAuth login), `webstudio.omnibioai.org` fully working end-to-end, 12,110 tools (100+ new HTTP API tools), Tool Selection AI 57x faster with GPU-enabled Ollama (accuracy 0%→60%, Recall@K 60%→85%), 1,000 ARM64 SIF images, Control Center web service, Billing service integrated, team expansion (Dr. Rajnish Kumar, Praveen C.V. Raghavulu) |
 | **v0.8.0**      | 🔜 Planned    | **Enterprise Platform** — expand the ML portfolio to **20 trained ML models on Hugging Face**, HIPAA compliance reporting, SAML/enterprise SSO, multi-user workspaces, team management, usage analytics, mobile-responsive UI, and **Omni Assistant v2** (tool-aware responses, agentic workflow suggestions, multi-step reasoning, context-aware analysis)                                                                                                                                                                                                                                                                     |
 | **v0.9.0**      | 🔜 Planned    | **Enterprise Admin Console expansion** — advanced organization administration, enterprise governance, deeper billing and subscription management, advanced usage analytics, administrative workflows, platform operations, security administration, and enterprise-scale management capabilities                                                                                                                                                                                                                                                                                                                                |
 

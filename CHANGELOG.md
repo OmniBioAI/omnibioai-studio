@@ -133,7 +133,7 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - HPC execution: Slurm / PBS / LSF via TES
 
 
-## v0.7.0-beta (2026-08-07)
+## v0.7.0 (2026-08-07)
 
 ### New Features
 - 🔐 Unified license key system (OMNI-XXXX-XXXX-XXXX-XXXX)
