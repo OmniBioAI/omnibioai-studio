@@ -1,6 +1,6 @@
 # OmniBioAI Studio - Release configuration
 # Uses pre-built images from ghcr.io
-# Version: v0.6.0-beta
+# Version: v0.7.0-beta
 #
 # Setup:
 #   cp .env.example .env
@@ -217,7 +217,7 @@ services:
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.6.0-beta"
+      SENTRY_RELEASE: "0.7.0-beta"
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
@@ -285,7 +285,7 @@ services:
       LIMS_API_TOKEN: ""
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.6.0-beta"
+      SENTRY_RELEASE: "0.7.0-beta"
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
@@ -425,7 +425,7 @@ services:
       TOOL_IMAGES_BASE: /workspace/tool-images
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.6.0-beta"
+      SENTRY_RELEASE: "0.7.0-beta"
       # SSO Phase 2 PR1: same shared secret auth-service signs with and
       # api-gateway already verifies with (both above, AUTH_SECRET_KEY) --
       # this was previously unset here, so core/auth.py::require_admin's

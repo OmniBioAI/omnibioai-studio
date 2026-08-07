@@ -6,7 +6,7 @@
 
 ---
 
-## ✨ What's New in v0.6.0-beta
+## ✨ What's New in v0.7.0-beta
 
 - 🌐 **Web version** at webstudio.omnibioai.org — no installation required
 - 🔐 **SSO & OAuth2** — Google, GitHub, and Microsoft sign-in
@@ -493,10 +493,10 @@ Expected layout:
 - Data Dir mounted as `/data` in all containers
 - Work Dir mounted as `/workspace/work` in all containers
 
-### About (v0.6.0-beta)
+### About (v0.7.0-beta)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.6.0-beta |
+| Studio Version | v0.7.0-beta |
 | Electron | web |
 | Node.js | web |
 | Platform | Linux x86_64 |
@@ -595,7 +595,7 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 | v0.3.0-beta     | ✅ Released    | IDE Services, Grafana observability, auto-secrets, npm security                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | v0.4.0-beta     | ✅ Released    | Version unification, 23 services, 7 execution servers, Claude Sonnet 4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | v0.5.0-beta     | ✅ Released    | 225+ plugins, 36M-abstract RAG index, 1,120+ container images, full beta launch                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **v0.6.0-beta** | ✅ **Current** | Web version (`webstudio.omnibioai.org`), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, Hugging Face integration, Model Registry HF push button                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **v0.7.0-beta** | ✅ **Current** | Web version (`webstudio.omnibioai.org`), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, Hugging Face integration, Model Registry HF push button                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | **v0.7.0**      | 🔜 Planned    | Complete 36M PubMed RAG with GPU embeddings, **5 trained ML models on Hugging Face, 5 fine-tuned ML model plugins**, 1,000 ARM64 SIF images, GHCR migration to the OmniBioAI organization, demo video, Web App PWA support, `webstudio.omnibioai.org`, `workbench.omnibioai.org`, `admin.omnibioai.org`, **OmniBioAI Billing & Enterprise Subscription System** (plans, subscriptions, entitlements, usage metering, invoices, billing audit), and **Unified License Key** (one `OMNI-XXXX` key for web + desktop, replacing the Cloudflare Access email whitelist with a single approval, usage tracking, and expiry workflow) |
 | **v0.8.0**      | 🔜 Planned    | **Enterprise Platform** — expand the ML portfolio to **20 trained ML models on Hugging Face**, HIPAA compliance reporting, SAML/enterprise SSO, multi-user workspaces, team management, usage analytics, mobile-responsive UI, and **Omni Assistant v2** (tool-aware responses, agentic workflow suggestions, multi-step reasoning, context-aware analysis)                                                                                                                                                                                                                                                                     |
 | **v0.9.0**      | 🔜 Planned    | **Enterprise Admin Console expansion** — advanced organization administration, enterprise governance, deeper billing and subscription management, advanced usage analytics, administrative workflows, platform operations, security administration, and enterprise-scale management capabilities                                                                                                                                                                                                                                                                                                                                |
