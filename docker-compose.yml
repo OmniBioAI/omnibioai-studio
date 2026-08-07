@@ -699,8 +699,12 @@ services:
 
   workflow-bundles:
     build:
-      context: ${MACHINE_DIR}/omnibioai-workflow-bundles
-      dockerfile: Dockerfile
+      # Build context expanded to $MACHINE_DIR (sibling repos) so the
+      # Dockerfile can COPY in omnibioai-iam-client -- same pattern as
+      # model-registry below. All COPY paths inside the Dockerfile are
+      # now repo-prefixed (omnibioai-workflow-bundles/...) accordingly.
+      context: ${MACHINE_DIR}
+      dockerfile: omnibioai-workflow-bundles/Dockerfile
       target: backend
     # image: ghcr.io/omnibioai/omnibioai-workflow-bundles:latest
     ports:
