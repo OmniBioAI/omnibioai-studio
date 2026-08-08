@@ -309,6 +309,36 @@ docker compose up -d
 docker compose up -d --no-deps <service-name>
 ```
 
+### Locally-built services (e.g. web-ui): tag-based rollback
+
+`web-ui` (and other services using `build:` rather than `image:` in `docker-compose.yml`)
+have no registry digest to pin — they're built and tagged locally
+(`<compose-project>-<service>:latest`, e.g. `omnibioai-studio-web-ui:latest`), so digest
+pinning doesn't apply. Before rebuilding one of these, tag the currently-running image
+so it survives the rebuild (which overwrites `:latest` in place):
+
+```bash
+# Before rebuilding — capture a named rollback point
+docker tag omnibioai-studio-web-ui:latest omnibioai-studio-web-ui:rollback
+
+# Rebuild + redeploy (only this service; --no-deps avoids restarting anything else)
+docker compose -f docker-compose.yml build web-ui
+docker compose -f docker-compose.yml up -d --no-deps --force-recreate web-ui
+
+# If it needs to be rolled back:
+docker tag omnibioai-studio-web-ui:rollback omnibioai-studio-web-ui:latest
+docker compose -f docker-compose.yml up -d --no-deps --force-recreate web-ui
+```
+
+**Note**: recreating a service changes its container IP on the Docker bridge network.
+`nginx-router`'s `upstream` blocks cache that IP at nginx's own startup (see the
+"nginx-router returning 502" entry under Troubleshooting) — Docker *may* hand the
+recreated container back its previous IP if nothing else claimed it in the meantime, in
+which case no further action is needed (verify with `docker inspect <container>
+--format '{{json .NetworkSettings.Networks}}'` before assuming so), but this is not
+guaranteed. If the IP changes, `nginx-router` needs `--no-deps --force-recreate` too, or
+that route will 502 again.
+
 ---
 
 ## Backup and Restore
