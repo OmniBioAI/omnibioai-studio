@@ -458,6 +458,39 @@ docker compose restart control-center
 docker compose exec control-center curl -sf http://workbench:8000/health/
 ```
 
+### nginx-router returning 502 for a service that's actually healthy
+
+`nginx-router.conf`'s `upstream { server <name>:<port>; }` blocks resolve each backend
+hostname to a Docker bridge-network IP **once**, at nginx startup/reload — not per
+request. If a backend container is later recreated (redeploy, rebuild, crash-restart),
+it gets a new IP from Docker, but `nginx-router` keeps sending traffic to the old one
+until it is itself reloaded or recreated. The symptom is `502 Bad Gateway` with
+`connect() failed (111: Connection refused)` in `nginx-router`'s logs, naming an IP that
+`docker inspect <backend-container> --format '{{.NetworkSettings.Networks}}'` shows no
+longer belongs to that service (sometimes it now belongs to a *different* container
+entirely — the stale IP got reassigned). This can affect one route or many at once,
+depending on how many backends were recreated since `nginx-router`'s last (re)start.
+
+```bash
+# Confirm: does the IP in the error log match the backend's current IP?
+docker logs --tail 50 omnibioai-studio-nginx-router-1 | grep "Connection refused"
+docker inspect omnibioai-studio-<service>-1 \
+  --format '{{.NetworkSettings.Networks.omnibioai-studio_default.IPAddress}}'
+
+# Fix: force nginx-router to re-resolve every upstream hostname and pick up the
+# current on-disk config (a plain `nginx -s reload` is not reliable here — see the
+# bind-mount inode GOTCHA documented at the top of docker/nginx-router.conf, which
+# can leave a running container serving a config file from days earlier even after
+# a reload). Recreating only nginx-router does not restart or otherwise affect any
+# other service:
+docker compose -f docker-compose.yml up -d --no-deps --force-recreate nginx-router
+```
+
+Root-caused and fixed this way for the `webstudio.omnibioai.org` 502 incident,
+2026-08-08 (PR G) — `nginx-router` had not been restarted since 2026-08-07, while
+`web-ui` and several other services had been recreated since then and picked up new
+IPs nginx-router never learned about.
+
 ### Celery workers not picking up tasks
 
 ```bash
