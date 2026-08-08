@@ -77,6 +77,17 @@ AUTH_SECRET_KEY=<generate: python3 -c "import secrets; print(secrets.token_urlsa
 
 # ── Container registry ────────────────────────────────────────────────────────
 GITHUB_TOKEN=<PAT with read:packages scope — for ghcr.io pull>
+GHCR_PULL_TOKEN=<PAT with read:packages scope — BuildKit secret for image builds that need @man4ish/ui, and for license-server/tes/model-registry/lims/rag image pulls>
+
+# ── License (unified OMNI-XXXX flow) ───────────────────────────────────────────
+LICENSE_SECRET=<random-token — used by the legacy standalone license-server, :8099>
+
+# ── Neo4j (RAG knowledge graph) ─────────────────────────────────────────────────
+NEO4J_PASSWORD=<strong-password>  # defaults to "omnibioai" if unset — override in production
+
+# ── Telemetry ────────────────────────────────────────────────────────────────
+# SENTRY_RELEASE is set automatically per-service to the app version (currently "0.7.0")
+# in docker-compose.yml / docker-compose.release.yml; no action needed unless overriding.
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 HOST_IP=0.0.0.0                # or specific NIC IP
@@ -241,6 +252,33 @@ curl -s -u admin:omnibioai http://localhost:3000/api/search \
 ```
 
 Expected dashboard titles: `OmniBioAI Platform Overview`, `OmniBioAI LIMS`, `OmniBioAI RAG`.
+
+---
+
+## Production Domains
+
+The steps above describe the local/on-prem docker-compose runbook (everything on
+`localhost:<port>`). In the hosted production deployment, the same stack sits behind
+`docker/nginx-router.conf` and is reachable at three public domains:
+
+| Domain | Serves | Notes |
+|---|---|---|
+| `webstudio.omnibioai.org` | Web build of Studio (`web-ui` service, built via `Dockerfile.web` / `npm run web:build`) | License-key login (`OMNI-XXXX-XXXX-XXXX-XXXX`) enforced; same backend as desktop |
+| `workbench.omnibioai.org` | Same nginx-router stack, workbench-focused entry point | Routes `/api`, `/_tes`, `/_svc/rag`, `/_svc/modelregistry`, `/_svc/workflows` etc. through to their respective upstreams — see `docker/nginx-router.conf` |
+| `admin.omnibioai.org` | Control Center Admin Console (`/_svc/control`, JWT-gated except a small public health/summary allowlist) | Port 7070 upstream; bound to localhost on the container host, only reachable externally through the nginx router |
+
+Health verification against the public domains (adjust for your DNS/TLS setup):
+
+```bash
+curl -sf https://webstudio.omnibioai.org/           && echo "webstudio reachable"
+curl -sf https://workbench.omnibioai.org/api/health && echo "workbench API reachable"
+curl -sf https://admin.omnibioai.org/_svc/control/health && echo "admin console reachable"
+```
+
+**Known gap:** the Billing/Subscriptions/Entitlements/Usage/Invoices UI (`control-center-web`,
+the `cc-ui` frontend) is not currently served by any production compose file or routed by
+`nginx-router.conf` — see Known Issues in `README.md`. The `billing-service` backend itself
+is deployed and reachable only indirectly through Control Center's own backend proxy.
 
 ---
 
