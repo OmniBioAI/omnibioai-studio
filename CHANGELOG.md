@@ -9,7 +9,38 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
-## v0.7.0-beta (2026-07-18)
+## v0.7.0 (2026-08-07)
+
+### New Features
+- 🔐 Unified license key system (OMNI-XXXX-XXXX-XXXX-XXXX)
+  → One key works for web + desktop
+  → Auto-creates user on first validation
+  → Same JWT as OAuth login
+- 🌐 webstudio.omnibioai.org fully working
+  → License key login enforced
+  → All workbench pages loading correctly
+  → Service worker fixed
+  → nginx routes fixed (/license/, /roles/)
+  → Control Center JWT cookie fallback
+- 👥 Team expansion
+  → Dr. Rajnish Kumar (Scientific Consultant, SR University)
+  → Praveen C.V. Raghavulu (Scientific Advisor, KUMC)
+  → About page restructured as company team page
+- 🛠 12,110 bioinformatics tools (up from 11,577)
+  → 100+ new HTTP API tools added
+  → All tools validated (100% clean)
+  → 0 duplicates, 0 ToolSpec errors
+- 🤖 Tool selection AI improved
+  → GPU enabled for Ollama (57x faster: 120s → 2.1s)
+  → Accuracy: 0% → 60%
+  → Recall@K: 60% → 85%
+- 📦 1,000 ARM64 SIF images
+- 🔧 Control Center web service added
+- 💰 Billing service integrated
+- 🔧 Admin Console at admin.omnibioai.org
+
+---
+## v0.6.0-beta (2026-07-18)
 
 ### New Features
 - 🌐 Web version at app.omnibioai.org
@@ -131,34 +162,3 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - LLM configuration: Ollama + Claude API + OpenAI
 - Cloud execution: AWS/Azure/GCP Batch + Kubernetes
 - HPC execution: Slurm / PBS / LSF via TES
-
-
-## v0.7.0 (2026-08-07)
-
-### New Features
-- 🔐 Unified license key system (OMNI-XXXX-XXXX-XXXX-XXXX)
-  → One key works for web + desktop
-  → Auto-creates user on first validation
-  → Same JWT as OAuth login
-- 🌐 webstudio.omnibioai.org fully working
-  → License key login enforced
-  → All workbench pages loading correctly
-  → Service worker fixed
-  → nginx routes fixed (/license/, /roles/)
-  → Control Center JWT cookie fallback
-- 👥 Team expansion
-  → Dr. Rajnish Kumar (Scientific Consultant, SR University)
-  → Praveen C.V. Raghavulu (Scientific Advisor, KUMC)
-  → About page restructured as company team page
-- 🛠 12,110 bioinformatics tools (up from 11,577)
-  → 100+ new HTTP API tools added
-  → All tools validated (100% clean)
-  → 0 duplicates, 0 ToolSpec errors
-- 🤖 Tool selection AI improved
-  → GPU enabled for Ollama (57x faster: 120s → 2.1s)
-  → Accuracy: 0% → 60%
-  → Recall@K: 60% → 85%
-- 📦 1,000 ARM64 SIF images
-- 🔧 Control Center web service added
-- 💰 Billing service integrated
-- 🔧 Admin Console at admin.omnibioai.org

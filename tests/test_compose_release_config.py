@@ -1,4 +1,4 @@
-"""SSO Phase 2 PR1/PR2: static regression test for docker-compose-release.yml's
+"""SSO Phase 2 PR1/PR2: static regression test for the release compose files'
 JWT secret wiring across every current JWT consumer.
 
 Purely static (no live services, no docker) -- catches a repeat of the bugs
@@ -7,15 +7,26 @@ back to a public default secret ("change-me") whenever its JWT_SECRET env
 var isn't set in this compose file, silently accepting forged tokens
 instead of failing loudly. PR1 fixed control-center; PR2 audited every
 other JWT consumer and found + fixed the identical gap in security-audit.
+
+PR F (v0.7.0 release stabilization): this originally checked only
+docker-compose-release.yml (dash), but electron-builder.json/electron/main.js
+actually bundle docker-compose.release.yml (dot) into every packaged desktop
+installer -- the dash file was fixed by PR1/PR2 while the dot file silently
+kept shipping the unfixed gap. Now parametrized over both files so neither
+can drift out of sync with the other again.
 """
 from pathlib import Path
 
 import pytest
 import yaml
 
-COMPOSE_PATH = Path(__file__).resolve().parent.parent / "docker-compose-release.yml"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+COMPOSE_PATHS = [
+    REPO_ROOT / "docker-compose-release.yml",
+    REPO_ROOT / "docker-compose.release.yml",  # the file actually shipped by electron-builder
+]
 
-# Every current JWT consumer in this compose file, and the environment key
+# Every current JWT consumer in these compose files, and the environment key
 # each one reads its secret under (auth-service signs with SECRET_KEY;
 # every consuming service verifies with JWT_SECRET). Add new JWT consumers
 # here as they're introduced -- test_all_consumers_share_the_same_secret
@@ -28,9 +39,9 @@ EXPECTED_SECRET_WIRING = {
 }
 
 
-@pytest.fixture(scope="module")
-def compose_config():
-    with open(COMPOSE_PATH) as f:
+@pytest.fixture(scope="module", params=COMPOSE_PATHS, ids=lambda p: p.name)
+def compose_config(request):
+    with open(request.param) as f:
         return yaml.safe_load(f)
 
 

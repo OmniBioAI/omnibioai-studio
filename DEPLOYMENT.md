@@ -77,6 +77,17 @@ AUTH_SECRET_KEY=<generate: python3 -c "import secrets; print(secrets.token_urlsa
 
 # ── Container registry ────────────────────────────────────────────────────────
 GITHUB_TOKEN=<PAT with read:packages scope — for ghcr.io pull>
+GHCR_PULL_TOKEN=<PAT with read:packages scope — BuildKit secret for image builds that need @man4ish/ui, and for license-server/tes/model-registry/lims/rag image pulls>
+
+# ── License (unified OMNI-XXXX flow) ───────────────────────────────────────────
+LICENSE_SECRET=<random-token — used by the legacy standalone license-server, :8099>
+
+# ── Neo4j (RAG knowledge graph) ─────────────────────────────────────────────────
+NEO4J_PASSWORD=<strong-password>  # defaults to "omnibioai" if unset — override in production
+
+# ── Telemetry ────────────────────────────────────────────────────────────────
+# SENTRY_RELEASE is set automatically per-service to the app version (currently "0.7.0")
+# in docker-compose.yml / docker-compose.release.yml; no action needed unless overriding.
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 HOST_IP=0.0.0.0                # or specific NIC IP
@@ -244,6 +255,33 @@ Expected dashboard titles: `OmniBioAI Platform Overview`, `OmniBioAI LIMS`, `Omn
 
 ---
 
+## Production Domains
+
+The steps above describe the local/on-prem docker-compose runbook (everything on
+`localhost:<port>`). In the hosted production deployment, the same stack sits behind
+`docker/nginx-router.conf` and is reachable at three public domains:
+
+| Domain | Serves | Notes |
+|---|---|---|
+| `webstudio.omnibioai.org` | Web build of Studio (`web-ui` service, built via `Dockerfile.web` / `npm run web:build`) | License-key login (`OMNI-XXXX-XXXX-XXXX-XXXX`) enforced; same backend as desktop |
+| `workbench.omnibioai.org` | Same nginx-router stack, workbench-focused entry point | Routes `/api`, `/_tes`, `/_svc/rag`, `/_svc/modelregistry`, `/_svc/workflows` etc. through to their respective upstreams — see `docker/nginx-router.conf` |
+| `admin.omnibioai.org` | Control Center Admin Console (`/_svc/control`, JWT-gated except a small public health/summary allowlist) | Port 7070 upstream; bound to localhost on the container host, only reachable externally through the nginx router |
+
+Health verification against the public domains (adjust for your DNS/TLS setup):
+
+```bash
+curl -sf https://webstudio.omnibioai.org/           && echo "webstudio reachable"
+curl -sf https://workbench.omnibioai.org/api/health && echo "workbench API reachable"
+curl -sf https://admin.omnibioai.org/_svc/control/health && echo "admin console reachable"
+```
+
+**Known gap:** the Billing/Subscriptions/Entitlements/Usage/Invoices UI (`control-center-web`,
+the `cc-ui` frontend) is not currently served by any production compose file or routed by
+`nginx-router.conf` — see Known Issues in `README.md`. The `billing-service` backend itself
+is deployed and reachable only indirectly through Control Center's own backend proxy.
+
+---
+
 ## Rollback Procedure
 
 ### Using Git Tags
@@ -270,6 +308,36 @@ docker compose up -d
 # Pin a specific image digest in docker-compose.yml, then:
 docker compose up -d --no-deps <service-name>
 ```
+
+### Locally-built services (e.g. web-ui): tag-based rollback
+
+`web-ui` (and other services using `build:` rather than `image:` in `docker-compose.yml`)
+have no registry digest to pin — they're built and tagged locally
+(`<compose-project>-<service>:latest`, e.g. `omnibioai-studio-web-ui:latest`), so digest
+pinning doesn't apply. Before rebuilding one of these, tag the currently-running image
+so it survives the rebuild (which overwrites `:latest` in place):
+
+```bash
+# Before rebuilding — capture a named rollback point
+docker tag omnibioai-studio-web-ui:latest omnibioai-studio-web-ui:rollback
+
+# Rebuild + redeploy (only this service; --no-deps avoids restarting anything else)
+docker compose -f docker-compose.yml build web-ui
+docker compose -f docker-compose.yml up -d --no-deps --force-recreate web-ui
+
+# If it needs to be rolled back:
+docker tag omnibioai-studio-web-ui:rollback omnibioai-studio-web-ui:latest
+docker compose -f docker-compose.yml up -d --no-deps --force-recreate web-ui
+```
+
+**Note**: recreating a service changes its container IP on the Docker bridge network.
+`nginx-router`'s `upstream` blocks cache that IP at nginx's own startup (see the
+"nginx-router returning 502" entry under Troubleshooting) — Docker *may* hand the
+recreated container back its previous IP if nothing else claimed it in the meantime, in
+which case no further action is needed (verify with `docker inspect <container>
+--format '{{json .NetworkSettings.Networks}}'` before assuming so), but this is not
+guaranteed. If the IP changes, `nginx-router` needs `--no-deps --force-recreate` too, or
+that route will 502 again.
 
 ---
 
@@ -419,6 +487,39 @@ docker compose restart control-center
 # Check control-center can reach workbench
 docker compose exec control-center curl -sf http://workbench:8000/health/
 ```
+
+### nginx-router returning 502 for a service that's actually healthy
+
+`nginx-router.conf`'s `upstream { server <name>:<port>; }` blocks resolve each backend
+hostname to a Docker bridge-network IP **once**, at nginx startup/reload — not per
+request. If a backend container is later recreated (redeploy, rebuild, crash-restart),
+it gets a new IP from Docker, but `nginx-router` keeps sending traffic to the old one
+until it is itself reloaded or recreated. The symptom is `502 Bad Gateway` with
+`connect() failed (111: Connection refused)` in `nginx-router`'s logs, naming an IP that
+`docker inspect <backend-container> --format '{{.NetworkSettings.Networks}}'` shows no
+longer belongs to that service (sometimes it now belongs to a *different* container
+entirely — the stale IP got reassigned). This can affect one route or many at once,
+depending on how many backends were recreated since `nginx-router`'s last (re)start.
+
+```bash
+# Confirm: does the IP in the error log match the backend's current IP?
+docker logs --tail 50 omnibioai-studio-nginx-router-1 | grep "Connection refused"
+docker inspect omnibioai-studio-<service>-1 \
+  --format '{{.NetworkSettings.Networks.omnibioai-studio_default.IPAddress}}'
+
+# Fix: force nginx-router to re-resolve every upstream hostname and pick up the
+# current on-disk config (a plain `nginx -s reload` is not reliable here — see the
+# bind-mount inode GOTCHA documented at the top of docker/nginx-router.conf, which
+# can leave a running container serving a config file from days earlier even after
+# a reload). Recreating only nginx-router does not restart or otherwise affect any
+# other service:
+docker compose -f docker-compose.yml up -d --no-deps --force-recreate nginx-router
+```
+
+Root-caused and fixed this way for the `webstudio.omnibioai.org` 502 incident,
+2026-08-08 (PR G) — `nginx-router` had not been restarted since 2026-08-07, while
+`web-ui` and several other services had been recreated since then and picked up new
+IPs nginx-router never learned about.
 
 ### Celery workers not picking up tasks
 
