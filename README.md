@@ -280,6 +280,9 @@ regardless of whether the server call itself succeeded.
 | Model Registry | :8095 | ghcr.io/omnibioai/omnibioai-model-registry:latest |
 | LIMS | :7000 | ghcr.io/omnibioai/omnibioai-lims:latest |
 | Control Center | :7070 (localhost-only, JWT-gated via nginx `/_svc/control`) | ghcr.io/omnibioai/omnibioai-control-center:latest |
+| Control Center Web | 127.0.0.1:5174 (frontend dev target, built from `omnibioai-control-center`'s Dockerfile) | build-only |
+| Billing Service | :8005 | build: `../omnibioai-billing` (`Dockerfile`) |
+| Billing Worker | — (background consumer, no exposed port) | build: `../omnibioai-billing` (`Dockerfile.worker`) |
 | Workflow Bundles | :8098 | ghcr.io/omnibioai/omnibioai-workflow-bundles:latest |
 | Tool Images | :8097 | ghcr.io/omnibioai/omnibioai-tool-images:latest |
 
@@ -310,9 +313,11 @@ regardless of whether the server call itself succeeded.
 | Prometheus | internal only, via `/_svc/prometheus` | prom/prometheus:latest |
 | cAdvisor | :8585 | gcr.io/cadvisor/cadvisor:latest |
 | Redis Exporter | :9121 | oliver006/redis_exporter:latest |
+| Node Exporter | host network, no published port | prom/node-exporter:latest |
 | License Server | :8099 | internal build |
 | OPA (Open Policy Agent) | :8181 | openpolicyagent/opa:latest |
 | Videos | :8086 | ghcr.io/omnibioai/omnibioai-videos:latest |
+| Web UI | served as static files behind Nginx Router | build: `Dockerfile.web` (this repo) |
 | Nginx Router | :80 | nginx:latest |
 
 ---
@@ -497,7 +502,9 @@ Expected layout:
 > Changing ports requires a full stack restart.
 
 ### Docker
-- Compose file: `docker/docker-compose.yml`
+- Compose file: `docker-compose.yml` (repo root — this is what `docker compose up -d`
+  under "Quick Start" runs; `docker/docker-compose.yml` is a separate, much
+  smaller stub, not the one the full stack uses)
 - Data Dir mounted as `/data` in all containers
 - Work Dir mounted as `/workspace/work` in all containers
 
@@ -525,35 +532,57 @@ OmniBioAI Studio requires a license key for first launch.
 
 ## 🔑 Environment Variables
 
+Copy `.env.example` to `.env` and fill in values — this is the actual,
+current set (`cp .env.example .env`):
+
 ```bash
-# Database
-MYSQL_ROOT_PASSWORD=your-db-password
-MYSQL_DEFAULT_DB=omnibioai
+# ── Network ────────────────────────────────────────────
+HOST_IP=0.0.0.0
 
-# Auth
-AUTH_SECRET_KEY=your-secret-key-here
-
-# Paths (absolute paths on host)
+# ── Paths (absolute paths on host) ─────────────────────
+MACHINE_DIR=/path/to/your/machine/dir
+WORKSPACE_HOST=/path/to/omnibioai
+WORK_DIR=/path/to/omnibioai
 DATA_DIR=/path/to/data
-WORK_DIR=/path/to/work
-WORKSPACE_HOST=/path/to/workspace
-DB_INIT_DIR=/path/to/omnibioai-studio/db-init
+DB_INIT_DIR=/path/to/db-init
+VIDEO_DIR=/path/to/omnibioai-videos/content
 
-# AI API Keys (optional)
+# ── Database ───────────────────────────────────────────
+MYSQL_ROOT_PASSWORD=change-me-in-production   # auto-generated on first launch
+MYSQL_DEFAULT_DB=omnibioai                    # optional; defaults to omnibioai in compose
+
+# ── Auth ───────────────────────────────────────────────
+AUTH_SECRET_KEY=change-me-in-production       # auto-generated on first launch
+LICENSE_SECRET=change-me-in-production        # auto-generated on first launch
+
+# ── LIMS ───────────────────────────────────────────────
+LIMS_USERNAME=admin
+LIMS_PASSWORD=change-me
+LIMS_REFRESH_TOKEN=
+
+# ── LLM / AI (optional) ────────────────────────────────
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
+RAGBIO_API_KEY=
 
-# IDE Services
-JUPYTER_TOKEN=devtoken
-RSTUDIO_PASSWORD=change-me
-VSCODE_PASSWORD=change-me
+# ── Monitoring (optional) ──────────────────────────────
+SENTRY_DSN=                       # empty disables in-app bug reporting
+SENTRY_ENVIRONMENT=production
+SENTRY_RELEASE=1.0.0
+DISCORD_WEBHOOK_URL=
+DISCORD_ALERT_WEBHOOK_URL=        # only fires for new high-severity known-issue entries
 
-# Observability
-SENTRY_DSN=
+# ── GitHub (for pulling private images) ────────────────
+GHCR_PULL_TOKEN=
+GF_ADMIN_PASSWORD=omnibioai       # auto-generated on first launch
 
-# Build
-DEV_MODE=false
+# ── IDE Services ───────────────────────────────────────
+JUPYTER_TOKEN=omnibioai
+RSTUDIO_PASSWORD=omnibioai
+VSCODE_PASSWORD=omnibioai
 ```
+
+`OMNIBIOAI_DEV_MODE` is a separate, CI-only flag (`.github/workflows/ci.yml`) — it is not a `.env`/compose setting and doesn't affect a local `docker compose up`.
 
 ---
 
