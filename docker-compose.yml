@@ -520,6 +520,13 @@ services:
       # model-registry -- lets require_admin() validate omnibioai-auth-issued
       # JWTs locally (HS256) without a network round trip.
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      # Same shared service secret already wired into rag and the gateway
+      # blocks below. Without this, routes_rag_proxy.py's RAGBIO_API_KEY
+      # env var is empty, so it sends /rag/studies and /rag/cache-stats to
+      # RAG with no Authorization header at all -- RAG rejects the request,
+      # and the Admin Console's RAG/PubMed tab reads that as a session
+      # failure even though the admin's own JWT was never the problem.
+      RAGBIO_API_KEY: ${RAGBIO_API_KEY}
       # PR14.5D: routes_billing_proxy.py's httpx relay target. Matches its
       # own os.environ.get(..., "http://billing-service:8005") default
       # already, so this isn't functionally required -- set explicitly
@@ -717,6 +724,32 @@ services:
       DB_NAME: omnibioai
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      # api/iam.py's AsyncIAMClient cache lookup (AUTH_REDIS_URL, falling
+      # back to this) was previously unset here, so it fell all the way
+      # back to its own hard-coded "redis://localhost:6379/0" -- inside
+      # this container, "localhost" has no Redis listening on it at all,
+      # so every request crashed with a raw ConnectionError instead of
+      # either hitting cache or degrading gracefully. /0 matches that
+      # same fallback's own db index, same as api/audit.py's separate
+      # AUDIT_REDIS connection already does for its default.
+      REDIS_URL: redis://redis:6379/0
+      # Previously unset here too, so api/iam.py's JWT_SECRET fell back
+      # to its own hard-coded "change-me" -- never matches the real
+      # signing key, so AsyncIAMClient.get_user()'s local decode step
+      # always threw and returned None before ever reaching the
+      # /auth/validate network call below, i.e. every cache-miss request
+      # failed closed as 401 regardless of the token's real validity.
+      # Same source of truth every other JWT_SECRET consumer in this
+      # file already uses (tes, auth-service, control-center, rag, ...).
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      # Previously unset here too, so api/iam.py's AUTH_SERVICE_URL fell
+      # back to its own hard-coded "http://auth:8000" -- no service
+      # named "auth" exists on this network (the real one is
+      # "auth-service" on port 8001, same as every other IAM_URL/
+      # AUTH_SERVICE_URL consumer in this file already points at), so
+      # the /auth/validate fallback call would have failed to connect
+      # even if JWT_SECRET above had been correct.
+      AUTH_SERVICE_URL: http://auth-service:8001
       # Bundle path that resolves identically inside the container and on the
       # host — required so that `docker run -v {bundle_path}:/workspace` mounts
       # the correct host directory when spawning sibling runner containers.
@@ -737,6 +770,8 @@ services:
       - ${RUNS_DIR:-/tmp/omnibioai-runs}:${RUNS_DIR:-/tmp/omnibioai-runs}
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: on-failure
 
