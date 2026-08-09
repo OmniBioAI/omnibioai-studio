@@ -56,7 +56,7 @@ function buildCategories(BASE) {
       links: [
         { label:"Home",             url:"/_svc/workbench/",                                    icon:"🏠", desc:"Dashboard"              },
         { label:"OnboardAI",        url:"/_svc/workbench/plugins/onboardai/",                  icon:"🤖", desc:"AI developer tools"     },
-        { label:"Omni Assistant",   url:"/_svc/workbench/plugins/omni_assistant/",             icon:"💬", desc:"AI assistant"           },
+        { label:"OmniBioAgent",     url:"/_svc/workbench/plugins/bio_agent/",                  icon:"💬", desc:"AI assistant"           },
         { label:"Job Monitor",      url:"/_svc/workbench/plugins/job_monitor/",                icon:"📊", desc:"Monitor jobs"           },
         { label:"Plugin Manager",   url:"/_svc/workbench/plugins/plugin_manager/",             icon:"🔌", desc:"Manage plugins"         },
         { label:"Admin",            url:"/_svc/workbench/admin/",                              icon:"⚙️", desc:"Django admin"           },
