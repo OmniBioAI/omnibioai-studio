@@ -368,6 +368,7 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
+      ORCHESTRATOR_MAX_RETRIES: "10"
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
@@ -452,6 +453,7 @@ services:
       TES_BASE_URL: http://tes:8081
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
+      ORCHESTRATOR_MAX_RETRIES: "10"
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
