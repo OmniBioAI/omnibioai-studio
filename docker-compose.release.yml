@@ -135,8 +135,19 @@ services:
       # audit/identity.py::validate_identity_token both fell back to the
       # public literal "change-me" instead of the real secret.
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
+      # PR-B0: same fix as docker-compose.yml -- GET /audit/events was
+      # falling back to an unreachable localhost DB URL. NOTE: this file
+      # intentionally does NOT add a security-audit-worker service (see
+      # docker-compose.yml's comment) -- no worker image is published by
+      # CI yet, and this image-only release file has no build: precedent
+      # to fall back on the way docker-compose.yml's billing-worker does.
+      # Flagged as an explicit follow-up in the PR-B0 report, not silently
+      # left broken.
+      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
+        condition: service_healthy
+      mysql:
         condition: service_healthy
     restart: on-failure
 

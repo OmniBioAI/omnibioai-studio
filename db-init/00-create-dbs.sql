@@ -12,3 +12,10 @@ CREATE DATABASE IF NOT EXISTS model_registry CHARACTER SET utf8mb4 COLLATE utf8m
 -- entirely until now, breaking billing-service before it ever gets to
 -- app code.
 CREATE DATABASE IF NOT EXISTS omnibioai_billing CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- PR-B0: omnibioai-security-audit's api and security-audit-worker
+-- services both connect to AUDIT_DATABASE_URL=.../omnibioai_audit --
+-- identical missing-database gap to omnibioai_billing above. Alembic
+-- (this service's migration tool, unlike billing's create_all) creates
+-- tables within a database, never the database itself either.
+CREATE DATABASE IF NOT EXISTS omnibioai_audit CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
