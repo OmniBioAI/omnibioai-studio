@@ -912,10 +912,45 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       REDIS_URL: redis://redis:6379
+      # PR-B0: previously unset here, so GET /audit/events
+      # (api/routes_audit_events.py, Depends(get_db)) fell back to
+      # audit/config.py's default mysql+pymysql://root:root@localhost:3306/
+      # omnibioai_audit -- unreachable from inside this container. The
+      # write-side routes (/health, /audit/test) never hit this and so
+      # never surfaced it.
+      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
         condition: service_healthy
+      mysql:
+        condition: service_healthy
     restart: on-failure
+
+  # PR-B0: the Redis Streams consumer-group -> audit_events persistence
+  # worker (worker/main.py, Dockerfile.worker) existed in the
+  # omnibioai-security-audit repo but had no compose service of its own --
+  # only the API container above was deployed. audit:events has been
+  # accumulating real traffic from api-gateway/rag with nothing durably
+  # persisting it. Built locally from source (build:, not image:), matching
+  # the billing-worker precedent below rather than pulling a published
+  # image -- no ghcr.io/omnibioai/omnibioai-security-audit-worker image is
+  # published by CI today (.github/workflows/ci.yml's docker job only
+  # builds the default Dockerfile, not Dockerfile.worker); see the PR-B0
+  # report for that flagged follow-up.
+  security-audit-worker:
+    build:
+      context: ${MACHINE_DIR}/omnibioai-security-audit
+      dockerfile: Dockerfile.worker
+    restart: on-failure
+    environment:
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: redis://redis:6379
+      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
 
   api-gateway:
     image: ghcr.io/omnibioai/omnibioai-api-gateway:latest
