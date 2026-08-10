@@ -870,6 +870,33 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  # PR-B4: drains interactions:events (published by auth-service's own
+  # interaction_service.publish_interaction, and by rag's PR-B3 producer)
+  # into auth-service's own `interactions` table via persist_interaction.
+  # Same shape as security-audit-worker below (build:, not image: -- no
+  # ghcr.io/omnibioai/omnibioai-auth-worker image is published by CI
+  # today, identical gap to that service's own PR-B0 report) and reuses
+  # auth-service's own DB_*/REDIS_URL values verbatim: it writes to the
+  # same `omnibioai` database auth-service itself uses, not a separate one.
+  interaction-worker:
+    build:
+      context: ${MACHINE_DIR}/omnibioai-auth
+      dockerfile: Dockerfile.worker
+    restart: on-failure
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   policy-engine:
     build:
