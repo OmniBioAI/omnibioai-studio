@@ -396,6 +396,14 @@ services:
       LIMS_PASSWORD: ${LIMS_PASSWORD:-omnibioai}
       LIMS_REFRESH_TOKEN: ${LIMS_REFRESH_TOKEN:-}
       LIMS_API_TOKEN: ""
+      # bio_agent -> auth-service TES credential (issue #195): dedicated
+      # scientist-role service account, same shape as the LIMS_* block
+      # above. auth-service isn't otherwise wired to workbench, hence the
+      # explicit URL rather than reusing IAM_URL (that var belongs to
+      # api-gateway/security-audit's own env blocks, not this service's).
+      BIO_AGENT_AUTH_URL: "http://auth-service:8001"
+      BIO_AGENT_SVC_EMAIL: ${BIO_AGENT_SVC_EMAIL:-}
+      BIO_AGENT_SVC_PASSWORD: ${BIO_AGENT_SVC_PASSWORD:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.7.0"
