@@ -30,6 +30,38 @@ services:
       timeout: 3s
       retries: 30
 
+  # Deploy-freshness check (issue #200/#194 pattern -- a container running
+  # stale code relative to what's merged/available upstream, invisible
+  # until someone happens to test the exact behavior that changed; hit 3x
+  # in one session: celery-worker's rename regression, workbench's DAG-
+  # count regression, toolserver's 91-day-stale ghcr.io image). Runs once,
+  # compares each covered service's built/pulled image against what it
+  # should reflect, writes findings to stdout + STALE_SERVICES.txt. Never
+  # blocks startup -- see scripts/deploy_verify.py's own docstring for the
+  # full design. Every service it covers depends on this one with
+  # condition: service_completed_successfully below, so it runs
+  # automatically on every `docker compose up`, including
+  # `docker compose up -d <one-service>` -- no new command to remember.
+  deploy-verify:
+    image: python:3.12-slim
+    environment:
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-omnibioai-studio}
+    command:
+      - bash
+      - -c
+      - |
+        pip install --no-cache-dir --quiet docker requests pyyaml && \
+        python /workspace-config/scripts/deploy_verify.py
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker-compose.yml:/workspace-config/docker-compose.yml:ro
+      - ./.env:/workspace-config/.env:ro
+      - ./scripts/deploy_verify.py:/workspace-config/scripts/deploy_verify.py:ro
+      - ./STALE_SERVICES.txt:/workspace-config/STALE_SERVICES.txt:rw
+      - ${MACHINE_DIR}/omnibioai/.git:/repos/omnibioai:ro
+      - ${MACHINE_DIR}/omnibioai-tes/.git:/repos/omnibioai-tes:ro
+    restart: "no"
+
   toolserver:
     image: ghcr.io/omnibioai/omnibioai-toolserver:latest
     restart: on-failure
@@ -39,11 +71,14 @@ services:
       PYTHONUNBUFFERED: "1"
       IAM_URL: http://auth-service:8001
       AUDIT_URL: http://security-audit:8004
+    # deploy-verify default (14d) is fine for this one -- no override.
     volumes:
       - ${WORKSPACE_HOST}:/workspace
     depends_on:
       mysql:
         condition: service_healthy
+      deploy-verify:
+        condition: service_completed_successfully
 
   tes:
     image: omnibioai-tes-local
@@ -124,6 +159,8 @@ services:
         condition: service_healthy
       toolserver:
         condition: service_started
+      deploy-verify:
+        condition: service_completed_successfully
 
   model-registry:
     build:
@@ -435,6 +472,8 @@ services:
         condition: service_started
       model-registry:
         condition: service_started
+      deploy-verify:
+        condition: service_completed_successfully
     command: ["bash", "-lc", "python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate) && python manage.py runserver 0.0.0.0:8000 --noreload"]
 
   celery-worker:
@@ -482,6 +521,8 @@ services:
     depends_on:
       workbench:
         condition: service_started
+      deploy-verify:
+        condition: service_completed_successfully
     command: ["bash", "-lc", "celery -A omnibioai worker -l info"]
 
   control-center:

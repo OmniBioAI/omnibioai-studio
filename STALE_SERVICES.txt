@@ -1,0 +1,4 @@
+Not yet run. This file is overwritten by scripts/deploy_verify.py (the
+`deploy-verify` compose service) on every `docker compose up` -- see that
+service's definition in docker-compose.yml and the script's own docstring
+for what gets checked and why.
