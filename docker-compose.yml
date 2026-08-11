@@ -388,7 +388,9 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
     environment:
-      DEBUG: "1"
+      # issue #38: was DEBUG: "1" -- vestigial, settings.py never read it.
+      # Now wired to the real env var (omnibioai/settings.py:143), default off.
+      DJANGO_DEBUG: "false"
       CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-192.168.86.234}:5174,http://${HOST_IP:-192.168.86.234}:8000"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
       DB_HOST: mysql
@@ -484,7 +486,9 @@ services:
     restart: on-failure
     # image: ghcr.io/omnibioai/omnibioai-app:latest
     environment:
-      DEBUG: "1"
+      # issue #38: was DEBUG: "1" -- vestigial, settings.py never read it.
+      # Now wired to the real env var (omnibioai/settings.py:143), default off.
+      DJANGO_DEBUG: "false"
       CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-192.168.86.234}:5174,http://${HOST_IP:-192.168.86.234}:8000"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
       DB_HOST: mysql
