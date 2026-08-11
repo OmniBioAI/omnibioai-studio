@@ -391,6 +391,10 @@ services:
       # issue #38: was DEBUG: "1" -- vestigial, settings.py never read it.
       # Now wired to the real env var (omnibioai/settings.py:143), default off.
       DJANGO_DEBUG: "false"
+      # issue #38 follow-up: SECRET_KEY rotation. Old (potentially-exposed)
+      # key kept in FALLBACKS until the bake-period end date noted on #38.
+      DJANGO_SECRET_KEY: ${WORKBENCH_DJANGO_SECRET_KEY}
+      DJANGO_SECRET_KEY_FALLBACKS: ${WORKBENCH_DJANGO_SECRET_KEY_FALLBACKS:-}
       CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-192.168.86.234}:5174,http://${HOST_IP:-192.168.86.234}:8000"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
       DB_HOST: mysql
@@ -489,6 +493,10 @@ services:
       # issue #38: was DEBUG: "1" -- vestigial, settings.py never read it.
       # Now wired to the real env var (omnibioai/settings.py:143), default off.
       DJANGO_DEBUG: "false"
+      # issue #38 follow-up: SECRET_KEY rotation. Old (potentially-exposed)
+      # key kept in FALLBACKS until the bake-period end date noted on #38.
+      DJANGO_SECRET_KEY: ${WORKBENCH_DJANGO_SECRET_KEY}
+      DJANGO_SECRET_KEY_FALLBACKS: ${WORKBENCH_DJANGO_SECRET_KEY_FALLBACKS:-}
       CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-192.168.86.234}:5174,http://${HOST_IP:-192.168.86.234}:8000"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
       DB_HOST: mysql
