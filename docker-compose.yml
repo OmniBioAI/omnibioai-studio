@@ -510,6 +510,16 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       TES_BASE_URL: http://tes:8081
+      # #196: the 4 fixed TES call sites (bio_agent's factories,
+      # step_executor.py, workflow_runner/views.py, catalog/services.py)
+      # now read GATEWAY_URL exclusively, not TES_BASE_URL/
+      # OMNIBIOAI_TES_URL -- workbench already had this var, celery-worker
+      # didn't. TES_BASE_URL above is deliberately left pointed directly at
+      # TES (not repointed to the gateway) -- other, not-yet-fixed readers
+      # of it in this same image (bioquery_tasks.py, #209) have no bearer
+      # token attached and would silently 401 if this var suddenly routed
+      # through gateway's AuthMiddleware.
+      GATEWAY_URL: http://api-gateway:8080
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       ORCHESTRATOR_MAX_RETRIES: "10"
