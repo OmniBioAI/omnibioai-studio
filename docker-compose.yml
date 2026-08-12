@@ -101,6 +101,22 @@ services:
       SENTRY_RELEASE: "0.7.0"
       DOCKER_HOST: unix:///var/run/docker.sock
       PYTHONPATH: /workspace/src
+      # Mode B Phase 1A/1B run_store.py's own DB_* defaults (DB_USER=
+      # DB_PASSWORD="omnibioai") never matched any real MySQL grant --
+      # this block was flagged as a known TODO in that PR's own code
+      # comment ("this repo's own docker-compose environment block still
+      # needs that same DB_* set added... out of scope for this change")
+      # and never followed up on, so every real submit() has been
+      # crashing on RunStore.create()'s MySQL connect this whole time
+      # (confirmed live: "Access denied for user 'omnibioai'@...").
+      # Same shared DB, same DB_USER=root/DB_PASSWORD credential every
+      # other service here already uses -- mirrors workflow-bundles'
+      # own entry in this file exactly, not a new/guessed credential.
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: omnibioai
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       TOOLSERVER_BASE_URL: http://toolserver:9090
       TES_TOOLS: /workspace/configs/tools
       TES_SERVERS: /workspace/configs/servers
