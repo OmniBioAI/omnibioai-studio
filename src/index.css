@@ -206,6 +206,21 @@ a:focus:not(:focus-visible) {
   .studio-field { min-height: 44px; }
 }
 
+/* ── Logs page: fixed-px row grid (60px 80px 80px 1fr) degrades badly on
+   narrow screens — three fixed columns eat ~220px regardless of viewport,
+   leaving the message column crushed. Below 640px, keep time/level/source
+   on one compact auto-sized row and drop the message to its own full-width
+   row underneath (grid auto-placement via the message span's 1/-1). ── */
+@media (max-width: 640px) {
+  .studio-log-row {
+    grid-template-columns: auto auto 1fr !important;
+    row-gap: 3px;
+  }
+  .studio-log-row > span:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+}
+
 .toggle {
   width: 32px;
   height: 18px;
