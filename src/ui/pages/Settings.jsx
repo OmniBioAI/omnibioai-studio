@@ -207,7 +207,7 @@ function SettingsConsole({ config, setConfig }) {
         </PanelBody>
       </Panel>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+      <div className="studio-grid-1" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
 
         {/* General */}
         <Panel>

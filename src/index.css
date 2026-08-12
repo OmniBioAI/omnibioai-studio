@@ -170,6 +170,42 @@ a:focus:not(:focus-visible) {
   .jobs-stats-grid { grid-template-columns: 1fr !important; }
 }
 
+/* ── Config/wizard pages: fixed N-col panel grids collapse to 1 column ── */
+/* Settings, LLM (x2), Cloud, HPC (x2), Launch's Summary+Logs, IdeServices —
+   same "several Nfr panels side by side" shape, all readable as a single
+   stacked column below 768px. !important for the same inline-style-override
+   reason as the Jobs rules above. */
+@media (max-width: 767px) {
+  .studio-grid-1 { grid-template-columns: 1fr !important; }
+}
+
+/* Mode's runtime-mode selector cards (title + 2-line description) — needs
+   more room per card than a status tile, so drop to 2 columns first, then
+   1 on the narrowest phones. */
+@media (max-width: 767px) {
+  .studio-mode-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 480px) {
+  .studio-mode-grid { grid-template-columns: 1fr !important; }
+}
+
+/* HealthCard status-tile rows (Mode + Launch) — compact enough to stay
+   multi-column on mobile, just fewer of them. */
+@media (max-width: 767px) {
+  .studio-health-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+@media (max-width: 480px) {
+  .studio-health-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Shared UI.jsx Input/Select/Btn — 44px touch target on mobile only.
+   min-height (not height) so multi-line/larger variants aren't clamped
+   down; a plain min-height addition never shrinks anything, so this is
+   safe to apply uniformly across every page that imports these. */
+@media (max-width: 767px) {
+  .studio-field { min-height: 44px; }
+}
+
 .toggle {
   width: 32px;
   height: 18px;

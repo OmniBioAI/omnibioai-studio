@@ -76,6 +76,7 @@ export function Input({ type = "text", placeholder, value, onChange }) {
       placeholder={placeholder}
       value={value}
       onChange={onChange}
+      className="studio-field"
       onFocus={(e) => (e.target.style.borderColor = "rgba(0,229,160,0.4)")}
       onBlur={(e)  => (e.target.style.borderColor = "var(--border2)")}
       style={{
@@ -124,6 +125,7 @@ export function Select({ value, onChange, options }) {
     <select
       value={value}
       onChange={onChange}
+      className="studio-field"
       style={{
         width: "100%",
         background: "var(--bg2)",
@@ -219,6 +221,7 @@ export function Btn({ children, variant = "ghost", onClick, disabled, style }) {
     <button
       onClick={onClick}
       disabled={disabled}
+      className="studio-field"
       style={{
         padding: "7px 16px", borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-xs)',
         fontFamily: "var(--font)", fontWeight: 500,

@@ -36,7 +36,7 @@ function HPCConsole({ config, setConfig }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         {/* Core Settings */}
         <Panel>
           <PanelHeader title="Core Settings" icon iconColor="teal">
@@ -112,7 +112,7 @@ function HPCConsole({ config, setConfig }) {
       <Panel>
         <PanelHeader title="Filesystem & Runtime" icon iconColor="orange" />
         <PanelBody>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
             <FormRow label="Shared Mount">
               <Input
                 placeholder="/shared/projects"

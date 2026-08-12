@@ -36,7 +36,7 @@ function LLMConsole({ config, setConfig }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         {/* Ollama */}
         <Panel>
           <PanelHeader title="Local Models" icon iconColor="teal">
@@ -117,7 +117,7 @@ function LLMConsole({ config, setConfig }) {
         </Panel>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {/* OpenAI */}
         <Panel>
           <PanelHeader title="OpenAI / Codex" icon iconColor="orange">

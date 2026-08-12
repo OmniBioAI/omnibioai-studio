@@ -36,7 +36,7 @@ function CloudConsole({ config, setConfig }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         {/* AWS */}
         <Panel>
           <PanelHeader title="Amazon Web Services" icon iconColor="orange">

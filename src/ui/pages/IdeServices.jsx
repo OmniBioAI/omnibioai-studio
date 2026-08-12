@@ -327,7 +327,7 @@ function IdeServicesConsole() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+      <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
         {IDE_SERVICES.map(svc => (
           <IdeCard
             key={svc.tool}

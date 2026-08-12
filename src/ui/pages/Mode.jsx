@@ -76,6 +76,7 @@ function ModeConsole({ config, setConfig }) {
 
       {/* Mode Cards */}
       <div
+        className="studio-mode-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
@@ -157,7 +158,7 @@ function ModeConsole({ config, setConfig }) {
           </span>
         </PanelHeader>
         <PanelBody style={{ padding: "10px 16px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
+          <div className="studio-health-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
             {HEALTH.map((h) => (
               <HealthCard key={h.label} {...h} />
             ))}

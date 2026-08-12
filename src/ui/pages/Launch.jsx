@@ -227,12 +227,12 @@ export default function Launch({ config, onStatusChange }) {
       </div>
 
       {/* Health Cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8 }}>
+      <div className="studio-health-grid" style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8 }}>
         {SERVICES.map(s => <HealthCard key={s.key} label={s.label} status={health[s.key]} port={s.port} />)}
       </div>
 
       {/* Summary + Logs */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+      <div className="studio-grid-1" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
         <Panel>
           <PanelHeader title="Runtime Summary" icon iconColor="teal" />
           <PanelBody style={{ padding:"10px 16px" }}>
