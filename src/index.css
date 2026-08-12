@@ -136,6 +136,19 @@ a:focus:not(:focus-visible) {
   }
 }
 
+/* Verified at 390/428px: 2 tiles/row leaves ~175px per tile, which wraps
+   the longer plugin names (e.g. "Multi-Agent Orchestrator") to 3 lines —
+   still readable, but 1 column reads noticeably better on the narrowest
+   phones. Scoped tighter than the 600px rule above so nothing changes
+   between 421-600px. */
+@media (max-width: 420px) {
+  .app-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 767px) {
+  .workbench-header-actions button { min-height: 44px; }
+}
+
 .toggle {
   width: 32px;
   height: 18px;
