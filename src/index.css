@@ -194,3 +194,16 @@ a:focus:not(:focus-visible) {
 @media (max-width: 767px) {
   .studio-hamburger { display: inline-flex; }
 }
+
+/* ── Login: mobile touch-target + card padding polish ── */
+/* Base (desktop) value matches Login.jsx's previous inline 2.5rem exactly;
+   pulled into a class only so the mobile media query below has something
+   to override without an !important fight against the inline style. */
+.studio-login-card { padding: 2.5rem; }
+@media (max-width: 480px) {
+  .studio-login-card { padding: 1.75rem 1.25rem; }
+}
+@media (max-width: 767px) {
+  .studio-login-btn,
+  .studio-login-tab { min-height: 44px; }
+}

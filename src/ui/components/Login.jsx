@@ -147,11 +147,11 @@ export default function Login({ title, description }) {
 
       <div style={{ width: "100%", maxWidth: 420, position: "relative", zIndex: 1 }}>
         <div
+          className="studio-login-card"
           style={{
             background: CARD_BG,
             border: "1px solid rgba(0, 212, 170, 0.25)",
             borderRadius: 12,
-            padding: "2.5rem",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
@@ -209,6 +209,7 @@ export default function Login({ title, description }) {
               <button
                 key={m}
                 type="button"
+                className="studio-login-tab"
                 onClick={() => { setMode(m); setError(""); }}
                 style={{
                   flex: 1, padding: "8px 0", cursor: "pointer",
@@ -264,6 +265,7 @@ export default function Login({ title, description }) {
             <button
               type="submit"
               disabled={busy}
+              className="studio-login-btn"
               style={{
                 width: "100%",
                 padding: "10px 0",
@@ -295,6 +297,7 @@ export default function Login({ title, description }) {
                     <button
                       key={provider}
                       type="button"
+                      className="studio-login-btn"
                       onClick={() => startOAuth(provider)}
                       style={{
                         width: "100%",
