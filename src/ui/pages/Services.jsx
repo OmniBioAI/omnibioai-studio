@@ -323,6 +323,7 @@ function ServicesConsole({ config }) {
             iconColor={GROUP_COLORS[group] || "teal"}
           />
           <PanelBody style={{ padding:0 }}>
+            <div className="studio-table-scroll">
             <table style={{ width:"100%", borderCollapse:"collapse" }}>
               <thead>
                 <tr style={{ borderBottom:"1px solid var(--border)" }}>
@@ -463,6 +464,7 @@ function ServicesConsole({ config }) {
                 })}
               </tbody>
             </table>
+            </div>
           </PanelBody>
         </Panel>
       ))}

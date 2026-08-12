@@ -197,7 +197,7 @@ export default function Jobs() {
             Submit New Run
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div className="jobs-submit-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             <div>
               <label style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
                 Tool ID
@@ -284,7 +284,7 @@ export default function Jobs() {
       )}
 
       {/* Stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+      <div className="jobs-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
         {[
           { label: "Total Runs",   value: runs.length,                                         color: "var(--text)"          },
           { label: "Running",      value: runs.filter(r => r.state === "RUNNING").length,       color: "#0094ff"              },
@@ -304,7 +304,7 @@ export default function Jobs() {
       </div>
 
       {/* Main content: runs table + detail panel */}
-      <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 1fr" : "1fr", gap: 12 }}>
+      <div className="jobs-main-grid" style={{ display: "grid", gridTemplateColumns: selected ? "1fr 1fr" : "1fr", gap: 12 }}>
 
         {/* Runs table */}
         <div style={{
@@ -332,6 +332,7 @@ export default function Jobs() {
               No runs yet — submit one above
             </div>
           ) : (
+            <div className="studio-table-scroll">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
@@ -378,6 +379,7 @@ export default function Jobs() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
@@ -467,7 +469,7 @@ export default function Jobs() {
       </div>
 
       {/* Servers & Tools info */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="jobs-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
 
         {/* Servers */}
         <div style={{
@@ -486,6 +488,7 @@ export default function Jobs() {
           {servers.length === 0 ? (
             <div style={{ padding: 14, fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", ...mono }}>No servers configured</div>
           ) : (
+            <div className="studio-table-scroll">
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
@@ -508,6 +511,7 @@ export default function Jobs() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 

@@ -34,8 +34,8 @@ export default function RequirePermission({ currentUser, permission, description
 
 function AccessDenied({ email, permission }) {
   return (
-    <div style={{ display: "flex", justifyContent: "center", paddingTop: 60 }}>
-      <div style={{ width: 360, textAlign: "center" }}>
+    <div style={{ display: "flex", justifyContent: "center", padding: "60px 16px 0", boxSizing: "border-box" }}>
+      <div style={{ width: "100%", maxWidth: 360, textAlign: "center", boxSizing: "border-box" }}>
         <Card elevated>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Access denied</div>

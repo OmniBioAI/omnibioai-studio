@@ -2,6 +2,13 @@
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  /* Narrow viewports: scroll the table horizontally inside its own box
+     instead of overflowing the page (the wrap's own rounded corners /
+     border still clip vertically via `overflow: hidden` above — this
+     just adds a scroll axis, it doesn't change desktop behavior since
+     content that already fits never triggers a scrollbar). */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 table.omni-table {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import LicenseGate  from "./components/LicenseGate";
 import BugReport    from "./components/BugReport";
 import Sidebar      from "./components/Sidebar";
+import MobileNav    from "./components/MobileNav";
 import UpdateBanner from "./components/UpdateBanner";
 import Mode      from "./pages/Mode";
 import LLM       from "./pages/LLM";
@@ -93,6 +94,7 @@ export default function App() {
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
   const [oauthNotice,  setOauthNotice]  = useState(null); // result of an OAuth redirect: link_required | error
   const [returnTo,     setReturnTo]     = useState(() => getSafeReturnTo()); // ?return_to= target, captured once
+  const [mobileNavOpen, setMobileNavOpen] = useState(false); // MobileNav drawer — mobile only, no desktop effect
 
   // ─── Load saved config + first-run detection ───────────
   useEffect(() => {
@@ -255,8 +257,10 @@ export default function App() {
       background:"var(--bg)", color:"var(--text)",
       fontFamily:"var(--font)", overflow:"hidden",
     }}>
-      {/* Sidebar — auto-hides when inside a service/app view */}
-      <div style={{
+      {/* Sidebar — auto-hides when inside a service/app view (desktop);
+          also force-collapsed below 768px via .studio-sidebar-wrap, where
+          MobileNav's drawer is the nav surface instead (see index.css). */}
+      <div className="studio-sidebar-wrap" style={{
         width: service ? 0 : 200,
         overflow: "hidden",
         transition: "width 0.2s ease",
@@ -282,6 +286,14 @@ export default function App() {
           display:"flex", alignItems:"center", flexWrap:"wrap",
           padding:"8px 20px", gap:12, flexShrink:0,
         }}>
+          {/* Mobile-only nav trigger — hidden on desktop via .studio-hamburger (index.css) */}
+          <button
+            className="studio-hamburger"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation"
+            aria-haspopup="dialog"
+          >☰</button>
+
           <div style={{
             fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
             display:"flex", alignItems:"center", gap:6,
@@ -438,6 +450,14 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* MobileNav drawer — position:fixed, so it's out of the flex flow
+          entirely; renders identically on desktop (just permanently closed
+          since the hamburger that opens it is display:none there). */}
+      <MobileNav
+        nav={nav} step={step} setStep={setStep} currentUser={currentUser}
+        open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}
+      />
     </div>
     )}
 

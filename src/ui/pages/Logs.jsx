@@ -140,7 +140,7 @@ export default function Logs() {
               </div>
             )}
             {filtered.map((l, i) => (
-              <div key={i} style={{
+              <div key={i} className="studio-log-row" style={{
                 display:"grid", gridTemplateColumns:"60px 80px 80px 1fr",
                 gap:8, padding:"4px 14px", borderBottom:"1px solid rgba(255,255,255,0.03)",
                 alignItems:"center",
