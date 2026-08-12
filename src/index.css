@@ -149,6 +149,27 @@ a:focus:not(:focus-visible) {
   .workbench-header-actions button { min-height: 44px; }
 }
 
+/* ── Generic: horizontal table scroll instead of page overflow ── */
+/* Used by raw <table> elements that don't go through the shared
+   @omnibioai/ui <Table> component (which got its own overflow-x:auto on
+   .omni-table-wrap in a separate commit). */
+.studio-table-scroll { overflow-x: auto; }
+
+/* ── Jobs page: fixed N-col grids collapse below 768px ── */
+/* !important is needed here (not elsewhere in this stylesheet) because
+   these specific grid-template-columns values are set inline in Jobs.jsx
+   and some are computed from JS state (e.g. selected ? "1fr 1fr" : "1fr"),
+   so a plain class rule of lower precedence can't win against them. */
+@media (max-width: 767px) {
+  .jobs-submit-grid { grid-template-columns: 1fr !important; }
+  .jobs-stats-grid  { grid-template-columns: repeat(2, 1fr) !important; }
+  .jobs-main-grid   { grid-template-columns: 1fr !important; }
+  .jobs-info-grid   { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 400px) {
+  .jobs-stats-grid { grid-template-columns: 1fr !important; }
+}
+
 .toggle {
   width: 32px;
   height: 18px;
