@@ -160,3 +160,37 @@ a:focus:not(:focus-visible) {
 }
 .toggle.on::after  { left: 16px; }
 .toggle.off::after { left: 2px; }
+
+/* ── App shell: mobile nav (additive — desktop unaffected above 767px) ── */
+/* Desktop's <Sidebar> wrapper already sets width inline (200 or 0 when a
+   service is open); below the breakpoint MobileNav (drawer) takes over as
+   the only nav surface, so the inline sidebar rail is force-collapsed. */
+@media (max-width: 767px) {
+  .studio-sidebar-wrap {
+    width: 0 !important;
+  }
+}
+
+/* Hamburger trigger — hidden by default (desktop), shown only under the
+   breakpoint. Mirrors Tailwind's `md:hidden` without pulling Tailwind into
+   a file that otherwise uses none of it. */
+.studio-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 16px;
+  padding: 0;
+}
+@media (max-width: 767px) {
+  .studio-hamburger { display: inline-flex; }
+}

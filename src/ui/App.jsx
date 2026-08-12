@@ -255,8 +255,10 @@ export default function App() {
       background:"var(--bg)", color:"var(--text)",
       fontFamily:"var(--font)", overflow:"hidden",
     }}>
-      {/* Sidebar — auto-hides when inside a service/app view */}
-      <div style={{
+      {/* Sidebar — auto-hides when inside a service/app view (desktop);
+          also force-collapsed below 768px via .studio-sidebar-wrap, where
+          MobileNav's drawer is the nav surface instead (see index.css). */}
+      <div className="studio-sidebar-wrap" style={{
         width: service ? 0 : 200,
         overflow: "hidden",
         transition: "width 0.2s ease",
