@@ -154,8 +154,9 @@ export function GrafanaViewer({ onBack, label }) {
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center",
       height: "100%", background: "var(--color-bg)",
+      padding: 16, boxSizing: "border-box",
     }}>
-      <div style={{ width: 380, textAlign: "center" }}>
+      <div style={{ width: "100%", maxWidth: 380, textAlign: "center", boxSizing: "border-box" }}>
         <Card elevated>
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>📈</div>

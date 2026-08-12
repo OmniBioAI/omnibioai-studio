@@ -27,8 +27,9 @@ export default function OAuthLinkConfirm({ linkToken, provider, email, onDone, o
     <div style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
       display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+      padding: 16, boxSizing: "border-box",
     }}>
-      <div style={{ width: 380 }}>
+      <div style={{ width: "100%", maxWidth: 380, boxSizing: "border-box" }}>
         <Card title="Link your account">
           <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)", marginBottom: 16 }}>
             An account already exists for <strong style={{ color: "var(--text)" }}>{email}</strong>.
