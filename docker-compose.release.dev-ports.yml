@@ -1,0 +1,31 @@
+# Explicit development-only overlay for the RELEASE compose stack.
+#
+# docker-compose.release.yml (the production/default configuration) does not
+# publish mysql or redis to the host -- see SECURITY-COMPOSE-HARDENING.md.
+# If you need direct host access to them while running the release stack
+# locally (e.g. inspecting data with a MySQL/Redis GUI client, or debugging
+# a migration), layer this file on top explicitly:
+#
+#   docker compose -f docker-compose.release.yml \
+#                   -f docker-compose.release.dev-ports.yml \
+#                   --env-file .env up -d
+#
+# Bound to 127.0.0.1 by default -- override MYSQL_DEV_HOST_IP / REDIS_DEV_HOST_IP
+# in your .env only if you specifically need LAN/remote access, and understand
+# that MySQL/Redis here have no independent auth beyond MYSQL_ROOT_PASSWORD /
+# no auth at all (redis), respectively.
+#
+# This file is for local development only. It is never bundled into the
+# packaged Electron app (electron-builder.json only ships
+# docker-compose.release.yml) and must never be referenced from the
+# production/default startup path (electron/main.js, scripts/start.sh).
+
+services:
+
+  mysql:
+    ports:
+      - "${MYSQL_DEV_HOST_IP:-127.0.0.1}:3306:3306"
+
+  redis:
+    ports:
+      - "${REDIS_DEV_HOST_IP:-127.0.0.1}:6380:6379"

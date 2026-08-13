@@ -19,7 +19,8 @@
     "web": "vite --mode web",
     "web:build": "vite build --mode web",
     "web:preview": "vite preview --mode web --port 4173",
-    "check-routes": "python3 scripts/check_route_drift.py"
+    "check-routes": "python3 scripts/check_route_drift.py",
+    "test:secrets": "node --test tests/test_secret_generation.js"
   },
   "dependencies": {
     "@omnibioai/design-tokens": "file:./packages/omnibioai-design-tokens",

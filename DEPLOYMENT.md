@@ -18,8 +18,8 @@
 
 | Port | Service | Notes |
 |---|---|---|
-| 3306 | MySQL | Internal only — not exposed externally in prod |
-| 6380 | Redis | Host-mapped from container 6379 |
+| 3306 | MySQL | **Internal only — not published to the host.** Reachable inside the compose network as `mysql:3306`. For local access, layer `docker-compose.release.dev-ports.yml` (see [SECURITY-COMPOSE-HARDENING.md](SECURITY-COMPOSE-HARDENING.md)) |
+| 6379 | Redis | **Internal only — not published to the host.** Reachable inside the compose network as `redis:6379`. Same dev-only overlay applies (published as 6380 on the host when it is used) |
 | 7000 | lims | LIMS Django API |
 | 7070 | control-center | OmniBioAI Control Center API |
 | 8000 | workbench | Main Django workbench |
@@ -51,12 +51,22 @@ Create `deploy/compose/.env` (never commit this file).
 
 ### Required — All Environments
 
+> **The release compose files fail closed on these.** `MYSQL_ROOT_PASSWORD`,
+> `AUTH_SECRET_KEY`, `LICENSE_SECRET`, `GF_ADMIN_PASSWORD`,
+> `LIMSX_DJANGO_SECRET_KEY`, `JUPYTER_TOKEN`, `RSTUDIO_PASSWORD`, and
+> `VSCODE_PASSWORD` have **no defaults** — `docker compose` refuses to start
+> without them rather than silently provisioning a guessable credential. See
+> [SECURITY-COMPOSE-HARDENING.md](SECURITY-COMPOSE-HARDENING.md). The Studio
+> desktop app generates all of them per-installation on first launch; you only
+> need to set them by hand when running compose directly.
+
 ```dotenv
 # ── Database ──────────────────────────────────────────────────────────────────
-MYSQL_ROOT_PASSWORD=<strong-password>
+MYSQL_ROOT_PASSWORD=<strong-password>       # REQUIRED — no default
 MYSQL_DEFAULT_DB=omnibioai
 
 # ── LIMS ──────────────────────────────────────────────────────────────────────
+# REQUIRED — no default. Signs LIMS's own session cookies.
 LIMSX_DJANGO_SECRET_KEY=<generate: python3 -c "import secrets; print(secrets.token_urlsafe(50))">
 # LIMSX_DJANGO_DEBUG=False  # set to False in production
 
@@ -73,6 +83,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 
 # ── Auth service ──────────────────────────────────────────────────────────────
+# REQUIRED — no default. Signs every platform JWT.
 AUTH_SECRET_KEY=<generate: python3 -c "import secrets; print(secrets.token_urlsafe(50))">
 
 # ── Container registry ────────────────────────────────────────────────────────
@@ -80,7 +91,16 @@ GITHUB_TOKEN=<PAT with read:packages scope — for ghcr.io pull>
 GHCR_PULL_TOKEN=<PAT with read:packages scope — BuildKit secret for image builds that need @man4ish/ui, and for license-server/tes/model-registry/lims/rag image pulls>
 
 # ── License (unified OMNI-XXXX flow) ───────────────────────────────────────────
+# REQUIRED — no default.
 LICENSE_SECRET=<random-token — used by the legacy standalone license-server, :8099>
+
+# ── Monitoring / interactive services ─────────────────────────────────────────
+# All REQUIRED — no defaults. Previously these silently defaulted to the
+# literal "omnibioai" on every installation.
+GF_ADMIN_PASSWORD=<strong-password>
+JUPYTER_TOKEN=<generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))">
+RSTUDIO_PASSWORD=<strong-password>
+VSCODE_PASSWORD=<strong-password>
 
 # ── Neo4j (RAG knowledge graph) ─────────────────────────────────────────────────
 NEO4J_PASSWORD=<strong-password>  # defaults to "omnibioai" if unset — override in production

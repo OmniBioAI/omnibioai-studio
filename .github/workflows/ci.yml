@@ -30,6 +30,13 @@ jobs:
             && echo "✅ package.json valid"
           node -e "JSON.parse(require('fs').readFileSync('electron-builder.json'))" \
             && echo "✅ electron-builder.json valid"
+      - name: Secret-generation unit tests
+        run: npm run test:secrets
+      - name: Compose security regression tests
+        run: |
+          python3 -m pip install --quiet pyyaml pytest
+          python3 -m pytest tests/test_compose_network_exposure.py \
+                            tests/test_compose_release_config.py -q
       - name: Create .env for compose validation
         run: |
           cat > .env << 'ENVEOF'
@@ -45,11 +52,44 @@ jobs:
           NCBI_EMAIL=ci@omnibioai.org
           MYSQL_ROOT_PASSWORD=cipassword
           AUTH_SECRET_KEY=cikey
+          LICENSE_SECRET=cilicense
+          GF_ADMIN_PASSWORD=cigrafana
+          LIMSX_DJANGO_SECRET_KEY=cilims
+          JUPYTER_TOKEN=cijupyter
+          RSTUDIO_PASSWORD=cirstudio
+          VSCODE_PASSWORD=civscode
           ENVEOF
       - name: Validate docker-compose
         run: |
           docker compose -f docker-compose.yml config --quiet \
             && echo "✅ docker-compose.yml valid"
+      - name: Validate release compose files
+        # docker-compose.release.yml is the file electron-builder actually
+        # bundles into packaged installers; docker-compose-release.yml (dash)
+        # is kept in parity with it (see tests/test_compose_release_config.py)
+        # for anyone still invoking it directly. Both must validate with a
+        # full required-secret .env, and both must confirm they're
+        # unpublishable without one -- see SECURITY-COMPOSE-HARDENING.md.
+        run: |
+          for f in docker-compose.release.yml docker-compose-release.yml; do
+            docker compose -f "$f" config --quiet \
+              && echo "✅ $f valid with required secrets set"
+          done
+
+          # dev-only overlay must also merge cleanly on top of the release default
+          docker compose -f docker-compose.release.yml -f docker-compose.release.dev-ports.yml config --quiet \
+            && echo "✅ docker-compose.release.dev-ports.yml merges cleanly"
+      - name: Release compose must fail closed without required secrets
+        run: |
+          grep -v -E '^(MYSQL_ROOT_PASSWORD|AUTH_SECRET_KEY|LICENSE_SECRET|GF_ADMIN_PASSWORD|LIMSX_DJANGO_SECRET_KEY|JUPYTER_TOKEN|RSTUDIO_PASSWORD|VSCODE_PASSWORD)=' .env > /tmp/missing-secrets.env
+          for f in docker-compose.release.yml docker-compose-release.yml; do
+            if docker compose --env-file /tmp/missing-secrets.env -f "$f" config --quiet 2>/tmp/err.log; then
+              echo "❌ $f started without required secrets -- fail-closed guard regressed"
+              exit 1
+            fi
+            grep -q "required variable" /tmp/err.log \
+              && echo "✅ $f correctly refuses to start without required secrets"
+          done
 
   # ── 2. Build React UI ───────────────────────────────────
   build-ui:

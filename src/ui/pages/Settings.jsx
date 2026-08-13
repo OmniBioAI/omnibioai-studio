@@ -369,6 +369,9 @@ function SettingsConsole({ config, setConfig }) {
                 { label:'Grafana Admin Password', key:'grafanaPassword', value: creds?.grafanaPassword },
                 { label:'MySQL Root Password',    key:'mysqlPassword',   value: creds?.mysqlPassword   },
                 { label:'API Secret Key',         key:'authSecretKey',   value: creds?.authSecretKey   },
+                { label:'Jupyter Token',          key:'jupyterToken',    value: creds?.jupyterToken    },
+                { label:'RStudio Password',       key:'rstudioPassword', value: creds?.rstudioPassword },
+                { label:'VS Code Password',       key:'vscodePassword',  value: creds?.vscodePassword  },
               ].map(({ label, key, value }) => (
                 <div key={key} style={{ display:'flex', flexDirection:'column', gap:4 }}>
                   <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
