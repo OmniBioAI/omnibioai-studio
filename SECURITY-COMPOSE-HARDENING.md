@@ -226,9 +226,16 @@ Found during this work; **not fixed in this change** and not claimed to be:
    gateway-first design would be better served by binding them to loopback
    and routing through `nginx-router`, as `lims`, `control-center`, and
    `nginx-router` itself already do. Larger change; needs its own assessment.
-2. **`docker-compose-release.yml` lacks `security-audit`'s `JWT_SECRET`
-   wiring** that the dot file has. Pre-existing drift between the two files,
-   unrelated to exposure; left alone to keep this change scoped.
+2. **`docker-compose-release.yml`'s `security-audit` block lacks
+   `AUDIT_DATABASE_URL` and the corresponding `depends_on: mysql: condition:
+   service_healthy`** that `docker-compose.release.yml` has (both files wire
+   `JWT_SECRET` identically — that part is not the gap). Without
+   `AUDIT_DATABASE_URL`, `GET /audit/events` falls back to the app's own
+   hardcoded `mysql+pymysql://root:root@localhost:3306/omnibioai_audit`
+   default, which is unreachable from inside the container. Pre-existing
+   drift between the two files (confirmed present on `origin/main` before
+   this change), unrelated to exposure; left alone to keep this change
+   scoped.
 3. **Weak defaults remain on non-credential variables**, e.g.
    `LIMS_PASSWORD: ${LIMS_PASSWORD:-omnibioai}` (a service-account password
    for workbench→LIMS) and `NEO4J_PASSWORD`. These sit on a different path

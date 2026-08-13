@@ -259,8 +259,25 @@ regardless of whether the server call itself succeeded.
 ### Data Layer
 | Service | Port | Image |
 |---------|------|-------|
-| MySQL | :3306 | mysql:8.0 |
-| Redis | :6379 (mapped :6380 on host) | redis:7-alpine |
+| MySQL | :3306 (internal only in production/release — see below) | mysql:8.0 |
+| Redis | :6379 (internal only in production/release — see below) | redis:7-alpine |
+
+**Production/release** (`docker-compose.release.yml`, the config packaged
+into the Electron app): MySQL and Redis are **not published to the host** —
+reachable only inside the Compose network, as `mysql:3306` / `redis:6379`.
+Every other service still addresses them exactly that way.
+
+**Development**: the local dev stack (`docker-compose.yml`) still publishes
+both directly (`:3306` / `:6380`) for convenience, as it always has. To get
+the same local access against the release stack instead, layer the explicit
+`docker-compose.release.dev-ports.yml` overlay:
+```bash
+docker compose -f docker-compose.release.yml -f docker-compose.release.dev-ports.yml up -d
+```
+This overlay binds to `127.0.0.1` only, not `0.0.0.0`, and is never bundled
+into the packaged app or referenced by its startup path — it has to be
+opted into explicitly. See [SECURITY-COMPOSE-HARDENING.md](SECURITY-COMPOSE-HARDENING.md)
+for the full rationale.
 
 ### Security Control Plane
 | Service | Port | Image |
