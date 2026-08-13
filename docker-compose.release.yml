@@ -4,8 +4,19 @@
 #
 # Setup:
 #   cp .env.example .env
-#   # Edit .env with your paths and secrets
-#   docker compose -f docker-compose-release.yml up -d
+#   # Edit .env with your paths and secrets -- MYSQL_ROOT_PASSWORD, AUTH_SECRET_KEY,
+#   # LICENSE_SECRET, GF_ADMIN_PASSWORD, LIMSX_DJANGO_SECRET_KEY, JUPYTER_TOKEN,
+#   # RSTUDIO_PASSWORD, and VSCODE_PASSWORD are REQUIRED -- compose refuses to
+#   # start without them (see SECURITY-COMPOSE-HARDENING.md). The Studio
+#   # Electron app generates these for you on first launch; running this file
+#   # standalone (scripts/start.sh, or invoking `docker compose` by hand)
+#   # needs its own .env with all of them set.
+#   docker compose -f docker-compose.release.yml up -d
+#
+# This is the production/default configuration: mysql and redis are NOT
+# published to the host. For local development access to them, layer the
+# explicit dev overlay:
+#   docker compose -f docker-compose.release.yml -f docker-compose.release.dev-ports.yml up -d
 
 services:
 
@@ -13,13 +24,20 @@ services:
   # Infrastructure
   # ---------------------------------------------------------------------------
 
+  # Security boundary (see SECURITY-COMPOSE-HARDENING.md): mysql/redis are
+  # intentionally NOT published to the host in this release/default
+  # configuration -- every consumer already reaches them over the internal
+  # Docker network by service name (mysql:3306, redis:6379), and DEPLOYMENT.md
+  # has documented "MySQL: internal only, not exposed externally in prod" as
+  # the intended design since before this fix -- the compose file just didn't
+  # implement it. Need host access for local debugging? Use the explicit dev
+  # overlay: docker compose -f docker-compose.release.yml
+  # -f docker-compose.release.dev-ports.yml up -d
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set -- see DEPLOYMENT.md. Refusing to start with a silently-guessable default}
       MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d:ro
@@ -32,8 +50,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -72,8 +88,8 @@ services:
       DB_PORT: "3306"
       DB_NAME: omnibioai
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
-      SECRET_KEY: ${AUTH_SECRET_KEY:-change-me-in-production}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
+      SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       ACCESS_TOKEN_EXPIRE_MINUTES: "15"
       REFRESH_TOKEN_EXPIRE_DAYS: "7"
       REDIS_URL: redis://redis:6379
@@ -114,7 +130,7 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       DB_NAME: ${MYSQL_DEFAULT_DB:-omnibioai}
     depends_on:
       mysql:
@@ -134,7 +150,7 @@ services:
       # api/deps.py::require_platform_admin and
       # audit/identity.py::validate_identity_token both fell back to the
       # public literal "change-me" instead of the real secret.
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       # PR-B0: same fix as docker-compose.yml -- GET /audit/events was
       # falling back to an unreachable localhost DB URL. NOTE: this file
       # intentionally does NOT add a security-audit-worker service (see
@@ -143,7 +159,7 @@ services:
       # to fall back on the way docker-compose.yml's billing-worker does.
       # Flagged as an explicit follow-up in the PR-B0 report, not silently
       # left broken.
-      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
+      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
         condition: service_healthy
@@ -162,7 +178,7 @@ services:
       POLICY_URL: http://policy-engine:8002
       HPC_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       TES_URL: http://tes:8081
       WORKBENCH_URL: http://workbench:8000
       TOOLSERVER_URL: http://toolserver:9090
@@ -264,7 +280,7 @@ services:
       DB_PORT: "3306"
       DB_NAME: omnibioai
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       REDIS_HOST: redis
       REDIS_PORT: "6380"
       CELERY_BROKER_URL: redis://redis:6379/1
@@ -284,7 +300,7 @@ services:
       OMNIBIOAI_MYSQL_HOST: mysql
       OMNIBIOAI_MYSQL_PORT: "3306"
       OMNIBIOAI_MYSQL_USER: root
-      OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       OMNIBIOAI_MYSQL_DB: omnibioai
       GATEWAY_URL: http://api-gateway:8080
       RAGBIO_API_KEY: ${RAGBIO_API_KEY:-}
@@ -329,11 +345,20 @@ services:
       DB_PORT: "3306"
       DB_NAME: omnibioai
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       REDIS_HOST: redis
       REDIS_PORT: "6380"
       CELERY_BROKER_URL: redis://redis:6379/1
       TES_BASE_URL: http://tes:8081
+      # #196: fixed call sites read GATEWAY_URL exclusively -- was already
+      # wired into docker-compose.yml (dev) but missing here, so the
+      # packaged release build never got the gateway-routed fix, only the
+      # dev stack did. TES_BASE_URL above stays pointed directly at TES
+      # (not repointed to the gateway) -- other readers of it in this same
+      # image have no bearer token attached and would silently 401 if this
+      # var suddenly routed through gateway's AuthMiddleware, same reasoning
+      # as docker-compose.yml's own comment on this line.
+      GATEWAY_URL: http://api-gateway:8080
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       RAG_BASE_URL: http://rag:8096
@@ -373,7 +398,7 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       DB_NAME: model_registry
       OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
     volumes:
@@ -395,8 +420,8 @@ services:
       MYSQL_PORT: "3306"
       MYSQL_DATABASE: limsdb
       MYSQL_USER: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
-      DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:-omnibioai-studio-secret}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
+      DJANGO_SECRET_KEY: ${LIMSX_DJANGO_SECRET_KEY:?LIMSX_DJANGO_SECRET_KEY must be set}
       FIELD_ENCRYPTION_KEY: ${LIMSX_FIELD_ENCRYPTION_KEY}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
       CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
@@ -444,7 +469,7 @@ services:
       # os.environ.get("JWT_SECRET", "change-me") fallback silently
       # verified tokens against the public literal "change-me" instead of
       # the real secret.
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
     volumes:
       - ${DATA_DIR}:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
@@ -470,7 +495,7 @@ services:
       OLLAMA_URL: http://ollama:11434/api
       OLLAMA_HOST: http://ollama:11434
       REPO_BASE: /repos
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me-in-production}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       AUTH_ENABLED: "true"
     volumes:
       - ${DATA_DIR}/dev-hub:/app/data
@@ -489,7 +514,7 @@ services:
       DB_PORT: "3306"
       DB_NAME: omnibioai
       DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
     depends_on:
       mysql:
         condition: service_healthy
@@ -520,7 +545,7 @@ services:
       REACT_APP_OMNIBIOAI_BASE_URL: ${OMNIBIOAI_BASE_URL:-http://localhost:8000}
       REACT_APP_OMNIBIOAI_TOKEN: ${OMNIBIOAI_TOKEN:-dev}
       REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://localhost:8888}
-      REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-omnibioai}
+      REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:?JUPYTER_TOKEN must be set}
       REACT_APP_USE_MOCK: "false"
     depends_on:
       workbench:
@@ -540,7 +565,7 @@ services:
       - ${DATA_DIR}:/home/jovyan/data
       - ${WORK_DIR}:/home/jovyan/work
     environment:
-      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-omnibioai}
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:?JUPYTER_TOKEN must be set}
       GRANT_SUDO: "yes"
     depends_on:
       workbench:
@@ -556,7 +581,7 @@ services:
       - ${DATA_DIR}:/home/rstudio/data
       - ${WORK_DIR}:/home/rstudio/work
     environment:
-      PASSWORD: ${RSTUDIO_PASSWORD:-omnibioai}
+      PASSWORD: ${RSTUDIO_PASSWORD:?RSTUDIO_PASSWORD must be set}
       ROOT: "TRUE"
     depends_on:
       workbench:
@@ -572,7 +597,7 @@ services:
       - ${DATA_DIR}:/home/coder/data
       - ${WORK_DIR}:/home/coder/work
     environment:
-      PASSWORD: ${VSCODE_PASSWORD:-omnibioai}
+      PASSWORD: ${VSCODE_PASSWORD:?VSCODE_PASSWORD must be set}
     depends_on:
       workbench:
         condition: service_started
@@ -599,13 +624,20 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:8099:8099"
     environment:
-      LICENSE_SECRET: ${LICENSE_SECRET:-omnibioai-secret-change-in-production}
-      ADMIN_KEY: ${ADMIN_KEY:-admin-secret}
+      LICENSE_SECRET: ${LICENSE_SECRET:?LICENSE_SECRET must be set}
+      # PR11: ADMIN_KEY removed -- /api/license/generate and
+      # /api/license/list are now IAM-authorized (Bearer JWT +
+      # manage_licenses permission via omnibioai-auth), replacing the
+      # static shared-secret check. docker-compose.yml dropped this at the
+      # time; both release files kept passing a dead ${ADMIN_KEY:-admin-secret}
+      # that license_server.py no longer reads (confirmed: zero references
+      # in backend/license_server.py). Removed here rather than converted to
+      # a required var -- it has no consumer left to require it.
       GHCR_PULL_TOKEN: ${GHCR_PULL_TOKEN:-}
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_USER: ${MYSQL_USER:-root}
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       MYSQL_DATABASE: omnibioai_licenses
     depends_on:
       mysql:
@@ -632,7 +664,7 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-omnibioai}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:?GF_ADMIN_PASSWORD must be set}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana_data:/var/lib/grafana
