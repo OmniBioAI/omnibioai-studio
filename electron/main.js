@@ -6,6 +6,7 @@ const { spawn, execFile } = require("child_process");
 const os = require("os");
 const crypto = require("crypto");
 const { initAutoUpdater } = require("./updater");
+const { generateSecrets, parseEnvFile } = require("./secrets");
 
 // In packaged app (DMG/AppImage/EXE) → always production mode
 // In dev (npm run dev) → use env var
@@ -129,39 +130,8 @@ function ensureDbInit() {
 }
 
 // ─── SECRET GENERATION ────────────────────────────────────────────────────────
-function generateSecrets(envPath) {
-  const defaults = {
-    AUTH_SECRET_KEY:     'change-me',
-    MYSQL_ROOT_PASSWORD: 'omnibioai',
-    GF_ADMIN_PASSWORD:   'omnibioai',
-    LICENSE_SECRET:      'omnibioai-secret-change-in-production',
-    ADMIN_KEY:           'admin-secret',
-  };
-
-  let env = {};
-  if (fs.existsSync(envPath)) {
-    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
-      const [k, ...v] = line.split('=');
-      if (k) env[k.trim()] = v.join('=').trim();
-    });
-  }
-
-  let changed = false;
-  for (const [key, defaultVal] of Object.entries(defaults)) {
-    if (!env[key] || env[key] === defaultVal) {
-      env[key] = crypto.randomBytes(32).toString('hex');
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    const content = Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n');
-    fs.mkdirSync(path.dirname(envPath), { recursive: true });
-    fs.writeFileSync(envPath, content + '\n');
-    return true;
-  }
-  return false;
-}
+// generateSecrets/parseEnvFile now live in ./secrets.js -- pure logic, no
+// `electron` import, so it's unit-testable outside an Electron runtime.
 
 // ─── DOCKER HELPERS ───────────────────────────────────────────────────────────
 function composeArgs(...extra) {
@@ -195,15 +165,15 @@ function writeEnvFile(config) {
   const dataDir = settings.data_dir || path.join(home, "omnibioai", "data");
   const workDir = settings.work_dir || path.join(home, "omnibioai", "work");
 
-  // Preserve any generated secrets already written by generateSecrets()
+  // Preserve any generated secrets already written by generateSecrets() --
+  // never fall back to the historical weak literals here. By the time this
+  // ever runs in the normal app lifecycle, generateSecrets() has already
+  // populated every one of these at app startup (see app.whenReady() below);
+  // an empty fallback means a genuinely missing value fails closed via
+  // docker-compose.release.yml's ${VAR:?...} guard instead of silently
+  // reintroducing a known-weak default.
   const envPath = getEnvPath();
-  const existing = {};
-  if (fs.existsSync(envPath)) {
-    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
-      const [k, ...v] = line.split('=');
-      if (k) existing[k.trim()] = v.join('=').trim();
-    });
-  }
+  const existing = parseEnvFile(envPath);
 
   const lines = [
     `HOST_IP=0.0.0.0`,
@@ -221,13 +191,16 @@ function writeEnvFile(config) {
     `MACHINE_DIR=${path.dirname(path.dirname(workDir))}`,
     `DB_INIT_DIR=${getDbInitPath()}`,
     `VIDEO_DIR=${workDir}/videos`,
-    `MYSQL_ROOT_PASSWORD=${existing.MYSQL_ROOT_PASSWORD || 'omnibioai'}`,
+    `MYSQL_ROOT_PASSWORD=${existing.MYSQL_ROOT_PASSWORD || ''}`,
     `MYSQL_DEFAULT_DB=omnibioai`,
-    `LIMSX_DJANGO_SECRET_KEY=${existing.LIMSX_DJANGO_SECRET_KEY || 'omnibioai-studio-secret'}`,
+    `LIMSX_DJANGO_SECRET_KEY=${existing.LIMSX_DJANGO_SECRET_KEY || ''}`,
     `AUTH_SECRET_KEY=${existing.AUTH_SECRET_KEY     || ''}`,
     `GF_ADMIN_PASSWORD=${existing.GF_ADMIN_PASSWORD || ''}`,
     `GF_STUDIO_TOKEN=${existing.GF_STUDIO_TOKEN    || ''}`,
     `LICENSE_SECRET=${existing.LICENSE_SECRET       || ''}`,
+    `JUPYTER_TOKEN=${existing.JUPYTER_TOKEN         || ''}`,
+    `RSTUDIO_PASSWORD=${existing.RSTUDIO_PASSWORD   || ''}`,
+    `VSCODE_PASSWORD=${existing.VSCODE_PASSWORD     || ''}`,
     `ADMIN_KEY=${existing.ADMIN_KEY                 || ''}`,
   ];
 
@@ -737,6 +710,9 @@ ipcMain.handle('get-credentials', async () => {
     grafanaToken:    env.GF_STUDIO_TOKEN    || '',
     mysqlPassword:   env.MYSQL_ROOT_PASSWORD || '',
     authSecretKey:   env.AUTH_SECRET_KEY     || '',
+    jupyterToken:    env.JUPYTER_TOKEN       || '',
+    rstudioPassword: env.RSTUDIO_PASSWORD    || '',
+    vscodePassword:  env.VSCODE_PASSWORD     || '',
     envPath,
   };
 });

@@ -58,7 +58,14 @@ else
   export WORKSPACE_HOST="${WORKSPACE_HOST:-$HOME/omnibioai/work}"
   export DB_INIT_DIR="$SCRIPT_DIR/../db-init"
   export VIDEO_DIR="$WORK_DIR/videos"
-  export MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-omnibioai}"
+  # Deliberately NOT defaulted to the historical "omnibioai" literal here --
+  # docker-compose.release.yml now refuses to start without a real
+  # MYSQL_ROOT_PASSWORD (and the other required secrets), so an unset value
+  # correctly fails loudly at `docker compose up` below instead of silently
+  # provisioning a guessable production database password. Set it in your
+  # shell environment, or (preferred) run the Studio app once first so it
+  # generates a real .env for this script to pick up next time.
+  export MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-}"
   export MYSQL_DEFAULT_DB="${MYSQL_DEFAULT_DB:-omnibioai}"
   export HOST_IP="0.0.0.0"
 fi
