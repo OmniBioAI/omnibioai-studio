@@ -91,6 +91,10 @@ omnibioai-studio/
 ├── electron-builder.json← electron-builder packaging config
 ├── docker-compose.yml   ← Dev compose file (loaded in dev mode)
 ├── docker-compose.release.yml ← Packaged app compose file
+├── docker-compose.release.dev-ports.yml ← Dev-only overlay: republishes
+│                          MySQL/Redis locally. Never bundled, never a
+│                          production default — see SECURITY-COMPOSE-HARDENING.md
+├── SECURITY-COMPOSE-HARDENING.md ← Deployment network boundary + required secrets
 ├── build/               ← App icons (icon.png, .ico, .icns)
 ├── db-init/             ← SQL init scripts (copied into userData on first run)
 ├── monitoring/          ← Prometheus + Grafana config
@@ -280,6 +284,7 @@ Packaging config is in `electron-builder.json`. The release pipeline (`.github/w
 - **IPC:** every new `ipcMain.handle` must have a corresponding `contextBridge` exposure — never call `ipcRenderer` directly from renderer code
 - **Security:** external URLs must be opened with `shell.openExternal` — never `loadURL` an HTTPS URL into the main window
 - **Paths:** use `app.getPath('userData')` for user data, `process.resourcesPath` for bundled resources — never hardcode absolute paths
+- **Secrets/exposure:** never add a `${VAR:-somedefault}` fallback for a credential in a release compose file, and never publish MySQL/Redis there. Local access goes in `docker-compose.release.dev-ports.yml`. New credentials must also be added to `SECRET_DEFAULTS` in `electron/secrets.js` or a fresh install will fail to start — see [SECURITY-COMPOSE-HARDENING.md](SECURITY-COMPOSE-HARDENING.md)
 
 ---
 
