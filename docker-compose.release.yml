@@ -455,7 +455,18 @@ services:
   control-center:
     image: ghcr.io/omnibioai/omnibioai-control-center:latest
     ports:
-      - "${HOST_IP:-0.0.0.0}:7070:7070"
+      # Loopback-only, matching docker-compose.yml's (dev) own binding and
+      # SECURITY-COMPOSE-HARDENING.md's documented boundary -- this file had
+      # drifted to ${HOST_IP:-0.0.0.0} while the dev file (and the doc)
+      # already said "loopback." nginx-router's own internal Docker-network
+      # route (upstream control { server control-center:7070; }) and every
+      # browser/API path (/_svc/control, JWT-gated) are unaffected -- neither
+      # depends on this host port. control-center's own /docker, /services,
+      # /summary, /config routes are independently gated by
+      # require_permission("platform.manage_infra") regardless of this
+      # binding, so this is defense-in-depth restoring the documented
+      # design, not the closure of a live authentication bypass.
+      - "127.0.0.1:7070:7070"
     environment:
       WORKSPACE_ROOT: /workspace
       OMNIBIOAI_BASE: /workspace/omnibioai

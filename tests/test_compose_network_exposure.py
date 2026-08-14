@@ -128,6 +128,50 @@ def test_datastore_still_reachable_internally(release_compose, service):
     )
 
 
+def test_control_center_is_loopback_bound_in_release_configs(release_compose):
+    """control-center is documented (SECURITY-COMPOSE-HARDENING.md SS7 item 1,
+    docker-compose.yml's own inline comment) as loopback-only -- unlike the
+    other backend services that legitimately publish on
+    ${HOST_IP:-0.0.0.0} and enforce their own IAM authorization, nginx-router
+    is meant to be control-center's only externally-reachable path
+    (/_svc/control, JWT-gated via auth_request). Both release files had
+    drifted to ${HOST_IP:-0.0.0.0} while docker-compose.yml (dev) already
+    used 127.0.0.1 -- this pins the documented/intended binding so it can't
+    silently drift back. control-center's own /docker, /services, /summary,
+    /config routes are independently gated by
+    require_permission('platform.manage_infra') regardless of this binding
+    (see omnibioai-control-center's main.py), so this is defense-in-depth
+    restoring the documented design, not the closure of a live
+    authentication bypass."""
+    svc = release_compose["services"]["control-center"]
+    published = svc.get("ports") or []
+    assert published, "control-center must still publish its port to the host"
+    for mapping in published:
+        assert str(mapping).startswith("127.0.0.1:"), (
+            f"control-center must be loopback-bound (127.0.0.1), not host-IP "
+            f"configurable -- found {mapping!r}. It is documented and "
+            f"intended to be reachable only via nginx-router's JWT-gated "
+            f"/_svc/control route, matching docker-compose.yml's (dev) own "
+            f"binding."
+        )
+
+
+def test_dev_compose_control_center_still_loopback_bound():
+    """The dev compose file is the documented source of truth this fix
+    restores parity with -- pin it too, so a future edit can't quietly
+    loosen the dev file while leaving the release files matching it (or
+    vice versa)."""
+    dev = _load(DEV_COMPOSE)
+    published = dev["services"]["control-center"].get("ports") or []
+    assert published, "control-center must still publish its port to the host in the dev stack"
+    for mapping in published:
+        assert str(mapping).startswith("127.0.0.1:"), (
+            f"docker-compose.yml's control-center binding is the documented "
+            f"source of truth the release files were just brought into "
+            f"parity with -- found {mapping!r}, expected 127.0.0.1:*"
+        )
+
+
 def test_consumers_still_point_at_internal_datastore_hostnames(release_compose):
     """Backend services must still address mysql/redis by their internal
     compose service names. A regression here (e.g. someone 'fixing' a

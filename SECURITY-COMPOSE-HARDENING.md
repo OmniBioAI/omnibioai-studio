@@ -224,8 +224,27 @@ Found during this work; **not fixed in this change** and not claimed to be:
    `model-registry`, and others. These do enforce IAM authorization, so this
    is materially different from an unauthenticated datastore — but the
    gateway-first design would be better served by binding them to loopback
-   and routing through `nginx-router`, as `lims`, `control-center`, and
-   `nginx-router` itself already do. Larger change; needs its own assessment.
+   and routing through `nginx-router`, as `lims` and `nginx-router` itself
+   already do. Larger change (breaks the direct-LAN-access path `HOST_IP`
+   exists for); needs a product/deployment decision, not made here.
+
+   **`control-center` follow-up (2026-08-13, separate branch):** this
+   document previously claimed `control-center` was *already* loopback-only
+   alongside `lims`/`nginx-router` — a re-audit found that claim was true
+   only of `docker-compose.yml` (dev); both release files had drifted to
+   `${HOST_IP:-0.0.0.0}:7070:7070`. Fixed to `127.0.0.1:7070:7070` in both
+   release files, restoring the binding this document already described
+   (`tests/test_compose_network_exposure.py`'s
+   `test_control_center_is_loopback_bound_in_release_configs` /
+   `test_dev_compose_control_center_still_loopback_bound` pin it going
+   forward). Not a live-authentication-bypass fix — `control-center`'s
+   `/docker`, `/services`, `/summary`, `/config` routes are independently
+   gated by `require_permission("platform.manage_infra")` at the FastAPI
+   app level (`omnibioai-control-center`, commit `8720377`) regardless of
+   this binding — this closes an unintended defense-in-depth gap and a
+   documentation inaccuracy, not an unauthenticated exposure. The general
+   `workbench`/`tes`/`auth-service`/`rag`/`model-registry` question above is
+   otherwise unchanged and still open.
 2. **`docker-compose-release.yml`'s `security-audit` block lacks
    `AUDIT_DATABASE_URL` and the corresponding `depends_on: mysql: condition:
    service_healthy`** that `docker-compose.release.yml` has (both files wire

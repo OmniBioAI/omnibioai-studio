@@ -440,7 +440,10 @@ services:
   control-center:
     image: ghcr.io/omnibioai/omnibioai-control-center:latest
     ports:
-      - "${HOST_IP:-0.0.0.0}:7070:7070"
+      # Loopback-only -- see docker-compose.release.yml's identical comment
+      # (this file is kept in exposure parity with it; see
+      # SECURITY-COMPOSE-HARDENING.md).
+      - "127.0.0.1:7070:7070"
     environment:
       WORKSPACE_ROOT: /workspace
       OMNIBIOAI_BASE: /workspace/omnibioai
