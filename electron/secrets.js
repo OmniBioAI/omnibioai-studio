@@ -23,6 +23,17 @@ const crypto = require("crypto");
 // session-cookie signing key, and the Jupyter/RStudio/VSCode terminal
 // credentials), since nothing ever rotated them. Added here to close that
 // gap -- see docker-compose.release.yml's matching ${VAR:?...} guards.
+// LIMSX_FIELD_ENCRYPTION_KEY was likewise missing for every release prior
+// to this fix, but for a different reason and with a different failure
+// mode. It is wired into all three compose files as a bare
+// ${LIMSX_FIELD_ENCRYPTION_KEY} (no `:?` guard), so the audit that built
+// the list above -- which enumerated the `${VAR:?...}` required vars --
+// never saw it. An unset value therefore interpolates to the empty string
+// and compose starts happily, but omnibioai-lims' settings.py raises
+// `FIELD_ENCRYPTION_KEY must be set in non-debug environments` at import
+// and the LIMS container crash-loops on a fresh install. It has no weak
+// literal to rotate away from (it never had a default at all), so its
+// entry below is `null`.
 const SECRET_DEFAULTS = {
   AUTH_SECRET_KEY: "change-me",
   MYSQL_ROOT_PASSWORD: "omnibioai",
@@ -33,7 +44,32 @@ const SECRET_DEFAULTS = {
   RSTUDIO_PASSWORD: "omnibioai",
   VSCODE_PASSWORD: "omnibioai",
   ADMIN_KEY: "admin-secret",
+  LIMSX_FIELD_ENCRYPTION_KEY: null,
 };
+
+// Secrets whose *format* is constrained by their consumer, rather than
+// being an opaque random token. Anything not listed here gets the default
+// 32-byte hex treatment.
+//
+// LIMSX_FIELD_ENCRYPTION_KEY feeds omnibioai-lims' EncryptedCharField
+// (core/fields.py), which constructs a `cryptography` Fernet from it.
+// Fernet requires exactly 32 url-safe-base64-encoded bytes -- a 44-char
+// string ending in `=`. The default hex encoding used for every other
+// secret here produces 64 chars and is *rejected* by Fernet, and does so
+// in a way that would slip past LIMS's own startup guard (which only
+// checks the value is non-empty): Django would boot fine and then throw
+// `ValueError: Fernet key must be 32 url-safe base64-encoded bytes` on the
+// first encrypted-field write. Generating the right shape here is what
+// makes the value actually usable, not merely present.
+const SECRET_GENERATORS = {
+  LIMSX_FIELD_ENCRYPTION_KEY: () =>
+    crypto.randomBytes(32).toString("base64url").padEnd(44, "="),
+};
+
+function generateSecretValue(key) {
+  const generator = SECRET_GENERATORS[key];
+  return generator ? generator() : crypto.randomBytes(32).toString("hex");
+}
 
 function parseEnvFile(envPath) {
   const env = {};
@@ -57,8 +93,10 @@ function generateSecrets(envPath) {
   let changed = false;
 
   for (const [key, defaultVal] of Object.entries(SECRET_DEFAULTS)) {
-    if (!env[key] || env[key] === defaultVal) {
-      env[key] = crypto.randomBytes(32).toString("hex");
+    // `defaultVal === null` means the secret never had a weak literal to
+    // rotate away from -- only a genuinely unset value needs generating.
+    if (!env[key] || (defaultVal !== null && env[key] === defaultVal)) {
+      env[key] = generateSecretValue(key);
       changed = true;
     }
   }
@@ -74,4 +112,10 @@ function generateSecrets(envPath) {
   return changed;
 }
 
-module.exports = { SECRET_DEFAULTS, parseEnvFile, generateSecrets };
+module.exports = {
+  SECRET_DEFAULTS,
+  SECRET_GENERATORS,
+  generateSecretValue,
+  parseEnvFile,
+  generateSecrets,
+};

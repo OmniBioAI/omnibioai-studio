@@ -194,6 +194,11 @@ function writeEnvFile(config) {
     `MYSQL_ROOT_PASSWORD=${existing.MYSQL_ROOT_PASSWORD || ''}`,
     `MYSQL_DEFAULT_DB=omnibioai`,
     `LIMSX_DJANGO_SECRET_KEY=${existing.LIMSX_DJANGO_SECRET_KEY || ''}`,
+    // Fernet key for LIMS's EncryptedCharField. Must be carried through
+    // here like every other generated secret -- this function rewrites
+    // .env wholesale from this list, so omitting it would erase the
+    // generated key and crash-loop the LIMS container on next start.
+    `LIMSX_FIELD_ENCRYPTION_KEY=${existing.LIMSX_FIELD_ENCRYPTION_KEY || ''}`,
     `AUTH_SECRET_KEY=${existing.AUTH_SECRET_KEY     || ''}`,
     `GF_ADMIN_PASSWORD=${existing.GF_ADMIN_PASSWORD || ''}`,
     `GF_STUDIO_TOKEN=${existing.GF_STUDIO_TOKEN    || ''}`,

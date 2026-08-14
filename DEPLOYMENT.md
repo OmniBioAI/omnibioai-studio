@@ -71,8 +71,11 @@ LIMSX_DJANGO_SECRET_KEY=<generate: python3 -c "import secrets; print(secrets.tok
 # LIMSX_DJANGO_DEBUG=False  # set to False in production
 
 # ── Encryption ────────────────────────────────────────────────────────────────
+# Fernet key for LIMS field-level encryption at rest. The compose files read
+# it under this LIMSX_-prefixed name and pass it into the container as
+# FIELD_ENCRYPTION_KEY -- setting the unprefixed name here has no effect.
 # generate: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-FIELD_ENCRYPTION_KEY=<fernet-key>
+LIMSX_FIELD_ENCRYPTION_KEY=<fernet-key>
 
 # ── RAG ───────────────────────────────────────────────────────────────────────
 # generate: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -124,7 +127,7 @@ DB_INIT_DIR=/home/<user>/Desktop/machine/db-init
 # Django / Auth secret key
 python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 
-# Fernet encryption key (FIELD_ENCRYPTION_KEY)
+# Fernet encryption key (LIMSX_FIELD_ENCRYPTION_KEY)
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
 # API token (RAGBIO_API_KEY)
@@ -136,7 +139,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ## Pre-Deployment Checklist
 
 - [ ] All environment variables set in `.env`
-- [ ] `FIELD_ENCRYPTION_KEY` generated and stored in secrets manager (Vault / AWS Secrets Manager)
+- [ ] `LIMSX_FIELD_ENCRYPTION_KEY` generated and stored in secrets manager (Vault / AWS Secrets Manager)
 - [ ] `RAGBIO_API_KEY` generated and stored in secrets manager
 - [ ] `LIMSX_DJANGO_SECRET_KEY` generated and stored in secrets manager
 - [ ] `AUTH_SECRET_KEY` generated and stored in secrets manager
