@@ -1026,6 +1026,15 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       REDIS_URL: redis://redis:6379
+      # Signing-secret provisioning fix: same var name/value already wired
+      # into every other JWT_SECRET consumer in this file (see tes's own
+      # entry above). Previously unset here, so this service's own JWT
+      # verification (api/deps.py::require_platform_admin, audit/
+      # identity.py::validate_identity_token) and, as of PR2's
+      # AuditConfig.EVENT_SIGNING_SECRET, audit-event signature
+      # verification both silently fell back to the public literal
+      # "change-me" instead of the real platform secret.
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       # PR-B0: previously unset here, so GET /audit/events
       # (api/routes_audit_events.py, Depends(get_db)) fell back to
       # audit/config.py's default mysql+pymysql://root:root@localhost:3306/
@@ -1059,6 +1068,14 @@ services:
     environment:
       PYTHONUNBUFFERED: "1"
       REDIS_URL: redis://redis:6379
+      # Signing-secret provisioning fix: same var name/value the API
+      # service above (and every other JWT_SECRET consumer in this file)
+      # already receives. Previously unset here, so AuditConfig.
+      # EVENT_SIGNING_SECRET (PR2's classify_event_integrity()) silently
+      # fell back to "change-me" instead of the real platform secret --
+      # harmless while no producer signs, but would misclassify a real
+      # producer's valid signature as "invalid" once one does.
+      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
