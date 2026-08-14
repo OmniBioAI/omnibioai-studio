@@ -262,6 +262,22 @@ Found during this work; **not fixed in this change** and not claimed to be:
 4. **No verification that a real deployment has rotated its credentials.**
    The `:?` guard proves a value was *supplied*, not that it is strong or
    unique. A startup-time weak-credential check would close that.
+5. **`lims` DEBUG follow-up (2026-08-13, separate branch):** a re-audit
+   found `docker-compose-release.yml`'s `lims` service had drifted to
+   `DJANGO_DEBUG: "true"` with `FIELD_ENCRYPTION_KEY` entirely absent, while
+   `docker-compose.release.yml` (the file actually shipped by
+   `electron-builder`) already carried the correct `"false"` +
+   `FIELD_ENCRYPTION_KEY` pairing from an earlier fix (951ad25) that missed
+   the dash file. `lab_data_manager/settings.py` reads `DJANGO_DEBUG`
+   directly from the environment with no override anywhere in the image, so
+   this was a live drift, not dead configuration — confirmed effective (not
+   merely present) before fixing. Not reachable through the packaged
+   Electron app's own startup path (`electron/main.js` never resolves to
+   the dash file), so this closes a parity/drift gap in the file documented
+   above as "kept in parity," not a live exposure in the shipped installer.
+   Fixed to match the dot file; pinned by
+   `tests/test_lims_debug_config.py` so the two files' `DJANGO_DEBUG` and
+   `FIELD_ENCRYPTION_KEY` wiring can't silently diverge again.
 
 ---
 
