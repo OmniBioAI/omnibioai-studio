@@ -167,6 +167,30 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  # Phase I: the follow-up flagged in this file's own comment above --
+  # ghcr.io/omnibioai/omnibioai-security-audit-worker is now published by
+  # CI (security-audit PR #7). Image-only, no build: (matches every other
+  # service in this file); env vars and depends_on mirror
+  # docker-compose.yml's security-audit-worker exactly (same
+  # AuditConfig.EVENT_SIGNING_SECRET/DATABASE_URL consumers -- see
+  # worker/main.py and db/session.py in that repo), just with this file's
+  # required (:?) secret guards instead of dev's silently-defaulting ones.
+  # No ports: -- Dockerfile.worker doesn't EXPOSE anything, it's a Redis
+  # Streams consumer loop, not an HTTP service.
+  security-audit-worker:
+    image: ghcr.io/omnibioai/omnibioai-security-audit-worker:latest
+    environment:
+      PYTHONUNBUFFERED: "1"
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
+      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}@mysql:3306/omnibioai_audit
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
   api-gateway:
     image: ghcr.io/omnibioai/omnibioai-api-gateway:latest
     ports:
