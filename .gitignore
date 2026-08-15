@@ -21,3 +21,5 @@ migration_verification_report.txt
 .env
 .npmrc
 .npmrc
+
+STALE_SERVICES.txt

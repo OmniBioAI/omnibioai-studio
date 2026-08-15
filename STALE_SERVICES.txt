@@ -1,4 +1,8 @@
-Not yet run. This file is overwritten by scripts/deploy_verify.py (the
-`deploy-verify` compose service) on every `docker compose up` -- see that
-service's definition in docker-compose.yml and the script's own docstring
-for what gets checked and why.
+==================== DEPLOY FRESHNESS CHECK ====================
+[OK]     workbench        image built 2026-08-15T02:51:59.933667+00:00, matches omnibioai@main HEAD (2026-08-14T20:50:08+00:00)
+[OK]     celery-worker    image built 2026-08-15T02:51:59.933667+00:00, matches omnibioai@main HEAD (2026-08-14T20:50:08+00:00)
+[STALE]  tes              image built 2026-08-14T17:45:45.499476+00:00; omnibioai-tes@origin/main HEAD is 2026-08-14T19:24:47+00:00 (0d newer) -- rebuild needed (local checkout matches origin/main; image predates it)
+[STALE]  toolserver       image created 2026-05-10T18:17:40.285113+00:00 (96d old, threshold 14d) -- registry may have stopped publishing, see #200
+===================================================================
+One or more services are stale -- see above. This check never blocks
+startup; treat this as a loud reminder, not a gate.
