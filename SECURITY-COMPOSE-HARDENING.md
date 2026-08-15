@@ -221,12 +221,33 @@ Found during this work; **not fixed in this change** and not claimed to be:
 
 1. **Backend services are published on `${HOST_IP:-0.0.0.0}`.** The default
    binds all interfaces for `workbench`, `tes`, `auth-service`, `rag`,
-   `model-registry`, and others. These do enforce IAM authorization, so this
-   is materially different from an unauthenticated datastore — but the
-   gateway-first design would be better served by binding them to loopback
-   and routing through `nginx-router`, as `lims` and `nginx-router` itself
-   already do. Larger change (breaks the direct-LAN-access path `HOST_IP`
-   exists for); needs a product/deployment decision, not made here.
+   `model-registry`, and others. Where they actually enforce IAM
+   authorization, this is materially different from an unauthenticated
+   datastore — but the gateway-first design would be better served by
+   binding them to loopback and routing through `nginx-router`, as `lims`
+   and `nginx-router` itself already do. Larger change (breaks the
+   direct-LAN-access path `HOST_IP` exists for); needs a product/deployment
+   decision, not made here.
+
+   **`model-registry` follow-up (2026-08-15, separate branch):** this
+   document's "these do enforce IAM authorization" claim above was **false**
+   for `model-registry` specifically, discovered during a HIPAA org-isolation
+   re-audit: both release compose files (`docker-compose.release.yml` and
+   `docker-compose-release.yml`) omitted `AUTH_ENABLED`/`JWT_SECRET`/
+   `IAM_URL`/`AUDIT_URL` from the `model-registry` block entirely.
+   `omnibioai-model-registry/config.py` defaults `AUTH_ENABLED` to `false`
+   when unset, so in the released configuration every route's auth
+   dependency short-circuited to a synthetic unauthenticated identity —
+   the real Phase 2A-2E organization-ownership enforcement in that repo
+   never ran. Fixed by adding all four vars to both release files
+   (`tests/test_compose_release_config.py`'s
+   `test_service_has_auth_enabled_set_true_in_release` /
+   `EXPECTED_SECRET_WIRING["model-registry"]` now pin it going forward).
+   This was a live, unauthenticated-write exposure on `0.0.0.0:8095` by
+   default, not merely a documentation gap. The claim above has **not**
+   been independently re-verified for `workbench`/`tes`/`auth-service`/
+   `rag` following this finding — treat it as unconfirmed for those until
+   they are audited the same way.
 
    **`control-center` follow-up (2026-08-13, separate branch):** this
    document previously claimed `control-center` was *already* loopback-only

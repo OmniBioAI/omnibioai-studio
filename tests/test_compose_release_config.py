@@ -36,7 +36,37 @@ EXPECTED_SECRET_WIRING = {
     "api-gateway": "JWT_SECRET",
     "control-center": "JWT_SECRET",
     "security-audit": "JWT_SECRET",
+    # HIPAA remediation (model-registry release auth wiring): this service
+    # was never in this dict despite being an AsyncIAMClient/JWT consumer
+    # since its own Phase 2A-2E org-ownership series -- both release
+    # compose files shipped it with no JWT_SECRET/IAM_URL/AUDIT_URL/
+    # AUTH_ENABLED at all, so config.py's AUTH_ENABLED defaulted to false
+    # and every route ran unauthenticated. See
+    # SERVICES_REQUIRING_AUTH_ENABLED below for the AUTH_ENABLED half of
+    # that same gap, which this dict alone doesn't cover.
+    "model-registry": "JWT_SECRET",
 }
+
+# Services whose auth dependency has an AUTH_ENABLED on/off switch
+# (unlike the services above, which always verify JWTs) -- omitting this
+# var entirely defaults to false in each service's own config.py/settings,
+# silently running with no authentication at all rather than failing
+# loudly. Every service in this set must have the literal string "true"
+# (never an ${AUTH_ENABLED:-...} expression, and never omitted) in both
+# release compose files -- see docker-compose.yml (dev)'s identical
+# entries for the same convention this mirrors.
+#
+# Deliberately model-registry ONLY, not also dev-hub: this test was added
+# while investigating the model-registry gap, and running it against
+# dev-hub too immediately caught a second, independent instance of the
+# same bug class (docker-compose-release.yml, the dash variant, is
+# missing both JWT_SECRET and AUTH_ENABLED for dev-hub -- present in
+# docker-compose.release.yml, the dot variant, only). That's a real,
+# separate finding, out of scope for this remediation (model-registry
+# only) per its own instructions -- flagged for a dedicated follow-up
+# rather than silently fixed here. Add "dev-hub" to this set once that
+# follow-up lands.
+SERVICES_REQUIRING_AUTH_ENABLED = {"model-registry"}
 
 
 @pytest.fixture(scope="module", params=COMPOSE_PATHS, ids=lambda p: p.name)
@@ -73,3 +103,27 @@ def test_all_consumers_share_the_same_secret(compose_config):
 
     distinct = set(exprs.values())
     assert len(distinct) == 1, f"secret expressions diverge: {exprs}"
+
+
+@pytest.mark.parametrize("service", sorted(SERVICES_REQUIRING_AUTH_ENABLED))
+def test_service_has_auth_enabled_set_true_in_release(compose_config, service):
+    """Catches a repeat of the model-registry gap this test was added
+    for: AUTH_ENABLED silently omitted from a release compose file, so
+    the service's own config module defaults it to false and every route
+    runs with no authentication at all -- not merely a weaker check, a
+    missing one. Must be the literal string "true", matching every
+    existing usage of this var in docker-compose.yml (dev) -- never an
+    ${AUTH_ENABLED:-...} expression (that would let an unset host env var
+    silently reintroduce the exact same open-mode fallback this test
+    exists to prevent)."""
+    env = compose_config["services"][service]["environment"]
+    assert "AUTH_ENABLED" in env, (
+        f"{service} must set AUTH_ENABLED -- without it, this service's "
+        f"auth dependency defaults to disabled and every route runs "
+        f"unauthenticated"
+    )
+    assert env["AUTH_ENABLED"] == "true", (
+        f"{service}'s AUTH_ENABLED must be the literal string \"true\", "
+        f"not {env['AUTH_ENABLED']!r} -- an env-var expression would let "
+        f"an unset host variable silently fall back to disabled again"
+    )

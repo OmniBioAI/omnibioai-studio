@@ -418,6 +418,13 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       DB_NAME: model_registry
       OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
+      # HIPAA remediation: kept in parity with docker-compose.release.yml
+      # (dot) -- see that file's identical comment on this same block for
+      # the full rationale.
+      IAM_URL: http://auth-service:8001
+      AUDIT_URL: http://security-audit:8004
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
+      AUTH_ENABLED: "true"
     volumes:
       - ${DATA_DIR}/model_registry:/registry
     depends_on:
