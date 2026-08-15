@@ -425,6 +425,22 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       DB_NAME: model_registry
       OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
+      # HIPAA remediation: this service's own Phase 2A-2E organization-
+      # ownership enforcement (omnibioai-model-registry) is real and
+      # already merged, but it only ever runs against a verified
+      # UserContext -- without these four vars, config.py's AUTH_ENABLED
+      # defaults to false, every route's auth dependency short-circuits to
+      # a synthetic "system" identity with no token required at all, and
+      # check_model_ownership() collapses to open mode. Same wiring
+      # rag/tes/toolserver (IAM_URL) and control-center/dev-hub
+      # (JWT_SECRET/AUTH_ENABLED) already use in this same file -- see
+      # docker-compose.yml's (dev) identical model-registry entry, which
+      # already had all four and was the only reason this gap wasn't
+      # total in every deployment mode.
+      IAM_URL: http://auth-service:8001
+      AUDIT_URL: http://security-audit:8004
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
+      AUTH_ENABLED: "true"
     volumes:
       - ${DATA_DIR}/model_registry:/registry
     depends_on:
