@@ -469,6 +469,12 @@ services:
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_ML_TUTORIALS_DIR: /workspace/omnibioai-docs/tutorials/ml
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      MS_GRAPH_TENANT_ID: ${MS_GRAPH_TENANT_ID:-}
+      MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
+      MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
+      ATLASSIAN_SITE: ${ATLASSIAN_SITE:-}
+      ATLASSIAN_EMAIL: ${ATLASSIAN_EMAIL:-}
+      ATLASSIAN_API_TOKEN: ${ATLASSIAN_API_TOKEN:-}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${MACHINE_DIR}/omnibioai-docs:/workspace/omnibioai-docs:ro
