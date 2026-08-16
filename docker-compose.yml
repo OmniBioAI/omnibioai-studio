@@ -136,6 +136,12 @@ services:
       ATLASSIAN_SITE: ${ATLASSIAN_SITE:-}
       ATLASSIAN_EMAIL: ${ATLASSIAN_EMAIL:-}
       ATLASSIAN_API_TOKEN: ${ATLASSIAN_API_TOKEN:-}
+      MS_GRAPH_TENANT_ID: ${MS_GRAPH_TENANT_ID:-}
+      MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
+      MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
+      ATLASSIAN_SITE: ${ATLASSIAN_SITE:-}
+      ATLASSIAN_EMAIL: ${ATLASSIAN_EMAIL:-}
+      ATLASSIAN_API_TOKEN: ${ATLASSIAN_API_TOKEN:-}
       OMNIBIOAI_EXTRA_MOUNTS: /usr/bin/docker:/usr/bin/singularity:/usr/bin/unsquashfs:/usr/bin/squashfuse:/usr/bin/fusermount:/usr/bin/fusermount3:/lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/etc/singularity:/usr/lib/aarch64-linux-gnu/singularity:/var/lib/singularity:${MACHINE_DIR}/omnibioai-tool-images/sif:${MACHINE_DIR}/omnibioai
       SINGULARITY_CACHEDIR: /tmp/singularity_cache
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
