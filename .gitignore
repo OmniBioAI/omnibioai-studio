@@ -23,3 +23,4 @@ migration_verification_report.txt
 .npmrc
 
 STALE_SERVICES.txt
+.aider*

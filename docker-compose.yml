@@ -44,6 +44,18 @@ services:
   # `docker compose up -d <one-service>` -- no new command to remember.
   deploy-verify:
     image: python:3.12-slim
+    # python:3.12-slim is a proper multi-arch manifest list (amd64/arm64/...),
+    # but a stale amd64-tagged copy can be sitting in the local image cache
+    # from an earlier pull (e.g. done on/for a different host arch). Without
+    # pull_policy, `docker compose up` reuses whatever is already tagged
+    # python:3.12-slim locally instead of re-resolving the tag -- so on an
+    # arm64 host that stale amd64 layer gets run as-is and `exec /usr/bin/bash`
+    # dies with "exec format error" (no qemu binfmt registered for it here).
+    # pull_policy: always forces Compose to re-pull every run, which makes
+    # Docker resolve the manifest list against the host's actual platform
+    # (arm64 here, amd64 elsewhere) -- no platform: pin needed since the
+    # image genuinely supports both.
+    pull_policy: always
     environment:
       COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-omnibioai-studio}
     command:
@@ -130,12 +142,6 @@ services:
       HPC_POLICY_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
       REDIS_URL: redis://redis:6379
-      MS_GRAPH_TENANT_ID: ${MS_GRAPH_TENANT_ID:-}
-      MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
-      MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
-      ATLASSIAN_SITE: ${ATLASSIAN_SITE:-}
-      ATLASSIAN_EMAIL: ${ATLASSIAN_EMAIL:-}
-      ATLASSIAN_API_TOKEN: ${ATLASSIAN_API_TOKEN:-}
       MS_GRAPH_TENANT_ID: ${MS_GRAPH_TENANT_ID:-}
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
       MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
@@ -406,7 +412,7 @@ services:
 
   workbench:
     build:
-      context: ${MACHINE_DIR}/omnibioai
+      context: ${MACHINE_DIR}/omnibioai-workbench
       dockerfile: Dockerfile.app
       target: backend
       secrets:
@@ -481,12 +487,16 @@ services:
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_ML_TUTORIALS_DIR: /workspace/omnibioai-docs/tutorials/ml
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      MS_GRAPH_ENABLED: ${MS_GRAPH_ENABLED:-false}
       MS_GRAPH_TENANT_ID: ${MS_GRAPH_TENANT_ID:-}
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
       MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
       ATLASSIAN_SITE: ${ATLASSIAN_SITE:-}
       ATLASSIAN_EMAIL: ${ATLASSIAN_EMAIL:-}
       ATLASSIAN_API_TOKEN: ${ATLASSIAN_API_TOKEN:-}
+      SERVICENOW_INSTANCE_URL: ${SERVICENOW_INSTANCE_URL:-}
+      SERVICENOW_CLIENT_ID: ${SERVICENOW_CLIENT_ID:-}
+      SERVICENOW_CLIENT_SECRET: ${SERVICENOW_CLIENT_SECRET:-}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${MACHINE_DIR}/omnibioai-docs:/workspace/omnibioai-docs:ro
@@ -518,7 +528,7 @@ services:
 
   celery-worker:
     build:
-      context: ${MACHINE_DIR}/omnibioai
+      context: ${MACHINE_DIR}/omnibioai-workbench
       dockerfile: Dockerfile.app
       target: backend
     restart: on-failure
@@ -565,6 +575,7 @@ services:
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-deepseek-r1:32b}
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      MS_GRAPH_ENABLED: ${MS_GRAPH_ENABLED:-false}
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
