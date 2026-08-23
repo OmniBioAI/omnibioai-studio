@@ -21,7 +21,7 @@ import RoleManagement from "./pages/RoleManagement";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
 import { GrafanaViewer } from "./components/GrafanaViewer";
-import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron } from "./lib/session";
+import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } from "./lib/session";
 
 const BASE_NAV = [
   { section: "Setup",   items: [
@@ -146,6 +146,24 @@ export default function App() {
     refreshUser();
     const unsubscribe = onSessionChange(refreshUser);
     return () => { mounted = false; unsubscribe(); };
+  }, []);
+
+  // ─── Keep the access token from going stale while the app sits open ──
+  // auth-service issues 15-minute access tokens (ACCESS_TOKEN_EXPIRE_MINUTES)
+  // and nothing else in this app ever calls session.js's refresh() — every
+  // sub-app that authenticates itself (Model Registry, RAG, etc.) reads the
+  // same JWT straight out of localStorage on each request, with no 401-retry
+  // of its own. Past 15 minutes on one page (Model Registry's "Failed to
+  // fetch models: 401" is what surfaced this), that stale token 401s
+  // everywhere at once. Refreshing well before expiry (5 min, a 3x margin)
+  // keeps localStorage's token perpetually valid for every consumer of it,
+  // without touching any of those other repos. No-ops (refresh() itself
+  // checks) once the refresh token is gone (logged out) or itself expired.
+  useEffect(() => {
+    const tick = () => { if (getRefreshToken()) refresh(); };
+    tick();
+    const id = setInterval(tick, 5 * 60 * 1000);
+    return () => clearInterval(id);
   }, []);
 
   // ─── Consume an OAuth provider redirect back into the app, once ──
