@@ -103,7 +103,7 @@
 
 ### Services — Full Stack
 ![Services](docs/screenshots/services.png)
-*23 services across Data, Security Control Plane, Execution, AI, and Developer layers*
+*40 Compose services across Data, Security Control Plane, Execution, AI, and Developer layers*
 
 ### IDE Services
 ![IDE Services](docs/screenshots/ide-services.png)
@@ -188,7 +188,7 @@ The diagram above is the *server-side* request pipeline; this section
 covers how the Studio SPA itself holds and presents a session in the
 browser. Login/refresh/logout all go through the standard
 `omnibioai-auth` endpoints — see
-[omnibioai-auth's README](../omnibioai-auth#authentication) for the full
+[omnibioai-auth's README](https://github.com/OmniBioAI/omnibioai-auth#authentication) for the full
 token model.
 
 ### Session cookies
@@ -197,7 +197,7 @@ Studio's web build still manages its own session client-side —
 `localStorage["omnibioai_access_token"]` and
 `localStorage["omnibioai_refresh_token"]` — rather than relying on
 `omnibioai-auth`'s server-set, `HttpOnly` `omnibioai_session` cookie (see
-that repo's [Session Cookies](../omnibioai-auth#session-cookies) section).
+that repo's [Session Cookies](https://github.com/OmniBioAI/omnibioai-auth#session-cookies) section).
 It additionally mirrors the access token into a **non-`HttpOnly`,
 JS-writable cookie** of the same name (`omnibioai_access_token`,
 `SameSite=Lax`, `Secure` over HTTPS) purely so an embedded iframe can
@@ -212,7 +212,7 @@ vs. server-set and `HttpOnly` there).
 origin, reads this same `localStorage["omnibioai_access_token"]` key —
 an existing Studio login is recognized automatically with no separate
 sign-in, since both apps share one browser origin in that deployment path.
-See [Control Center's Authentication section](../omnibioai-control-center#authentication)
+See [Control Center's Authentication section](https://github.com/OmniBioAI/omnibioai-control-center#authentication)
 for the admin-side detail.
 
 ### iframe authentication
@@ -232,18 +232,14 @@ cookie, unrelated to this mechanism.)
 
 ### Refresh flow
 
-`refresh()` (posts to `/auth/refresh` with the `refresh_token` read from
-`localStorage`) exists and is exported, but nothing in the current UI
-calls it automatically — there is no refresh timer and no fetch
-interceptor wired up. The one place that handles a 401 today
-(`rolesApi.js`) clears the session outright rather than attempting a
-refresh-and-retry. In practice this means an expired access token
-currently forces a fresh login rather than transparently rotating — unlike
-`omnibioai-control-center`'s cc-ui, which does schedule a silent refresh
-against the cookie-based session (see that repo's README). Wiring an
-automatic refresh here, or migrating this app onto the same
-`omnibioai_session`-cookie pattern control-center now uses, is tracked as
-follow-up work, not part of this documentation pass.
+`refresh()` posts to `/auth/refresh` with the `refresh_token` stored in
+`localStorage`. The root `App` component calls it once on startup and then
+every five minutes while a refresh token is present, keeping the shared
+access token fresh for the Studio UI and embedded services. Logout and a
+failed refresh clear the stored session; individual API clients may still
+handle a 401 according to their own behavior. This remains a client-side
+localStorage flow and is distinct from the cookie-based session used by
+`omnibioai-control-center`.
 
 ### Logout
 
@@ -341,7 +337,7 @@ for the full rationale.
 
 ## 🧰 Bioinformatics Tools (11,000+)
 
-**1,010 tools** are actively registered and runnable today (confirmed live in Jobs → Registered Tools panel). The broader platform catalog — including all execution, cloud, HPC, and orchestration tooling across every service — totals **11,000+**.
+**1,010 tools** were recorded in the latest deployment snapshot (verify the current value in Jobs → Registered Tools). The broader platform catalog — including execution, cloud, HPC, and orchestration tooling across every service — is reported as **11,000+**.
 
 ### Execution Servers (7)
 | Server ID | Adapter |
@@ -389,7 +385,7 @@ Drug Target AI · Literature AI · Pathway Enrichment · Bio Hypothesis · Liter
 | Mode | Status | Description |
 |------|--------|--------------|
 | **Beta Cloud** | ✅ Available | Connects to `webstudio.omnibioai.org` — no local Docker needed |
-| Local | Coming soon | Docker + local GPU/CPU, offline-first, Slurm support |
+| Local | ✅ Available | Docker-based local stack; GPU/CPU support depends on host configuration |
 | HPC | Coming soon | Slurm / PBS / LSF, Apptainer remote execution |
 | Cloud | Coming soon | AWS Batch / Azure Batch, elastic auto-scaling |
 | Hybrid | Coming soon | Multi-backend orchestration, policy-driven scheduling |
@@ -529,9 +525,9 @@ Expected layout:
 | Field | Value |
 |-------|-------|
 | Studio Version | v0.7.0 |
-| Electron | web |
-| Node.js | web |
-| Platform | Linux x86_64 |
+| Electron | Electron + Vite |
+| Node.js | See `package.json` toolchain |
+| Platform | Runtime-dependent (Linux, macOS, or Windows) |
 | Status | Beta |
 
 ---
@@ -617,7 +613,7 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 
 | Repository | Role |
 |------------|------|
-| `omnibioai` | Main Django workbench + 80+ plugins |
+| `omnibioai` | Main Django workbench + 351 plugins |
 | `omnibioai-api-gateway` | Zero-trust API gateway |
 | `omnibioai-auth` | JWT authentication service |
 | `omnibioai-policy-engine` | RBAC/ABAC authorization |
