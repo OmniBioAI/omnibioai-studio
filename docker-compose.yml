@@ -412,6 +412,52 @@ services:
       redis:
         condition: service_healthy
 
+  # #265: policy-enforcing proxy in front of the real host docker.sock,
+  # for the workbench service specifically (its ~50 ML plugin executors
+  # via omnibioai/plugin_executor/ml_utils.py are the dominant real
+  # docker.sock consumer -- see docker-socket-proxy/policy.py's module
+  # docstring for the full threat model and grep evidence). Blocks
+  # EXEC/SWARM/SECRETS/NETWORKS-management/VOLUMES-management/BUILD/etc.
+  # outright, and validates every /containers/create body so it can't
+  # request --privileged, added capabilities, host networking/PID/IPC
+  # namespaces, or a bind mount outside PROXY_ALLOWED_BIND_PREFIXES --
+  # closing the actual "ask the daemon for a container with a host-root
+  # bind mount" escape, not just narrowing the API surface. Real,
+  # adversarially-tested end to end against a live Docker daemon (see
+  # docker-socket-proxy/tests/test_proxy_live_integration.py).
+  #
+  # NOT yet applied to this file's other 5 docker.sock-RW-mounted
+  # services (tes, celery-worker, control-center, launcher,
+  # workflow-bundles) or to workflow_runner's own nested sibling-
+  # container dispatch (which still bind-mounts the raw host socket
+  # into containers *it* spawns, for Nextflow's Docker-in-Docker
+  # executor) -- tracked as its own follow-up (#54), not silently left
+  # uncovered.
+  docker-socket-proxy:
+    build:
+      context: ./docker-socket-proxy
+    restart: on-failure
+    environment:
+      PROXY_LISTEN_SOCKET: /var/run/proxy-socket/docker.sock
+      DOCKER_SOCK_PATH: /var/run/docker-real.sock
+      # #265: omnibioai/plugin_executor/ml_utils.py's real docker run
+      # bind-mounts THREE host paths, not just WORK_DIR (confirmed by
+      # reading its actual cmd construction + live env vars in the
+      # running container): the run's own work_dir under WORK_DIR, a
+      # model registry root that defaults to a path under
+      # ${MACHINE_DIR}/data, and an ML cache dir that -- since
+      # OMNIBIOAI_ML_CACHE_DIR is unset in this deployment today --
+      # resolves to /root/.cache/omnibioai/torch on the host (the
+      # container's own $HOME under to_host_path()'s pass-through
+      # fallback; an existing quirk of that unset env var, not
+      # something this proxy changes or should silently break by
+      # narrowing). All three are listed so legitimate ML plugin
+      # dispatch keeps working exactly as it does today.
+      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch
+    volumes:
+      - /var/run/docker.sock:/var/run/docker-real.sock
+      - docker-proxy-socket:/var/run/proxy-socket
+
   workbench:
     build:
       context: ${MACHINE_DIR}/omnibioai-workbench
@@ -424,6 +470,11 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
     environment:
+      # #265: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- the volumes: block below no longer mounts
+      # /var/run/docker.sock directly. docker CLI and docker-py both
+      # honor DOCKER_HOST for a unix socket path.
+      DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
       # issue #38: was DEBUG: "1" -- vestigial, settings.py never read it.
       # Now wired to the real env var (omnibioai/settings.py:143), default off.
       DJANGO_DEBUG: "false"
@@ -508,12 +559,18 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
-      - /var/run/docker.sock:/var/run/docker.sock
+      # #265: proxy's exposed socket, not the raw host one -- see the
+      # docker-socket-proxy service above and DOCKER_HOST in
+      # environment: above. :ro because workbench only ever needs to
+      # *connect to* this socket file, never write to it.
+      - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
       - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
       - /media:/media:ro
     depends_on:
+      docker-socket-proxy:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:
@@ -1383,3 +1440,8 @@ volumes:
   grafana_data:
   neo4j_data:
   neo4j_logs:
+  # #265: docker-socket-proxy's exposed socket, shared with workbench.
+  # Not a host bind mount -- the whole point is that only the proxy
+  # container gets the real host docker.sock (mounted directly into
+  # it above); everything else only ever sees this proxied one.
+  docker-proxy-socket:
