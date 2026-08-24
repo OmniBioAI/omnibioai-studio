@@ -500,7 +500,33 @@ services:
       SERVICENOW_CLIENT_ID: ${SERVICENOW_CLIENT_ID:-}
       SERVICENOW_CLIENT_SECRET: ${SERVICENOW_CLIENT_SECRET:-}
     volumes:
-      - ${WORKSPACE_HOST}:/workspace
+      # #265: this used to be a single `${WORKSPACE_HOST}:/workspace` RW
+      # bind mount of the ENTIRE host machine directory (WORKSPACE_HOST ==
+      # MACHINE_DIR == /home/manish/Desktop/machine) -- confirmed live to
+      # include every sibling repo's source/.git/secrets plus a symlink
+      # (omnibioai-work -> /media/manish/OmniBioAI-SIFs/work) reaching an
+      # external mounted drive, none of which this container's own code
+      # actually reads. Grepped every real `/workspace/...` reference in
+      # this repo's Python; there are exactly two, both now mounted
+      # individually and no more broadly than each one needs:
+      #   - ragbio (installed package, plugins/bio_agent/handlers/
+      #     ragbio_handler.py) hardcodes /workspace/data/PubMed as its
+      #     corpus base and unconditionally os.makedirs()+os.chmod()s its
+      #     four subfolders (Abstracts/Metadata/PDFs/Index) on import
+      #     (ragbio/config.py) -- confirmed by reading the installed
+      #     package source live in the running container. That chmod call
+      #     needs a writable mount (a :ro bind mount would make it raise
+      #     EROFS on every import), so this one has to stay RW.
+      #   - plugins/bio_agent/views.py reads a single tools.example.yaml
+      #     config file under omnibioai-tes/configs/, read-only.
+      # Neither needs the other ~48 sibling directories under
+      # /home/manish/Desktop/machine that the old blanket mount exposed.
+      # NOTE: ${MACHINE_DIR}/data and ${MACHINE_DIR}/work (below, at their
+      # own absolute paths, unrelated to /workspace) are separately still
+      # full-directory RW mounts and were NOT in scope for this pass --
+      # flagged as a follow-up, not silently left unmentioned.
+      - ${MACHINE_DIR}/data/PubMed:/workspace/data/PubMed
+      - ${MACHINE_DIR}/omnibioai-tes/configs:/workspace/omnibioai-tes/configs:ro
       - ${MACHINE_DIR}/omnibioai-docs:/workspace/omnibioai-docs:ro
       - ${MACHINE_DIR}/omnibioai-workflow-bundles:/workspace/omnibioai-workflow-bundles:ro
       - ${WORK_DIR}/runs:/app/work/runs
