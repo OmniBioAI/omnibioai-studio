@@ -313,6 +313,8 @@ services:
       # LIMS's authentication now goes through the IAM client (RS256/JWKS +
       # revocation checking) instead of decoding tokens locally.
       IAM_URL: http://auth-service:8001
+      LIMS_SSO_CLIENT_ID: ${LIMS_SSO_CLIENT_ID:-omnibioai-lims}
+      LIMS_SSO_CLIENT_SECRET: ${LIMS_SSO_CLIENT_SECRET}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
       CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
       REDIS_URL: redis://redis:6379/0
@@ -698,6 +700,9 @@ services:
       context: ${MACHINE_DIR}/omnibioai-control-center
       dockerfile: Dockerfile
       target: frontend
+      args:
+        VITE_LIMS_SSO_CLIENT_ID: ${LIMS_SSO_CLIENT_ID:-omnibioai-lims}
+        VITE_LIMS_SSO_REDIRECT_URI: ${LIMS_SSO_REDIRECT_URI:-https://lims.omnibioai.org/sso/callback}
     restart: on-failure
     ports:
       - "127.0.0.1:5174:5174"
@@ -978,6 +983,9 @@ services:
       MICROSOFT_OAUTH_CLIENT_SECRET: ${MICROSOFT_OAUTH_CLIENT_SECRET:-}
       OAUTH_REDIRECT_BASE_URL: ${OAUTH_REDIRECT_BASE_URL:-https://webstudio.omnibioai.org}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://webstudio.omnibioai.org}
+      LIMS_SSO_CLIENT_ID: ${LIMS_SSO_CLIENT_ID:-omnibioai-lims}
+      LIMS_SSO_CLIENT_SECRET: ${LIMS_SSO_CLIENT_SECRET}
+      LIMS_SSO_REDIRECT_URI: ${LIMS_SSO_REDIRECT_URI:-https://lims.omnibioai.org/sso/callback}
 
     depends_on:
       mysql:
