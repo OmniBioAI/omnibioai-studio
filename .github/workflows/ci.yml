@@ -63,6 +63,8 @@ jobs:
         run: |
           docker compose -f docker-compose.yml config --quiet \
             && echo "✅ docker-compose.yml valid"
+      - name: Validate system service catalog
+        run: npm run check-docs
       - name: Validate release compose files
         # docker-compose.release.yml is the file electron-builder actually
         # bundles into packaged installers; docker-compose-release.yml (dash)

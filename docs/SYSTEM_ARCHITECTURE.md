@@ -154,9 +154,10 @@ Start with the [root quick start](../README.md#-quick-start).
 
 ```bash
 docker compose config --services
+npm run check-docs
 docker compose ps
 docker compose logs --tail=200 <service>
 ```
 
-The first command should list 40 services. Use `docker compose ps` for actual
-runtime state and health.
+The first command should list 40 services. `npm run check-docs` fails when the
+catalog and Compose differ. Use `docker compose ps` for runtime state and health.
