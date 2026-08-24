@@ -333,7 +333,23 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.7.0"
     volumes:
-      - ${WORKSPACE_HOST}:/workspace
+      # #265: ported from docker-compose.yml's own fix (dev-only file,
+      # never reached real users) -- see that file's comment for the
+      # full grep evidence. NOT a straight copy: docker-compose.yml also
+      # mounts ${MACHINE_DIR}/omnibioai-tes/configs (bio_agent/views.py's
+      # tools.example.yaml read) alongside data/PubMed, but that path is
+      # a sibling-repo-checkout convention specific to this dev machine's
+      # own directory layout -- for a real packaged install, MACHINE_DIR
+      # resolves to the end user's home directory (see electron/main.js's
+      # writeEnvFile()), which never has an omnibioai-tes/ checkout
+      # sitting in it. Confirmed live against the real published image
+      # (ghcr.io/omnibioai/omnibioai-app:latest) that its fallback
+      # candidate path for that same read doesn't exist in the image
+      # either -- this was already a silent, graceful (non-crashing)
+      # empty-fallback gap before this fix, unrelated to and unchanged
+      # by it, not something to paper over with a mount to a host path
+      # that doesn't exist on a real user's machine.
+      - ${MACHINE_DIR}/data/PubMed:/workspace/data/PubMed
       - ${WORK_DIR}/runs:/app/work/runs
       - ${WORK_DIR}/objects:/app/work/objects
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
