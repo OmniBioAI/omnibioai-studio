@@ -82,6 +82,14 @@ function SettingsConsole({ config, setConfig }) {
 
   const isFirstRun = !settings.data_dir || !settings.work_dir;
 
+  const openExternal = useCallback((url) => {
+    if (window.api?.openExternal) {
+      window.api.openExternal(url);
+    } else {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  }, []);
+
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
 
@@ -331,18 +339,26 @@ function SettingsConsole({ config, setConfig }) {
               ))}
             </table>
             <div style={{ marginTop:14, display:"flex", gap:8 }}>
-              <button style={{
-                flex:1, padding:"7px", borderRadius:5, fontSize:'var(--font-size-xs)',
-                fontFamily:"var(--mono)", background:"var(--bg2)",
-                border:"1px solid var(--border2)", color:"var(--color-text-muted)",
-                cursor:"pointer",
-              }}>Docs ↗</button>
-              <button style={{
-                flex:1, padding:"7px", borderRadius:5, fontSize:'var(--font-size-xs)',
-                fontFamily:"var(--mono)", background:"var(--bg2)",
-                border:"1px solid var(--border2)", color:"var(--color-text-muted)",
-                cursor:"pointer",
-              }}>GitHub ↗</button>
+              <button
+                type="button"
+                onClick={() => openExternal("https://docs.omnibioai.org")}
+                style={{
+                  flex:1, padding:"7px", borderRadius:5, fontSize:'var(--font-size-xs)',
+                  fontFamily:"var(--mono)", background:"var(--bg2)",
+                  border:"1px solid var(--border2)", color:"var(--color-text-muted)",
+                  cursor:"pointer",
+                }}
+              >Docs ↗</button>
+              <button
+                type="button"
+                onClick={() => openExternal("https://github.com/OmniBioAI/omnibioai-studio")}
+                style={{
+                  flex:1, padding:"7px", borderRadius:5, fontSize:'var(--font-size-xs)',
+                  fontFamily:"var(--mono)", background:"var(--bg2)",
+                  border:"1px solid var(--border2)", color:"var(--color-text-muted)",
+                  cursor:"pointer",
+                }}
+              >GitHub ↗</button>
             </div>
           </PanelBody>
         </Panel>
