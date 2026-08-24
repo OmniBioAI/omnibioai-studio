@@ -36,7 +36,9 @@ jobs:
         run: |
           python3 -m pip install --quiet pyyaml pytest
           python3 -m pytest tests/test_compose_network_exposure.py \
-                            tests/test_compose_release_config.py -q
+                            tests/test_compose_release_config.py \
+                            tests/test_safe_compose_diagnostics.py \
+                            tests/test_canonical_compose_path.py -q
       - name: Create .env for compose validation
         run: |
           cat > .env << 'ENVEOF'

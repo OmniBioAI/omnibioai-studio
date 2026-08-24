@@ -522,9 +522,8 @@ Expected layout:
 > Changing ports requires a full stack restart.
 
 ### Docker
-- Compose file: `docker-compose.yml` (repo root — this is what `docker compose up -d`
-  under "Quick Start" runs; `docker/docker-compose.yml` is a separate, much
-  smaller stub, not the one the full stack uses)
+- Compose file: `docker-compose.yml` at the repository root. This is the
+  canonical local stack used by Quick Start and the Studio Settings default.
 - Data Dir mounted as `/data` in all containers
 - Work Dir mounted as `/workspace/work` in all containers
 

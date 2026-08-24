@@ -29,7 +29,7 @@ function SettingsConsole({ config, setConfig }) {
     workbench_port:  "8000",
     tes_port:        "8081",
     toolserver_port: "9090",
-    compose_file:    "docker/docker-compose.yml",
+    compose_file:    "docker-compose.yml",
     data_dir:        "",   // PubMed FAISS indexes, abstracts
     work_dir:        "",   // workflow results, runs, outputs
     auto_update:     true,
@@ -300,7 +300,7 @@ function SettingsConsole({ config, setConfig }) {
             <FormRow label="Docker Compose File">
               <Input value={settings.compose_file}
                 onChange={e => set("compose_file", e.target.value)}
-                placeholder="docker/docker-compose.yml" />
+                placeholder="docker-compose.yml" />
             </FormRow>
             <div style={{
               marginTop:8, padding:"10px 12px", borderRadius:'var(--radius-sm)',

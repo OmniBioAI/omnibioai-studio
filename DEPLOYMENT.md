@@ -548,9 +548,13 @@ IPs nginx-router never learned about.
 
 ```bash
 docker compose logs celery-worker --tail=50
-# Common: broker URL mismatch. Verify:
-docker compose exec celery-worker env | grep CELERY_BROKER_URL
-# Should be: redis://redis:6379/1
+# Common: broker URL missing or supplied to the wrong service. Check presence
+# without printing the value:
+python3 scripts/safe_compose_diagnostics.py --env-status \
+  | sed -n '/\[celery-worker\]/,/^$/p'
+# CELERY_BROKER_URL should report SET. Compare the expected broker contract in
+# docker-compose.yml separately; never paste a resolved URL because it may
+# contain credentials.
 ```
 
 ### "No such container" errors after restart
