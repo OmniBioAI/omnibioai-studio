@@ -4,7 +4,7 @@ This is the system-level map for the OmniBioAI ecosystem assembled by Studio.
 Component API and implementation details belong in their owning repositories.
 
 The root [`docker-compose.yml`](../docker-compose.yml) is the source of truth
-for local development. It currently defines **40 Compose services**. This count
+for local development. It currently defines **41 Compose services**. This count
 includes products, workers, databases, IDEs, monitoring agents, routing, and a
 one-shot deployment verifier.
 
@@ -94,7 +94,7 @@ These are the exact Compose keys, grouped by responsibility.
 | `vscode` | Managed browser-based VS Code |
 | `web-ui` | Static Studio web application |
 
-### Identity, policy, audit, and licensing (9)
+### Identity, policy, audit, and licensing (10)
 
 | Service | Responsibility |
 |---|---|
@@ -107,6 +107,7 @@ These are the exact Compose keys, grouped by responsibility.
 | `security-audit-worker` | Audit-event persistence |
 | `api-gateway` | Authenticated external API entry point |
 | `license-server` | Legacy validator; see root README known issues |
+| `docker-socket-proxy` | Policy-enforcing proxy in front of the real host docker.sock for `workbench` (#265) |
 
 ### AI and graph infrastructure (2)
 
@@ -159,5 +160,5 @@ docker compose ps
 docker compose logs --tail=200 <service>
 ```
 
-The first command should list 40 services. `npm run check-docs` fails when the
+The first command should list 41 services. `npm run check-docs` fails when the
 catalog and Compose differ. Use `docker compose ps` for runtime state and health.
