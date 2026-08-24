@@ -4,6 +4,13 @@
 
 **OmniBioAI Studio** is an Electron desktop app that launches and manages the full OmniBioAI stack — locally, on HPC clusters, or in the cloud — with a single click.
 
+## System documentation
+
+- [System architecture](docs/SYSTEM_ARCHITECTURE.md) — boundaries, flows, deployment topology, and the complete 40-service catalog
+- [Security hardening](SECURITY-COMPOSE-HARDENING.md) — production Compose security and development overrides
+- [Integration tests](tests/integration/README.md) — end-to-end test setup
+- [Operations scripts](scripts/README.md) — backup, validation, and deployment utilities
+
 ---
 
 ## ✨ What's New in v0.7.0
