@@ -29,10 +29,31 @@ body is validated so it can't be used to request the exact capabilities
 capabilities) that would turn "create a container" into "escape to the
 host" -- the actual mechanism #265 is about, not just an API-shape
 allowlist.
+
+Two gaps were caught and closed in review, before this ever merged
+(both confirmed exploitable against a real Docker daemon, not just
+reasoned about):
+  1. Bind-mount source validation was a naive string-prefix check --
+     '/app/work/../../../etc' passes it (literally starts with the
+     allowed prefix string) but the real daemon resolves '..'
+     components, so the effective mount is /etc. Fixed with
+     posixpath.normpath() before comparison (_path_is_allowed).
+  2. HostConfig.Mounts entries weren't restricted to Type="bind" --
+     Type="volume" with an inline VolumeOptions.DriverConfig can
+     create an ephemeral bind-backed volume with the dangerous host
+     path in DriverConfig.Options.device, not in Source, bypassing the
+     Source-based check and never touching the /volumes/create
+     endpoint this proxy already blocks. Fixed by requiring every
+     Mounts entry to be Type="bind" (check_create_body). Devices,
+     SecurityOpt (seccomp/apparmor/no-new-privileges disabling), and
+     UsernsMode=host are also validated for the same reason: none of
+     this codebase's real consumers need them, so blocking them costs
+     no real functionality.
 """
 from __future__ import annotations
 
 import json
+import posixpath
 import re
 from dataclasses import dataclass, field
 from typing import Optional
@@ -140,13 +161,42 @@ def _bind_source(bind_entry: str) -> Optional[str]:
 
 
 def _path_is_allowed(host_path: str, allowed_prefixes: tuple) -> bool:
+    """Caught in review, before this PR merged: a naive rstrip-only
+    comparison passes a source like '/app/work/../../../etc' because it
+    literally STARTS WITH the allowed prefix string -- but the real
+    daemon (via the underlying mount(2) call) resolves '..' components
+    exactly like a shell `cd` would, so the *effective* mount source is
+    '/etc', well outside the allowed directory. Confirmed live: a proxy
+    running the pre-fix version of this function let `docker run -v
+    <allowed_dir>/../../etc:/hostetc` through, and it really did mount
+    the host's real /etc. posixpath.normpath() lexically collapses '..'
+    /'.'/redundant slashes (pure string manipulation, no filesystem
+    access -- exactly right here, since this proxy never has the real
+    host filesystem mounted to do a true realpath resolution) BEFORE the
+    prefix comparison, closing that specific bypass.
+
+    Deliberately NOT closed by this (or any purely lexical check): a
+    symlink already present *inside* an allowed directory pointing
+    somewhere outside it (e.g. an attacker who already has some other
+    write primitive into WORK_DIR plants allowed_dir/evil -> /etc, then
+    requests a bind of allowed_dir/evil). Lexical normalization can't
+    see that without resolving symlinks against the real host
+    filesystem, which this proxy intentionally doesn't have access to.
+    That's a real, harder residual risk, not silently unclosed --
+    tracked in #54 alongside this proxy's other documented gaps. For
+    now it depends on the allowed directories (WORK_DIR, the ML cache
+    dir, the model registry root) only ever being written to by
+    trusted, first-party code, not attacker-controlled input.
+    """
     if host_path in _DENIED_BIND_EXACT:
         return False
-    normalized = host_path.rstrip("/") or "/"
+    if not host_path.startswith("/"):
+        return False
+    normalized = posixpath.normpath(host_path)
     if normalized == "/":
         return False
     for prefix in allowed_prefixes:
-        prefix_norm = prefix.rstrip("/")
+        prefix_norm = posixpath.normpath(prefix)
         if normalized == prefix_norm or normalized.startswith(prefix_norm + "/"):
             return True
     return False
@@ -201,11 +251,46 @@ def check_create_body(raw_body: bytes, policy: CreatePolicy) -> Decision:
     for m in mounts:
         if not isinstance(m, dict):
             return Decision.deny(f"unparseable Mounts entry: {m!r}")
+        mount_type = str(m.get("Type") or "bind").lower()
+        if mount_type != "bind":
+            # Caught in review: Type="volume" with an inline
+            # VolumeOptions.DriverConfig (Name="local", Options={type:
+            # none, o: bind, device: <host_path>}) can create an
+            # ephemeral bind-backed volume in a single /containers/create
+            # call, entirely bypassing the /volumes/create endpoint this
+            # proxy already blocks -- and the DANGEROUS host path lives
+            # in DriverConfig.Options.device, not in Source, so the
+            # Source-based prefix check below wouldn't even see it. In
+            # practice a Source that passes the prefix check (must look
+            # like an absolute path under an allowed prefix) is always
+            # rejected by the real daemon anyway for Type=volume (it
+            # requires Source to be a bare volume *name*, no slashes --
+            # confirmed live) -- but that's the daemon's incidental
+            # behavior, not a guarantee this policy should lean on.
+            # ml_utils.py's real docker run never uses anything but
+            # plain bind mounts, so there's no real functionality this
+            # costs: every Mounts entry must be Type="bind" (or the
+            # field omitted, which Docker treats as bind's default).
+            return Decision.deny(f"Mounts Type={mount_type!r} is not allowed (only bind mounts are)")
         src = m.get("Source", "")
         if not _path_is_allowed(src, policy.allowed_bind_prefixes):
             return Decision.deny(
                 f"mount source '{src}' is outside the allowed prefixes {policy.allowed_bind_prefixes}"
             )
+
+    devices = host_config.get("Devices") or []
+    if devices:
+        return Decision.deny(f"Devices is not allowed (requested: {devices})")
+
+    security_opt = host_config.get("SecurityOpt") or []
+    for opt in security_opt:
+        opt_str = str(opt).lower()
+        if "seccomp=unconfined" in opt_str or "apparmor=unconfined" in opt_str or "no-new-privileges=false" in opt_str:
+            return Decision.deny(f"SecurityOpt entry '{opt}' is not allowed")
+
+    userns_mode = str(host_config.get("UsernsMode") or "").lower()
+    if userns_mode == "host":
+        return Decision.deny("UsernsMode=host is not allowed")
 
     return Decision.allow()
 

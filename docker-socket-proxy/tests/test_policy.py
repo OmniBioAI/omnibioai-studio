@@ -114,6 +114,49 @@ class TestPrivilegedBlocked:
 
 
 class TestHostBindMountBlocked:
+    def test_dotdot_traversal_out_of_allowed_prefix_blocked(self):
+        """Caught in review, before merge: a naive string-prefix check
+        lets '/app/work/../../../etc' through because it literally
+        STARTS WITH the allowed prefix string -- but the real daemon
+        resolves '..' components, so the effective mount source is
+        '/etc'. Confirmed live against a real daemon before this fix:
+        `docker run -v <allowed_dir>/../../etc:/hostetc` really did
+        mount the host's real /etc."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["/app/work/../../../etc:/hostetc"]
+            }}), POLICY
+        )
+        assert not d.allowed
+
+    def test_dotdot_traversal_stopping_exactly_at_prefix_boundary_blocked(self):
+        """'/app/work/foo/../../evil' normalizes to '/app/evil' --
+        outside /app/work -- must still be blocked even though the
+        traversal doesn't go all the way to a well-known sensitive path."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["/app/work/foo/../../evil:/x"]
+            }}), POLICY
+        )
+        assert not d.allowed
+
+    def test_dotdot_traversal_that_stays_inside_prefix_allowed(self):
+        """Legitimate use of '..' that never actually leaves the
+        allowed directory must not be penalized just for containing
+        '..' syntactically."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["/app/work/sub/../other:/x"]
+            }}), POLICY
+        )
+        assert d.allowed
+
+    def test_relative_bind_source_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"Binds": ["relative/path:/x"]}}), POLICY
+        )
+        assert not d.allowed
+
     def test_root_bind_mount_blocked(self):
         """The textbook #265 escape: -v /:/hostroot."""
         d = check_create_body(
@@ -189,6 +232,97 @@ class TestHostBindMountBlocked:
     def test_no_binds_no_mounts_allowed(self):
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {}}), POLICY)
         assert d.allowed
+
+
+class TestVolumeTypeMountBlocked:
+    """Caught in review, before merge: a Type='volume' Mounts entry can
+    embed the real host path in VolumeOptions.DriverConfig.Options.device
+    instead of Source -- a decoy Source that passes the prefix check
+    doesn't stop the DriverConfig from doing the actual bind. Only
+    Type='bind' is allowed; that's all ml_utils.py's real docker run
+    ever sends anyway."""
+
+    def test_volume_type_with_bind_driveropts_blocked_even_with_decoy_source(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"Mounts": [{
+                "Type": "volume",
+                "Source": "/app/work/decoy",  # would pass the Source prefix check alone
+                "Target": "/hostetc",
+                "VolumeOptions": {"DriverConfig": {
+                    "Name": "local", "Options": {"type": "none", "o": "bind", "device": "/etc"}
+                }},
+            }]}}), POLICY
+        )
+        assert not d.allowed
+        assert "type" in d.reason.lower()
+
+    def test_tmpfs_type_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"Mounts": [
+                {"Type": "tmpfs", "Target": "/tmp/x"}
+            ]}}), POLICY
+        )
+        assert not d.allowed
+
+    def test_bind_type_still_allowed(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"Mounts": [
+                {"Type": "bind", "Source": "/app/work/run-1", "Target": "/work"}
+            ]}}), POLICY
+        )
+        assert d.allowed
+
+    def test_missing_type_defaults_to_bind_and_is_allowed(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"Mounts": [
+                {"Source": "/app/work/run-1", "Target": "/work"}
+            ]}}), POLICY
+        )
+        assert d.allowed
+
+
+class TestDevicesSecurityOptUsernsBlocked:
+    def test_devices_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Devices": [{"PathOnHost": "/dev/sda", "PathInContainer": "/dev/sda", "CgroupPermissions": "rwm"}]
+            }}), POLICY
+        )
+        assert not d.allowed
+
+    def test_no_devices_allowed(self):
+        d = check_create_body(_body({"Image": "alpine", "HostConfig": {"Devices": []}}), POLICY)
+        assert d.allowed
+
+    def test_seccomp_unconfined_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"SecurityOpt": ["seccomp=unconfined"]}}), POLICY
+        )
+        assert not d.allowed
+
+    def test_apparmor_unconfined_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"SecurityOpt": ["apparmor=unconfined"]}}), POLICY
+        )
+        assert not d.allowed
+
+    def test_no_new_privileges_false_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"SecurityOpt": ["no-new-privileges=false"]}}), POLICY
+        )
+        assert not d.allowed
+
+    def test_benign_security_opt_allowed(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"SecurityOpt": ["no-new-privileges=true"]}}), POLICY
+        )
+        assert d.allowed
+
+    def test_userns_mode_host_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"UsernsMode": "host"}}), POLICY
+        )
+        assert not d.allowed
 
 
 class TestCapAddBlocked:
