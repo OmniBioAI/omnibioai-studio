@@ -292,11 +292,46 @@ services:
         condition: service_started
     restart: on-failure
 
+  # #265: policy-enforcing proxy in front of the real host docker.sock,
+  # for workbench specifically (ported from docker-compose.yml's own
+  # docker-socket-proxy service -- see that file's comment for the full
+  # threat model). Image-only, no build: (matches every other service in
+  # this file -- it has no build: precedent at all) -- published by CI
+  # from docker-socket-proxy/ the same way omnibioai-web already is (see
+  # .github/workflows/build-docker-socket-proxy.yml).
+  docker-socket-proxy:
+    image: ghcr.io/omnibioai/docker-socket-proxy:latest
+    restart: on-failure
+    environment:
+      PROXY_LISTEN_SOCKET: /var/run/proxy-socket/docker.sock
+      DOCKER_SOCK_PATH: /var/run/docker-real.sock
+      # #265: matches docker-compose.yml's own three real bind-mount
+      # prefixes (ml_utils.py's run_dir under WORK_DIR, the model
+      # registry root under MACHINE_DIR/data, and the ML cache dir) --
+      # see that file's comment for how each was confirmed. One
+      # pre-existing gap found while porting, NOT fixed here (separate,
+      # real, unrelated to this proxy): ml_utils.py's
+      # DEFAULT_MODEL_REGISTRY_ROOT is a hardcoded absolute dev-machine
+      # path ("/home/manish/Desktop/machine/data/local_registry/
+      # model_registry"), not derived from any env var a real end user's
+      # install would set differently -- so that specific bind already
+      # doesn't work correctly for any non-dev deployment regardless of
+      # this proxy, dev or release. Not this proxy's bug to fix; flagged
+      # as its own follow-up rather than silently worked around here.
+      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch
+    volumes:
+      - /var/run/docker.sock:/var/run/docker-real.sock
+      - docker-proxy-socket:/var/run/proxy-socket
+
   workbench:
     image: ghcr.io/omnibioai/omnibioai-app:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8000:8000"
     environment:
+      # #265: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- the volumes: block below no longer mounts
+      # /var/run/docker.sock directly.
+      DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
       DEBUG: "1"
       CSRF_EXTRA_ORIGINS: "http://localhost:5174,http://localhost:8000,http://${HOST_IP:-0.0.0.0}:5174,http://${HOST_IP:-0.0.0.0}:8000"
       DJANGO_SETTINGS_MODULE: omnibioai.settings
@@ -360,9 +395,14 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
-      - /var/run/docker.sock:/var/run/docker.sock
+      # #265: proxy's exposed socket, not the raw host one -- see the
+      # docker-socket-proxy service above and DOCKER_HOST in
+      # environment: above.
+      - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
+      docker-socket-proxy:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:
@@ -799,3 +839,5 @@ volumes:
   redis_data:
   ollama_data:
   grafana_data:
+  # #265: docker-socket-proxy's exposed socket, shared with workbench.
+  docker-proxy-socket:
