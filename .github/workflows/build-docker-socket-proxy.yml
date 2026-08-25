@@ -1,0 +1,49 @@
+name: Build docker-socket-proxy
+
+# #265: mirrors build-web.yml's exact pattern -- the release compose
+# files (docker-compose.release.yml, docker-compose-release.yml) are
+# deliberately image-only (no build: directive anywhere in either file,
+# see their own comments), so docker-socket-proxy needs a published
+# ghcr.io image like every other release-compose service, not a local
+# build context. This publishes it the same way omnibioai-web already
+# is: on push to main when the proxy's own source changes, using the
+# repo's own GITHUB_TOKEN (packages: write) -- no personal credentials
+# involved, same as every other image this repo publishes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker-socket-proxy/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Required for GITHUB_TOKEN to push to ghcr.io — without this the
+    # `docker push` step below fails with 403, since the default token
+    # permissions don't include package write access.
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Policy unit tests
+        # Pure, no-I/O tests (test_policy.py) -- fast, no Docker needed.
+        # test_proxy_live_integration.py is intentionally NOT run here:
+        # it needs a real docker.sock, which this runner's own Docker-in-
+        # Docker setup doesn't expose the same way local dev does; it's
+        # covered by running it directly against a real daemon instead
+        # (see the #265 PR history for that verification).
+        run: |
+          python3 -m pip install --quiet pytest
+          cd docker-socket-proxy && python3 -m pytest tests/test_policy.py -q
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push
+        run: |
+          docker build -t ghcr.io/omnibioai/docker-socket-proxy:latest -t ghcr.io/omnibioai/docker-socket-proxy:${{ github.sha }} docker-socket-proxy
+          docker push ghcr.io/omnibioai/docker-socket-proxy:latest
+          docker push ghcr.io/omnibioai/docker-socket-proxy:${{ github.sha }}
