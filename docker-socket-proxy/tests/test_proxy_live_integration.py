@@ -224,3 +224,67 @@ class TestAdversarialRequestsAreBlocked:
             assert "allowlist" in result.stderr.lower()
         finally:
             _docker(env, "rm", "-f", name)
+
+
+class TestConnectionReuseDoesNotCauseIntermittentFailures:
+    """Regression test for the bug found while verifying #58's real
+    published image (see _force_connection_close() in proxy.py, and
+    test_proxy_connection_handling.py for the pure unit coverage of
+    that fix). handle_client() is strictly one request per connection
+    -- but the real daemon's own responses (e.g. /_ping) are plain
+    HTTP/1.1 and default to persistent when they don't say otherwise,
+    which is exactly what they usually don't say. Relaying that
+    verbatim let an HTTP/1.1 client's connection pool (Go's net/http,
+    used by the `docker` CLI and Docker SDKs) believe a connection was
+    reusable and race its next request against this proxy already
+    having torn it down.
+
+    A single request/response pair -- what every other test in this
+    file exercises -- never surfaces this; it only shows up across a
+    *sequence* of calls sharing one client's connection pool, since
+    that's what triggers the client's own reuse logic. Each `docker`
+    CLI invocation already makes several such calls on one shared Go
+    http.Client (2x /_ping, create, attach, wait, start for an allowed
+    run); repeating real invocations enough times reliably reproduced
+    the pre-fix race -- ~4 of 5 failed with "connection reset by
+    peer" / "broken pipe" / "http: server closed idle connection"
+    against the real published (pre-fix) image."""
+
+    def test_many_sequential_legitimate_runs_all_succeed(self, proxy_env):
+        env, workdir = proxy_env
+        for i in range(15):
+            result = _docker(
+                env, "run", "--rm",
+                "-v", f"{workdir}:/work", "alpine:latest",
+                "sh", "-c", f"echo seq-{i} > /work/seq-{i}.txt",
+            )
+            assert result.returncode == 0, f"iteration {i}: {result.stderr}"
+            assert "reset" not in result.stderr.lower()
+            assert "broken pipe" not in result.stderr.lower()
+            assert "closed idle connection" not in result.stderr.lower()
+            assert (workdir / f"seq-{i}.txt").read_text().strip() == f"seq-{i}"
+
+    def test_many_sequential_denied_runs_still_get_a_clean_response(self, proxy_env):
+        """The pre-fix race hit denied requests exactly as often as
+        allowed ones -- the bug was in response framing shared by both
+        paths, not in policy logic. Confirms the deny path is equally
+        reliable now."""
+        env, _ = proxy_env
+        for i in range(15):
+            result = _docker(env, "run", "--rm", "--privileged", "alpine:latest", "echo", "pwned")
+            assert result.returncode != 0
+            assert "denied" in result.stderr.lower(), f"iteration {i}: {result.stderr}"
+            assert "privileged" in result.stderr.lower(), f"iteration {i}: {result.stderr}"
+            assert "reset" not in result.stderr.lower()
+            assert "broken pipe" not in result.stderr.lower()
+
+    def test_interleaved_allowed_and_denied_calls_all_clean(self, proxy_env):
+        """Alternating allow/deny within one long sequence -- closest
+        to real mixed traffic through one long-lived proxy."""
+        env, workdir = proxy_env
+        for i in range(10):
+            legit = _docker(env, "run", "--rm", "-v", f"{workdir}:/work", "alpine:latest", "true")
+            assert legit.returncode == 0, f"iteration {i} (allow): {legit.stderr}"
+            denied = _docker(env, "run", "--rm", "--network", "host", "alpine:latest", "true")
+            assert denied.returncode != 0
+            assert "denied" in denied.stderr.lower(), f"iteration {i} (deny): {denied.stderr}"

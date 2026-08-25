@@ -88,6 +88,25 @@ def _deny_response(reason: str) -> bytes:
     )
 
 
+def _force_connection_close(raw_headers: bytes) -> bytes:
+    """Rewrites a raw HTTP status-line+headers block (as returned by
+    _read_headers -- always ending in the blank-line terminator) so its
+    `Connection` header reads exactly `close`, overriding whatever the
+    upstream response actually sent -- including sending none at all,
+    HTTP/1.1's default-persistent case. See _relay_response()'s call
+    site for why every non-101 response must carry this."""
+    text = raw_headers.decode("iso-8859-1")
+    lines = text.split("\r\n")
+    status_line = lines[0]
+    kept = [
+        line for line in lines[1:]
+        if line and not line.lower().startswith("connection:")
+    ]
+    kept.append("Connection: close")
+    rebuilt = "\r\n".join([status_line, *kept, "", ""])
+    return rebuilt.encode("iso-8859-1")
+
+
 # ---------------------------------------------------------------------------
 # Response relaying with correct HTTP framing
 # ---------------------------------------------------------------------------
@@ -108,10 +127,30 @@ async def _relay_response(
     except (asyncio.IncompleteReadError, ConnectionError):
         return
 
+    status_code = _status_code(status_line)
+
+    if status_code != 101:
+        # handle_client() is strictly one request per connection -- it
+        # always closes both sides once this response completes (see
+        # its docstring). The real daemon's own responses (e.g.
+        # /_ping) are plain HTTP/1.1 and default to persistent when
+        # they don't say otherwise, which is exactly what they usually
+        # don't say. Relaying that verbatim let an HTTP/1.1 client's
+        # connection pool (Go's net/http, used by the `docker` CLI and
+        # Docker SDKs; Python's `requests` Session; etc.) believe the
+        # socket was reusable and race its next request against this
+        # proxy already having torn the connection down -- observed as
+        # intermittent "connection reset by peer" / "broken pipe" /
+        # "server closed idle connection" failures on otherwise-
+        # legitimate traffic, not just adversarial requests. Forcing
+        # `Connection: close` here removes any basis for that
+        # assumption. Left untouched for 101 Switching Protocols below:
+        # its `Connection: Upgrade` is part of the hijack handshake
+        # itself, not a keep-alive signal.
+        raw_headers = _force_connection_close(raw_headers)
+
     client_writer.write(raw_headers)
     await client_writer.drain()
-
-    status_code = _status_code(status_line)
 
     if status_code == 101:
         # Hijacked stream (attach/exec-style raw duplex). No more HTTP
