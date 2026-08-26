@@ -22,16 +22,13 @@ TES_DIRECT_URL = os.getenv("OMNIBIOAI_TES_URL", "http://localhost:8081")
 RAG_DIRECT_URL = os.getenv("OMNIBIOAI_RAG_URL", "http://localhost:8090")
 
 # ── Credentials ──────────────────────────────────────────────────────────────
-AUTH_ADMIN_EMAIL = os.getenv("OMNIBIOAI_AUTH_EMAIL", "admin@omnibioai")
-AUTH_ADMIN_PASSWORD = os.getenv("OMNIBIOAI_AUTH_PASSWORD", "admin")
+AUTH_ADMIN_EMAIL = os.getenv("OMNIBIOAI_AUTH_EMAIL", "")
+AUTH_ADMIN_PASSWORD = os.getenv("OMNIBIOAI_AUTH_PASSWORD", "")
 
-LIMS_USERNAME = os.getenv("OMNIBIOAI_LIMS_USER", "man4ish")
-LIMS_PASSWORD = os.getenv("OMNIBIOAI_LIMS_PASSWORD", "root")
+LIMS_USERNAME = os.getenv("OMNIBIOAI_LIMS_USER", "")
+LIMS_PASSWORD = os.getenv("OMNIBIOAI_LIMS_PASSWORD", "")
 
-RAGBIO_API_KEY = os.getenv(
-    "RAGBIO_API_KEY",
-    "151b795d8e506b524c507e19212a663a09a44982684d93816803d13f042455cc",
-)
+RAGBIO_API_KEY = os.getenv("RAGBIO_API_KEY", "")
 
 # ── Request timeout (seconds) ────────────────────────────────────────────────
 # /v1/studies on the RAG service routinely takes ~7-9s to respond in this
@@ -86,6 +83,8 @@ def _login_or_skip() -> dict:
     Log in to the auth service and return {"access_token": ..., "refresh_token": ...}.
     Skips if the auth service is not reachable.
     """
+    if not AUTH_ADMIN_EMAIL or not AUTH_ADMIN_PASSWORD:
+        pytest.skip("Auth integration credentials are not configured")
     try:
         resp = requests.post(
             f"{AUTH_DIRECT_URL}/auth/login",

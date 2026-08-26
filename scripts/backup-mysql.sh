@@ -23,7 +23,7 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
-MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-omnibioai}"
+: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in the protected environment}"
 BACKUP_DIR="${BACKUP_DIR:-${SCRIPT_DIR}/../work/backups/mysql}"
 RETAIN_DAYS="${RETAIN_DAYS:-7}"
 CONTAINER="${MYSQL_CONTAINER:-omnibioai-studio-mysql-1}"
@@ -41,15 +41,19 @@ fi
 # ── Dump ──────────────────────────────────────────────────────
 echo "[INFO] $(date -Iseconds) Starting MySQL backup → ${OUT_FILE}"
 
-docker exec "${CONTAINER}" \
+docker exec \
+  -e MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" \
+  "${CONTAINER}" \
   mysqldump \
     -uroot \
-    -p"${MYSQL_ROOT_PASSWORD}" \
     --all-databases \
     --single-transaction \
     --quick \
     --lock-tables=false \
 | gzip > "${OUT_FILE}"
+
+gzip -t "${OUT_FILE}"
+[[ -s "${OUT_FILE}" ]] || { echo "[ERROR] backup archive is empty" >&2; exit 1; }
 
 SIZE=$(du -sh "${OUT_FILE}" | cut -f1)
 echo "[INFO] $(date -Iseconds) Backup complete — ${SIZE} written to ${OUT_FILE}"

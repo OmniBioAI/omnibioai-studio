@@ -17,6 +17,7 @@ the run reaches COMPLETE or FAILED.
 Run: pytest tests/integration/test_tes_integration.py -v
 """
 
+import os
 import time
 import pytest
 import requests
@@ -24,6 +25,7 @@ import requests
 from conftest import TES_DIRECT_URL, TIMEOUT
 
 BASE = TES_DIRECT_URL
+TES_TOKEN = os.getenv("OMNIBIOAI_TES_TOKEN", "")
 
 # echo_test is a lightweight built-in TES tool that always succeeds
 ECHO_TOOL_ID = "echo_test"
@@ -38,11 +40,13 @@ TERMINAL_STATES = {"COMPLETE", "COMPLETED", "FAILED", "ERROR", "CANCELLED"}
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _get(path: str) -> requests.Response:
-    return requests.get(f"{BASE}{path}", timeout=TIMEOUT)
+    headers = {"Authorization": f"Bearer {TES_TOKEN}"} if TES_TOKEN else {}
+    return requests.get(f"{BASE}{path}", headers=headers, timeout=TIMEOUT)
 
 
 def _post(path: str, body: dict) -> requests.Response:
-    return requests.post(f"{BASE}{path}", json=body, timeout=TIMEOUT)
+    headers = {"Authorization": f"Bearer {TES_TOKEN}"} if TES_TOKEN else {}
+    return requests.post(f"{BASE}{path}", json=body, headers=headers, timeout=TIMEOUT)
 
 
 def _poll_run(run_id: str) -> dict:
@@ -99,8 +103,19 @@ class TestTesTools:
             assert "tool_id" in tool or "id" in tool
 
 
+class TestTesAuthentication:
+    def test_submit_without_token_is_protected(self):
+        r = requests.post(
+            f"{BASE}/api/runs/submit",
+            json={"tool_id": ECHO_TOOL_ID, "inputs": {"message": ECHO_TEXT}, "resources": {}},
+            timeout=TIMEOUT,
+        )
+        assert r.status_code in (401, 403)
+
+
 # ── Runs list ─────────────────────────────────────────────────────────────────
 
+@pytest.mark.skipif(not TES_TOKEN, reason="OMNIBIOAI_TES_TOKEN is not configured")
 class TestTesRunsList:
     def test_list_runs_returns_200(self):
         r = _get("/api/runs")
@@ -114,6 +129,7 @@ class TestTesRunsList:
 
 # ── Submit run ────────────────────────────────────────────────────────────────
 
+@pytest.mark.skipif(not TES_TOKEN, reason="OMNIBIOAI_TES_TOKEN is not configured")
 class TestTesSubmit:
     def test_submit_echo_test_returns_200(self):
         r = _post(
@@ -145,12 +161,14 @@ class TestTesSubmit:
 
 # ── Poll run status ───────────────────────────────────────────────────────────
 
+@pytest.mark.skipif(not TES_TOKEN, reason="OMNIBIOAI_TES_TOKEN is not configured")
 class TestTesRunStatus:
     @pytest.fixture(scope="class")
     def submitted_run(self):
         r = requests.post(
             f"{BASE}/api/runs/submit",
             json={"tool_id": ECHO_TOOL_ID, "inputs": {"message": ECHO_TEXT}, "resources": {}},
+            headers={"Authorization": f"Bearer {TES_TOKEN}"},
             timeout=TIMEOUT,
         )
         r.raise_for_status()
@@ -173,11 +191,13 @@ class TestTesRunStatus:
 
 # ── Full end-to-end: submit → wait → COMPLETE ────────────────────────────────
 
+@pytest.mark.skipif(not TES_TOKEN, reason="OMNIBIOAI_TES_TOKEN is not configured")
 class TestTesEndToEnd:
     def test_echo_test_completes_successfully(self):
         r = requests.post(
             f"{BASE}/api/runs/submit",
             json={"tool_id": ECHO_TOOL_ID, "inputs": {"message": ECHO_TEXT}, "resources": {}},
+            headers={"Authorization": f"Bearer {TES_TOKEN}"},
             timeout=TIMEOUT,
         )
         r.raise_for_status()
@@ -192,6 +212,7 @@ class TestTesEndToEnd:
         r = requests.post(
             f"{BASE}/api/runs/submit",
             json={"tool_id": ECHO_TOOL_ID, "inputs": {"message": "log check"}, "resources": {}},
+            headers={"Authorization": f"Bearer {TES_TOKEN}"},
             timeout=TIMEOUT,
         )
         r.raise_for_status()
@@ -206,6 +227,7 @@ class TestTesEndToEnd:
         r = requests.post(
             f"{BASE}/api/runs/submit",
             json={"tool_id": ECHO_TOOL_ID, "inputs": {"message": "result check"}, "resources": {}},
+            headers={"Authorization": f"Bearer {TES_TOKEN}"},
             timeout=TIMEOUT,
         )
         r.raise_for_status()

@@ -84,7 +84,7 @@ class TestLimsHealth:
         assert r.status_code == 200
 
     def test_via_nginx_healthz(self):
-        r = _get(f"{BASE_URL}/_svc/lims/healthz")
+        r = requests.get(f"{BASE_URL}/_svc/lims/healthz", timeout=TIMEOUT)
         assert r.status_code == 200
 
 
@@ -134,16 +134,13 @@ class TestApiGatewayHealth:
 
 
 # ── Policy Engine ─────────────────────────────────────────────────────────────
-# The policy engine exposes no /health route; /openapi.json is the liveness check.
-# The nginx proxy for this service returns 502 (upstream connection issue in the
-# current deployment), so the via-nginx test is marked xfail.
+# The policy engine exposes no /health route; /openapi.json is only a liveness check.
 
 class TestPolicyEngineHealth:
     def test_direct_openapi_returns_200(self):
         r = requests.get("http://localhost:8002/openapi.json", timeout=TIMEOUT)
         assert r.status_code == 200
 
-    @pytest.mark.xfail(reason="nginx returns 502 for policy-engine upstream in current deployment", strict=False)
     def test_via_nginx_health(self):
         r = _get(f"{BASE_URL}/_svc/policy/openapi.json")
         assert r.status_code == 200
@@ -157,7 +154,6 @@ class TestHpcPolicyEngineHealth:
         r = requests.get("http://localhost:8003/openapi.json", timeout=TIMEOUT)
         assert r.status_code == 200
 
-    @pytest.mark.xfail(reason="nginx returns 502 for hpc-policy-engine upstream in current deployment", strict=False)
     def test_via_nginx_health(self):
         r = _get(f"{BASE_URL}/_svc/hpc/openapi.json")
         assert r.status_code == 200
@@ -220,15 +216,13 @@ class TestWorkflowBundlesHealth:
 
 
 # ── OPA ───────────────────────────────────────────────────────────────────────
-# OPA is optional in the current deployment and is not always running.
+# OPA is part of the primary 40-service Compose profile and is required here.
 
 class TestOpaHealth:
-    @pytest.mark.xfail(reason="OPA not running in current deployment", strict=False)
     def test_direct_health_returns_200(self):
         r = requests.get("http://localhost:8181/health", timeout=TIMEOUT)
         assert r.status_code == 200
 
-    @pytest.mark.xfail(reason="OPA not running in current deployment", strict=False)
     def test_via_nginx_health(self):
         r = _get(f"{BASE_URL}/_svc/opa/health")
         assert r.status_code == 200
@@ -251,7 +245,6 @@ class TestGrafanaHealth:
 SERVICES = [
     pytest.param("nginx-router",   f"{BASE_URL}/_health",                   id="nginx-router"),
     pytest.param("auth-service",   "http://localhost:8001/health",           id="auth-service"),
-    pytest.param("lims",           "http://localhost:7000/healthz",          id="lims"),
     pytest.param("tes",            "http://localhost:8081/health",           id="tes"),
     pytest.param("rag",            "http://localhost:8090/health",           id="rag"),
     pytest.param("api-gateway",    "http://localhost:8080/health",           id="api-gateway"),
@@ -260,8 +253,7 @@ SERVICES = [
     pytest.param("hpc-policy",     "http://localhost:8003/openapi.json",     id="hpc-policy"),
     pytest.param("security-audit", "http://localhost:8004/health",           id="security-audit"),
     pytest.param("toolserver",     "http://localhost:9090/health",           id="toolserver"),
-    pytest.param("opa",            "http://localhost:8181/health",           id="opa",
-                 marks=pytest.mark.xfail(reason="OPA not running in current deployment", strict=False)),
+    pytest.param("opa",            "http://localhost:8181/health",           id="opa"),
     pytest.param("grafana",        "http://localhost:3000/api/health",       id="grafana"),
 ]
 

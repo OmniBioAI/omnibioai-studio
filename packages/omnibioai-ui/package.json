@@ -43,9 +43,11 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:app": "vitest run --config ../../vitest.app.config.js",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
+    "coverage:app": "vitest run --config ../../vitest.app.config.js --coverage",
     "build": "vite build",
     "dev": "vite build --watch",
     "storybook": "storybook dev -p 6006",

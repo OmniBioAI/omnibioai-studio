@@ -1,0 +1,8 @@
+# Reviewed historical findings. Values are intentionally not recorded here.
+# These entries suppress only the exact commit/file/rule locations below;
+# new findings using the same rules remain blocking.
+8e35ae534a85244102643502d64b73dd57d0028c:docker-compose.yml:jwt:232
+9a12a77d00b7715e83dedb5f09061d054e318029:docker-compose.release.yml:jwt:213
+4f94b88909f5c8951027b11bd862e91edb8bd1b1:DEPLOYMENT.md:curl-auth-user:232
+4f94b88909f5c8951027b11bd862e91edb8bd1b1:DEPLOYMENT.md:curl-auth-user:317
+4f94b88909f5c8951027b11bd862e91edb8bd1b1:DEPLOYMENT.md:curl-auth-user:320

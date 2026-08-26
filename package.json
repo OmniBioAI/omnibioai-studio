@@ -21,7 +21,9 @@
     "web:preview": "vite preview --mode web --port 4173",
     "check-routes": "python3 scripts/check_route_drift.py",
     "check-docs": "python3 scripts/check_service_catalog.py",
-    "test:secrets": "node --test tests/test_secret_generation.js"
+    "test:secrets": "node --test tests/test_secret_generation.js",
+    "test:ui": "npm --prefix packages/omnibioai-ui run test:app",
+    "coverage:ui": "npm --prefix packages/omnibioai-ui run coverage:app"
   },
   "dependencies": {
     "@omnibioai/design-tokens": "file:./packages/omnibioai-design-tokens",
