@@ -1070,6 +1070,12 @@ services:
       LIMS_SSO_CLIENT_SECRET: ${LIMS_SSO_CLIENT_SECRET}
       LIMS_SSO_REDIRECT_URI: ${LIMS_SSO_REDIRECT_URI:-https://lims.omnibioai.org/sso/callback}
 
+      # #443: ensure_bio_agent_service_role bootstrap -- same env var name
+      # workbench already sets below (BIO_AGENT_SVC_EMAIL), previously not
+      # forwarded to this service at all so the bootstrap was unreachable
+      # here even with the var set in .env.
+      BIO_AGENT_SVC_EMAIL: ${BIO_AGENT_SVC_EMAIL:-}
+
     depends_on:
       mysql:
         condition: service_healthy
