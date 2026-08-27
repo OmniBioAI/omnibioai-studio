@@ -20,6 +20,16 @@ from policy import CreatePolicy, Decision, check_create_body, check_endpoint, ev
 
 POLICY = CreatePolicy(allowed_bind_prefixes=("/app/work", "/home/user/.cache/omnibioai"))
 
+# #54: separate policy instance with a named-volume allowlist populated,
+# for the workflow_runner nested-Docker-in-Docker tests below -- kept
+# separate from POLICY (whose named-volume list is empty by default) so
+# every existing test above keeps proving named volumes are denied
+# unless a deployment explicitly opts a specific volume in.
+NAMED_VOLUME_POLICY = CreatePolicy(
+    allowed_bind_prefixes=("/app/work",),
+    allowed_named_volumes=("docker-proxy-socket",),
+)
+
 
 def _body(d: dict) -> bytes:
     return json.dumps(d).encode()
@@ -232,6 +242,67 @@ class TestHostBindMountBlocked:
     def test_no_binds_no_mounts_allowed(self):
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {}}), POLICY)
         assert d.allowed
+
+
+class TestNamedVolumeBindsAllowlist:
+    """#54: workflow_runner's nested Docker-in-Docker dispatch needs its
+    spawned sibling container to reach THIS proxy's own exposed socket,
+    the same way its parent container already does -- via the
+    'docker-proxy-socket' named volume, not a raw host path. Uses
+    NAMED_VOLUME_POLICY (POLICY's own allowed_named_volumes stays empty
+    throughout this file, so every test above keeps proving named
+    volumes are denied by default)."""
+
+    def test_allowlisted_named_volume_allowed(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert d.allowed
+
+    def test_named_volume_not_on_allowlist_blocked(self):
+        """A caller can't reach some OTHER named volume this deployment
+        happens to have (e.g. mysql_data) just because docker-proxy-
+        socket is allowed -- exact match, not 'any named volume'."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["mysql_data:/var/lib/mysql"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+        assert "not on the allowed volume list" in d.reason
+
+    def test_named_volume_blocked_when_allowlist_empty(self):
+        """Same source as the test above, but against POLICY (no named-
+        volume allowlist configured at all) -- must still be denied,
+        not fall through to "no prefixes configured means unrestricted"."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro"]
+            }}), POLICY
+        )
+        assert not d.allowed
+
+    def test_similar_looking_volume_name_not_prefix_matched(self):
+        """Exact match, not startswith -- 'docker-proxy-socket-evil' must
+        not slip through as if it were the real allowlisted volume."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket-evil:/var/run/proxy-socket:ro"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+
+    def test_absolute_path_source_unaffected_by_named_volume_allowlist(self):
+        """A real host-path Binds entry still goes through the ordinary
+        prefix check even when a named-volume allowlist is configured --
+        the two checks are independent, not "either one passes"."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"Binds": ["/etc:/hostetc"]}}),
+            NAMED_VOLUME_POLICY,
+        )
+        assert not d.allowed
 
 
 class TestVolumeTypeMountBlocked:

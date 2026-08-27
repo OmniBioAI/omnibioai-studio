@@ -249,7 +249,14 @@ services:
       HOST: 0.0.0.0
       PORT: "8081"
       PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/docker
-      DOCKER_HOST: unix:///var/run/docker.sock
+      # #54: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- the volumes: block below no longer mounts
+      # /var/run/docker.sock directly. See that service's own
+      # PROXY_ALLOWED_BIND_PREFIXES comment for TES's real bind-mount
+      # set in this deployment shape (no OMNIBIOAI_EXTRA_MOUNTS is set
+      # here, unlike docker-compose.yml's dev tes block, so the
+      # singularity/squashfs mounts that env var drives never apply).
+      DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
       TOOLSERVER_BASE_URL: http://toolserver:9090
       TES_TOOLS: /workspace/configs/tools.example.yaml
       TES_SERVERS: /workspace/configs/servers.example.yaml
@@ -266,7 +273,10 @@ services:
       SENTRY_RELEASE: "0.7.0"
     volumes:
       - ${WORKSPACE_HOST}:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
+      # #54: proxy's exposed socket, not the raw host one -- see
+      # DOCKER_HOST in environment: above. :ro because TES only ever
+      # needs to *connect to* this socket file, never write to it.
+      - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
     command:
       - bash
@@ -279,6 +289,8 @@ services:
           --tools /workspace/configs/tools.example.yaml \
           --servers /workspace/configs/servers.example.yaml
     depends_on:
+      docker-socket-proxy:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:
@@ -294,6 +306,18 @@ services:
   # this file -- it has no build: precedent at all) -- published by CI
   # from docker-socket-proxy/ the same way omnibioai-web already is (see
   # .github/workflows/build-docker-socket-proxy.yml).
+  #
+  # #54: extended to tes/celery-worker/control-center below (ported from
+  # docker-compose.yml's own #54 extension -- see that file's comment
+  # for each service's full, individually-verified traffic pattern) and
+  # to workflow_runner's own nested sibling-container dispatch (see
+  # PROXY_ALLOWED_NAMED_VOLUMES below). launcher and workflow-bundles are
+  # NOT touched here: neither has a docker.sock mount in THIS file at
+  # all (grepped and confirmed -- a pre-existing gap in this release
+  # config, predating and unrelated to this change, not silently
+  # introduced by it); workflow-bundles is additionally excluded on
+  # purpose even where it IS wired (docker-compose.yml, dev) -- see that
+  # file's own workflow-bundles comment for why.
   docker-socket-proxy:
     image: ghcr.io/omnibioai/docker-socket-proxy:latest
     restart: on-failure
@@ -313,7 +337,35 @@ services:
       # doesn't work correctly for any non-dev deployment regardless of
       # this proxy, dev or release. Not this proxy's bug to fix; flagged
       # as its own follow-up rather than silently worked around here.
-      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch
+      # This is also celery-worker's own dominant real docker.sock
+      # consumer (same ml_utils.run_ml_docker_job(), called from its ~50
+      # ML plugins' Celery tasks) -- no separate prefixes needed for it.
+      #
+      # #54: the remaining entries are TES's own real `workflow_runner`
+      # tool's UNCONDITIONAL bind mounts (execution/adapters/local.py in
+      # omnibioai-tes -- always added for that tool regardless of
+      # config): fixed Slurm/munge/Cromwell paths, plus ${MACHINE_DIR}/
+      # omnibioai (repo_root, found by walking up from work_dir looking
+      # for an "omnibioai" subdir + a repo marker -- may resolve to
+      # nothing on a real end-user install with no such checkout, same
+      # already-flagged shape as the DEFAULT_MODEL_REGISTRY_ROOT gap
+      # above, harmless to allow either way). Deliberately does NOT
+      # include docker-compose.yml's (dev) singularity/squashfs/fuse
+      # entries -- this file's own tes block (above) never sets
+      # OMNIBIOAI_EXTRA_MOUNTS, so local.py's _extra_mount_args() always
+      # returns empty here; adding prefixes for binds that can never be
+      # requested in this deployment shape would be exactly the kind of
+      # silent over-broadening this change is meant to avoid.
+      # control-center needs NO new prefixes (never calls
+      # /containers/create -- same as docker-compose.yml's control-center
+      # comment; identical image/code, so the same grep evidence applies).
+      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch,/etc/passwd,/etc/group,/etc/munge,/run/munge/munge.socket.2,/etc/slurm,/cromwell-executions,${MACHINE_DIR}/omnibioai
+      # #54: exact-match named-volume allowlist (see docker-socket-proxy/
+      # policy.py's _is_allowed_named_volume) -- lets workflow_runner's
+      # spawned sibling container reference THIS proxy's own already-
+      # existing, compose-created socket volume by name, the same volume
+      # workbench itself already mounts below.
+      PROXY_ALLOWED_NAMED_VOLUMES: docker-proxy-socket
     volumes:
       - /var/run/docker.sock:/var/run/docker-real.sock
       - docker-proxy-socket:/var/run/proxy-socket
@@ -441,6 +493,12 @@ services:
       OMNIBIOAI_HOST_APP_PREFIX: ${WORKSPACE_HOST}
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_RUNS_ROOT: /app/work/runs
+      # #54: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- see docker-compose.yml's own celery-worker
+      # comment for the full traffic-pattern analysis (same image, same
+      # code) and its flagged, not-fixed alphafold/colabfold_docker.py
+      # finding (applies here identically).
+      DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
@@ -448,9 +506,13 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
-      - /var/run/docker.sock:/var/run/docker.sock
+      # #54: proxy's exposed socket, not the raw host one -- see
+      # DOCKER_HOST in environment: above.
+      - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
+      docker-socket-proxy:
+        condition: service_started
       workbench:
         condition: service_started
     command: ["bash", "-lc", "celery -A omnibioai worker -l info"]
@@ -553,15 +615,23 @@ services:
       # verified tokens against the public literal "change-me" instead of
       # the real secret.
       JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
+      # #54: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- see docker-compose.yml's own control-center
+      # comment for the full traffic-pattern analysis (same image, same
+      # code: docker inspect/ps/images only, never /containers/create).
+      DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
       - ${DATA_DIR}:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
+      # #54: proxy's exposed socket, not the raw host one -- see
+      # DOCKER_HOST in environment: above.
+      - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
       - ${DATA_DIR}/tool-images/sif:/workspace/tool-images/sif:ro
     command: >-
       sh -c "/usr/local/bin/pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
       exec /usr/local/bin/uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
     depends_on:
+      - docker-socket-proxy
       - workbench
       - tes
       - toolserver

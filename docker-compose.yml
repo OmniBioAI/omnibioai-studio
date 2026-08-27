@@ -111,7 +111,12 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
       SENTRY_RELEASE: "0.7.0"
-      DOCKER_HOST: unix:///var/run/docker.sock
+      # #54: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- the volumes: block below no longer mounts
+      # /var/run/docker.sock directly. See that service's own
+      # PROXY_ALLOWED_BIND_PREFIXES comment for TES's real, verified
+      # bind-mount set.
+      DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
       PYTHONPATH: /workspace/src
       # Mode B Phase 1A/1B run_store.py's own DB_* defaults (DB_USER=
       # DB_PASSWORD="omnibioai") never matched any real MySQL grant --
@@ -153,7 +158,11 @@ services:
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
     volumes:
       - ${MACHINE_DIR}/omnibioai-tes:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
+      # #54: proxy's exposed socket, not the raw host one -- see
+      # DOCKER_HOST in environment: above and the docker-socket-proxy
+      # service's own comment. :ro because TES only ever needs to
+      # *connect to* this socket file, never write to it.
+      - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
       - /usr/bin/singularity:/usr/bin/singularity:ro
       - /etc/slurm:/etc/slurm:ro
@@ -187,6 +196,8 @@ services:
           --tools /workspace/configs/tools \
           --servers /workspace/configs/servers
     depends_on:
+      docker-socket-proxy:
+        condition: service_started
       mysql:
         condition: service_healthy
       redis:
@@ -426,13 +437,21 @@ services:
   # adversarially-tested end to end against a live Docker daemon (see
   # docker-socket-proxy/tests/test_proxy_live_integration.py).
   #
-  # NOT yet applied to this file's other 5 docker.sock-RW-mounted
-  # services (tes, celery-worker, control-center, launcher,
-  # workflow-bundles) or to workflow_runner's own nested sibling-
-  # container dispatch (which still bind-mounts the raw host socket
-  # into containers *it* spawns, for Nextflow's Docker-in-Docker
-  # executor) -- tracked as its own follow-up (#54), not silently left
-  # uncovered.
+  # #54: extended to 4 of this file's other 5 docker.sock-RW-mounted
+  # services (tes, celery-worker, control-center, launcher -- see each
+  # service's own environment: block below for its real, individually-
+  # verified traffic pattern) and to workflow_runner's own nested
+  # sibling-container dispatch (plugins/workflow_runner/views.py, in
+  # omnibioai-workbench: its spawned engine container now reaches this
+  # SAME proxy via the docker-proxy-socket named volume + a redirected
+  # DOCKER_HOST, instead of bind-mounting the raw host socket into a
+  # container it spawns -- PROXY_ALLOWED_NAMED_VOLUMES below is what
+  # makes that specific, pre-existing, compose-created volume
+  # referenceable through a /containers/create call this proxy sees).
+  #
+  # workflow-bundles is deliberately NOT included here -- see its own
+  # service block below for why forcing it through this proxy would be
+  # a regression, not a hardening.
   docker-socket-proxy:
     build:
       context: ./docker-socket-proxy
@@ -452,8 +471,71 @@ services:
       # fallback; an existing quirk of that unset env var, not
       # something this proxy changes or should silently break by
       # narrowing). All three are listed so legitimate ML plugin
-      # dispatch keeps working exactly as it does today.
-      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch
+      # dispatch keeps working exactly as it does today -- this is also
+      # celery-worker's own dominant real docker.sock consumer (its
+      # ~50 ML plugin `tasks.py` Celery tasks call the exact same
+      # ml_utils.run_ml_docker_job() workbench itself uses
+      # synchronously), so no separate prefixes were needed for it.
+      #
+      # #54: everything from here down is tes's own real, verified
+      # `workflow_runner` tool bind-mount set (execution/adapters/
+      # local.py in omnibioai-tes) -- control-center and launcher need
+      # NO bind-mount prefixes at all (neither ever calls
+      # /containers/create; see their own service blocks below for
+      # exactly what they do call).
+      #
+      # Fixed system paths the Slurm/munge preflight and Cromwell need
+      # (single files/dirs, not WORK_DIR-relative -- _path_is_allowed's
+      # exact-match semantics handle a single file listed as its own
+      # "prefix" correctly, confirmed against policy.py's own tests):
+      #   /etc/passwd, /etc/group     -- ro, container UID/GID resolution
+      #   /etc/munge, /run/munge/munge.socket.2 -- munge auth for Slurm
+      #   /etc/slurm                  -- ro, slurm.conf
+      #   /cromwell-executions        -- rw, Cromwell's own fixed root
+      # ${MACHINE_DIR}/omnibioai covers two distinct real sources local.py
+      # computes dynamically: _find_repo_root()'s own repo_root (walks up
+      # from work_dir looking for an "omnibioai" subdir + a repo marker;
+      # in this deployment that resolves to ${MACHINE_DIR}/omnibioai) and
+      # repo_root/work, AND one entry of TES's own OMNIBIOAI_EXTRA_MOUNTS
+      # value below. ${WORK_DIR} (already listed above) already covers
+      # host_work_dir for this deployment's real caller (bio_agent submits
+      # workflow_runner work_dir under ${WORK_DIR}/workflow_runner_exec/
+      # <run_id>) and the workflow_runner_runs mount local.py separately
+      # computes as host_work_dir.parent.parent/workflow_runner_runs.
+      #
+      # Flagged, not fixed here (pre-existing, TES's own, already
+      # documented in local.py's _work_dir_disallowed_reason docstring):
+      # TES's own configs/servers/01_local.yaml leaves
+      # allowed_work_dir_prefixes unset/unbounded, so in principle a
+      # workflow.execute-permitted caller could supply ANY work_dir that
+      # exists inside TES's own container filesystem, not just the
+      # ${WORK_DIR}/workflow_runner_exec convention above -- since that
+      # filesystem only has the directories TES's own volumes: block
+      # mounts (this list, plus ${MACHINE_DIR}/data), this proxy's real
+      # protection for that specific input is bounded by TES's own mounts,
+      # not a true per-tenant restriction. Same gap as before this change,
+      # not made worse or better by it.
+      #
+      # Remaining entries are TES's own OMNIBIOAI_EXTRA_MOUNTS value
+      # below, verbatim (colon-separated there, comma-separated here) --
+      # local.py's _extra_mount_args() re-mounts each into the spawned
+      # workflow_runner container too, so each must be independently
+      # allowed here as well:
+      #   singularity/squashfs/fuse binaries and shared libs, /etc/
+      #   singularity, /var/lib/singularity, ${MACHINE_DIR}/omnibioai-
+      #   tool-images/sif, and /usr/bin/docker (also needed so TES's own
+      #   spawned containers can see the docker CLI binary, matching its
+      #   own compose-level :ro mount of the same path).
+      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch,/etc/passwd,/etc/group,/etc/munge,/run/munge/munge.socket.2,/etc/slurm,/cromwell-executions,${MACHINE_DIR}/omnibioai,${MACHINE_DIR}/omnibioai-tool-images/sif,/usr/bin/docker,/usr/bin/singularity,/usr/bin/unsquashfs,/usr/bin/squashfuse,/usr/bin/fusermount,/usr/bin/fusermount3,/lib/aarch64-linux-gnu/libseccomp.so.2,/lib/aarch64-linux-gnu/liblzo2.so.2,/lib/aarch64-linux-gnu/liblzo2.so.2.0.0,/lib/aarch64-linux-gnu/libfuse3.so.3,/lib/aarch64-linux-gnu/libfuse3.so.3.14.0,/etc/singularity,/usr/lib/aarch64-linux-gnu/singularity,/var/lib/singularity
+      # #54: exact-match named-volume allowlist (see docker-socket-proxy/
+      # policy.py's _is_allowed_named_volume) -- lets workflow_runner's
+      # spawned sibling container (omnibioai-workbench, plugins/
+      # workflow_runner/views.py) reference THIS proxy's own already-
+      # existing, compose-created socket volume by name via `-v
+      # docker-proxy-socket:/var/run/proxy-socket:ro`, the same volume
+      # workbench itself already mounts below -- not an arbitrary host
+      # path, so it's a different, narrower risk than the prefixes above.
+      PROXY_ALLOWED_NAMED_VOLUMES: docker-proxy-socket
     volumes:
       - /var/run/docker.sock:/var/run/docker-real.sock
       - docker-proxy-socket:/var/run/proxy-socket
@@ -661,6 +743,36 @@ services:
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       SENTRY_DSN: ${SENTRY_DSN:-}
       MS_GRAPH_ENABLED: ${MS_GRAPH_ENABLED:-false}
+      # #54: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- the volumes: block below no longer mounts
+      # /var/run/docker.sock directly. celery-worker's dominant real
+      # docker.sock consumer is the same omnibioai/plugin_executor/
+      # ml_utils.py run_ml_docker_job() workbench itself uses (its ~50
+      # ML plugins' tasks.py Celery tasks call it via each plugin's own
+      # executor.py) -- already covered by the proxy's existing
+      # PROXY_ALLOWED_BIND_PREFIXES, no new prefixes needed for it.
+      #
+      # Flagged, not fixed here (pre-existing, unrelated to this
+      # change): plugins/alphafold/services/colabfold_docker.py builds
+      # its OWN separate docker run invocation for the "alphafold"
+      # plugin specifically, and does NOT route its `cache_dir`/
+      # `work_dir` bind sources through ml_utils.to_host_path() the way
+      # every other ML plugin does -- both are passed to `docker run -v`
+      # as container-internal paths (e.g. /app/work/runs/...,
+      # ~/colabfold_cache under this container's own $HOME) as if they
+      # were already host paths. Against the real host daemon (which
+      # resolves bind sources against ITS OWN filesystem, not this
+      # container's), that's already silently wrong today -- unrestricted
+      # docker.sock just lets whatever host path those strings happen to
+      # resolve to get created/mounted without complaint. This proxy
+      # will DENY those two specific bind sources (neither matches any
+      # allowed prefix), which fails the alphafold colabfold_batch run
+      # closed with a clear reason instead of silently mounting an
+      # unintended host directory -- an improvement on the status quo,
+      # not a regression, but the underlying bug is real and not fixed
+      # here (would be a behavior change to alphafold-specific code, out
+      # of scope for this docker-socket-proxy extension).
+      DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
       - ${WORKSPACE_HOST}:/workspace
       - ${WORK_DIR}/runs:/app/work/runs
@@ -668,9 +780,15 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
-      - /var/run/docker.sock:/var/run/docker.sock
+      # #54: proxy's exposed socket, not the raw host one -- see
+      # DOCKER_HOST in environment: above. :ro because celery-worker
+      # only ever needs to *connect to* this socket file, never write
+      # to it.
+      - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
+      docker-socket-proxy:
+        condition: service_started
       workbench:
         condition: service_started
       deploy-verify:
@@ -745,13 +863,35 @@ services:
       # automatically, without requiring the change to go through the
       # crontab binary itself.
       CRONTAB_SPOOL_PATH: /var/spool/cron/crontabs/manish
+      # #54: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- the volumes: block below no longer mounts
+      # /var/run/docker.sock directly. control-center's real docker.sock
+      # usage (checks/image_freshness.py, api/routes_docker.py,
+      # api/routes_storage.py -- grepped and confirmed) never calls
+      # /containers/create at all: `docker inspect`, `docker ps[-a]`, and
+      # `docker images` only, all already on the proxy's existing
+      # endpoint allowlist -- no PROXY_ALLOWED_BIND_PREFIXES additions
+      # needed for this service.
+      #
+      # Flagged, not fixed here: routes_storage.py's `docker system df`
+      # call hits /system/df, which this proxy denies outright (same
+      # deliberate #265 exclusion as /system/events -- "beyond /info
+      # above"). That call is already wrapped in its own try/except with
+      # a graceful "unavailable" fallback (never raises), so this is a
+      # cosmetic degradation of one admin-dashboard storage field, not a
+      # functional break -- not worth widening the endpoint allowlist for.
+      DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
         - ${MACHINE_DIR}:/workspace
         - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
         - /media/manish/OmniBioAI-SIFs/reference:/media/manish/OmniBioAI-SIFs/reference
         - /media/manish/OmniBioAI-SIFs/omnibioai-test-data:/media/manish/OmniBioAI-SIFs/omnibioai-test-data
         - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
-        - /var/run/docker.sock:/var/run/docker.sock
+        # #54: proxy's exposed socket, not the raw host one -- see
+        # DOCKER_HOST in environment: above. :ro because control-center
+        # only ever needs to *connect to* this socket file, never write
+        # to it.
+        - docker-proxy-socket:/var/run/proxy-socket:ro
         - /usr/bin/docker:/usr/bin/docker:ro
         - /var/spool/cron/crontabs/manish:/var/spool/cron/crontabs/manish
         - ${MACHINE_DIR}/omnibioai-control-center/backend/src:/app/src
@@ -763,6 +903,7 @@ services:
       sh -c "/usr/local/bin/pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
       exec /usr/local/bin/uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
     depends_on:
+      - docker-socket-proxy
       - workbench
       - tes
       - toolserver
@@ -856,10 +997,26 @@ services:
       REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://192.168.86.234:8890}
       REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-devtoken}
       REACT_APP_USE_MOCK: "false"
+      # #54: talk to the docker-socket-proxy's exposed socket, not the
+      # raw host one -- server.js's dockerRequest() reads this (no
+      # DOCKER_HOST-style CLI/SDK indirection exists here; it's a raw
+      # http.request over socketPath). launcher's real docker.sock usage
+      # (server.js, grepped and confirmed) is exactly three calls on
+      # three fixed, hardcoded container names (omnibioai-jupyter/
+      # -rstudio/-vscode): GET .../json, POST .../start, POST .../stop --
+      # never /containers/create, so no PROXY_ALLOWED_BIND_PREFIXES
+      # additions needed for this service.
+      DOCKER_SOCKET_PATH: /var/run/proxy-socket/docker.sock
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      # #54: proxy's exposed socket, not the raw host one -- see
+      # DOCKER_SOCKET_PATH in environment: above. :ro because launcher
+      # only ever needs to *connect to* this socket file, never write
+      # to it.
+      - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
     depends_on:
+      docker-socket-proxy:
+        condition: service_started
       workbench:
         condition: service_started
 
@@ -910,6 +1067,30 @@ services:
       workbench:
         condition: service_started
 
+  # #54: deliberately NOT put behind docker-socket-proxy, unlike the
+  # other 4 services this issue covers. api/server.py's own execution_
+  # guard/ (lifecycle.py + policy.py + proxy_server.py) already does
+  # `docker network create` for a run-private network and spawns a
+  # PER-RUN scoped proxy container (itself needing the real host
+  # docker.sock, by design -- that's what lets it independently
+  # validate every Docker API call the spawned workflow container
+  # makes) before ever running the actual workflow container. Both of
+  # those calls -- network create/rm and a spawned container that
+  # itself gets the real socket -- are exactly the two capability
+  # classes docker-socket-proxy/policy.py exists to withhold (NETWORKS
+  # management is in _EXPLICITLY_DENIED_PREFIXES outright; a raw
+  # docker.sock bind isn't in any PROXY_ALLOWED_BIND_PREFIXES). Routing
+  # workflow-bundles' outer connection through the SHARED proxy would
+  # either break execution_guard entirely (every real run failing at
+  # its first `docker network create` call) or require poking a
+  # network-management + host-socket-into-spawned-container hole in
+  # the shared proxy's policy -- which would then apply to the other 4
+  # newly-proxied services too, a regression for all of them just to
+  # accommodate one service that already solved this problem better
+  # (per-run-scoped, not shared-allowlist-scoped). execution_guard's
+  # own policy.py independently blocks Privileged/CapAdd/NetworkMode=
+  # host the same way docker-socket-proxy/policy.py does -- confirmed
+  # by reading it, not assumed. Left entirely unchanged by this PR.
   workflow-bundles:
     build:
       # Build context expanded to $MACHINE_DIR (sibling repos) so the
