@@ -1651,4 +1651,27 @@ volumes:
   # Not a host bind mount -- the whole point is that only the proxy
   # container gets the real host docker.sock (mounted directly into
   # it above); everything else only ever sees this proxied one.
+  #
+  # #54: explicit `name:` pins this volume to the literal name
+  # "docker-proxy-socket" regardless of Compose's project-prefix
+  # convention (would otherwise be "<project>_docker-proxy-socket").
+  # workflow_runner's own docker_cmd (omnibioai-workbench's
+  # _run_in_docker_runner) references this volume by name in a raw
+  # `docker run -v docker-proxy-socket:...` subprocess call, NOT
+  # `docker compose run` -- so it has no knowledge of the project
+  # prefix and needs the bare literal name to actually resolve.
+  # PROXY_ALLOWED_NAMED_VOLUMES below uses the same bare name for the
+  # same reason. Without this pin, Compose silently created a SECOND,
+  # empty, disconnected volume literally named "docker-proxy-socket"
+  # the first time workflow_runner ran (confirmed live: `docker volume
+  # ls` showed both it and the real "omnibioai-studio_docker-proxy-
+  # socket" side by side) -- the spawned engine container's DOCKER_HOST
+  # then pointed at an empty mount with no docker.sock in it at all,
+  # failing closed (not a security bypass) but breaking every real
+  # local Docker execution outright. Pinning the name here, instead of
+  # hardcoding the project-prefixed name in docker_cmd/
+  # PROXY_ALLOWED_NAMED_VOLUMES, keeps this correct across different
+  # COMPOSE_PROJECT_NAME / directory-name deployment contexts, not just
+  # this one.
   docker-proxy-socket:
+    name: docker-proxy-socket

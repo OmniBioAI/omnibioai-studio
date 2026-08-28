@@ -910,4 +910,11 @@ volumes:
   ollama_data:
   grafana_data:
   # #265: docker-socket-proxy's exposed socket, shared with workbench.
+  # #54: explicit `name:` pins this to the literal "docker-proxy-socket"
+  # regardless of Compose's project-prefix convention -- workflow_runner's
+  # docker_cmd (omnibioai-workbench) references this volume by its bare
+  # name in a raw `docker run` subprocess call, not `docker compose run`,
+  # so it has no knowledge of the project prefix. See docker-compose.yml's
+  # matching comment for the full incident this closes.
   docker-proxy-socket:
+    name: docker-proxy-socket
