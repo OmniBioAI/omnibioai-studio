@@ -305,6 +305,75 @@ class TestNamedVolumeBindsAllowlist:
         assert not d.allowed
 
 
+class TestNamedVolumeMustBeReadOnly:
+    """#54 follow-up: confirmed exploitable live before this check
+    existed -- a plain `-v docker-proxy-socket:/x` (Docker's own rw
+    default, no mode segment at all) was ALLOWED through, giving full
+    read-write access to the real live socket file from a container
+    spawned by an already-running, legitimately proxied container.
+    Nothing legitimate ever needs to WRITE to the socket file itself,
+    only dial it -- so this is enforced centrally here, not left to
+    each client's own docker_cmd construction."""
+
+    def test_no_mode_segment_at_all_blocked(self):
+        """Docker's own default when no mode segment is present is rw --
+        this is exactly the shape the pre-fix exploit used."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+        assert "must be mounted read-only" in d.reason
+
+    def test_explicit_rw_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:rw"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+        assert "must be mounted read-only" in d.reason
+
+    def test_ro_combined_with_rw_blocked(self):
+        """A malicious/malformed mode string can't smuggle 'rw' in
+        alongside 'ro' and have the 'ro' substring match win."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro,rw"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+
+    def test_plain_ro_allowed(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert d.allowed
+
+    def test_ro_combined_with_selinux_relabel_allowed(self):
+        """Docker accepts comma-separated mode options (e.g. SELinux
+        relabeling flags) -- 'ro,Z' must still count as read-only."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro,Z"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert d.allowed
+
+    def test_readonly_enforcement_does_not_apply_to_absolute_path_binds(self):
+        """Real host-path binds (WORK_DIR, etc.) legitimately need rw --
+        this new check must not spill over onto allowed_bind_prefixes."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["/app/work:/work"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert d.allowed
+
+
 class TestVolumeTypeMountBlocked:
     """Caught in review, before merge: a Type='volume' Mounts entry can
     embed the real host path in VolumeOptions.DriverConfig.Options.device

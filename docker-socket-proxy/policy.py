@@ -166,6 +166,31 @@ def _bind_source(bind_entry: str) -> Optional[str]:
     return parts[0]
 
 
+def _bind_mode(bind_entry: str) -> Optional[str]:
+    """Returns the mode segment of a 'host:container[:mode]' Binds
+    entry (e.g. 'ro', 'rw', 'ro,Z'), or None if no mode segment is
+    present at all -- Docker then defaults to rw."""
+    parts = bind_entry.split(":")
+    if len(parts) < 3:
+        return None
+    return parts[2]
+
+
+def _bind_is_readonly(bind_entry: str) -> bool:
+    """#54 follow-up: True only if the mode segment is present AND
+    explicitly requests 'ro' without also requesting 'rw' (Docker
+    accepts comma-separated options like 'ro,Z' for SELinux
+    relabeling). No mode segment at all means Docker's own default of
+    rw -- NOT treated as read-only here, since an omitted mode is
+    exactly what let the pre-fix exploit through (a plain `-v
+    docker-proxy-socket:/x` with no third segment)."""
+    mode = _bind_mode(bind_entry)
+    if mode is None:
+        return False
+    opts = set(mode.split(","))
+    return "ro" in opts and "rw" not in opts
+
+
 def _path_is_allowed(host_path: str, allowed_prefixes: tuple) -> bool:
     """Caught in review, before this PR merged: a naive rstrip-only
     comparison passes a source like '/app/work/../../../etc' because it
@@ -303,6 +328,31 @@ def check_create_body(raw_body: bytes, policy: CreatePolicy) -> Decision:
                 # narrower check than host paths.
                 return Decision.deny(
                     f"named volume '{src}' is not on the allowed volume list {policy.allowed_named_volumes}"
+                )
+            elif not _bind_is_readonly(entry):
+                # #54 follow-up: allowed named volumes (docker-proxy-socket
+                # today) exist so a spawned container can CONNECT to this
+                # proxy's own exposed socket -- nothing legitimate ever
+                # needs to WRITE to the socket file itself, only dial it.
+                # Without this, ANY client of this proxy (or anything IT
+                # spawns -- e.g. a WDL/Nextflow task shelling out to
+                # `docker run -v docker-proxy-socket:/x ...` via
+                # docker-shim.sh) could request this volume read-write and
+                # delete/replace docker.sock out from under every other
+                # consumer of this shared proxy. Confirmed exploitable
+                # live before this check existed: a plain `-v
+                # docker-proxy-socket:/x` (rw by Docker's own default --
+                # no mode segment at all) was ALLOWED and gave full
+                # read-write access to the real live socket file from a
+                # container spawned by an already-running, legitimately
+                # proxied container. Enforced HERE, centrally, rather than
+                # left to each client's own docker_cmd construction --
+                # workflow_runner's own outer mount already says :ro, but
+                # that only protects its own request; this is what
+                # actually stops everyone else, including anything a
+                # compromised or malicious task spawns of its own accord.
+                return Decision.deny(
+                    f"named volume '{src}' must be mounted read-only (:ro): {entry!r}"
                 )
 
     mounts = host_config.get("Mounts") or []
