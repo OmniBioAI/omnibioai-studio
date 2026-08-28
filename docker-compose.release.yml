@@ -415,11 +415,16 @@ services:
       # PROXY_ALLOWED_BIND_PREFIXES' own ${MACHINE_DIR}/omnibioai-workbench
       # entry below. Previously this reused ${WORKSPACE_HOST} (the whole
       # machine dir) here, which the real Docker daemon would then bind
-      # from -- confirmed live as the source of a wrecked, root-owned
-      # debris tree at ${MACHINE_DIR}/omnibioai (a *different*, never-
-      # existing directory Docker auto-created on every past bind
-      # attempt through workflow_runner's own equally-stale Python-side
-      # fallback default; see that fix's own commit for detail).
+      # from -- ${MACHINE_DIR}/omnibioai (a *different* path) is
+      # itself a wrecked, empty, root-owned directory that has never held
+      # a real checkout, but NOT because of this env var specifically:
+      # its own mtimes and tes's real container start time both predate
+      # this fix's live-verification, and tes has its own unrelated,
+      # long-running ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
+      # bind further down in this file -- the more likely actual origin
+      # (Docker auto-creates a missing bind source as an empty directory
+      # on first container start). See the companion omnibioai-workbench
+      # fix's own commit for detail.
       OMNIBIOAI_HOST_APP_PREFIX: ${MACHINE_DIR}/omnibioai-workbench
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNI_OBJECT_STORAGE_DIR: /app/work/objects
@@ -526,11 +531,16 @@ services:
       # PROXY_ALLOWED_BIND_PREFIXES' own ${MACHINE_DIR}/omnibioai-workbench
       # entry below. Previously this reused ${WORKSPACE_HOST} (the whole
       # machine dir) here, which the real Docker daemon would then bind
-      # from -- confirmed live as the source of a wrecked, root-owned
-      # debris tree at ${MACHINE_DIR}/omnibioai (a *different*, never-
-      # existing directory Docker auto-created on every past bind
-      # attempt through workflow_runner's own equally-stale Python-side
-      # fallback default; see that fix's own commit for detail).
+      # from -- ${MACHINE_DIR}/omnibioai (a *different* path) is
+      # itself a wrecked, empty, root-owned directory that has never held
+      # a real checkout, but NOT because of this env var specifically:
+      # its own mtimes and tes's real container start time both predate
+      # this fix's live-verification, and tes has its own unrelated,
+      # long-running ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
+      # bind further down in this file -- the more likely actual origin
+      # (Docker auto-creates a missing bind source as an empty directory
+      # on first container start). See the companion omnibioai-workbench
+      # fix's own commit for detail.
       OMNIBIOAI_HOST_APP_PREFIX: ${MACHINE_DIR}/omnibioai-workbench
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_RUNS_ROOT: /app/work/runs
