@@ -371,11 +371,8 @@ services:
       context: ${MACHINE_DIR}
       dockerfile: omnibioai-rag/Dockerfile
       target: backend
-      args:
-        GITHUB_TOKEN: ${GHCR_PULL_TOKEN}      # required: read:packages for @man4ish/ui (pre-existing npm auth, ui-builder stage only)
-        RAGBIO_API_KEY: ${RAGBIO_API_KEY}  # embedded as VITE_RAGBIO_API_KEY in JS bundle
-      secrets:
-        - github_token      # required: repo/Contents:Read on private omnibioai-iam-client (backend stage, separate from the npm ARG above)
+      # The monorepo RAG Dockerfile uses local, pinned IAM/usage clients and
+      # local UI distribution artifacts; no GitHub credential is needed.
     restart: on-failure
     # image: ghcr.io/omnibioai/omnibioai-rag:latest
     # Frontend served at http://localhost:8090/ via nginx (port 5175 inside container)
