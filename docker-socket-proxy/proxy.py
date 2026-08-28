@@ -47,7 +47,16 @@ UPSTREAM_SOCKET = os.environ.get("DOCKER_SOCK_PATH", "/var/run/docker-real.sock"
 _ALLOWED_BIND_PREFIXES = tuple(
     p for p in os.environ.get("PROXY_ALLOWED_BIND_PREFIXES", "").split(",") if p
 )
-_POLICY = CreatePolicy(allowed_bind_prefixes=_ALLOWED_BIND_PREFIXES)
+# #54: separate, exact-match allowlist for named-volume Binds sources --
+# see policy.py's _is_allowed_named_volume for why this is deliberately
+# not folded into PROXY_ALLOWED_BIND_PREFIXES.
+_ALLOWED_NAMED_VOLUMES = tuple(
+    v for v in os.environ.get("PROXY_ALLOWED_NAMED_VOLUMES", "").split(",") if v
+)
+_POLICY = CreatePolicy(
+    allowed_bind_prefixes=_ALLOWED_BIND_PREFIXES,
+    allowed_named_volumes=_ALLOWED_NAMED_VOLUMES,
+)
 
 
 # ---------------------------------------------------------------------------

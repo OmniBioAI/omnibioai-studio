@@ -20,6 +20,16 @@ from policy import CreatePolicy, Decision, check_create_body, check_endpoint, ev
 
 POLICY = CreatePolicy(allowed_bind_prefixes=("/app/work", "/home/user/.cache/omnibioai"))
 
+# #54: separate policy instance with a named-volume allowlist populated,
+# for the workflow_runner nested-Docker-in-Docker tests below -- kept
+# separate from POLICY (whose named-volume list is empty by default) so
+# every existing test above keeps proving named volumes are denied
+# unless a deployment explicitly opts a specific volume in.
+NAMED_VOLUME_POLICY = CreatePolicy(
+    allowed_bind_prefixes=("/app/work",),
+    allowed_named_volumes=("docker-proxy-socket",),
+)
+
 
 def _body(d: dict) -> bytes:
     return json.dumps(d).encode()
@@ -231,6 +241,136 @@ class TestHostBindMountBlocked:
 
     def test_no_binds_no_mounts_allowed(self):
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {}}), POLICY)
+        assert d.allowed
+
+
+class TestNamedVolumeBindsAllowlist:
+    """#54: workflow_runner's nested Docker-in-Docker dispatch needs its
+    spawned sibling container to reach THIS proxy's own exposed socket,
+    the same way its parent container already does -- via the
+    'docker-proxy-socket' named volume, not a raw host path. Uses
+    NAMED_VOLUME_POLICY (POLICY's own allowed_named_volumes stays empty
+    throughout this file, so every test above keeps proving named
+    volumes are denied by default)."""
+
+    def test_allowlisted_named_volume_allowed(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert d.allowed
+
+    def test_named_volume_not_on_allowlist_blocked(self):
+        """A caller can't reach some OTHER named volume this deployment
+        happens to have (e.g. mysql_data) just because docker-proxy-
+        socket is allowed -- exact match, not 'any named volume'."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["mysql_data:/var/lib/mysql"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+        assert "not on the allowed volume list" in d.reason
+
+    def test_named_volume_blocked_when_allowlist_empty(self):
+        """Same source as the test above, but against POLICY (no named-
+        volume allowlist configured at all) -- must still be denied,
+        not fall through to "no prefixes configured means unrestricted"."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro"]
+            }}), POLICY
+        )
+        assert not d.allowed
+
+    def test_similar_looking_volume_name_not_prefix_matched(self):
+        """Exact match, not startswith -- 'docker-proxy-socket-evil' must
+        not slip through as if it were the real allowlisted volume."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket-evil:/var/run/proxy-socket:ro"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+
+    def test_absolute_path_source_unaffected_by_named_volume_allowlist(self):
+        """A real host-path Binds entry still goes through the ordinary
+        prefix check even when a named-volume allowlist is configured --
+        the two checks are independent, not "either one passes"."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {"Binds": ["/etc:/hostetc"]}}),
+            NAMED_VOLUME_POLICY,
+        )
+        assert not d.allowed
+
+
+class TestNamedVolumeMustBeReadOnly:
+    """#54 follow-up: confirmed exploitable live before this check
+    existed -- a plain `-v docker-proxy-socket:/x` (Docker's own rw
+    default, no mode segment at all) was ALLOWED through, giving full
+    read-write access to the real live socket file from a container
+    spawned by an already-running, legitimately proxied container.
+    Nothing legitimate ever needs to WRITE to the socket file itself,
+    only dial it -- so this is enforced centrally here, not left to
+    each client's own docker_cmd construction."""
+
+    def test_no_mode_segment_at_all_blocked(self):
+        """Docker's own default when no mode segment is present is rw --
+        this is exactly the shape the pre-fix exploit used."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+        assert "must be mounted read-only" in d.reason
+
+    def test_explicit_rw_blocked(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:rw"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+        assert "must be mounted read-only" in d.reason
+
+    def test_ro_combined_with_rw_blocked(self):
+        """A malicious/malformed mode string can't smuggle 'rw' in
+        alongside 'ro' and have the 'ro' substring match win."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro,rw"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert not d.allowed
+
+    def test_plain_ro_allowed(self):
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert d.allowed
+
+    def test_ro_combined_with_selinux_relabel_allowed(self):
+        """Docker accepts comma-separated mode options (e.g. SELinux
+        relabeling flags) -- 'ro,Z' must still count as read-only."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro,Z"]
+            }}), NAMED_VOLUME_POLICY
+        )
+        assert d.allowed
+
+    def test_readonly_enforcement_does_not_apply_to_absolute_path_binds(self):
+        """Real host-path binds (WORK_DIR, etc.) legitimately need rw --
+        this new check must not spill over onto allowed_bind_prefixes."""
+        d = check_create_body(
+            _body({"Image": "alpine", "HostConfig": {
+                "Binds": ["/app/work:/work"]
+            }}), NAMED_VOLUME_POLICY
+        )
         assert d.allowed
 
 

@@ -144,6 +144,12 @@ class CreatePolicy:
     deployment's real WORK_DIR/cache paths, not hardcoded here."""
 
     allowed_bind_prefixes: tuple = field(default_factory=tuple)
+    # #54: exact-match allowlist of pre-existing Docker *named volumes*
+    # (never host paths) a Binds entry may reference by name -- see
+    # _is_allowed_named_volume's own docstring for why this is a
+    # different, narrower risk than allowed_bind_prefixes and must stay
+    # an exact match, never a prefix.
+    allowed_named_volumes: tuple = field(default_factory=tuple)
 
 
 _DENIED_BIND_EXACT = {"/", ""}
@@ -158,6 +164,31 @@ def _bind_source(bind_entry: str) -> Optional[str]:
     if len(parts) < 2:
         return None
     return parts[0]
+
+
+def _bind_mode(bind_entry: str) -> Optional[str]:
+    """Returns the mode segment of a 'host:container[:mode]' Binds
+    entry (e.g. 'ro', 'rw', 'ro,Z'), or None if no mode segment is
+    present at all -- Docker then defaults to rw."""
+    parts = bind_entry.split(":")
+    if len(parts) < 3:
+        return None
+    return parts[2]
+
+
+def _bind_is_readonly(bind_entry: str) -> bool:
+    """#54 follow-up: True only if the mode segment is present AND
+    explicitly requests 'ro' without also requesting 'rw' (Docker
+    accepts comma-separated options like 'ro,Z' for SELinux
+    relabeling). No mode segment at all means Docker's own default of
+    rw -- NOT treated as read-only here, since an omitted mode is
+    exactly what let the pre-fix exploit through (a plain `-v
+    docker-proxy-socket:/x` with no third segment)."""
+    mode = _bind_mode(bind_entry)
+    if mode is None:
+        return False
+    opts = set(mode.split(","))
+    return "ro" in opts and "rw" not in opts
 
 
 def _path_is_allowed(host_path: str, allowed_prefixes: tuple) -> bool:
@@ -187,6 +218,11 @@ def _path_is_allowed(host_path: str, allowed_prefixes: tuple) -> bool:
     now it depends on the allowed directories (WORK_DIR, the ML cache
     dir, the model registry root) only ever being written to by
     trusted, first-party code, not attacker-controlled input.
+
+    #54: named-volume references ('-v name:/path', no leading '/') are
+    NOT paths at all and never reach this function -- check_create_body
+    routes them to _is_allowed_named_volume's own, separate exact-match
+    allowlist instead. See that function's docstring for why.
     """
     if host_path in _DENIED_BIND_EXACT:
         return False
@@ -200,6 +236,42 @@ def _path_is_allowed(host_path: str, allowed_prefixes: tuple) -> bool:
         if normalized == prefix_norm or normalized.startswith(prefix_norm + "/"):
             return True
     return False
+
+
+def _is_allowed_named_volume(source: str, allowed_volumes: tuple) -> bool:
+    """#54: a Binds entry whose source does NOT start with '/' is
+    Docker's own legacy `-v name:/path` syntax for a *named volume*
+    reference, not a host bind mount -- the daemon itself distinguishes
+    purely by this string shape (a leading '/' means bind, anything else
+    means volume-by-name, auto-creating it with the default local driver
+    and no options if it doesn't already exist).
+
+    This is a materially different, narrower risk than an arbitrary host
+    path: a plain named-volume reference (no DriverConfig override --
+    the legacy `-v`/Binds syntax has no way to express one; only the
+    newer `Mounts`/`--mount` syntax can, and that path is untouched by
+    this function, still gated by check_create_body's own Type='bind'-
+    only rule below) is backed by Docker-managed storage under
+    /var/lib/docker/volumes/<name>/_data, a location the CALLER never
+    controls. Referencing one of THIS deployment's own pre-existing,
+    compose-created volumes by its exact, known name (e.g. this proxy's
+    own exposed socket, so a sibling container spawned by this
+    codebase's nested Docker-in-Docker dispatch can reach the proxy the
+    same way its parent container already does -- see docker-compose.
+    yml's workflow_runner comment) is not the "arbitrary host path"
+    escape allowed_bind_prefixes exists to close.
+
+    Deliberately an EXACT-match allowlist, not a prefix/pattern match
+    (unlike allowed_bind_prefixes, which legitimately covers many real
+    subpaths under one real directory): each entry here names one
+    specific, operator-provisioned volume with a known-safe, reviewed
+    purpose. There is no legitimate reason for a real consumer of this
+    proxy to reference a DIFFERENT named volume through this path, and
+    a prefix/pattern match would risk matching a volume this policy was
+    never reviewed against -- e.g. a volume some other, unrelated
+    compose service happens to create later.
+    """
+    return source in allowed_volumes
 
 
 def check_create_body(raw_body: bytes, policy: CreatePolicy) -> Decision:
@@ -242,9 +314,45 @@ def check_create_body(raw_body: bytes, policy: CreatePolicy) -> Decision:
             src = _bind_source(entry)
             if src is None:
                 return Decision.deny(f"unparseable Binds entry: {entry!r}")
-            if not _path_is_allowed(src, policy.allowed_bind_prefixes):
+            if src.startswith("/"):
+                if not _path_is_allowed(src, policy.allowed_bind_prefixes):
+                    return Decision.deny(
+                        f"bind mount source '{src}' is outside the allowed prefixes {policy.allowed_bind_prefixes}"
+                    )
+            elif not _is_allowed_named_volume(src, policy.allowed_named_volumes):
+                # #54: not a host path (doesn't start with '/') and not
+                # on the exact-match named-volume allowlist either --
+                # deny rather than silently treating an unrecognized
+                # string as either shape. See _is_allowed_named_volume's
+                # own docstring for why named volumes get a separate,
+                # narrower check than host paths.
                 return Decision.deny(
-                    f"bind mount source '{src}' is outside the allowed prefixes {policy.allowed_bind_prefixes}"
+                    f"named volume '{src}' is not on the allowed volume list {policy.allowed_named_volumes}"
+                )
+            elif not _bind_is_readonly(entry):
+                # #54 follow-up: allowed named volumes (docker-proxy-socket
+                # today) exist so a spawned container can CONNECT to this
+                # proxy's own exposed socket -- nothing legitimate ever
+                # needs to WRITE to the socket file itself, only dial it.
+                # Without this, ANY client of this proxy (or anything IT
+                # spawns -- e.g. a WDL/Nextflow task shelling out to
+                # `docker run -v docker-proxy-socket:/x ...` via
+                # docker-shim.sh) could request this volume read-write and
+                # delete/replace docker.sock out from under every other
+                # consumer of this shared proxy. Confirmed exploitable
+                # live before this check existed: a plain `-v
+                # docker-proxy-socket:/x` (rw by Docker's own default --
+                # no mode segment at all) was ALLOWED and gave full
+                # read-write access to the real live socket file from a
+                # container spawned by an already-running, legitimately
+                # proxied container. Enforced HERE, centrally, rather than
+                # left to each client's own docker_cmd construction --
+                # workflow_runner's own outer mount already says :ro, but
+                # that only protects its own request; this is what
+                # actually stops everyone else, including anything a
+                # compromised or malicious task spawns of its own accord.
+                return Decision.deny(
+                    f"named volume '{src}' must be mounted read-only (:ro): {entry!r}"
                 )
 
     mounts = host_config.get("Mounts") or []
