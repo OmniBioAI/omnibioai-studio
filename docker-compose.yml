@@ -941,6 +941,16 @@ services:
       # cosmetic degradation of one admin-dashboard storage field, not a
       # functional break -- not worth widening the endpoint allowlist for.
       DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
+      # DH-4: Deployment Health's Compose baseline. No new mount --
+      # ${MACHINE_DIR}:/workspace below already makes this file readable
+      # at this exact path; this only points DH-1's parser at it. The
+      # running deployment's own com.docker.compose.project.config_files
+      # label confirms this file (alone, no overlay) is what actually
+      # produced this stack, which is why baseline_source is development,
+      # not release.
+      DEPLOYMENT_HEALTH_COMPOSE_PATH: /workspace/omnibioai-studio/docker-compose.yml
+      DEPLOYMENT_HEALTH_BASELINE_SOURCE: development
+      DEPLOYMENT_HEALTH_DEPLOYMENT_REPOSITORY: omnibioai-studio
     volumes:
         - ${MACHINE_DIR}:/workspace
         - ${MACHINE_DIR}/omnibioai-ecosystem-regression/status/regression-health.json:/app/data/regression-health.json:ro
