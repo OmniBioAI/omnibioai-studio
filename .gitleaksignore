@@ -6,3 +6,41 @@
 4f94b88909f5c8951027b11bd862e91edb8bd1b1:DEPLOYMENT.md:curl-auth-user:232
 4f94b88909f5c8951027b11bd862e91edb8bd1b1:DEPLOYMENT.md:curl-auth-user:317
 4f94b88909f5c8951027b11bd862e91edb8bd1b1:DEPLOYMENT.md:curl-auth-user:320
+
+# --- Issue #63: tag-only commits from the pre-history-scrub v0.2.0 /
+# v0.2.0-beta tags. actions/checkout@v4's fetch-depth:0 force-updates tags
+# (+refs/tags/*), so CI scans these abandoned tag tips, not main. Each of
+# the 5 duplicate entries below is byte-identical content to an
+# already-ignored main-ancestor commit above (same author/date/diff), just
+# under the pre-rewrite hash. Each of the 7 was individually verified live
+# or dead before being added here -- see SECRET_SCAN_CI_INVESTIGATION.md
+# and SECRET_SCAN_RESOLUTION.md for the full trail.
+
+# github-fine-grained-pat, .env:15 -- ROTATED/REVOKED. Verified: confirmed
+# absent from the current GitHub token list entirely (only one unrelated
+# fine-grained PAT exists today, different purpose, different creation
+# date).
+979ba0c0cb4ced0e233e38ef18436e2c54db71c6:.env:github-fine-grained-pat:15
+
+# generic-api-key (RAGBIO_API_KEY), .env:8 -- ROTATED. Verified: direct
+# comparison of the leaked value against the current live value confirms
+# they differ.
+cced81dacacf28eed07a4426fe4b116295573507:.env:generic-api-key:8
+
+# jwt, docker-compose.yml:232 -- dead. Verified: JWT payload decoded from
+# the leaked token, exp claim (~2026-05-25) has passed. Duplicate content
+# of already-ignored 8e35ae534a8 above.
+981226817e716889fbbdcd213f7010af17e6d47b:docker-compose.yml:jwt:232
+
+# jwt, docker-compose.release.yml:213 -- dead. Verified: JWT payload
+# decoded from the leaked token, exp claim (~2026-05-25) has passed.
+# Duplicate content of already-ignored 9a12a77d00b above.
+11c868fb5436a7aea541120ab4f64962c36706b8:docker-compose.release.yml:jwt:213
+
+# curl-auth-user (Grafana/Prometheus basic-auth), DEPLOYMENT.md:232,317,320
+# -- different/safe. Verified: direct comparison confirms the current
+# GF_ADMIN_PASSWORD is not the leaked "omnibioai" default. Duplicate
+# content of already-ignored 4f94b88909f above.
+975460f350e777340dc2d83911f9c565f18c12c8:DEPLOYMENT.md:curl-auth-user:232
+975460f350e777340dc2d83911f9c565f18c12c8:DEPLOYMENT.md:curl-auth-user:317
+975460f350e777340dc2d83911f9c565f18c12c8:DEPLOYMENT.md:curl-auth-user:320
