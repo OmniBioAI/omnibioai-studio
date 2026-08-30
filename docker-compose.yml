@@ -872,6 +872,8 @@ services:
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: compute,utility
       WORKSPACE_ROOT: /workspace
+      REGRESSION_HEALTH_ARTIFACT_PATH: /app/data/regression-health.json
+      REGRESSION_HEALTH_STALE_AFTER_HOURS: "168"
       WORK_DIR: /workspace/omnibioai-work
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
@@ -942,6 +944,7 @@ services:
       DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
         - ${MACHINE_DIR}:/workspace
+        - ${MACHINE_DIR}/omnibioai-ecosystem-regression/status/regression-health.json:/app/data/regression-health.json:ro
         - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
         - /media/manish/OmniBioAI-SIFs/reference:/media/manish/OmniBioAI-SIFs/reference
         - /media/manish/OmniBioAI-SIFs/omnibioai-test-data:/media/manish/OmniBioAI-SIFs/omnibioai-test-data
