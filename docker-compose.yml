@@ -378,8 +378,13 @@ services:
       context: ${MACHINE_DIR}
       dockerfile: omnibioai-rag/Dockerfile
       target: backend
-      # The monorepo RAG Dockerfile uses local, pinned IAM/usage clients and
-      # local UI distribution artifacts; no GitHub credential is needed.
+      # The frontend does not consume a BuildKit secret. The backend stage
+      # installs private git+https IAM/usage clients and mounts this secret in
+      # its RUN instruction only.
+      args:
+        GITHUB_TOKEN: ${GHCR_PULL_TOKEN}
+      secrets:
+        - github_token
     restart: on-failure
     # image: ghcr.io/omnibioai/omnibioai-rag:latest
     # Frontend served at http://localhost:8090/ via nginx (port 5175 inside container)
