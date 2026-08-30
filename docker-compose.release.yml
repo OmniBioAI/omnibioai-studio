@@ -671,6 +671,8 @@ services:
       - "127.0.0.1:7070:7070"
     environment:
       WORKSPACE_ROOT: /workspace
+      REGRESSION_HEALTH_ARTIFACT_PATH: /app/data/regression-health.json
+      REGRESSION_HEALTH_STALE_AFTER_HOURS: "168"
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/tool-images
       SENTRY_DSN: ${SENTRY_DSN:-}
@@ -690,6 +692,7 @@ services:
       DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
       - ${DATA_DIR}:/workspace
+      - ${REGRESSION_HEALTH_ARTIFACT_HOST_PATH:?set a regression-only certification artifact path}:/app/data/regression-health.json:ro
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_HOST in environment: above.
       - docker-proxy-socket:/var/run/proxy-socket:ro
