@@ -378,11 +378,8 @@ services:
       context: ${MACHINE_DIR}
       dockerfile: omnibioai-rag/Dockerfile
       target: backend
-      # The frontend does not consume a BuildKit secret. The backend stage
-      # installs private git+https IAM/usage clients and mounts this secret in
-      # its RUN instruction only.
-      args:
-        GITHUB_TOKEN: ${GHCR_PULL_TOKEN}
+      # Both Dockerfile stages mount this secret only for their package
+      # installation commands; it is never passed as a build ARG.
       secrets:
         - github_token
     restart: on-failure
