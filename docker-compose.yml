@@ -378,6 +378,13 @@ services:
       context: ${MACHINE_DIR}
       dockerfile: omnibioai-rag/Dockerfile
       target: backend
+      # TODO: GITHUB_TOKEN/RAGBIO_API_KEY below and the github_token secret are
+      # unused as of omnibioai-rag PR #25 (monorepo build context -- the
+      # Dockerfile now resolves @man4ish/ui and omnibioai-iam-client from
+      # sibling directories in ${MACHINE_DIR}, no GITHUB_TOKEN needed):
+      # https://github.com/OmniBioAI/omnibioai-rag/pull/25
+      # Safe to remove, but left in place pending a deliberate cleanup pass
+      # rather than an unsupervised edit to a shared compose file.
       args:
         GITHUB_TOKEN: ${GHCR_PULL_TOKEN}      # required: read:packages for @man4ish/ui (pre-existing npm auth, ui-builder stage only)
         RAGBIO_API_KEY: ${RAGBIO_API_KEY}  # embedded as VITE_RAGBIO_API_KEY in JS bundle
