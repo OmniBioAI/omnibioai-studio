@@ -359,7 +359,7 @@ services:
       # control-center needs NO new prefixes (never calls
       # /containers/create -- same as docker-compose.yml's control-center
       # comment; identical image/code, so the same grep evidence applies).
-      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch,/etc/passwd,/etc/group,/etc/munge,/run/munge/munge.socket.2,/etc/slurm,/cromwell-executions,${MACHINE_DIR}/omnibioai
+      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch,/etc/passwd,/etc/group,/etc/munge,/run/munge/munge.socket.2,/etc/slurm,/cromwell-executions,${MACHINE_DIR}/omnibioai-workbench
       # #54: exact-match named-volume allowlist (see docker-socket-proxy/
       # policy.py's _is_allowed_named_volume) -- lets workflow_runner's
       # spawned sibling container reference THIS proxy's own already-
@@ -398,7 +398,29 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OMNIBIOAI_TES_URL: http://tes:8081
-      OMNIBIOAI_HOST_APP_PREFIX: ${WORKSPACE_HOST}
+      # workflow_runner (omnibioai-workbench, plugins/workflow_runner/
+      # views.py::_run_in_docker_runner) reads this to map its spawned
+      # Nextflow/Cromwell container's /app/... paths back to real host
+      # paths for the outer `docker run -v` call. /app inside THIS
+      # container is a build-time COPY of the omnibioai-workbench repo
+      # (see this service's own `context:` above), not a live bind mount
+      # of WORKSPACE_HOST (WORKSPACE_HOST is the whole machine dir, used
+      # for the unrelated /workspace mount below) -- so it must resolve
+      # to the real repo checkout path, matching
+      # PROXY_ALLOWED_BIND_PREFIXES' own ${MACHINE_DIR}/omnibioai-workbench
+      # entry below. Previously this reused ${WORKSPACE_HOST} (the whole
+      # machine dir) here, which the real Docker daemon would then bind
+      # from -- ${MACHINE_DIR}/omnibioai (a *different* path) is
+      # itself a wrecked, empty, root-owned directory that has never held
+      # a real checkout, but NOT because of this env var specifically:
+      # its own mtimes and tes's real container start time both predate
+      # this fix's live-verification, and tes has its own unrelated,
+      # long-running ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
+      # bind further down in this file -- the more likely actual origin
+      # (Docker auto-creates a missing bind source as an empty directory
+      # on first container start). See the companion omnibioai-workbench
+      # fix's own commit for detail.
+      OMNIBIOAI_HOST_APP_PREFIX: ${MACHINE_DIR}/omnibioai-workbench
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNI_OBJECT_STORAGE_DIR: /app/work/objects
       OMNI_OBJECT_REGISTRY_PATH: /app/work/object_registry.json
@@ -490,7 +512,29 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OMNIBIOAI_HOST_APP_PREFIX: ${WORKSPACE_HOST}
+      # workflow_runner (omnibioai-workbench, plugins/workflow_runner/
+      # views.py::_run_in_docker_runner) reads this to map its spawned
+      # Nextflow/Cromwell container's /app/... paths back to real host
+      # paths for the outer `docker run -v` call. /app inside THIS
+      # container is a build-time COPY of the omnibioai-workbench repo
+      # (see this service's own `context:` above), not a live bind mount
+      # of WORKSPACE_HOST (WORKSPACE_HOST is the whole machine dir, used
+      # for the unrelated /workspace mount below) -- so it must resolve
+      # to the real repo checkout path, matching
+      # PROXY_ALLOWED_BIND_PREFIXES' own ${MACHINE_DIR}/omnibioai-workbench
+      # entry below. Previously this reused ${WORKSPACE_HOST} (the whole
+      # machine dir) here, which the real Docker daemon would then bind
+      # from -- ${MACHINE_DIR}/omnibioai (a *different* path) is
+      # itself a wrecked, empty, root-owned directory that has never held
+      # a real checkout, but NOT because of this env var specifically:
+      # its own mtimes and tes's real container start time both predate
+      # this fix's live-verification, and tes has its own unrelated,
+      # long-running ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
+      # bind further down in this file -- the more likely actual origin
+      # (Docker auto-creates a missing bind source as an empty directory
+      # on first container start). See the companion omnibioai-workbench
+      # fix's own commit for detail.
+      OMNIBIOAI_HOST_APP_PREFIX: ${MACHINE_DIR}/omnibioai-workbench
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_RUNS_ROOT: /app/work/runs
       # #54: talk to the docker-socket-proxy's exposed socket, not the
@@ -603,6 +647,8 @@ services:
       - "127.0.0.1:7070:7070"
     environment:
       WORKSPACE_ROOT: /workspace
+      REGRESSION_HEALTH_ARTIFACT_PATH: /app/data/regression-health.json
+      REGRESSION_HEALTH_STALE_AFTER_HOURS: "168"
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/tool-images
       SENTRY_DSN: ${SENTRY_DSN:-}
@@ -622,6 +668,7 @@ services:
       DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
       - ${DATA_DIR}:/workspace
+      - ${REGRESSION_HEALTH_ARTIFACT_HOST_PATH:?set a regression-only certification artifact path}:/app/data/regression-health.json:ro
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_HOST in environment: above.
       - docker-proxy-socket:/var/run/proxy-socket:ro

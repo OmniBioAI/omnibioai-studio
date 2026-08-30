@@ -153,11 +153,18 @@ services:
       ATLASSIAN_SITE: ${ATLASSIAN_SITE:-}
       ATLASSIAN_EMAIL: ${ATLASSIAN_EMAIL:-}
       ATLASSIAN_API_TOKEN: ${ATLASSIAN_API_TOKEN:-}
-      OMNIBIOAI_EXTRA_MOUNTS: /usr/bin/docker:/usr/bin/singularity:/usr/bin/unsquashfs:/usr/bin/squashfuse:/usr/bin/fusermount:/usr/bin/fusermount3:/lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/etc/singularity:/usr/lib/aarch64-linux-gnu/singularity:/var/lib/singularity:${MACHINE_DIR}/omnibioai-tool-images/sif:${MACHINE_DIR}/omnibioai
+      OMNIBIOAI_EXTRA_MOUNTS: /usr/bin/docker:/usr/bin/singularity:/usr/bin/unsquashfs:/usr/bin/squashfuse:/usr/bin/fusermount:/usr/bin/fusermount3:/lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/etc/singularity:/usr/lib/aarch64-linux-gnu/singularity:/var/lib/singularity:${MACHINE_DIR}/omnibioai-tool-images/sif
       SINGULARITY_CACHEDIR: /tmp/singularity_cache
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
     volumes:
       - ${MACHINE_DIR}/omnibioai-tes:/workspace
+      # Slurm executes on the host and writes the configured absolute
+      # work_root there; keep the identical path visible to TES so its
+      # adapter can collect stdout/stderr after terminal completion.
+      - /tmp/omnibioai_tes_runs:/tmp/omnibioai_tes_runs
+      # Regression-safe workflow fixture root, also covered by the
+      # Docker Socket Proxy's approved WORK_DIR prefix.
+      - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_HOST in environment: above and the docker-socket-proxy
       # service's own comment. :ro because TES only ever needs to
@@ -523,7 +530,37 @@ services:
       #   tool-images/sif, and /usr/bin/docker (also needed so TES's own
       #   spawned containers can see the docker CLI binary, matching its
       #   own compose-level :ro mount of the same path).
-      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch,/etc/passwd,/etc/group,/etc/munge,/run/munge/munge.socket.2,/etc/slurm,/cromwell-executions,${MACHINE_DIR}/omnibioai,${MACHINE_DIR}/omnibioai-tool-images/sif,/usr/bin/docker,/usr/bin/singularity,/usr/bin/unsquashfs,/usr/bin/squashfuse,/usr/bin/fusermount,/usr/bin/fusermount3,/lib/aarch64-linux-gnu/libseccomp.so.2,/lib/aarch64-linux-gnu/liblzo2.so.2,/lib/aarch64-linux-gnu/liblzo2.so.2.0.0,/lib/aarch64-linux-gnu/libfuse3.so.3,/lib/aarch64-linux-gnu/libfuse3.so.3.14.0,/etc/singularity,/usr/lib/aarch64-linux-gnu/singularity,/var/lib/singularity
+      # #55-follow-up: renamed the entry above from
+      # "${MACHINE_DIR}/omnibioai" to "${MACHINE_DIR}/omnibioai-workbench"
+      # -- that directory has never held a real checkout: it's an
+      # empty, root-owned, wrecked directory (broken .git). Its own
+      # mtimes and tes's real container start time both predate this
+      # fix's live-verification, so the more likely actual origin is
+      # tes's own unrelated, long-running
+      # ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw bind
+      # (visible in tes's own volumes: block above) -- not
+      # OMNIBIOAI_HOST_APP_PREFIX/workflow_runner specifically, which
+      # just bind-mounted the same already-empty path on top; see the
+      # companion omnibioai-workbench fix's own commit for detail. The
+      # real, populated repo this deployment builds workbench
+      # from is ${MACHINE_DIR}/omnibioai-workbench (this file's own
+      # `context:` for the workbench/celery-worker services), which is
+      # what OMNIBIOAI_HOST_APP_PREFIX now points at below -- this entry
+      # exists so the docker-shim-rewritten bind sources workflow_runner's
+      # spawned engine container issues for /app/... paths land inside an
+      # allowed prefix.
+      #
+      # Flagged, not fixed here: re-reading _find_repo_root() above (not
+      # just this comment) shows it returns the PARENT that contains an
+      # "omnibioai" subdir + marker, not the subdir itself -- in this
+      # deployment that's bare ${MACHINE_DIR}, not ${MACHINE_DIR}/omnibioai
+      # or .../omnibioai-workbench, and _add_bind() binds that returned
+      # repo_root directly (local.py:1054-1055). So the paragraph above's
+      # own claim (this entry covers _find_repo_root()'s repo_root) does
+      # not hold under prefix matching either before or after this rename
+      # -- a pre-existing gap in TES's own local.py/this proxy
+      # interaction, unrelated to and not made worse by this rename.
+      PROXY_ALLOWED_BIND_PREFIXES: ${WORK_DIR},${MACHINE_DIR}/data,/root/.cache/omnibioai/torch,/etc/passwd,/etc/group,/etc/munge,/run/munge/munge.socket.2,/etc/slurm,/cromwell-executions,${MACHINE_DIR}/omnibioai-workbench,${MACHINE_DIR}/omnibioai-tool-images/sif,/usr/bin/docker,/usr/bin/singularity,/usr/bin/unsquashfs,/usr/bin/squashfuse,/usr/bin/fusermount,/usr/bin/fusermount3,/lib/aarch64-linux-gnu/libseccomp.so.2,/lib/aarch64-linux-gnu/liblzo2.so.2,/lib/aarch64-linux-gnu/liblzo2.so.2.0.0,/lib/aarch64-linux-gnu/libfuse3.so.3,/lib/aarch64-linux-gnu/libfuse3.so.3.14.0,/etc/singularity,/usr/lib/aarch64-linux-gnu/singularity,/var/lib/singularity
       # #54: exact-match named-volume allowlist (see docker-socket-proxy/
       # policy.py's _is_allowed_named_volume) -- lets workflow_runner's
       # spawned sibling container (omnibioai-workbench, plugins/
@@ -586,7 +623,29 @@ services:
       REASONING_LLM_MODEL: ${REASONING_LLM_MODEL:-deepseek-r1:32b}
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-deepseek-r1:32b}
       OMNIBIOAI_TES_URL: http://tes:8081
-      OMNIBIOAI_HOST_APP_PREFIX: ${WORKSPACE_HOST}
+      # workflow_runner (omnibioai-workbench, plugins/workflow_runner/
+      # views.py::_run_in_docker_runner) reads this to map its spawned
+      # Nextflow/Cromwell container's /app/... paths back to real host
+      # paths for the outer `docker run -v` call. /app inside THIS
+      # container is a build-time COPY of the omnibioai-workbench repo
+      # (see this service's own `context:` above), not a live bind mount
+      # of WORKSPACE_HOST (WORKSPACE_HOST is the whole machine dir, used
+      # for the unrelated /workspace mount below) -- so it must resolve
+      # to the real repo checkout path, matching
+      # PROXY_ALLOWED_BIND_PREFIXES' own ${MACHINE_DIR}/omnibioai-workbench
+      # entry below. Previously this reused ${WORKSPACE_HOST} (the whole
+      # machine dir) here, which the real Docker daemon would then bind
+      # from -- ${MACHINE_DIR}/omnibioai (a *different* path) is
+      # itself a wrecked, empty, root-owned directory that has never held
+      # a real checkout, but NOT because of this env var specifically:
+      # its own mtimes and tes's real container start time both predate
+      # this fix's live-verification, and tes has its own unrelated,
+      # long-running ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
+      # bind further down in this file -- the more likely actual origin
+      # (Docker auto-creates a missing bind source as an empty directory
+      # on first container start). See the companion omnibioai-workbench
+      # fix's own commit for detail.
+      OMNIBIOAI_HOST_APP_PREFIX: ${MACHINE_DIR}/omnibioai-workbench
       OMNIBIOAI_WORK_DIR: ${WORK_DIR}
       OMNI_OBJECT_STORAGE_DIR: /app/work/objects
       OMNI_OBJECT_REGISTRY_PATH: /app/work/object_registry.json
@@ -810,6 +869,8 @@ services:
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: compute,utility
       WORKSPACE_ROOT: /workspace
+      REGRESSION_HEALTH_ARTIFACT_PATH: /app/data/regression-health.json
+      REGRESSION_HEALTH_STALE_AFTER_HOURS: "168"
       WORK_DIR: /workspace/omnibioai-work
       OMNIBIOAI_BASE: /workspace/omnibioai
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
@@ -880,6 +941,7 @@ services:
       DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
         - ${MACHINE_DIR}:/workspace
+        - ${MACHINE_DIR}/omnibioai-ecosystem-regression/status/regression-health.json:/app/data/regression-health.json:ro
         - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
         - /media/manish/OmniBioAI-SIFs/reference:/media/manish/OmniBioAI-SIFs/reference
         - /media/manish/OmniBioAI-SIFs/omnibioai-test-data:/media/manish/OmniBioAI-SIFs/omnibioai-test-data
@@ -1247,6 +1309,12 @@ services:
       LIMS_SSO_CLIENT_ID: ${LIMS_SSO_CLIENT_ID:-omnibioai-lims}
       LIMS_SSO_CLIENT_SECRET: ${LIMS_SSO_CLIENT_SECRET}
       LIMS_SSO_REDIRECT_URI: ${LIMS_SSO_REDIRECT_URI:-https://lims.omnibioai.org/sso/callback}
+
+      # #443: ensure_bio_agent_service_role bootstrap -- same env var name
+      # workbench already sets below (BIO_AGENT_SVC_EMAIL), previously not
+      # forwarded to this service at all so the bootstrap was unreachable
+      # here even with the var set in .env.
+      BIO_AGENT_SVC_EMAIL: ${BIO_AGENT_SVC_EMAIL:-}
 
     depends_on:
       mysql:
