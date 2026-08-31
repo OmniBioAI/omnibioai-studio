@@ -187,6 +187,16 @@ security-audit :8004    ← async audit log → Redis Streams (never blocks)
 | HPC quota | FAIL CLOSED → HTTP 403 |
 | Audit | FAIL OPEN → ignored |
 
+## Admin Console / Control Center
+
+Control Center's Integration Health requires the explicit
+`WORKBENCH_PLUGIN_REGISTRY_PATH` environment variable. Studio supplies the
+current Workbench compiled registry at the container-visible
+`/app/data/workbench-plugin-registry.json` path through a single-file,
+read-only mount. If the registry variable/source is absent or invalid,
+`GET /integration-health` intentionally returns HTTP 503 with a generic
+unavailable response.
+
 ---
 
 ## 🔐 Browser Authentication

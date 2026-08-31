@@ -951,6 +951,10 @@ services:
       DEPLOYMENT_HEALTH_COMPOSE_PATH: /workspace/omnibioai-studio/docker-compose.yml
       DEPLOYMENT_HEALTH_BASELINE_SOURCE: development
       DEPLOYMENT_HEALTH_DEPLOYMENT_REPOSITORY: omnibioai-studio
+      # Integration Health reads Workbench's generated registry as a
+      # read-only, explicit source. Keep this path container-local; the
+      # single-file mount below avoids exposing the Workbench checkout.
+      WORKBENCH_PLUGIN_REGISTRY_PATH: /app/data/workbench-plugin-registry.json
     volumes:
         - ${MACHINE_DIR}:/workspace
         - ${MACHINE_DIR}/omnibioai-ecosystem-regression/status/regression-health.json:/app/data/regression-health.json:ro
@@ -969,6 +973,7 @@ services:
         - ${MACHINE_DIR}/omnibioai-control-center/scripts:/app/scripts
         - ${MACHINE_DIR}/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
         - ${MACHINE_DIR}/omnibioai-control-center/config:/config:ro
+        - ${MACHINE_DIR}/omnibioai-workbench/plugins/plugin_registry.json:/app/data/workbench-plugin-registry.json:ro
         - ${MACHINE_DIR}/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
     command: >-
       sh -c "/usr/local/bin/pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
