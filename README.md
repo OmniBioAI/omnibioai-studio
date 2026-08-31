@@ -23,7 +23,7 @@
 - 📦 **1,000 ARM64 SIF images**
 - 🔧 **Control Center web service** added
 - 💰 **Billing service** integrated
-- 🛡️ **Admin Console** live at admin.omnibioai.org
+- 🛡️ **Admin Console** live at admin.omnibioai.org — authenticated E2E certified (8/8)
 
 ### v0.6.0-beta ✅
 - 🌐 Web version at webstudio.omnibioai.org — no installation required
@@ -189,13 +189,75 @@ security-audit :8004    ← async audit log → Redis Streams (never blocks)
 
 ## Admin Console / Control Center
 
+`omnibioai-control-center` builds the platform's administrative surface as
+two frontends from one source tree: the **Admin Console** at
+`admin.omnibioai.org` (organizations, users, security, billing, workflows,
+audit, and more) and the ops-only **Control Center** at
+`control.omnibioai.org`. See the [Control Center Admin Console
+guide](https://github.com/OmniBioAI/omnibioai-control-center/blob/main/docs/admin-console/README.md)
+for the full navigation/feature catalog, authorization model, and current
+production-status matrix.
+
+```mermaid
+flowchart TD
+    AC[Admin Console] --> Health[Health / Operations surfaces]
+    AC --> WF[Workflows]
+    AC --> AL[Audit Logs]
+    AC --> AE[Audit Explorer]
+    AE --> CC[Control Center]
+    CC --> API["Security Audit safe API<br/>GET /audit/events/safe"]
+    API --> DB[(durable audit_events)]
+```
+
+**Audit Logs vs. Audit Explorer.** These are two distinct surfaces, not
+interchangeable: **Audit Logs** reads Auth's identity/audit ledger
+(`/platform/audit-events`); **Audit Explorer** is a read-only view of
+Security Audit's own durable event store, reached only through Control
+Center's proxy (`GET /audit/events/safe`) — the browser never calls Security
+Audit directly, and organization scope is enforced server-side, never by a
+browser-supplied parameter. Redis Stream `audit:events` remains the signed
+ingestion/backlog transport ahead of durable SQL persistence. Audit Explorer
+is merged and live-certified for its exercised paths: direct `/audit-explorer`
+deep link, hard refresh, sidebar navigation, browser history, event
+rendering/filters/details, and safe (allowlisted) metadata — all read-only,
+with freshness/retention reported as `UNKNOWN` when the upstream can't
+establish them rather than guessed.
+
+**Workflows.** `/workflows` is the committed, supported deep-link route —
+direct link, hard refresh, sidebar navigation, and Back/Forward history are
+all verified. `/workflow-operations` is **not** a separate committed route;
+that functionality lives on the Workflows page and its `workflow-bundles`
+proxy.
+
+**Authenticated E2E.** The authenticated Admin Console Playwright suite
+passed **8/8** against `https://admin.omnibioai.org`, covering the
+authenticated landing page, Health / Regression Health / Deployment Health /
+Integration Health, Security Posture, Workflow Operations, Audit Explorer,
+sidebar reachability, the supported direct routes above, hard refresh,
+Back/Forward history, and anonymous rejection. This certifies those specific
+Admin Console surfaces and the authenticated-admin identity path only — it is
+not a claim that every OmniBioAI subsystem is production-certified; see the
+Control Center README's production-status matrix for per-surface detail.
+
+**Security Audit (SAT).** SAT-1 (tenant contract), SAT-2 (producer tenant
+propagation), SAT-3 (tenant-safe authorization/query contract), and SAT-4
+(source/evidence semantics) are implemented server-side in Security Audit.
+Producer propagation has live evidence for Gateway/RAG/LIMS and remains
+fixture-limited for TES/Workflow Bundles; Model Registry is not yet a
+confirmed producer. See `omnibioai-security-audit` and the Control Center
+README's SAT status table for current detail.
+
+### Integration Health deployment source
+
 Control Center's Integration Health requires the explicit
 `WORKBENCH_PLUGIN_REGISTRY_PATH` environment variable. Studio supplies the
 current Workbench compiled registry at the container-visible
 `/app/data/workbench-plugin-registry.json` path through a single-file,
 read-only mount. If the registry variable/source is absent or invalid,
 `GET /integration-health` intentionally returns HTTP 503 with a generic
-unavailable response.
+unavailable response. The Integration Health inventory itself is derived
+dynamically from that registry at request time — Studio does not hard-code
+an integration count.
 
 ---
 
