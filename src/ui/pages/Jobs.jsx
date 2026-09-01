@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { isElectron } from "../lib/session";
+import { isElectron, getToken } from "../lib/session";
 
 function getHost() {
   return (
@@ -18,9 +18,19 @@ function tesUrl(path) {
 }
 
 async function apiFetch(path, opts = {}) {
+  // TES's own auth middleware requires a bearer token ({"detail":"missing
+  // bearer token"} on :8081) -- this fetch() is a normal same-origin XHR,
+  // not an iframe navigation (unlike RAG/Control Center), so it's fully
+  // able to attach a real header itself instead of relying on nginx to
+  // synthesize one from a cookie. Same pattern as rolesApi.js's request().
+  const token = getToken();
   const res = await fetch(tesUrl(path), {
     ...opts,
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(opts.headers || {}),
+    },
     signal: opts.signal || AbortSignal.timeout(10000),
   });
   if (!res.ok) {
