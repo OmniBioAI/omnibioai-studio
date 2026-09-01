@@ -971,7 +971,6 @@ services:
         - /var/spool/cron/crontabs/manish:/var/spool/cron/crontabs/manish
         - ${MACHINE_DIR}/omnibioai-control-center/backend/src:/app/src
         - ${MACHINE_DIR}/omnibioai-control-center/scripts:/app/scripts
-        - ${MACHINE_DIR}/omnibioai-control-center/frontend/cc-ui/dist:/app/dist
         - ${MACHINE_DIR}/omnibioai-control-center/config:/config:ro
         - ${MACHINE_DIR}/omnibioai-workbench/plugins/plugin_registry.json:/app/data/workbench-plugin-registry.json:ro
         - ${MACHINE_DIR}/omnibioai-tool-images/sif:/workspace/omnibioai-tool-images/sif:ro
@@ -990,11 +989,13 @@ services:
   # see omnibioai-control-center/docker/nginx/control-center.conf) and
   # proxies every API path through to the SAME control-center backend
   # service above (no second backend, no duplicated container). Bound to
-  # localhost only, matching that service's own convention. Not yet
-  # reachable from outside this host -- /etc/cloudflared/config.yml still
-  # points control.omnibioai.org directly at control-center:7070; wiring
-  # this port in there (and adding admin.omnibioai.org) is deliberately
-  # separate follow-up work, not part of this PR.
+  # localhost only, matching that service's own convention.
+  # Correction (re-checked live, 2026-09-01): the "not yet reachable from
+  # outside this host" follow-up this comment used to describe as
+  # pending is done -- /etc/cloudflared/config.yml now points both
+  # control.omnibioai.org and admin.omnibioai.org at
+  # http://localhost:5174, this service's own exposed port, not at
+  # control-center:7070 directly.
   control-center-web:
     build:
       context: ${MACHINE_DIR}/omnibioai-control-center
