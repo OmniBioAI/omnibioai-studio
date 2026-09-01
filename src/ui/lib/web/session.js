@@ -22,6 +22,25 @@ export function authUrl(path) {
 
 let cachedUser = null;
 
+// Reads a fetch Response body as JSON without ever throwing. A backend
+// error response isn't guaranteed to be JSON — an nginx 502/504 page, the
+// SPA's own index.html on a routing miss (see nginx-router.conf's header
+// comment on that failure mode), or a plain-text 500 are all real
+// possibilities in front of this same-origin proxy — and calling
+// `res.json()` directly on one of those throws a raw
+// `SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON`
+// that callers used to let bubble straight into the UI. Returns the parsed
+// body, or null if it was empty or not valid JSON.
+async function readJson(res) {
+  const text = await res.text().catch(() => "");
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    return null;
+  }
+}
+
 function notify() {
   window.dispatchEvent(new CustomEvent(SESSION_EVENT));
 }
@@ -143,9 +162,18 @@ export async function loginWithLicenseKey(key, email, platform = "web") {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key, email, platform }),
   });
-  const data = await res.json();
-  if (!res.ok || !data.valid) {
-    throw new Error(LICENSE_ERROR_MESSAGES[data.reason] || "License validation failed");
+  const data = await readJson(res);
+  if (!res.ok || !data?.valid) {
+    // Preference order: a known `reason` code maps to its friendly message
+    // (unchanged from before); otherwise surface whatever message the
+    // backend actually sent (a real JSON error body auth-service returned,
+    // just not one of the LICENSE_ERROR_MESSAGES codes above); otherwise
+    // — the body wasn't JSON at all (nginx error page, SPA index.html
+    // fallback, empty body) — fall back to a plain, status-coded message
+    // instead of leaking the raw HTML/parse failure into the UI.
+    const reasonMessage = data?.reason && LICENSE_ERROR_MESSAGES[data.reason];
+    const backendMessage = data?.error || data?.message || data?.detail;
+    throw new Error(reasonMessage || backendMessage || `License validation failed (${res.status})`);
   }
   setSession(data.access_token, data.refresh_token);
   return getCurrentUser({ force: true });
@@ -168,8 +196,12 @@ export async function getCurrentUser({ force = false } = {}) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
     });
-    const data = await res.json();
-    if (!data.valid) {
+    // readJson (not res.json()) so a non-JSON body (e.g. a transient 502)
+    // falls through to the same "not valid" branch below instead of
+    // throwing past clearSession() into the outer catch, which used to
+    // leave a dead token in localStorage instead of actually clearing it.
+    const data = await readJson(res);
+    if (!data?.valid) {
       clearSession();
       return null;
     }
@@ -216,16 +248,11 @@ export async function confirmOAuthLink(linkToken, password) {
     body: JSON.stringify({ link_token: linkToken, password }),
   });
   if (!res.ok) {
-    let detail = "Could not confirm the link";
-    try {
-      detail = (await res.json())?.detail || detail;
-    } catch (_) {
-      // no JSON body
-    }
-    throw new Error(detail);
+    const data = await readJson(res);
+    throw new Error(data?.detail || `Could not confirm the link (${res.status})`);
   }
-  const data = await res.json();
-  setSession(data.access_token, data.refresh_token);
+  const data = await readJson(res);
+  setSession(data?.access_token, data?.refresh_token);
   return getCurrentUser({ force: true });
 }
 
