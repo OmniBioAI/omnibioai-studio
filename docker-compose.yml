@@ -382,6 +382,19 @@ services:
       # installation commands; it is never passed as a build ARG.
       secrets:
         - github_token
+      # ragbio-ui (the frontend built by the ui-builder stage, which the
+      # `backend` target still depends on and COPYs dist/ from -- see the
+      # Dockerfile) bakes this in as import.meta.env.VITE_RAGBIO_API_KEY at
+      # build time (Vite env vars are compile-time, not runtime -- setting
+      # RAGBIO_API_KEY under `environment:` below only reaches the running
+      # backend process, never the already-built frontend bundle). Without
+      # this build arg the Dockerfile's `ARG RAGBIO_API_KEY` stays empty
+      # regardless of what .env holds, so every ragbio-ui request sends a
+      # literal "Authorization: Bearer undefined" and the backend correctly
+      # (if unhelpfully) reports "Not authenticated" -- confirmed missing
+      # here, not an nginx routing gap.
+      args:
+        RAGBIO_API_KEY: ${RAGBIO_API_KEY}
     restart: on-failure
     # image: ghcr.io/omnibioai/omnibioai-rag:latest
     # Frontend served at http://localhost:8090/ via nginx (port 5175 inside container)
