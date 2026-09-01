@@ -793,6 +793,25 @@ services:
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       ORCHESTRATOR_MAX_RETRIES: "10"
       RAG_BASE_URL: http://rag:8096
+      # Live audit finding (2026-08-31, plugins/bio_agent post-#518 scan):
+      # workbench has both of these already (see this file's `workbench`
+      # service block above); celery-worker didn't, same DB_HOST/TES_BASE_URL
+      # kind of parity gap as GATEWAY_URL above, just never caught until a
+      # real end-to-end BioQueryAI/Workflow Planner run actually reached the
+      # LLM/MySQL step from inside THIS container instead of workbench's.
+      # Without OLLAMA_BASE_URL, LLMService falls back to the ollama client's
+      # own default (127.0.0.1:11434), which is nothing inside this
+      # container -- every real BioQueryAI analysis Celery task failed with
+      # "Failed to connect to Ollama" as soon as it reached the LLM step.
+      # Without OMNIBIOAI_MYSQL_PASSWORD, Workflow Planner's MySQL
+      # workflow-candidate scan (_resolve_mysql_config in
+      # workflow_planner_service.py) failed with "MySQL password missing" --
+      # host/port/user/db all already resolve correctly via this block's
+      # existing DB_HOST/hardcoded defaults, only password had no working
+      # fallback (checked _resolve_mysql_config's real fallback chain before
+      # adding this, not just the two vars the error message named).
+      OLLAMA_BASE_URL: http://ollama:11434
+      OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       CODE_LLM_MODEL: ${CODE_LLM_MODEL:-qwen2.5-coder:32b}
