@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { isElectron } from "../lib/session";
+import { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } from "../lib/session";
+
+// Permission gate for the Admin Console tile — reuses the same permission
+// string control-center's own backend gates its core admin routes on
+// (services/summary/health/config/docker routers, main.py:
+// `Depends(require_permission("platform.manage_infra"))`), rather than
+// inventing a separate frontend-only notion of "admin". A user without it
+// would just hit 403s once inside admin.omnibioai.org anyway — same
+// reasoning as the existing "Roles" nav item in App.jsx, which gates on
+// manage_roles for the same reason (don't show every signed-in researcher
+// an entry point to a surface most of them can't use).
+const ADMIN_CONSOLE_PERMISSION = "platform.manage_infra";
 
 function getInitialHost() {
   return (
@@ -9,24 +20,40 @@ function getInitialHost() {
   );
 }
 
-const openDocs = () => {
-  // Relative — nginx-router.conf proxies /docs/ on the same origin as the
-  // app (`location ^~ /docs/`); a hardcoded LAN IP here isn't reachable
-  // from a browser tab in the web build.
-  const url = '/docs/guides/getting-started.html';
-  window.dispatchEvent(new CustomEvent("open-service", { detail: { url, label: "Getting Started" } }));
-};
-
 function buildCategories(BASE) {
   return [
     {
       name: "Platform Services",
       color: "var(--color-text-muted)",
       links: [
-        { label:"Getting Started",  url:"/docs/", action:openDocs,    icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
+        // omnibioai-docs (Docusaurus) can't be proxied under a /_svc/
+        // prefix the way the rest of these are — its build has baseUrl:
+        // '/' (site/docusaurus.config.js), so every asset and nav link in
+        // the rendered HTML is an absolute root path with no idea it might
+        // be served under a prefix. nginx-router.conf's /_svc/docs redirects
+        // into the already-correct docs.omnibioai.org host instead of
+        // re-proxying those same broken-by-construction paths under a
+        // second prefix — see that location's own comment. Was
+        // /docs/guides/getting-started.html, a path that hasn't existed
+        // since the docs site moved to its current dist/user/... layout.
+        { label:"Getting Started",  url:"/_svc/docs/user/getting-started/", icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
         { label:"Workbench",        url:"/_svc/workbench/",          icon:"🏠", desc:"Dashboard"                        },
         { label:"Control Center",   url:"/_svc/control/",            icon:"🖥️", desc:"Health + Docker imgs"             },
+        // Admin Console (control-center-web's AdminApp build, dist-admin) —
+        // reached directly at admin.omnibioai.org, not through nginx-router
+        // at all: cloudflared points both admin.omnibioai.org and
+        // control.omnibioai.org straight at control-center-web:5174, whose
+        // own nginx (control-center.conf) does the host-based dist-control/
+        // dist-admin split and proxies to control-center's backend, gated
+        // there by the same require_permission("platform.manage_infra") IAM
+        // check this tile itself gates on below — a later, deliberate
+        // architecture (PR14.7B/C) that superseded nginx-router.conf's own
+        // now-inert /_svc/control auth_request block. Absolute cross-origin
+        // URL, same reason as Getting Started above: AdminApp's own Vite
+        // build has no `base` set either, so it's root-absolute-path and
+        // can't be proxied under a /_svc/ prefix without breaking assets.
+        { label:"Admin Console",    url:"https://admin.omnibioai.org/", icon:"🛡️", desc:"Org/user/IAM · Billing · Compliance", requiresPermission: ADMIN_CONSOLE_PERMISSION },
         { label:"LIMS",             url:"/_svc/lims/",               icon:"🧪", desc:"Lab data management"              },
         { label:"Model Registry",   url:"/_svc/modelregistry",       icon:"🧬", desc:"ML model versioning"              },
         { label:"RAG / Lit AI",     url:"/_svc/rag/",                icon:"📚", desc:"PubMed RAG + DeepSeek"            },
@@ -105,9 +132,26 @@ export default function Workbench() {
   const [host,     setHost]     = useState(getInitialHost);
   const [online,   setOnline]   = useState(false);
   const [checking, setChecking] = useState(true);
+  // Cached synchronously (App.jsx's own mount-time getCurrentUser() call has
+  // usually already populated it by the time anyone reaches this page) so
+  // permission-gated tiles like Admin Console don't flash visible-then-
+  // hidden on first paint; re-subscribed below in case a user signs in/out
+  // while sitting on this page.
+  const [currentUser, setCurrentUser] = useState(getCurrentUserSync);
 
   const BASE       = "/_svc/workbench";
   const CATEGORIES = useMemo(() => buildCategories(BASE), [BASE]);
+
+  useEffect(() => {
+    let mounted = true;
+    const refreshUser = async () => {
+      const user = await getCurrentUser();
+      if (mounted) setCurrentUser(user);
+    };
+    refreshUser();
+    const unsubscribe = onSessionChange(refreshUser);
+    return () => { mounted = false; unsubscribe(); };
+  }, []);
 
   useEffect(() => {
     const loadHost = async () => {
@@ -266,7 +310,19 @@ export default function Workbench() {
 
       {/* Categories */}
       <div id="main-content">
-        {CATEGORIES.map(({ name, color, links }) => (
+        {CATEGORIES.map(({ name, color, links: allLinks }) => {
+          // Hide tiles like Admin Console whose target is gated on a
+          // permission (platform.manage_infra) the signed-in user's JWT
+          // doesn't carry — same reasoning as App.jsx's showRolesNav: don't
+          // advertise an entry point most researchers would just get a 403
+          // from. currentUser === null (still loading, or Electron with no
+          // web session concept) fails open, same as showRolesNav, rather
+          // than hiding gated tiles for everyone during that window.
+          const links = allLinks.filter(({ requiresPermission }) =>
+            !requiresPermission || currentUser === null || currentUser.permissions?.includes(requiresPermission)
+          );
+          if (links.length === 0) return null;
+          return (
           <div key={name} style={{
             background:"var(--bg3)", border:"1px solid var(--border)",
             borderRadius:'var(--radius-lg)', overflow:"hidden",
@@ -316,7 +372,8 @@ export default function Workbench() {
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Explore more banner */}
