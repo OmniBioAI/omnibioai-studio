@@ -418,6 +418,11 @@ services:
       NCBI_API_KEY: ${NCBI_API_KEY}
       RAG_DATA_DIR: /workspace/data/PubMed
       FAISS_INDEX_DIR: /workspace/data/Index
+      RAG_EMBEDDING_PROVIDER: sentence_transformers
+      RAG_EMBEDDING_MODEL: mixedbread-ai/mxbai-embed-large-v1
+      RAG_EMBEDDING_DIMENSION: "1024"
+      RAG_EMBEDDING_DEVICE: cuda
+      RAG_EMBEDDING_NORMALIZE: "true"
       RAG_QUERY_EXPANSION: "true"
       RAG_RERANKING: "true"
       RAG_RERANKER_MODEL: "cross-encoder/ms-marco-MiniLM-L-6-v2"

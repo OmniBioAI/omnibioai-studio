@@ -646,6 +646,11 @@ services:
       HOST: 0.0.0.0
       PORT: "8096"
       OLLAMA_BASE_URL: http://ollama:11434
+      RAG_EMBEDDING_PROVIDER: sentence_transformers
+      RAG_EMBEDDING_MODEL: mixedbread-ai/mxbai-embed-large-v1
+      RAG_EMBEDDING_DIMENSION: "1024"
+      RAG_EMBEDDING_DEVICE: cuda
+      RAG_EMBEDDING_NORMALIZE: "true"
       IAM_URL: http://auth-service:8001
       GATEWAY_URL: http://api-gateway:8080
       RAGBIO_API_KEY: ${RAGBIO_API_KEY:-}
