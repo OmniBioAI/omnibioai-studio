@@ -1128,6 +1128,7 @@ services:
       # to it.
       - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
+    restart: unless-stopped
     depends_on:
       docker-socket-proxy:
         condition: service_started
