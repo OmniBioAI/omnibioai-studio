@@ -144,8 +144,11 @@ function Empty() {
   return (
     <div style={{ padding:60, textAlign:"center" }}>
       <div style={{ fontSize:36, marginBottom:12 }}>🎬</div>
-      <div style={{ fontSize:"var(--font-size-sm)", fontFamily:"var(--mono)", color:"var(--muted)" }}>
-        No videos found in videos.json
+      <div style={{ fontSize:"var(--font-size-sm)", fontWeight:600, color:"var(--text)", marginBottom:6 }}>
+        No tutorials available yet
+      </div>
+      <div style={{ fontSize:"var(--font-size-xs)", fontFamily:"var(--mono)", color:"var(--muted)" }}>
+        Check back soon — new walkthroughs are added regularly.
       </div>
     </div>
   );
