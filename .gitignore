@@ -25,3 +25,8 @@ migration_verification_report.txt
 STALE_SERVICES.txt
 .aider*
 STALE_SERVICES.txt
+
+# Dated pre-change backups of live config (e.g. docker/nginx-router.conf.bak-*)
+# -- git history on the real file is the rollback mechanism now, these are
+# just local working-copy scratch files.
+docker/*.bak-*
