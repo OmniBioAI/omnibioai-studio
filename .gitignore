@@ -30,3 +30,7 @@ STALE_SERVICES.txt
 # -- git history on the real file is the rollback mechanism now, these are
 # just local working-copy scratch files.
 docker/*.bak-*
+
+# vitest/v8 coverage report output (npm run coverage:ui, packages/omnibioai-ui's
+# npm run coverage) -- generated, not source.
+coverage/

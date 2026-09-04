@@ -25,4 +25,14 @@ describe('Card', () => {
     fireEvent.click(container.firstChild!);
     expect(fn).toHaveBeenCalledTimes(1);
   });
+  it('applies inline padding style when provided', () => {
+    const { container } = render(<Card padding="12px">body</Card>);
+    expect((container.firstChild as HTMLElement).style.padding).toBe('12px');
+  });
+  it('renders header with actions but no title', () => {
+    const { container } = render(<Card actions={<button>Go</button>}>body</Card>);
+    expect(container.querySelector('.omni-card__header')).not.toBeNull();
+    expect(container.querySelector('.omni-card__title')).toBeNull();
+    expect(screen.getByText('Go')).toBeInTheDocument();
+  });
 });

@@ -33,4 +33,12 @@ describe('Tabs', () => {
     render(<Tabs tabs={tabs} defaultTab="b" />);
     expect(screen.getByText('Content B')).toBeInTheDocument();
   });
+  it('renders an empty panel when there are no tabs', () => {
+    const { container } = render(<Tabs tabs={[]} />);
+    expect(container.querySelector('.omni-tab-panel')?.textContent).toBe('');
+  });
+  it('renders an empty panel when defaultTab matches no tab', () => {
+    const { container } = render(<Tabs tabs={tabs} defaultTab="missing" />);
+    expect(container.querySelector('.omni-tab-panel')?.textContent).toBe('');
+  });
 });

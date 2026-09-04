@@ -15,6 +15,9 @@ export default defineConfig({
           setupFiles: ['./src/test-setup.ts'],
           css: true,
           include: ['src/**/*.test.{ts,tsx}'],
+          coverage: {
+            thresholds: { statements: 95, lines: 95, functions: 95, branches: 95 },
+          },
         },
       },
     ],
