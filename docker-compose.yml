@@ -362,9 +362,20 @@ services:
     image: neo4j:5.15
     restart: unless-stopped
     ports:
-      - "7474:7474"
-      - "7687:7687"
+      # Loopback-only, matching nginx-router / control-center / lims: the
+      # Neo4j Browser (7474) and Bolt (7687) are a full read/write Cypher
+      # console over the knowledge graph, never something that should be
+      # reachable from the host LAN. Remote admin access goes through the
+      # neo4j.omnibioai.org cloudflared ingress (-> localhost:7474) behind
+      # Cloudflare Access; every in-cluster consumer reaches it as
+      # neo4j:7687 on the compose network and is unaffected by this.
+      - "127.0.0.1:7474:7474"
+      - "127.0.0.1:7687:7687"
     environment:
+      # NEO4J_AUTH only takes effect on a FRESH neo4j_data volume. On an
+      # already-initialised volume the password lives in the volume and
+      # must be rotated with `ALTER CURRENT USER SET PASSWORD FROM ... TO ...`
+      # (or by resetting the volume). See .env.example.
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-omnibioai}
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_dbms_memory_heap_max__size: 4G

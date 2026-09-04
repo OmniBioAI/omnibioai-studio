@@ -54,6 +54,15 @@ function buildCategories(BASE) {
         // build has no `base` set either, so it's root-absolute-path and
         // can't be proxied under a /_svc/ prefix without breaking assets.
         { label:"Admin Console",    url:"https://admin.omnibioai.org/", icon:"🛡️", desc:"Org/user/IAM · Billing · Compliance", requiresPermission: ADMIN_CONSOLE_PERMISSION },
+        // Neo4j Browser — a full read/write Cypher console over the
+        // knowledge graph, so it is permission-gated on the same
+        // platform.manage_infra check as Admin Console / Control Center
+        // rather than shown to every signed-in researcher. Reached via a
+        // dedicated cloudflared ingress (neo4j.omnibioai.org ->
+        // localhost:7474) behind Cloudflare Access; the container's 7474/
+        // 7687 ports are otherwise loopback-only (docker-compose.yml).
+        // Absolute cross-origin URL, same handling as Admin Console above.
+        { label:"Neo4j Browser",    url:"https://neo4j.omnibioai.org/", icon:"🕸️", desc:"Knowledge-graph Cypher console", requiresPermission: ADMIN_CONSOLE_PERMISSION },
         // Internal Studio page (src/ui/pages/Billing.jsx, App.jsx step 12),
         // not an nginx-proxied service view like the tiles around it —
         // billing-service exposes only a JSON API, no UI of its own — so
