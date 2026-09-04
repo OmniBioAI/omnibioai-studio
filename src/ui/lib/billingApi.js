@@ -71,3 +71,47 @@ export const getUsageLimits = (orgId) =>
 //   Never 404s — a brand-new org gets honest zeros / null period.
 export const getBillingSummary = (orgId) =>
   get(`/billing/organizations/${orgId}/summary`);
+
+function qs(params) {
+  return Object.entries(params)
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join("&");
+}
+
+// GET /billing/organizations/{orgId}/usage?start_date&end_date
+//   -> { organization_id, period_start, period_end,
+//        services: [{ service, action, resource, unit, quantity }] }
+//   Raw usage quantity per (service, action, resource) dimension, summed
+//   server-side from usage_daily_rollups. Never 404s — an org/period
+//   with no recorded usage gets an honest empty `services` array.
+export const getUsageSummary = (orgId, startDate, endDate) =>
+  get(`/billing/organizations/${orgId}/usage?${qs({ start_date: startDate, end_date: endDate })}`);
+
+// GET /billing/organizations/{orgId}/cost-history?start_date&end_date
+//   -> { organization_id, period_start, period_end, currency,
+//        history: [{ date, cost }] }
+//   One point per day that had rated usage — a quiet day has no point at
+//   all, not an explicit zero-cost entry (see billing_reporting_service.
+//   get_cost_history's docstring), so an empty `history` is the normal
+//   shape for a sparsely-used org.
+export const getCostHistory = (orgId, startDate, endDate) =>
+  get(`/billing/organizations/${orgId}/cost-history?${qs({ start_date: startDate, end_date: endDate })}`);
+
+// GET /billing/organizations/{orgId}/cost-breakdown?start_date&end_date&group_by
+//   -> { organization_id, period_start, period_end, group_by, currency,
+//        breakdown: { [groupKey]: { quantity, cost } } }
+//   group_by is one of service|action|resource|month server-side;
+//   defaults to "service" here as the most legible grouping for a
+//   per-org summary view.
+export const getCostBreakdown = (orgId, startDate, endDate, groupBy = "service") =>
+  get(`/billing/organizations/${orgId}/cost-breakdown?${qs({ start_date: startDate, end_date: endDate, group_by: groupBy })}`);
+
+// Deliberately NOT wrapped here: GET /billing/organizations/{orgId}/usage-events
+// is the per-user raw event log (added for HIPAA RAG-query-log read access —
+// see billing.py's router section comment), distinct from the aggregate
+// usage/cost endpoints above. Surfacing individual per-user activity data is
+// its own explicit product decision, not something that rides along by
+// default with an aggregate reporting client — same reasoning as the
+// cron-log exclusion. Add a dedicated wrapper (and its own UI surface) only
+// when that decision is made on purpose.
