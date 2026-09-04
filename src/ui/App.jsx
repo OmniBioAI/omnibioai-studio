@@ -22,6 +22,7 @@ import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
 import { GrafanaViewer } from "./components/GrafanaViewer";
 import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } from "./lib/session";
+import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 
 const BASE_NAV = [
   { section: "Setup",   items: [
@@ -112,6 +113,18 @@ export default function App() {
             // No config at all → first run → Settings
             setStep(8);
           }
+        } else if (!isElectron()) {
+          // Web/cloud deployment (e.g. webstudio.omnibioai.org): window.api
+          // (Electron's preload bridge) is never injected into a plain
+          // browser tab, so the branch above never runs here and `config`
+          // was silently stuck at its hardcoded initial default forever.
+          // webApi.loadConfig() (src/ui/lib/web/webApi.js) is the purpose-
+          // built web-mode stand-in — there's no local Docker stack or
+          // data_dir to configure when connecting to an already-running
+          // backend, so it always resolves with mode: "beta" rather than
+          // needing a first-run redirect the way the Electron branch does.
+          const saved = await loadWebConfig();
+          setConfig(prev => ({ ...prev, ...saved, mode: saved.mode || "beta" }));
         }
       } catch (_) {
         // Dev mode — no Electron API, stay on Mode page
@@ -325,8 +338,12 @@ export default function App() {
             <span style={{ color:"var(--text)" }}>{currentName}</span>
           </div>
 
-          {/* First run warning */}
-          {!config?.settings?.data_dir && (
+          {/* First run warning — data_dir is an Electron-only concept (the
+              local Docker stack's data directory). Beta/web mode connects to
+              an already-running remote backend and never has one to set
+              (see webApi.loadConfig() above), so it's excluded here rather
+              than showing a "setup required" warning that doesn't apply. */}
+          {config?.mode !== "beta" && !config?.settings?.data_dir && (
             <div style={{
               fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
               color:"var(--warn)",

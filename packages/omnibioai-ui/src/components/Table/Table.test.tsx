@@ -42,3 +42,66 @@ describe('Table', () => {
     expect(screen.getByText('alpha').tagName).toBe('STRONG');
   });
 });
+
+it('cycles sort direction, handles nulls, and resets after a third click', () => {
+  const columns = [
+    { key: 'name' as const, label: 'Name', sortable: true },
+    { key: 'value' as const, label: 'Value', sortable: true },
+    { key: 'plain' as const, label: 'Plain', sortable: false },
+  ];
+  const rows = [
+    { name: 'zeta', value: null as number | null, plain: 'x' },
+    { name: 'alpha', value: 2, plain: 'y' },
+    { name: 'beta', value: 1, plain: 'z' },
+  ];
+  render(<Table columns={columns} data={rows} />);
+  const name = screen.getByText('Name');
+  fireEvent.click(name); // asc
+  fireEvent.click(name); // desc
+  expect(screen.getAllByRole('cell')[0]).toHaveTextContent('zeta');
+  fireEvent.click(name); // clear sort
+  expect(screen.getAllByRole('cell')[0]).toHaveTextContent('zeta');
+  fireEvent.click(screen.getByText('Plain')); // no-op
+});
+
+it('compares nulls on both sides and equal values when sorting', () => {
+  const columns = [{ key: 'value' as const, label: 'Value', sortable: true }];
+  const rows = [
+    { value: null as number | null },
+    { value: 5 },
+    { value: 5 },
+    { value: 3 },
+  ];
+  render(<Table columns={columns} data={rows} />);
+  fireEvent.click(screen.getByText('Value')); // ascending
+  const asc = screen.getAllByRole('cell').map(c => c.textContent);
+  expect(asc[asc.length - 1]).toBe('—'); // null sorts last ascending
+  fireEvent.click(screen.getByText('Value')); // descending
+  const desc = screen.getAllByRole('cell').map(c => c.textContent);
+  expect(desc[desc.length - 1]).toBe('—'); // null comparator return bypasses the direction flip
+});
+
+it('re-sorts ascending on the same column after a full reset cycle', () => {
+  const columns = [{ key: 'name' as const, label: 'Name', sortable: true }];
+  const rows = [{ name: 'zeta' }, { name: 'alpha' }, { name: 'beta' }];
+  render(<Table columns={columns} data={rows} />);
+  const name = screen.getByText('Name');
+  fireEvent.click(name); // asc
+  fireEvent.click(name); // desc
+  fireEvent.click(name); // reset (null)
+  fireEvent.click(name); // asc again
+  expect(screen.getAllByRole('cell')[0]).toHaveTextContent('alpha');
+});
+
+it('paginates, renders ellipses, and supports page navigation', () => {
+  const columns = [{ key: 'name' as const, label: 'Name', sortable: true }];
+  const rows = Array.from({ length: 50 }, (_, i) => ({ name: `row-${i}` }));
+  render(<Table columns={columns} data={rows} pageSize={2} />);
+  expect(screen.getByText('row-0')).toBeInTheDocument();
+  expect(screen.getByText('…')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '2' }));
+  expect(screen.getByText('row-2')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '→' }));
+  fireEvent.click(screen.getByRole('button', { name: '←' }));
+  expect(screen.getByText('row-2')).toBeInTheDocument();
+});
