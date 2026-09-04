@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Badge, Card, Button, ProgressBar, Spinner } from "@omnibioai/ui";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Badge, Card, Button, ProgressBar, Spinner, Tabs, Table } from "@omnibioai/ui";
 import Login from "../components/Login";
 import * as billingApi from "../lib/billingApi";
 
@@ -9,7 +9,10 @@ import * as billingApi from "../lib/billingApi";
 // write path exists in that service — no plan changes, no payment-method
 // management, no invoice actions — so this page has none either.
 //
-// Data shown maps 1:1 to what the API actually returns today:
+// The page is two tabs: "Overview" (plan/status/limits/period, unchanged
+// from before) and "Usage" (raw usage + cost reporting, added alongside it).
+//
+// Overview data maps 1:1 to what the API actually returns today:
 //   /billing/organizations/{orgId}/subscription            -> plan + status + dates + feature flags
 //   /billing/organizations/{orgId}/subscription/usage-limits -> per-dimension included/used
 //   /billing/organizations/{orgId}/summary                 -> current period + cost + invoice/outstanding totals
@@ -20,6 +23,23 @@ import * as billingApi from "../lib/billingApi";
 //     test fixtures — see omnibioai-billing/app/core/feature_catalog.py)
 //   - billing account details (billing_email / provider / customer id — the
 //     BillingAccount model has these but no endpoint returns them)
+//
+// Usage tab data, over a trailing 30-day window:
+//   /billing/organizations/{orgId}/usage          -> raw usage by service/action/resource
+//   /billing/organizations/{orgId}/cost-history   -> daily $ over the window
+//   /billing/organizations/{orgId}/cost-breakdown -> $ grouped by service (group_by default)
+//
+// Deliberately NOT shown: /billing/organizations/{orgId}/usage-events, the
+// per-user raw event log. Individual user activity data is its own explicit
+// product decision, not something that ships by default alongside aggregate
+// usage/cost reporting — same reasoning as the cron-log exclusion. See
+// billingApi.js's comment above that endpoint for the full rationale.
+//
+// Most orgs will show near-empty results here — real usage-service traffic
+// today is concentrated in one org's rag/model/workflow events, and cost
+// rollups are near-empty everywhere else — so every section below uses the
+// same honest-empty-state wording as the Overview tab's Plan card rather
+// than a blank chart or a false error.
 
 const STATUS_VARIANT = {
   active: "success",
@@ -159,6 +179,22 @@ function BillingSummary({ orgId }) {
             read-only view of organization #{orgId}’s current billing state
           </div>
         </div>
+      </div>
+
+      <Tabs
+        tabs={[
+          { key: "overview", label: "Overview", content: <BillingOverview load={load} error={error} hasSub={hasSub} subscription={subscription} limitRows={limitRows} summary={summary} /> },
+          { key: "usage", label: "Usage", content: <UsageTab orgId={orgId} /> },
+        ]}
+      />
+    </div>
+  );
+}
+
+function BillingOverview({ load, error, hasSub, subscription, limitRows, summary }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <Button variant="secondary" size="sm" onClick={load}>Refresh</Button>
       </div>
 
@@ -267,6 +303,133 @@ function BillingSummary({ orgId }) {
         This is a read-only summary. Plan changes, payment methods, and invoice
         downloads are not available here — billing-service exposes no write
         endpoints for them.
+      </div>
+    </div>
+  );
+}
+
+// Trailing N-day window ending today, as YYYY-MM-DD strings — start_date
+// and end_date are required query params on all three Usage-tab endpoints,
+// and a fixed trailing window keeps this page free of date-picker state.
+function lastNDaysRange(n) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - (n - 1));
+  const iso = (d) => d.toISOString().slice(0, 10);
+  return { startDate: iso(start), endDate: iso(end) };
+}
+
+const EMPTY_USAGE_MESSAGE = "No usage recorded for this period.";
+
+function UsageTab({ orgId }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [usage, setUsage] = useState(null); // { services: [...] } | null
+  const [costHistory, setCostHistory] = useState(null); // { currency, history: [...] } | null
+  const [costBreakdown, setCostBreakdown] = useState(null); // { currency, breakdown: {...} } | null
+
+  const { startDate, endDate } = useMemo(() => lastNDaysRange(30), []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    // None of these three 404 — an org/period with no usage gets an
+    // honest empty result, not a missing-resource error — so any
+    // rejection here is a real failure worth surfacing.
+    const [usageRes, historyRes, breakdownRes] = await Promise.allSettled([
+      billingApi.getUsageSummary(orgId, startDate, endDate),
+      billingApi.getCostHistory(orgId, startDate, endDate),
+      billingApi.getCostBreakdown(orgId, startDate, endDate, "service"),
+    ]);
+
+    let errMsg = "";
+
+    if (usageRes.status === "fulfilled") setUsage(usageRes.value);
+    else errMsg = usageRes.reason?.message || "Failed to load usage";
+
+    if (historyRes.status === "fulfilled") setCostHistory(historyRes.value);
+    else if (!errMsg) errMsg = historyRes.reason?.message || "Failed to load cost history";
+
+    if (breakdownRes.status === "fulfilled") setCostBreakdown(breakdownRes.value);
+    else if (!errMsg) errMsg = breakdownRes.reason?.message || "Failed to load cost breakdown";
+
+    setError(errMsg);
+    setLoading(false);
+  }, [orgId, startDate, endDate]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 24, color: "var(--color-text-muted)" }}>
+        <Spinner size="sm" /> Loading usage…
+      </div>
+    );
+  }
+
+  const services = usage?.services || [];
+  const historyPoints = costHistory?.history || [];
+  const breakdownRows = Object.entries(costBreakdown?.breakdown || {}).map(([group, entry]) => ({
+    group, quantity: entry.quantity, cost: entry.cost,
+  }));
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ ...valueStyle, color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
+          {formatDate(startDate)} → {formatDate(endDate)} (trailing 30 days)
+        </span>
+        <Button variant="secondary" size="sm" onClick={load}>Refresh</Button>
+      </div>
+
+      {error && <Badge variant="danger">{error}</Badge>}
+
+      {/* ── Raw usage by service/action/resource ────────────────────────── */}
+      <Card elevated>
+        <div style={sectionTitleStyle}>Usage by service</div>
+        <Table
+          columns={[
+            { key: "service", label: "Service", sortable: true },
+            { key: "action", label: "Action", sortable: true },
+            { key: "resource", label: "Resource", sortable: true },
+            { key: "quantity", label: "Quantity", sortable: true, align: "right", render: (v, row) => `${Number(v)} ${row.unit}` },
+          ]}
+          data={services}
+          emptyMessage={EMPTY_USAGE_MESSAGE}
+        />
+      </Card>
+
+      {/* ── Daily cost over the window ───────────────────────────────────── */}
+      <Card elevated>
+        <div style={sectionTitleStyle}>Daily cost</div>
+        <Table
+          columns={[
+            { key: "date", label: "Date", sortable: true, render: (v) => formatDate(v) },
+            { key: "cost", label: "Cost", sortable: true, align: "right", render: (v) => money(v, costHistory?.currency) },
+          ]}
+          data={historyPoints}
+          emptyMessage={EMPTY_USAGE_MESSAGE}
+        />
+      </Card>
+
+      {/* ── Cost grouped by service ──────────────────────────────────────── */}
+      <Card elevated>
+        <div style={sectionTitleStyle}>Cost by service</div>
+        <Table
+          columns={[
+            { key: "group", label: "Service", sortable: true },
+            { key: "quantity", label: "Quantity", sortable: true, align: "right", render: (v) => Number(v) },
+            { key: "cost", label: "Cost", sortable: true, align: "right", render: (v) => money(v, costBreakdown?.currency) },
+          ]}
+          data={breakdownRows}
+          emptyMessage={EMPTY_USAGE_MESSAGE}
+        />
+      </Card>
+
+      <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", fontFamily: "var(--mono)", lineHeight: 1.6 }}>
+        Aggregate usage and cost only. Per-user activity (who did what) is
+        deliberately not shown here — see billingApi.js for why.
       </div>
     </div>
   );
