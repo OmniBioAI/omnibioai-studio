@@ -181,6 +181,12 @@ export async function getCurrentUser({ force = false } = {}) {
       email: data.email,
       roles: data.roles || [],
       permissions: data.permissions || [],
+      // Phase 1 PR3 org-context claim, surfaced from /auth/validate so
+      // org-scoped consumers (e.g. the Billing page, which calls
+      // billing-service's /billing/organizations/{org_id}/... routes)
+      // don't each have to decode the JWT themselves. null for a
+      // personal / pre-org-context token — a valid, well-defined state.
+      orgId: data.org_id ?? null,
     };
     return cachedUser;
   } catch (_) {

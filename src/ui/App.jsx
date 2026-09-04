@@ -18,6 +18,7 @@ import ServiceViewer from "./pages/ServiceViewer";
 import Videos        from "./pages/Videos";
 import IdeServices   from "./pages/IdeServices";
 import RoleManagement from "./pages/RoleManagement";
+import Billing from "./pages/Billing";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
 import { GrafanaViewer } from "./components/GrafanaViewer";
@@ -38,6 +39,7 @@ const BASE_NAV = [
     { name:"Logs",         idx:6  },
     { name:"Workbench",    idx:7  },
     { name:"Jobs",         idx:9  },
+    { name:"Billing",      idx:12 },
   ]},
   { section: "System",  items: [
     { name:"Settings",  idx:8 },
@@ -61,7 +63,7 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","workbench","settings","jobs","ide-services","roles"
+  "services","logs","workbench","settings","jobs","ide-services","roles","billing"
 ];
 
 // Same-origin relative paths only -- must start with exactly one "/",
@@ -229,6 +231,7 @@ export default function App() {
     <Jobs         />,
     <IdeServices  currentUser={currentUser} />,
     <RoleManagement currentUser={currentUser} />,
+    <Billing currentUser={currentUser} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");

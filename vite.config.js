@@ -132,6 +132,10 @@ export default defineConfig(({ mode }) => {
       // this mirrors nginx-router.conf's `location ^~ /auth/` passthrough so
       // `npm run web` works against a real backend during local dev.
       ...(isWeb ? { "/auth": { target: `https://webstudio.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
+      // Web-mode-only: billingApi.js hits relative /billing/* paths; mirror
+      // nginx-router.conf's auth_request-gated `location ^~ /billing` so
+      // `npm run web` reaches billing-service against a real backend.
+      ...(isWeb ? { "/billing": { target: `https://webstudio.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
       "/_svc/gateway":   { target: `http://${HOST}:8080`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/auth":      { target: `http://${HOST}:8001`, changeOrigin: true, rewrite: () => "/health" },
       "/_svc/policy":    { target: `http://${HOST}:8002`, changeOrigin: true, rewrite: () => "/docs" },

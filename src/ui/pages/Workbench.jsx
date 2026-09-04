@@ -54,6 +54,19 @@ function buildCategories(BASE) {
         // build has no `base` set either, so it's root-absolute-path and
         // can't be proxied under a /_svc/ prefix without breaking assets.
         { label:"Admin Console",    url:"https://admin.omnibioai.org/", icon:"🛡️", desc:"Org/user/IAM · Billing · Compliance", requiresPermission: ADMIN_CONSOLE_PERMISSION },
+        // Internal Studio page (src/ui/pages/Billing.jsx, App.jsx step 12),
+        // not an nginx-proxied service view like the tiles around it —
+        // billing-service exposes only a JSON API, no UI of its own — so
+        // this fires the same in-app "navigate" event the offline banner
+        // uses rather than open()-ing a URL in a webview. url:"" keeps the
+        // tile's isLocal/clickable check (which calls url.startsWith) happy.
+        // TODO: gate this behind an appropriate permission before wider
+        // rollout — currently ungated for testing, unlike Admin Console/
+        // Control Center/Neo4j which use platform.manage_infra. Billing
+        // data (usage/limits/costs) may reasonably be visible to regular
+        // org members, so revisit the right permission level (possibly
+        // org membership itself, not platform.manage_infra). See #79.
+        { label:"Billing",          url:"",                          icon:"💳", desc:"Plan · usage · status", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 12 })) },
         { label:"LIMS",             url:"/_svc/lims/",               icon:"🧪", desc:"Lab data management"              },
         { label:"Model Registry",   url:"/_svc/modelregistry",       icon:"🧬", desc:"ML model versioning"              },
         { label:"RAG / Lit AI",     url:"/_svc/rag/",                icon:"📚", desc:"PubMed RAG + DeepSeek"            },
