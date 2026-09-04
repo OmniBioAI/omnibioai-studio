@@ -16,4 +16,19 @@ describe("global wizard store", () => {
     expect(useStore.getState().systemStatus.docker).toBe("running");
     expect(useStore.getState().isLaunching).toBe(false);
   });
+
+  it("resets isLaunching even when the launch itself fails", async () => {
+    window.api = { saveConfig: async () => { throw new Error("disk full"); } };
+    await expect(useStore.getState().launchSystem()).rejects.toThrow("disk full");
+    expect(useStore.getState().isLaunching).toBe(false);
+  });
+
+  it("patches config via setConfig, and merges system status", () => {
+    useStore.getState().setConfig({ mode: "cloud" });
+    expect(useStore.getState().config.mode).toBe("cloud");
+    useStore.getState().setSystemStatus({ tes: "up" });
+    expect(useStore.getState().systemStatus).toMatchObject({ tes: "up" });
+    useStore.getState().setLaunching(true);
+    expect(useStore.getState().isLaunching).toBe(true);
+  });
 });

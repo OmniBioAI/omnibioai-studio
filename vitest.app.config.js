@@ -19,6 +19,7 @@ export default defineConfig({
       reportsDirectory: "coverage/ui-app",
       include: ["src/ui/**/*.{js,jsx}"],
       exclude: ["src/ui/main.jsx"],
+      thresholds: { statements: 95, lines: 95, functions: 95, branches: 95 },
     },
   },
 });
