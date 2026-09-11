@@ -101,6 +101,81 @@ describe("Billing page rendering", () => {
     );
     expect(screen.getByText("Not yet opened")).toBeInTheDocument();
   });
+  it("renders every feature value and limit severity state", async () => {
+    billingApi.getSubscription.mockResolvedValue({
+      plan_name: "Complete",
+      billing_interval: "annual",
+      currency: null,
+      status: "unknown-status",
+      start_date: null,
+      renewal_date: "2026-10-01T00:00:00Z",
+      end_date: "2027-10-01",
+      features: [
+        { feature_key: "disabled", value_type: "boolean", bool_value: false },
+        { feature_key: "unset", value_type: "integer", int_value: null },
+        { feature_key: "unlimited", value_type: "unlimited" },
+        { feature_key: "blank", value_type: "string", string_value: "" },
+        { feature_key: "label", value_type: "string", string_value: "Research" },
+        { feature_key: "future", value_type: "future" },
+      ],
+    });
+    billingApi.getUsageLimits.mockResolvedValue({ limits: [
+      { service: "a", action: "low", resource: "r", unit: "call", period: "day", included: 10, used: 1, percentage_used: 0 },
+      { service: "a", action: "warn", resource: "r", unit: "call", period: "day", included: 10, used: 9, percentage_used: 90 },
+      { service: "a", action: "full", resource: "r", unit: "call", period: "day", included: 10, used: 10, percentage_used: 100 },
+    ] });
+    billingApi.getBillingSummary.mockResolvedValue({
+      current_period: null,
+      current_usage_cost: "not-a-number",
+      currency: null,
+      invoice_count: null,
+      outstanding_amount: undefined,
+    });
+
+    render(<Billing currentUser={member} />);
+
+    await waitFor(() => expect(screen.getByText("Complete")).toBeInTheDocument());
+    expect(screen.getByText("Disabled")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    expect(screen.getByText("Unlimited")).toBeInTheDocument();
+    expect(screen.getByText("Research")).toBeInTheDocument();
+    expect(screen.getByText(/a · low · r/)).toBeInTheDocument();
+  });
+
+  it("renders an empty limits state", async () => {
+    billingApi.getSubscription.mockResolvedValue({
+      plan_name: "Empty",
+      billing_interval: "monthly",
+      currency: "usd",
+      status: "active",
+      features: [],
+    });
+    billingApi.getUsageLimits.mockResolvedValue({});
+    billingApi.getBillingSummary.mockResolvedValue({
+      current_period: null,
+      current_usage_cost: 0,
+      currency: "usd",
+      invoice_count: 0,
+      outstanding_amount: 0,
+    });
+
+    render(<Billing currentUser={member} />);
+
+    await waitFor(() => expect(screen.getByText("Empty")).toBeInTheDocument());
+    expect(screen.getByText("This plan has no usage-metered limits.")).toBeInTheDocument();
+  });
+
+  it("shows non-404 endpoint failures and hides unavailable limits", async () => {
+    billingApi.getSubscription.mockRejectedValue({ status: 500 });
+    billingApi.getUsageLimits.mockRejectedValue(new Error("limits down"));
+    billingApi.getBillingSummary.mockRejectedValue(new Error("summary down"));
+
+    render(<Billing currentUser={member} />);
+
+    await waitFor(() => expect(screen.getByText("Failed to load subscription")).toBeInTheDocument());
+    expect(screen.queryByText("Usage vs. plan limits")).not.toBeInTheDocument();
+  });
+
 });
 
 describe("Billing page Usage tab", () => {
@@ -170,7 +245,7 @@ describe("Billing page Usage tab", () => {
 
   it("surfaces an error when a usage endpoint call fails, without blocking the other sections", async () => {
     stubOverview();
-    billingApi.getUsageSummary.mockRejectedValue(new Error("usage-service unreachable"));
+    billingApi.getUsageSummary.mockRejectedValue({});
     billingApi.getCostHistory.mockResolvedValue({
       organization_id: 42, period_start: "2026-08-06", period_end: "2026-09-04", currency: "usd",
       history: [{ date: "2026-09-01", cost: "3.25" }],
@@ -182,7 +257,7 @@ describe("Billing page Usage tab", () => {
 
     await openUsageTab();
 
-    await waitFor(() => expect(screen.getByText("usage-service unreachable")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Failed to load usage")).toBeInTheDocument());
     // cost-history still rendered even though the usage-summary call failed
     expect(screen.getByText("2026-09-01")).toBeInTheDocument();
   });
@@ -220,6 +295,27 @@ describe("Billing page Usage tab", () => {
 
     await waitFor(() => expect(screen.getByText("cost-breakdown unreachable")).toBeInTheDocument());
     expect(screen.getByText("2026-09-01")).toBeInTheDocument();
+  });
+
+  it("uses the summary fallback when subscription and limits succeed", async () => {
+    billingApi.getSubscription.mockResolvedValue({ plan_name: "Basic", features: [] });
+    billingApi.getUsageLimits.mockResolvedValue({ limits: [] });
+    billingApi.getBillingSummary.mockRejectedValue({});
+
+    render(<Billing currentUser={member} />);
+
+    await waitFor(() => expect(screen.getByText("Failed to load billing summary")).toBeInTheDocument());
+  });
+
+  it("keeps the first usage error when later usage endpoints also reject", async () => {
+    stubOverview();
+    billingApi.getUsageSummary.mockRejectedValue(new Error("first usage failure"));
+    billingApi.getCostHistory.mockRejectedValue({});
+    billingApi.getCostBreakdown.mockRejectedValue({});
+
+    await openUsageTab();
+
+    expect(screen.getByText("first usage failure")).toBeInTheDocument();
   });
 
   it("does not call getUsageEvents — the per-user log is a deliberate exclusion from this pass", async () => {
