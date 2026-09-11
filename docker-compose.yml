@@ -754,6 +754,21 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      # #529: Workflow Planner's and BioQueryAI's async (Celery) modes write
+      # their status.json/.ask_index here; this workbench container's own
+      # planner_ask_status/BioQueryAI polling handlers read from the same
+      # /app/work/planner and /app/work/bioqueryai paths. Neither was a
+      # shared volume before this fix -- every OTHER async-completion path
+      # bio_agent uses (runs/objects/workflow_runner_exec/
+      # workflow_runner_runs/pathway_enrichment_runs, all already above) IS
+      # shared between workbench and celery-worker; these two specifically
+      # were not, so celery-worker's completion was permanently invisible
+      # to workbench's polling endpoint (confirmed via issue #529: the task
+      # genuinely completes and writes status.json inside celery-worker,
+      # but workbench's filesystem never has the file, or even the parent
+      # directory, at all).
+      - ${WORK_DIR}/planner:/app/work/planner
+      - ${WORK_DIR}/bioqueryai:/app/work/bioqueryai
       # #265: proxy's exposed socket, not the raw host one -- see the
       # docker-socket-proxy service above and DOCKER_HOST in
       # environment: above. :ro because workbench only ever needs to
@@ -886,6 +901,11 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      # #529: this is where the Celery tasks that actually run in THIS
+      # container write their status.json/.ask_index -- see the matching
+      # comment on workbench's volumes: above for the full rationale.
+      - ${WORK_DIR}/planner:/app/work/planner
+      - ${WORK_DIR}/bioqueryai:/app/work/bioqueryai
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_HOST in environment: above. :ro because celery-worker
       # only ever needs to *connect to* this socket file, never write
