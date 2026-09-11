@@ -359,6 +359,16 @@ function SettingsConsole({ config, setConfig }) {
                   cursor:"pointer",
                 }}
               >GitHub ↗</button>
+              <button
+                type="button"
+                onClick={() => openExternal("https://omnibioai.org")}
+                style={{
+                  flex:1, padding:"7px", borderRadius:5, fontSize:'var(--font-size-xs)',
+                  fontFamily:"var(--mono)", background:"var(--bg2)",
+                  border:"1px solid var(--border2)", color:"var(--color-text-muted)",
+                  cursor:"pointer",
+                }}
+              >omnibioai.org ↗</button>
             </div>
           </PanelBody>
         </Panel>

@@ -97,6 +97,12 @@ function buildCategories(BASE) {
         { label:"HPC Policy",       url:"/_svc/hpc/",                icon:"⚡", desc:"GPU/CPU quota governance"         },
         { label:"Security Audit",   url:"/_svc/audit/docs",          icon:"📝", desc:"Redis Streams audit log"          },
         { label:"OPA",              url:"/_svc/opa",                 icon:"🛡️", desc:"Open Policy Agent"               },
+        // toolserver — already proxied at /_svc/toolserver (nginx-router.conf),
+        // gated there by its own auth_request (admin cookie, MANAGE_CONFIG-
+        // level), not a frontend requiresPermission check — same as every
+        // other tile in this section, which rely on the backend/nginx gate
+        // rather than hiding the tile client-side.
+        { label:"Tool Executor",    url:"/_svc/toolserver/docs",     icon:"🧰", desc:"Register · execute · results"     },
       ]
     },
     {
