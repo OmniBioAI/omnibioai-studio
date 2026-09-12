@@ -12,6 +12,12 @@ vi.mock("../../src/ui/lib/session", () => ({ isElectron, getCurrentUserSync, get
 
 import Workbench from "../../src/ui/pages/Workbench";
 
+function usePermissions(permissions) {
+  const user = { permissions };
+  getCurrentUserSync.mockReturnValue(user);
+  getCurrentUser.mockResolvedValue(user);
+}
+
 beforeEach(() => {
   isElectron.mockReturnValue(false);
   getCurrentUserSync.mockReturnValue(null);
@@ -111,6 +117,68 @@ describe("Workbench page", () => {
     getCurrentUser.mockResolvedValue(null);
     render(<Workbench />);
     await waitFor(() => expect(screen.getByText("Admin Console")).toBeInTheDocument());
+  });
+
+  it("shows LLM Runtime to manage_config users and navigates to the existing LLM page", () => {
+    usePermissions(["manage_config"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "LLM Runtime — Local models · GPU · Ollama" });
+    expect(screen.getByText("Local models · GPU · Ollama")).toBeInTheDocument();
+    expect(tile.outerHTML).not.toContain("11434");
+    expect(tile.outerHTML).not.toContain("/_svc/ollama");
+
+    const navigated = vi.fn();
+    const opened = vi.fn();
+    window.addEventListener("navigate", navigated);
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(navigated).toHaveBeenCalledTimes(1);
+    expect(navigated.mock.calls[0][0].detail).toBe(1);
+    expect(opened).not.toHaveBeenCalled();
+    window.removeEventListener("navigate", navigated);
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("hides LLM Runtime without manage_config", () => {
+    usePermissions([]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.queryByText("LLM Runtime")).not.toBeInTheDocument();
+  });
+
+  it("shows Entitlements to manage_licenses users and opens Admin Console billing", () => {
+    usePermissions(["manage_licenses"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "Entitlements — Plans · Licenses · Access" });
+    expect(screen.getByText("Plans · Licenses · Access")).toBeInTheDocument();
+
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(opened.mock.calls[0][0].detail).toEqual({
+      url: "https://admin.omnibioai.org/billing",
+      label: "Entitlements",
+    });
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("hides Entitlements without manage_licenses", () => {
+    usePermissions([]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.queryByText("Entitlements")).not.toBeInTheDocument();
+  });
+
+  it("shows 18 Platform Services modules to a fully authorized user", () => {
+    usePermissions(["platform.manage_infra", "manage_config", "manage_licenses"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.getByText("18 modules")).toBeInTheDocument();
   });
 
   it("unsubscribes from session changes on unmount", async () => {

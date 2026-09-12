@@ -11,6 +11,8 @@ import { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } from 
 // manage_roles for the same reason (don't show every signed-in researcher
 // an entry point to a surface most of them can't use).
 const ADMIN_CONSOLE_PERMISSION = "platform.manage_infra";
+const MANAGE_CONFIG_PERMISSION = "manage_config";
+const MANAGE_LICENSES_PERMISSION = "manage_licenses";
 
 function getInitialHost() {
   return (
@@ -63,6 +65,8 @@ function buildCategories(BASE) {
         // 7687 ports are otherwise loopback-only (docker-compose.yml).
         // Absolute cross-origin URL, same handling as Admin Console above.
         { label:"Neo4j Browser",    url:"https://neo4j.omnibioai.org/", icon:"🕸️", desc:"Knowledge-graph Cypher console", requiresPermission: ADMIN_CONSOLE_PERMISSION },
+        { label:"LLM Runtime",      url:"",                                      icon:"🤖", desc:"Local models · GPU · Ollama", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 1 })), requiresPermission: MANAGE_CONFIG_PERMISSION },
+        { label:"Entitlements",     url:"https://admin.omnibioai.org/billing",    icon:"🔑", desc:"Plans · Licenses · Access", requiresPermission: MANAGE_LICENSES_PERMISSION },
         // Internal Studio page (src/ui/pages/Billing.jsx, App.jsx step 12),
         // not an nginx-proxied service view like the tiles around it —
         // billing-service exposes only a JSON API, no UI of its own — so
