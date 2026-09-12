@@ -62,9 +62,11 @@ describe("IdeServices page", () => {
     render(<IdeServices currentUser={admin} />);
     const openButtons = await screen.findAllByText("Open →");
     fireEvent.click(openButtons[0]);
-    expect(window.electronAPI.openExternal).toHaveBeenCalledWith("http://192.168.86.234:8888?token=devtoken");
+    // Jupyter's handleOpen awaits getElectronJupyterToken() before opening, so
+    // the openExternal call lands after a microtask tick — wait for it.
+    await waitFor(() => expect(window.electronAPI.openExternal).toHaveBeenCalledWith("http://192.168.86.234:8888?token=devtoken"));
     fireEvent.click(openButtons[1]);
-    expect(window.electronAPI.openExternal).toHaveBeenCalledWith("http://192.168.86.234:8787");
+    await waitFor(() => expect(window.electronAPI.openExternal).toHaveBeenCalledWith("http://192.168.86.234:8787"));
   });
 
   it("refreshes on demand and dims the Open button on hover out", async () => {
