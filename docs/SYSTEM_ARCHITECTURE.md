@@ -137,7 +137,7 @@ These are the exact Compose keys, grouped by responsibility.
 | HPC or cloud execution | Remote compute selected by TES | Same client/API plane |
 
 Do not infer production exposure from development Compose. See
-[`SECURITY-COMPOSE-HARDENING.md`](../SECURITY-COMPOSE-HARDENING.md).
+[`SECURITY-COMPOSE-HARDENING.md`](SECURITY-COMPOSE-HARDENING.md).
 
 ## Ownership and maintenance
 

@@ -7,7 +7,7 @@
 ## System documentation
 
 - [System architecture](docs/SYSTEM_ARCHITECTURE.md) — boundaries, flows, deployment topology, and the current 41-service Compose catalog
-- [Security hardening](SECURITY-COMPOSE-HARDENING.md) — production Compose security and development overrides
+- [Security hardening](docs/SECURITY-COMPOSE-HARDENING.md) — production Compose security and development overrides
 - [Integration tests](tests/integration/README.md) — end-to-end test setup
 - [Operations scripts](scripts/README.md) — backup, validation, and deployment utilities
 
@@ -221,7 +221,7 @@ docker compose -f docker-compose.release.yml -f docker-compose.release.dev-ports
 ```
 This overlay binds to `127.0.0.1` only, not `0.0.0.0`, and is never bundled
 into the packaged app or referenced by its startup path — it has to be
-opted into explicitly. See [SECURITY-COMPOSE-HARDENING.md](SECURITY-COMPOSE-HARDENING.md)
+opted into explicitly. See [SECURITY-COMPOSE-HARDENING.md](docs/SECURITY-COMPOSE-HARDENING.md)
 for the full rationale.
 
 ### Security Control Plane
@@ -498,7 +498,7 @@ The permission-gated **Entitlements** tile opens the Admin Console billing surfa
 
 ## 🔑 Environment Variables
 
-Use [`.env.example`](.env.example) as the current configuration template and keep deployment values outside version control. Do not place credentials, tokens, signing material, or service-account secrets in README examples, logs, screenshots, or frontend configuration. See [Security hardening](SECURITY-COMPOSE-HARDENING.md) for deployment guidance.
+Use [`.env.example`](.env.example) as the current configuration template and keep deployment values outside version control. Do not place credentials, tokens, signing material, or service-account secrets in README examples, logs, screenshots, or frontend configuration. See [Security hardening](docs/SECURITY-COMPOSE-HARDENING.md) for deployment guidance.
 
 `.env.example` covers what it's for — secrets and host paths (`DATA_DIR`,
 `WORK_DIR`, `MYSQL_ROOT_PASSWORD`, API keys, etc.) that you have to actually
