@@ -432,6 +432,21 @@ cp .env.example .env
 docker compose up -d
 ```
 
+The command above uses `docker-compose.yml` — the first of four Compose
+files in this repo. See [Choosing a Compose File](#choosing-a-compose-file)
+below for what the other three are for.
+
+### Choosing a Compose File
+
+| File | Use it when… |
+|------|--------------|
+| `docker-compose.yml` | You're running the local/dev stack directly. This is the real, actively-used stack — what Quick Start above and the Studio Settings default both use. Not hardened: ports are published for local convenience/debugging. |
+| `docker-compose.release.yml` (dot) | You're packaging or running the production-hardened stack. This is the file `electron-builder.json`, `electron/main.js`, and `scripts/start.sh` actually bundle/load into the packaged desktop app. MySQL/Redis are not published to the host and other hardening applies — see [Data Layer](#data-layer) above and [`docs/SECURITY-COMPOSE-HARDENING.md`](docs/SECURITY-COMPOSE-HARDENING.md). |
+| `docker-compose-release.yml` (dash) | You're running the release config manually, without the Electron build. This is a **deliberately maintained parity copy** of the dot file — not a stray duplicate to consolidate. It has its own regression test (`tests/test_compose_release_config.py`) specifically guarding against it drifting from the dot file again, since that happened once before (see the JWT-secret fix in git history). CI validates both files on every push. |
+| `docker-compose.release.dev-ports.yml` | You need to debug against an otherwise-hardened release stack. This is a debug **overlay**, not a standalone file — layer it on top of the release config: `docker compose -f docker-compose.release.yml -f docker-compose.release.dev-ports.yml up -d`. It republishes MySQL/Redis to `127.0.0.1` only, for local access, and is never bundled into the packaged app. |
+
+See [`docs/SECURITY-COMPOSE-HARDENING.md`](docs/SECURITY-COMPOSE-HARDENING.md) for the full hardening rationale behind the release files.
+
 ### From Source
 
 ```bash
@@ -467,6 +482,8 @@ changing one requires a full stack restart.
 ### Docker
 - Compose file: `docker-compose.yml` at the repository root. This is the
   canonical local stack used by Quick Start and the Studio Settings default.
+  See [Choosing a Compose File](#choosing-a-compose-file) for how this
+  relates to the other three Compose files in the repo.
 - `DATA_DIR` and `WORK_DIR` (set in `.env`) are each bind-mounted into
   multiple containers, but **not to one fixed path** — every service mounts
   them at whatever container path its own code expects (e.g. `DATA_DIR`
