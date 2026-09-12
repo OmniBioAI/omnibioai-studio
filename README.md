@@ -6,7 +6,7 @@
 
 ## System documentation
 
-- [System architecture](docs/SYSTEM_ARCHITECTURE.md) — boundaries, flows, deployment topology, and the complete 40-service catalog
+- [System architecture](docs/SYSTEM_ARCHITECTURE.md) — boundaries, flows, deployment topology, and the current 41-service Compose catalog
 - [Security hardening](SECURITY-COMPOSE-HARDENING.md) — production Compose security and development overrides
 - [Integration tests](tests/integration/README.md) — end-to-end test setup
 - [Operations scripts](scripts/README.md) — backup, validation, and deployment utilities
@@ -90,7 +90,7 @@
 
 ### Workbench — Module Overview
 ![Workbench](docs/screenshots/workbench.png)
-*Quick access to all 44 modules across 6 sections*
+*Workbench catalog across 6 sections; a fully authorized user sees 18 Platform Services and 12 Security Control Plane modules*
 
 ### LLM Configuration
 ![LLM](docs/screenshots/llm.png)
@@ -162,172 +162,42 @@ Real-time architecture, codebase metrics, coverage, and service health are publi
 
 ## 🔐 Security Control Plane
 
-All requests are enforced through a zero-trust pipeline:
+The Workbench exposes 12 security modules to a fully authorized user. Tiles are permission-gated, and the owning backend remains authoritative for every request.
 
-```
-Internet / Client
-       ↓
-api-gateway :8080       ← single entry point, JWT enforcement
-       ↓
-auth-service :8001      ← JWT validation + Redis cache (TTL=300s)
-       ↓
-policy-engine :8002     ← RBAC/ABAC authorization decision
-       ↓
-hpc-policy-engine :8003 ← GPU/CPU quota check (compute requests only)
-       ↓
-target service (workbench / tes / toolserver / rag)
-       ↓
-security-audit :8004    ← async audit log → Redis Streams (never blocks)
-```
+| Module | Purpose |
+|---|---|
+| API Gateway | Authenticated entry point and JWT enforcement |
+| Auth Service | Authentication and identity APIs |
+| Policy Engine | RBAC and ABAC authorization decisions |
+| HPC Policy | Compute quota and governance |
+| Security Audit | Backend security-audit service and API |
+| OPA | Open Policy Agent runtime |
+| API Keys & Service Accounts | Organization API key and OAuth client lifecycle |
+| Compliance Center | HIPAA-aligned control history and verification evidence |
+| Security Posture | Evidence-backed control and readiness overview |
+| Tool Executor | Controlled tool registration and execution surface |
+| Audit Explorer | Administrator-facing security event investigation and evidence |
+| Audit Logs | Identity and administrative audit trail |
 
-| Layer | On failure |
-|-------|------------|
-| Auth | FAIL CLOSED → HTTP 401 |
-| Policy | FAIL CLOSED → HTTP 403 |
-| HPC quota | FAIL CLOSED → HTTP 403 |
-| Audit | FAIL OPEN → ignored |
+Authentication is JWT-based. Authorization combines global roles, organization roles, explicit permissions, RBAC/ABAC policy decisions, and tenant-aware organization scoping. Cross-tenant administration is reserved for the dedicated `platform_admin` role and its platform permissions.
 
 ## Admin Console / Control Center
 
-`omnibioai-control-center` builds the platform's administrative surface as
-two frontends from one source tree: the **Admin Console** at
-`admin.omnibioai.org` (organizations, users, security, billing, workflows,
-audit, and more) and the ops-only **Control Center** at
-`control.omnibioai.org`. See the [Control Center Admin Console
-guide](https://github.com/OmniBioAI/omnibioai-control-center/blob/main/docs/admin-console/README.md)
-for the full navigation/feature catalog, authorization model, and current
-production-status matrix.
+`omnibioai-control-center` provides an operations-focused Control Center and a permission-aware Admin Console from one codebase. Current administrative surfaces include organizations, users, teams, roles and permissions; SSO/SAML, MFA policy, sessions, API keys, OAuth clients, and service accounts; billing and entitlements; HIPAA-aligned compliance evidence; security posture; and audit investigation.
 
-```mermaid
-flowchart TD
-    AC[Admin Console] --> Health[Health / Operations surfaces]
-    AC --> WF[Workflows]
-    AC --> AL[Audit Logs]
-    AC --> AE[Audit Explorer]
-    AE --> CC[Control Center]
-    CC --> API["Security Audit safe API<br/>GET /audit/events/safe"]
-    API --> DB[(durable audit_events)]
-```
+The audit surfaces are distinct:
 
-**Audit Logs vs. Audit Explorer.** These are two distinct surfaces, not
-interchangeable: **Audit Logs** reads Auth's identity/audit ledger
-(`/platform/audit-events`); **Audit Explorer** is a read-only view of
-Security Audit's own durable event store, reached only through Control
-Center's proxy (`GET /audit/events/safe`) — the browser never calls Security
-Audit directly, and organization scope is enforced server-side, never by a
-browser-supplied parameter. Redis Stream `audit:events` remains the signed
-ingestion/backlog transport ahead of durable SQL persistence. Audit Explorer
-is merged and live-certified for its exercised paths: direct `/audit-explorer`
-deep link, hard refresh, sidebar navigation, browser history, event
-rendering/filters/details, and safe (allowlisted) metadata — all read-only,
-with freshness/retention reported as `UNKNOWN` when the upstream can't
-establish them rather than guessed.
+- **Security Audit** is the backend security-event service and API.
+- **Audit Explorer** is the read-only administrator investigation and evidence view over Security Audit events.
+- **Audit Logs** is the identity and platform administrative audit trail.
 
-**Workflows.** `/workflows` is the committed, supported deep-link route —
-direct link, hard refresh, sidebar navigation, and Back/Forward history are
-all verified. `/workflow-operations` is **not** a separate committed route;
-that functionality lives on the Workflows page and its `workflow-bundles`
-proxy.
-
-**Authenticated E2E.** The authenticated Admin Console Playwright suite
-passed **8/8** against `https://admin.omnibioai.org`, covering the
-authenticated landing page, Health / Regression Health / Deployment Health /
-Integration Health, Security Posture, Workflow Operations, Audit Explorer,
-sidebar reachability, the supported direct routes above, hard refresh,
-Back/Forward history, and anonymous rejection. This certifies those specific
-Admin Console surfaces and the authenticated-admin identity path only — it is
-not a claim that every OmniBioAI subsystem is production-certified; see the
-Control Center README's production-status matrix for per-surface detail.
-
-**Security Audit (SAT).** SAT-1 (tenant contract), SAT-2 (producer tenant
-propagation), SAT-3 (tenant-safe authorization/query contract), and SAT-4
-(source/evidence semantics) are implemented server-side in Security Audit.
-Producer propagation has live evidence for Gateway/RAG/LIMS and remains
-fixture-limited for TES/Workflow Bundles; Model Registry is not yet a
-confirmed producer. See `omnibioai-security-audit` and the Control Center
-README's SAT status table for current detail.
-
-### Integration Health deployment source
-
-Control Center's Integration Health requires the explicit
-`WORKBENCH_PLUGIN_REGISTRY_PATH` environment variable. Studio supplies the
-current Workbench compiled registry at the container-visible
-`/app/data/workbench-plugin-registry.json` path through a single-file,
-read-only mount. If the registry variable/source is absent or invalid,
-`GET /integration-health` intentionally returns HTTP 503 with a generic
-unavailable response. The Integration Health inventory itself is derived
-dynamically from that registry at request time — Studio does not hard-code
-an integration count.
-
----
+See the [Control Center Admin Console guide](https://github.com/OmniBioAI/omnibioai-control-center/blob/main/docs/admin-console/README.md) for the maintained feature catalog and authorization boundaries.
 
 ## 🔐 Browser Authentication
 
-The diagram above is the *server-side* request pipeline; this section
-covers how the Studio SPA itself holds and presents a session in the
-browser. Login/refresh/logout all go through the standard
-`omnibioai-auth` endpoints — see
-[omnibioai-auth's README](https://github.com/OmniBioAI/omnibioai-auth#authentication) for the full
-token model.
+Studio web sessions use the shared OmniBioAI Auth flow. The browser keeps the short-lived access token for API calls; refresh-session state is managed by the server-set session cookie. JWT authentication, explicit permissions, RBAC/ABAC decisions, and organization scoping are enforced by the owning services.
 
-### Session cookies
-
-Studio's web build still manages its own session client-side —
-`localStorage["omnibioai_access_token"]` and
-`localStorage["omnibioai_refresh_token"]` — rather than relying on
-`omnibioai-auth`'s server-set, `HttpOnly` `omnibioai_session` cookie (see
-that repo's [Session Cookies](https://github.com/OmniBioAI/omnibioai-auth#session-cookies) section).
-It additionally mirrors the access token into a **non-`HttpOnly`,
-JS-writable cookie** of the same name (`omnibioai_access_token`,
-`SameSite=Lax`, `Secure` over HTTPS) purely so an embedded iframe can
-authenticate — see [iframe authentication](#iframe-authentication) below.
-This is a distinct mechanism from `omnibioai-auth`'s own session cookie:
-same-looking pattern, different cookie, different owner (browser JS here,
-vs. server-set and `HttpOnly` there).
-
-### Control Center integration
-
-`omnibioai-control-center`'s Admin tab, when embedded under Studio's own
-origin, reads this same `localStorage["omnibioai_access_token"]` key —
-an existing Studio login is recognized automatically with no separate
-sign-in, since both apps share one browser origin in that deployment path.
-See [Control Center's Authentication section](https://github.com/OmniBioAI/omnibioai-control-center#authentication)
-for the admin-side detail.
-
-### iframe authentication
-
-Control Center is embedded via `<iframe src="/_svc/control">` in the web
-build (an Electron `<webview>` in the desktop build). An iframe's initial
-document navigation can't carry a custom `Authorization` header, so
-`docker/nginx-router.conf` falls back to the mirrored `omnibioai_access_token`
-cookie: it maps the cookie's value into a synthesized
-`Authorization: Bearer <token>` header for the `/_svc/control` location
-and for the shared `/internal/auth/verify` subrequest, so the iframe's
-first request authenticates even though no JavaScript ran inside it yet.
-Subsequent same-origin `fetch`/XHR calls made *from inside* the iframe
-read `localStorage` directly, same as the parent page. (Grafana is also
-embedded via iframe/webview, but authenticates with its own session
-cookie, unrelated to this mechanism.)
-
-### Refresh flow
-
-`refresh()` posts to `/auth/refresh` with the `refresh_token` stored in
-`localStorage`. The root `App` component calls it once on startup and then
-every five minutes while a refresh token is present, keeping the shared
-access token fresh for the Studio UI and embedded services. Logout and a
-failed refresh clear the stored session; individual API clients may still
-handle a 401 according to their own behavior. This remains a client-side
-localStorage flow and is distinct from the cookie-based session used by
-`omnibioai-control-center`.
-
-### Logout
-
-`logout()` posts both the stored `refresh_token` and `access_token` to
-`/auth/logout` (fails open on a network error), then always clears both
-`localStorage` keys and the mirrored `omnibioai_access_token` cookie —
-regardless of whether the server call itself succeeded.
-
----
+The Workbench hides permission-gated tiles when the validated session lacks the required permission. This is a user-interface convenience only; backend authorization remains authoritative.
 
 ## 🖥 Services
 
@@ -437,13 +307,15 @@ Compute tools: BWA, STAR, HISAT2, GATK, DeepVariant, DESeq2, Seurat, Scanpy, PyT
 
 ---
 
-## 🧬 Workbench Modules (44 total)
+## 🧬 Workbench Modules
 
-### Platform Services (14 modules)
-Getting Started · Video Tutorials · Workbench Dashboard · Control Center · LIMS · Model Registry · RAG/Lit AI · TES/Jobs · Tool Images · Launcher · Workflows · Dev Hub · Metrics · Grafana
+Counts below are the definitions rendered for a fully authorized user; permission gates may hide administrative tiles from other users.
 
-### Security Control Plane (6 modules)
-API Gateway · Auth Service · Policy Engine · HPC Policy · Security Audit · OPA
+### Platform Services (18 modules)
+Getting Started · Video Tutorials · Workbench · Control Center · Admin Console · Neo4j Browser · LLM Runtime · Entitlements · Billing · LIMS · Model Registry · RAG / Lit AI · TES / Jobs · Tool Images · Launcher · Workflows · Dev Hub · Metrics
+
+### Security Control Plane (12 modules)
+API Gateway · Auth Service · Policy Engine · HPC Policy · Security Audit · OPA · API Keys & Service Accounts · Compliance Center · Security Posture · Tool Executor · Audit Explorer · Audit Logs
 
 ### Core Platform (6 modules)
 Home · OnboardAI · OmniBioAgent · Job Monitor · Plugin Manager · Admin
@@ -610,70 +482,15 @@ Expected layout:
 
 ---
 
-## 🔑 License
+## 🔑 Entitlements and billing
 
-OmniBioAI Studio requires a license key for first launch.
-
-- **Format:** `OMNI-XXXX-XXXX-XXXX-XXXX` (30-day trial)
-- **Get access:** [omnibioai.org/#request](https://omnibioai.org/#request)
-- **Offline grace period:** 7 days after initial validation
-- Beta users receive a GitHub token automatically with their license key
+The permission-gated **Entitlements** tile opens the Admin Console billing surface for plans, licenses, and access. Studio also provides an organization-scoped, read-only Billing view for subscription status, usage limits, rated usage, invoices, and costs when the owning services provide that data. The legacy standalone license validator remains a compatibility component and is not the canonical organization entitlement surface.
 
 ---
 
 ## 🔑 Environment Variables
 
-Copy `.env.example` to `.env` and fill in values — this is the actual,
-current set (`cp .env.example .env`):
-
-```bash
-# ── Network ────────────────────────────────────────────
-HOST_IP=0.0.0.0
-
-# ── Paths (absolute paths on host) ─────────────────────
-MACHINE_DIR=/path/to/your/machine/dir
-WORKSPACE_HOST=/path/to/omnibioai
-WORK_DIR=/path/to/omnibioai
-DATA_DIR=/path/to/data
-DB_INIT_DIR=/path/to/db-init
-VIDEO_DIR=/path/to/omnibioai-videos/content
-
-# ── Database ───────────────────────────────────────────
-MYSQL_ROOT_PASSWORD=change-me-in-production   # auto-generated on first launch
-MYSQL_DEFAULT_DB=omnibioai                    # optional; defaults to omnibioai in compose
-
-# ── Auth ───────────────────────────────────────────────
-AUTH_SECRET_KEY=change-me-in-production       # auto-generated on first launch
-LICENSE_SECRET=change-me-in-production        # auto-generated on first launch
-
-# ── LIMS ───────────────────────────────────────────────
-LIMS_USERNAME=admin
-LIMS_PASSWORD=change-me
-LIMS_REFRESH_TOKEN=
-
-# ── LLM / AI (optional) ────────────────────────────────
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
-RAGBIO_API_KEY=
-
-# ── Monitoring (optional) ──────────────────────────────
-SENTRY_DSN=                       # empty disables in-app bug reporting
-SENTRY_ENVIRONMENT=production
-SENTRY_RELEASE=1.0.0
-DISCORD_WEBHOOK_URL=
-DISCORD_ALERT_WEBHOOK_URL=        # only fires for new high-severity known-issue entries
-
-# ── GitHub (for pulling private images) ────────────────
-GHCR_PULL_TOKEN=
-GF_ADMIN_PASSWORD=omnibioai       # auto-generated on first launch
-
-# ── IDE Services ───────────────────────────────────────
-JUPYTER_TOKEN=omnibioai
-RSTUDIO_PASSWORD=omnibioai
-VSCODE_PASSWORD=omnibioai
-```
-
-`OMNIBIOAI_DEV_MODE` is a separate, CI-only flag (`.github/workflows/ci.yml`) — it is not a `.env`/compose setting and doesn't affect a local `docker compose up`.
+Use [`.env.example`](.env.example) as the current configuration template and keep deployment values outside version control. Do not place credentials, tokens, signing material, or service-account secrets in README examples, logs, screenshots, or frontend configuration. See [Security hardening](SECURITY-COMPOSE-HARDENING.md) for deployment guidance.
 
 ---
 
