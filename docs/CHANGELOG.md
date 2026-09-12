@@ -9,6 +9,24 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
+## v0.7.1 (2026-09-12)
+
+### Security
+- Closed an SSRF exposure in toolserver by routing outbound calls through the authenticated gateway
+- Closed an information-disclosure surface in Control Center
+- Hardened Neo4j: credential rotation, network access restriction, Access-gated remote entry
+
+### Added
+- Compliance Center, Audit Explorer, Audit Logs, API Keys & Service Accounts, Security Posture, and Billing (Usage/Overview) admin views
+
+### Fixed
+- Fixed recurring nginx proxy bugs affecting RAG, Jupyter, RStudio, and VS Code
+- Found and fixed real correctness bugs in the plugin execution layer
+
+### Documentation
+- Rewrote documentation for 28+ plugins and core services to reflect verified, not assumed, behavior
+
+---
 ## v0.7.0 (2026-08-07)
 
 ### New Features

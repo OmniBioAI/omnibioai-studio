@@ -378,7 +378,7 @@ function SettingsConsole({ config, setConfig }) {
               fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             }}>
               {[
-                ["Studio Version", "v0.7.0"],
+                ["Studio Version", "v0.7.1"],
                 ["Electron",       typeof process !== "undefined" ? process.versions?.electron || "28.x" : "web"],
                 ["Node.js",        typeof process !== "undefined" ? process.versions?.node     || "18.x" : "web"],
                 ["Platform",       navigator.platform],

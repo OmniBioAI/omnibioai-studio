@@ -61,6 +61,6 @@ export async function checkUpdate() {
 export async function getPlatform() {
   return {
     platform: "web",
-    version: import.meta.env.VITE_VERSION || "0.7.0",
+    version: import.meta.env.VITE_VERSION || "0.7.1",
   };
 }

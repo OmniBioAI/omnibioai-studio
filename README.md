@@ -13,8 +13,15 @@
 
 ---
 
-## ✨ What's New in v0.7.0
+## ✨ What's New in v0.7.1
 
+- 🔒 **Security & integrity hardening** — closed an SSRF exposure in toolserver (routed through the authenticated gateway) and an information-disclosure surface in Control Center; hardened Neo4j (credential rotation, network restriction, Access-gated remote entry)
+- 🌐 **Nginx proxy fixes** — resolved recurring proxy bugs affecting RAG, Jupyter, RStudio, and VS Code
+- 🛡️ **New admin views** — Compliance Center, Audit Explorer, Audit Logs, API Keys & Service Accounts, Security Posture, Billing (Usage/Overview)
+- 🔧 **Plugin execution fixes** — found and fixed real correctness bugs in the plugin execution layer
+- 📚 **Documentation rewrite** — 28+ plugins and core services rewritten to reflect verified, not assumed, behavior
+
+### v0.7.0 ✅
 - 🔐 **Unified license key system** (`OMNI-XXXX-XXXX-XXXX-XXXX`) — one key works for web + desktop, auto-creates user on first validation, same JWT as OAuth login
 - 🌐 **webstudio.omnibioai.org fully working** — license key login enforced, all workbench pages loading correctly, service worker fixed, nginx routes fixed (`/license/`, `/roles/`), Control Center JWT cookie fallback
 - 👥 **Team expansion** — Dr. Rajnish Kumar (Scientific Consultant, SR University), Praveen C.V. Raghavulu (Scientific Advisor, KUMC); About page restructured as company team page
@@ -496,10 +503,10 @@ changing one requires a full stack restart.
 - `docker-compose.yml`'s `volumes:` block for each service is the ground
   truth for its exact mount paths (verified against commit `48c858d`).
 
-### About (v0.7.0)
+### About (v0.7.1)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.7.0 |
+| Studio Version | v0.7.1 |
 | Electron | Electron + Vite |
 | Node.js | See `package.json` toolchain |
 | Platform | Runtime-dependent (Linux, macOS, or Windows) |

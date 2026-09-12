@@ -109,7 +109,7 @@ VSCODE_PASSWORD=<strong-password>
 NEO4J_PASSWORD=<strong-password>  # defaults to "omnibioai" if unset — override in production
 
 # ── Telemetry ────────────────────────────────────────────────────────────────
-# SENTRY_RELEASE is set automatically per-service to the app version (currently "0.7.0")
+# SENTRY_RELEASE is set automatically per-service to the app version (currently "0.7.1")
 # in docker-compose.yml / docker-compose.release.yml; no action needed unless overriding.
 
 # ── Paths ─────────────────────────────────────────────────────────────────────

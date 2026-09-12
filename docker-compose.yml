@@ -110,7 +110,7 @@ services:
       PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/docker
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.7.0"
+      SENTRY_RELEASE: "0.7.1"
       # #54: talk to the docker-socket-proxy's exposed socket, not the
       # raw host one -- the volumes: block below no longer mounts
       # /var/run/docker.sock directly. See that service's own
@@ -705,7 +705,7 @@ services:
       BIO_AGENT_SVC_PASSWORD: ${BIO_AGENT_SVC_PASSWORD:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.7.0"
+      SENTRY_RELEASE: "0.7.1"
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_ML_TUTORIALS_DIR: /workspace/omnibioai-docs/tutorials/ml
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
@@ -946,7 +946,7 @@ services:
       TOOL_IMAGES_BASE: /workspace/omnibioai-tool-images
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-beta}
-      SENTRY_RELEASE: "0.7.0"
+      SENTRY_RELEASE: "0.7.1"
       SENTRY_API_TOKEN: ${SENTRY_API_TOKEN:-}
       SENTRY_ORG: ${SENTRY_ORG:-}
       SENTRY_PROJECT_SLUGS: ${SENTRY_PROJECT_SLUGS:-}
