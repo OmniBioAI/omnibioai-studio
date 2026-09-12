@@ -1,8 +1,51 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, ToggleRow, Btn } from "../components/UI";
+import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, Toggle, Btn } from "../components/UI";
 import RequirePermission from "../components/RequirePermission";
 
 const MANAGE_CONFIG = "manage_config";
+
+// One label convention for the whole page: uppercase mono, matching FormRow's
+// field labels (DATA DIRECTORY, WORKBENCH PORT, ...). Toggles get the same
+// treatment here instead of the sentence-case style the shared ToggleRow uses.
+function SettingToggle({ label, sub, value, onChange }) {
+  return (
+    <div style={{
+      display:"flex", alignItems:"center", justifyContent:"space-between",
+      padding:"9px 0", borderBottom:"1px solid var(--border)",
+    }}>
+      <div>
+        <div style={{
+          fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
+          letterSpacing:"0.08em", textTransform:"uppercase",
+        }}>
+          {label}
+        </div>
+        {sub && (
+          <div style={{
+            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+            color:"var(--color-text-muted)", opacity:0.6, marginTop:2,
+          }}>
+            {sub}
+          </div>
+        )}
+      </div>
+      <Toggle value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+// Category accent — reuses the app's existing teal/blue/orange/red tokens
+// (the same teal=data/general, blue=network, orange=infra, red=security
+// convention Services.jsx already uses for its group colors) as a subtle
+// top border, so panel type reads at a glance without inventing new colors.
+const CATEGORY_ACCENT = {
+  data:     "var(--accent)",
+  general:  "var(--accent)",
+  ports:    "var(--accent2)",
+  docker:   "var(--accent3)",
+  security: "var(--danger)",
+};
+const accentTop = (key) => key ? { borderTop: `2px solid ${CATEGORY_ACCENT[key]}` } : {};
 
 export default function Settings({ config, setConfig, currentUser }) {
   return (
@@ -133,7 +176,7 @@ function SettingsConsole({ config, setConfig }) {
       )}
 
       {/* ── Critical paths ── */}
-      <Panel>
+      <Panel style={accentTop("data")}>
         <PanelHeader title="Data Directories" icon iconColor="teal" />
         <PanelBody>
           <div style={{
@@ -215,10 +258,15 @@ function SettingsConsole({ config, setConfig }) {
         </PanelBody>
       </Panel>
 
-      <div className="studio-grid-1" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+      {/* Two independently-sized columns: each stacks its own panels to its
+          own natural height, instead of a 2×2 grid forcing General to match
+          Service Ports' height and Docker to match About's. */}
+      <div className="studio-grid-1" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, alignItems:"start" }}>
+
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
 
         {/* General */}
-        <Panel>
+        <Panel style={accentTop("general")}>
           <PanelHeader title="General" icon iconColor="teal" />
           <PanelBody>
             <FormRow label="Update Channel">
@@ -241,17 +289,45 @@ function SettingsConsole({ config, setConfig }) {
               <Input placeholder="7" value={settings.log_retention}
                 onChange={e => set("log_retention", e.target.value)} />
             </FormRow>
-            <ToggleRow label="Auto Update" sub="check for updates on launch"
+            <SettingToggle label="Auto Update" sub="check for updates on launch"
               value={settings.auto_update} onChange={v => set("auto_update", v)} />
-            <ToggleRow label="Telemetry" sub="anonymous usage analytics"
+            <SettingToggle label="Telemetry" sub="anonymous usage analytics"
               value={settings.telemetry} onChange={v => set("telemetry", v)} />
-            <ToggleRow label="Developer Mode" sub="verbose output + devtools"
+            <SettingToggle label="Developer Mode" sub="verbose output + devtools"
               value={settings.dev_mode} onChange={v => set("dev_mode", v)} />
           </PanelBody>
         </Panel>
 
+        {/* Docker Compose */}
+        <Panel style={accentTop("docker")}>
+          <PanelHeader title="Docker" icon iconColor="orange" />
+          <PanelBody>
+            <FormRow label="Docker Compose File">
+              <Input value={settings.compose_file}
+                onChange={e => set("compose_file", e.target.value)}
+                placeholder="docker-compose.yml" />
+            </FormRow>
+            <div style={{
+              marginTop:8, padding:"10px 12px", borderRadius:'var(--radius-sm)',
+              background:"rgba(255,255,255,0.03)",
+              border:"1px solid var(--border)",
+              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+              color:"var(--color-text-muted)", lineHeight:1.7,
+            }}>
+              Data Dir → mounted at <span style={{color:"var(--accent)"}}>
+                /data</span> in all containers<br/>
+              Work Dir → mounted at <span style={{color:"var(--accent)"}}>
+                /workspace/work</span> in all containers
+            </div>
+          </PanelBody>
+        </Panel>
+
+        </div>
+
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+
         {/* Service Ports */}
-        <Panel>
+        <Panel style={accentTop("ports")}>
           <PanelHeader title="Service Ports" icon iconColor="blue" />
           <PanelBody>
             <FormRow label="Server IP or Hostname">
@@ -293,30 +369,6 @@ function SettingsConsole({ config, setConfig }) {
           </PanelBody>
         </Panel>
 
-        {/* Docker Compose */}
-        <Panel>
-          <PanelHeader title="Docker" icon iconColor="orange" />
-          <PanelBody>
-            <FormRow label="Docker Compose File">
-              <Input value={settings.compose_file}
-                onChange={e => set("compose_file", e.target.value)}
-                placeholder="docker-compose.yml" />
-            </FormRow>
-            <div style={{
-              marginTop:8, padding:"10px 12px", borderRadius:'var(--radius-sm)',
-              background:"rgba(255,255,255,0.03)",
-              border:"1px solid var(--border)",
-              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
-              color:"var(--color-text-muted)", lineHeight:1.7,
-            }}>
-              Data Dir → mounted at <span style={{color:"var(--accent)"}}>
-                /data</span> in all containers<br/>
-              Work Dir → mounted at <span style={{color:"var(--accent)"}}>
-                /workspace/work</span> in all containers
-            </div>
-          </PanelBody>
-        </Panel>
-
         {/* About */}
         <Panel>
           <PanelHeader title="About" icon iconColor="teal" />
@@ -333,12 +385,18 @@ function SettingsConsole({ config, setConfig }) {
                 ["Status",         "Beta"],
               ].map(([k, v]) => (
                 <tr key={k} style={{ borderBottom:"1px solid var(--border)" }}>
-                  <td style={{ padding:"7px 0", color:"var(--color-text-muted)" }}>{k}</td>
+                  <td style={{
+                    padding:"7px 0", color:"var(--color-text-muted)",
+                    letterSpacing:"0.06em", textTransform:"uppercase",
+                  }}>{k}</td>
                   <td style={{ textAlign:"right", color:"var(--text)" }}>{v}</td>
                 </tr>
               ))}
             </table>
-            <div style={{ marginTop:14, display:"flex", gap:8 }}>
+            <div style={{
+              marginTop:12, paddingTop:12, borderTop:"1px solid var(--border)",
+              display:"flex", gap:8,
+            }}>
               <button
                 type="button"
                 onClick={() => openExternal("https://docs.omnibioai.org")}
@@ -373,10 +431,12 @@ function SettingsConsole({ config, setConfig }) {
           </PanelBody>
         </Panel>
 
+        </div>
+
       </div>
 
       {/* ── Security / Credentials ── */}
-      <Panel>
+      <Panel style={accentTop("security")}>
         <PanelHeader title="Security" icon iconColor="orange" />
         <PanelBody>
           <div style={{
