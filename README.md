@@ -43,7 +43,7 @@
 - **1,010 registered tools** — confirmed live in Jobs → Registered Tools panel *(platform-wide tooling, including HPC/cloud/orchestration integrations, totals 11,000+ — see Bioinformatics Tools section below)*
 - **7 execution servers** — `local_real`, `slurm_local`, `aws_batch_prod`, `aws_batch_demo`, `azure_batch_demo`, `gcp_batch_demo`, `enrichment_remote`
 - **claude-sonnet-4-20250514** as default orchestrator model in LLM configuration
-- **IDE Services all RUNNING** — JupyterLab (:8888), RStudio (:8787), VS Code Server (:8883)
+- **IDE Services all RUNNING** — JupyterLab (:8888), RStudio (:8787), VS Code Server (:8083)
 - **Beta Cloud mode** — connects to `webstudio.omnibioai.org`; MySQL, Workbench, TES, Ollama tunnels all reachable
 - **Report Bug modal** — title, description, email, severity (Low / Medium / High / Critical) with Submit Bug Report
 
@@ -237,23 +237,23 @@ for the full rationale.
 | Service | Port | Image |
 |---------|------|-------|
 | Workbench | :8000 | ghcr.io/omnibioai/omnibioai-app:latest |
-| TES | :8081 | omnibioai-tes-local |
+| TES | :8081 (API) / :5177 (frontend dev) | omnibioai-tes-local |
 | ToolServer | :9090 | ghcr.io/omnibioai/omnibioai-toolserver:latest |
-| Model Registry | :8095 | ghcr.io/omnibioai/omnibioai-model-registry:latest |
+| Model Registry | :8095 (API) / :5176 (frontend dev) | ghcr.io/omnibioai/omnibioai-model-registry:latest |
 | LIMS | :7000 | ghcr.io/omnibioai/omnibioai-lims:latest |
 | Control Center | :7070 (localhost-only, JWT-gated via nginx `/_svc/control`) | ghcr.io/omnibioai/omnibioai-control-center:latest |
 | Control Center Web | 127.0.0.1:5174 (frontend dev target, built from `omnibioai-control-center`'s Dockerfile) | build-only |
 | Billing Service | :8005 | build: `../omnibioai-billing` (`Dockerfile`) |
 | Billing Worker | — (background consumer, no exposed port) | build: `../omnibioai-billing` (`Dockerfile.worker`) |
-| Workflow Bundles | :8098 | ghcr.io/omnibioai/omnibioai-workflow-bundles:latest |
-| Tool Images | :8097 | ghcr.io/omnibioai/omnibioai-tool-images:latest |
+| Workflow Bundles | :8098 (API) / :5178 (frontend dev) | ghcr.io/omnibioai/omnibioai-workflow-bundles:latest |
+| Tool Images | :8097 (API) / :5179 (frontend dev) | ghcr.io/omnibioai/omnibioai-tool-images:latest |
 
 ### AI Layer
 | Service | Port | Image |
 |---------|------|-------|
 | Ollama | :11434 | ollama/ollama |
-| RAG | :8090 (external) / :8096 (internal) | ghcr.io/omnibioai/omnibioai-rag:latest |
-| Dev Hub | :8082 | ghcr.io/omnibioai/omnibioai-dev-hub:latest |
+| RAG | :8090 (external) / :8096 (internal) / :5175 (frontend dev) | ghcr.io/omnibioai/omnibioai-rag:latest |
+| Dev Hub | :8082 (API) / :5173 (frontend dev) | ghcr.io/omnibioai/omnibioai-dev-hub:latest |
 | Neo4j | :7474 / :7687 | neo4j:5.15 |
 
 ### Developer Layer
@@ -266,7 +266,7 @@ for the full rationale.
 |---------|------|-------|
 | JupyterLab | :8888 | Full bioinformatics stack (scanpy, DESeq2, scVelo, cellxgene…) |
 | RStudio Server | :8787 | R + Bioconductor (Seurat, DESeq2, scran, monocle3, tidyverse) |
-| VS Code Server | :8883 | Python + R + Nextflow + WDL extensions |
+| VS Code Server | :8083 | Python + R + Nextflow + WDL extensions |
 
 ### Observability & Platform Infrastructure
 | Service | Port | Image |
@@ -457,19 +457,27 @@ Expected layout:
 - `work/workflow_runner.runs/`, `work/uploads/`, `work/objects/`
 
 ### Service Ports (configurable)
-| Service | Default Port |
-|---------|---------------|
-| Workbench | 8000 |
-| TES | 8081 |
-| ToolServer | 9090 |
 
-> Changing ports requires a full stack restart.
+See "Services" section above for the full, current per-service port list
+— duplicating it here as a second table just gave the two a chance to
+disagree (this one used to list 3 of the ~30 exposed services, some of it
+already stale). Ports are set in `docker-compose.yml`'s `ports:` blocks;
+changing one requires a full stack restart.
 
 ### Docker
 - Compose file: `docker-compose.yml` at the repository root. This is the
   canonical local stack used by Quick Start and the Studio Settings default.
-- Data Dir mounted as `/data` in all containers
-- Work Dir mounted as `/workspace/work` in all containers
+- `DATA_DIR` and `WORK_DIR` (set in `.env`) are each bind-mounted into
+  multiple containers, but **not to one fixed path** — every service mounts
+  them at whatever container path its own code expects (e.g. `DATA_DIR`
+  lands at `/workspace/data/PubMed` in `rag` and `workbench` but at `/sif` in
+  `tool-images`; `WORK_DIR` lands at `/app/work/runs`, `/app/work/objects`,
+  etc., a different subdirectory per service). There is no single `/data` or
+  `/workspace/work` path shared by every container — the only literal `/data`
+  mounts in `docker-compose.yml` today are the internal `redis_data` and
+  `neo4j_data` volumes, unrelated to `DATA_DIR`.
+- `docker-compose.yml`'s `volumes:` block for each service is the ground
+  truth for its exact mount paths (verified against commit `48c858d`).
 
 ### About (v0.7.0)
 | Field | Value |
@@ -491,6 +499,29 @@ The permission-gated **Entitlements** tile opens the Admin Console billing surfa
 ## 🔑 Environment Variables
 
 Use [`.env.example`](.env.example) as the current configuration template and keep deployment values outside version control. Do not place credentials, tokens, signing material, or service-account secrets in README examples, logs, screenshots, or frontend configuration. See [Security hardening](SECURITY-COMPOSE-HARDENING.md) for deployment guidance.
+
+`.env.example` covers what it's for — secrets and host paths (`DATA_DIR`,
+`WORK_DIR`, `MYSQL_ROOT_PASSWORD`, API keys, etc.) that you have to actually
+supply. It is **not** a map of how services find each other. That wiring —
+each service's base URL, port, and which other services it talks to — is set
+directly in `docker-compose.yml`'s `environment:` block for that service,
+using Compose's built-in DNS (every service reaches another by its service
+name, e.g. `http://tes:8081`, never `localhost`). You don't set these
+yourself and won't find them in `.env.example`; they're fixed by the compose
+topology.
+
+Concretely: `workbench` reaching `tes` is `TES_BASE_URL: http://tes:8081` in
+`workbench`'s own `environment:` block — `tes` resolves via Compose's
+network, `8081` is the port `tes`'s own `ports:` block publishes. Multiply
+that pattern across every arrow in the "Services" section tables above to
+find any other cross-service wiring.
+
+For what a specific service actually reads — not just what it's wired to —
+check that service's own README first; several (`omnibioai-workbench`,
+`omnibioai-lims`, `omnibioai-rag`, and others) carry a full env var reference
+transcribed from their own block in this file. Where one doesn't,
+`docker-compose.yml`'s `environment:` block for that service is the ground
+truth.
 
 ---
 
