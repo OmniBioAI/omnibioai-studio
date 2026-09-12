@@ -111,6 +111,8 @@ function buildCategories(BASE) {
         // other tile in this section, which rely on the backend/nginx gate
         // rather than hiding the tile client-side.
         { label:"Tool Executor",    url:"/_svc/toolserver/docs",     icon:"🧰", desc:"Register · execute · results"     },
+        { label:"Audit Explorer",   url:"https://admin.omnibioai.org/audit-explorer", icon:"🔎", desc:"Events · Evidence · Investigation", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
+        { label:"Audit Logs",       url:"https://admin.omnibioai.org/audit-logs", icon:"📜", desc:"Identity · Access · Changes", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
       ]
     },
     {

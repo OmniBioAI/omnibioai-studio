@@ -212,6 +212,50 @@ describe("Workbench page", () => {
     expect(screen.queryByText("Security Posture")).not.toBeInTheDocument();
   });
 
+  it("shows Audit Explorer to manage_all_orgs users and opens its canonical page", () => {
+    usePermissions(["manage_all_orgs"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "Audit Explorer \u2014 Events \u00b7 Evidence \u00b7 Investigation" });
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(opened.mock.calls[0][0].detail).toEqual({
+      url: "https://admin.omnibioai.org/audit-explorer",
+      label: "Audit Explorer",
+    });
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("shows Audit Logs to manage_all_orgs users and opens its canonical page", () => {
+    usePermissions(["manage_all_orgs"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "Audit Logs \u2014 Identity \u00b7 Access \u00b7 Changes" });
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(opened.mock.calls[0][0].detail).toEqual({
+      url: "https://admin.omnibioai.org/audit-logs",
+      label: "Audit Logs",
+    });
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("hides Audit Explorer and Audit Logs without manage_all_orgs", () => {
+    usePermissions(["manage_api_keys"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    expect(screen.getByText("API Keys & Service Accounts")).toBeInTheDocument();
+    expect(screen.queryByText("Audit Explorer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Audit Logs")).not.toBeInTheDocument();
+  });
+
   it("shows LLM Runtime to manage_config users and navigates to the existing LLM page", () => {
     usePermissions(["manage_config"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
@@ -267,11 +311,26 @@ describe("Workbench page", () => {
     expect(screen.queryByText("Entitlements")).not.toBeInTheDocument();
   });
 
-  it("shows 10 Security Control Plane modules to a fully authorized user", () => {
+  it("shows all 12 Security Control Plane modules to a fully authorized user", () => {
     usePermissions(["manage_api_keys", "manage_oauth_clients", "manage_all_orgs"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Workbench />);
-    expect(screen.getByText("10 modules")).toBeInTheDocument();
+
+    [
+      "API Gateway",
+      "Auth Service",
+      "Policy Engine",
+      "HPC Policy",
+      "Security Audit",
+      "OPA",
+      "API Keys & Service Accounts",
+      "Compliance Center",
+      "Security Posture",
+      "Tool Executor",
+      "Audit Explorer",
+      "Audit Logs",
+    ].forEach(label => expect(screen.getByText(label)).toBeInTheDocument());
+    expect(screen.getByText("12 modules")).toBeInTheDocument();
   });
 
   it("shows 18 Platform Services modules to a fully authorized user", () => {
