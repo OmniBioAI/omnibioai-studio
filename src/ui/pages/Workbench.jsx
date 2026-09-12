@@ -15,6 +15,28 @@ const MANAGE_CONFIG_PERMISSION = "manage_config";
 const MANAGE_LICENSES_PERMISSION = "manage_licenses";
 const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
 
+const NEO4J_BROWSER_URL = "https://neo4j.omnibioai.org/";
+
+// Neo4j Browser sits behind Cloudflare Access (dedicated cloudflared
+// ingress -- see the tile's own comment below), whose hosted email+code
+// challenge is a top-level, cross-origin, cookie-setting redirect flow.
+// That can't complete inside ServiceViewer's iframe/webview -- Access's
+// login page blocks framing and the CF_Authorization cookie it sets is
+// a third-party cookie in that context -- which is why the tile showed
+// blank/"refused to connect" while the same URL in a fresh top-level
+// tab worked fine. So, unlike every other absolute-URL tile here (e.g.
+// Admin Console, which isn't behind Cloudflare Access and loads fine
+// embedded), this one bypasses the open()/open-service/ServiceViewer
+// path entirely and opens a real top-level browsing context instead:
+// a new tab on web, the OS default browser in Electron.
+const openNeo4jBrowser = () => {
+  if (isElectron()) {
+    window.electronAPI?.openExternal(NEO4J_BROWSER_URL);
+  } else {
+    window.open(NEO4J_BROWSER_URL, "_blank", "noopener,noreferrer");
+  }
+};
+
 function getInitialHost() {
   return (
     window.__OMNIBIOAI_SERVER__ ||
@@ -64,8 +86,11 @@ function buildCategories(BASE) {
         // dedicated cloudflared ingress (neo4j.omnibioai.org ->
         // localhost:7474) behind Cloudflare Access; the container's 7474/
         // 7687 ports are otherwise loopback-only (docker-compose.yml).
-        // Absolute cross-origin URL, same handling as Admin Console above.
-        { label:"Neo4j Browser",    url:"https://neo4j.omnibioai.org/", icon:"🕸️", desc:"Knowledge-graph Cypher console", requiresPermission: ADMIN_CONSOLE_PERMISSION },
+        // url:"" + action (see openNeo4jBrowser above), not a plain
+        // open()-ed URL like Admin Console: this one has to land in a
+        // real top-level tab/window for Cloudflare Access's login
+        // challenge to complete, not ServiceViewer's iframe/webview.
+        { label:"Neo4j Browser",    url:"",                          icon:"🕸️", desc:"Knowledge-graph Cypher console", action: openNeo4jBrowser, requiresPermission: ADMIN_CONSOLE_PERMISSION },
         { label:"LLM Runtime",      url:"",                                      icon:"🤖", desc:"Local models · GPU · Ollama", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 1 })), requiresPermission: MANAGE_CONFIG_PERMISSION },
         { label:"Entitlements",     url:"https://admin.omnibioai.org/billing",    icon:"🔑", desc:"Plans · Licenses · Access", requiresPermission: MANAGE_LICENSES_PERMISSION },
         // Internal Studio page (src/ui/pages/Billing.jsx, App.jsx step 12),

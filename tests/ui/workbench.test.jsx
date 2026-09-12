@@ -350,6 +350,45 @@ describe("Workbench page", () => {
     expect(unsubscribe).toHaveBeenCalled();
   });
 
+  it("opens Neo4j Browser in a real new tab on web, bypassing ServiceViewer/open-service", () => {
+    usePermissions(["platform.manage_infra"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => {});
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "Neo4j Browser — Knowledge-graph Cypher console" });
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(openSpy).toHaveBeenCalledWith("https://neo4j.omnibioai.org/", "_blank", "noopener,noreferrer");
+    expect(opened).not.toHaveBeenCalled();
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("opens Neo4j Browser in the OS default browser under Electron, not an embedded webview", () => {
+    isElectron.mockReturnValue(true);
+    usePermissions(["platform.manage_infra"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    window.electronAPI = { openExternal: vi.fn() };
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "Neo4j Browser — Knowledge-graph Cypher console" });
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(window.electronAPI.openExternal).toHaveBeenCalledWith("https://neo4j.omnibioai.org/");
+    expect(opened).not.toHaveBeenCalled();
+    window.removeEventListener("open-service", opened);
+    delete window.electronAPI;
+  });
+
+  it("hides Neo4j Browser without platform.manage_infra", () => {
+    usePermissions([]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.queryByText("Neo4j Browser")).not.toBeInTheDocument();
+  });
+
   it("builds an absolute Electron webview URL for local links", async () => {
     isElectron.mockReturnValue(true);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
