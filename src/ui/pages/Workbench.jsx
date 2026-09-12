@@ -13,6 +13,7 @@ import { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } from 
 const ADMIN_CONSOLE_PERMISSION = "platform.manage_infra";
 const MANAGE_CONFIG_PERMISSION = "manage_config";
 const MANAGE_LICENSES_PERMISSION = "manage_licenses";
+const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
 
 function getInitialHost() {
   return (
@@ -101,6 +102,9 @@ function buildCategories(BASE) {
         { label:"HPC Policy",       url:"/_svc/hpc/",                icon:"⚡", desc:"GPU/CPU quota governance"         },
         { label:"Security Audit",   url:"/_svc/audit/docs",          icon:"📝", desc:"Redis Streams audit log"          },
         { label:"OPA",              url:"/_svc/opa",                 icon:"🛡️", desc:"Open Policy Agent"               },
+        { label:"API Keys & Service Accounts", url:"https://admin.omnibioai.org/iam/service-accounts", icon:"🔑", desc:"API Keys · OAuth · Revocation", requiresAnyPermission:["manage_api_keys", "manage_oauth_clients", MANAGE_ALL_ORGS_PERMISSION] },
+        { label:"Compliance Center", url:"https://admin.omnibioai.org/hipaa-compliance", icon:"🛡️", desc:"HIPAA · Controls · Evidence", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
+        { label:"Security Posture",  url:"https://admin.omnibioai.org/security-posture", icon:"🔍", desc:"Controls · Enforcement · Readiness", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
         // toolserver — already proxied at /_svc/toolserver (nginx-router.conf),
         // gated there by its own auth_request (admin cookie, MANAGE_CONFIG-
         // level), not a frontend requiresPermission check — same as every
@@ -350,9 +354,12 @@ export default function Workbench() {
           // from. currentUser === null (still loading, or Electron with no
           // web session concept) fails open, same as showRolesNav, rather
           // than hiding gated tiles for everyone during that window.
-          const links = allLinks.filter(({ requiresPermission }) =>
-            !requiresPermission || currentUser === null || currentUser.permissions?.includes(requiresPermission)
-          );
+          const links = allLinks.filter(({ requiresPermission, requiresAnyPermission }) => {
+            if (currentUser === null) return true;
+            if (requiresPermission && !currentUser.permissions?.includes(requiresPermission)) return false;
+            if (requiresAnyPermission && !requiresAnyPermission.some(permission => currentUser.permissions?.includes(permission))) return false;
+            return true;
+          });
           if (links.length === 0) return null;
           return (
           <div key={name} style={{

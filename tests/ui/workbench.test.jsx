@@ -119,6 +119,99 @@ describe("Workbench page", () => {
     await waitFor(() => expect(screen.getByText("Admin Console")).toBeInTheDocument());
   });
 
+  it.each(["manage_api_keys", "manage_oauth_clients", "manage_all_orgs"])(
+    "shows API Keys & Service Accounts with %s",
+    (permission) => {
+      usePermissions([permission]);
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+      render(<Workbench />);
+      expect(screen.getByRole("button", { name: "API Keys & Service Accounts — API Keys · OAuth · Revocation" })).toBeInTheDocument();
+    },
+  );
+
+  it("opens the canonical API Keys & Service Accounts destination without exposing sensitive details", () => {
+    usePermissions(["manage_api_keys"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "API Keys & Service Accounts — API Keys · OAuth · Revocation" });
+    expect(screen.getByText("API Keys · OAuth · Revocation")).toBeInTheDocument();
+    expect(tile.outerHTML).not.toMatch(/AUTH_SECRET_KEY|MYSQL|\.env|client_secret|8099|8001|vault|keyvault|kms/i);
+
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(opened.mock.calls[0][0].detail).toEqual({
+      url: "https://admin.omnibioai.org/iam/service-accounts",
+      label: "API Keys & Service Accounts",
+    });
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("hides API Keys & Service Accounts without any accepted permission", () => {
+    usePermissions([]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.queryByText("API Keys & Service Accounts")).not.toBeInTheDocument();
+  });
+
+  it("keeps single-permission tiles independent from requiresAnyPermission tiles", () => {
+    usePermissions(["manage_config"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.getByText("LLM Runtime")).toBeInTheDocument();
+    expect(screen.queryByText("API Keys & Service Accounts")).not.toBeInTheDocument();
+  });
+
+  it("shows Compliance Center to manage_all_orgs users and opens its HIPAA page", () => {
+    usePermissions(["manage_all_orgs"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "Compliance Center — HIPAA · Controls · Evidence" });
+    expect(screen.getByText("HIPAA · Controls · Evidence")).toBeInTheDocument();
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(opened.mock.calls[0][0].detail).toEqual({
+      url: "https://admin.omnibioai.org/hipaa-compliance",
+      label: "Compliance Center",
+    });
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("hides Compliance Center without manage_all_orgs", () => {
+    usePermissions([]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.queryByText("Compliance Center")).not.toBeInTheDocument();
+  });
+
+  it("shows Security Posture to manage_all_orgs users and opens its canonical page", () => {
+    usePermissions(["manage_all_orgs"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const tile = screen.getByRole("button", { name: "Security Posture — Controls · Enforcement · Readiness" });
+    expect(screen.getByText("Controls · Enforcement · Readiness")).toBeInTheDocument();
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(opened.mock.calls[0][0].detail).toEqual({
+      url: "https://admin.omnibioai.org/security-posture",
+      label: "Security Posture",
+    });
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("hides Security Posture without manage_all_orgs", () => {
+    usePermissions([]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.queryByText("Security Posture")).not.toBeInTheDocument();
+  });
+
   it("shows LLM Runtime to manage_config users and navigates to the existing LLM page", () => {
     usePermissions(["manage_config"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
@@ -172,6 +265,13 @@ describe("Workbench page", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Workbench />);
     expect(screen.queryByText("Entitlements")).not.toBeInTheDocument();
+  });
+
+  it("shows 10 Security Control Plane modules to a fully authorized user", () => {
+    usePermissions(["manage_api_keys", "manage_oauth_clients", "manage_all_orgs"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+    expect(screen.getByText("10 modules")).toBeInTheDocument();
   });
 
   it("shows 18 Platform Services modules to a fully authorized user", () => {
