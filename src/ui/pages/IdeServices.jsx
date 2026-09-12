@@ -75,6 +75,32 @@ function getJupyterToken() {
   );
 }
 
+// The chain above is a dead letter in practice -- nothing anywhere in the
+// app ever sets window.__OMNIBIOAI_CONFIG__ or this localStorage key, so it
+// always fell through to the "devtoken" literal. That only ever matched the
+// real JUPYTER_TOKEN by coincidence; once .env's auto-generated token
+// diverged from it, every Electron "Open" landed on Jupyter's own /login
+// page instead of authenticating in one shot (confirmed live: Jupyter
+// accepts a plain ?token=<value> GET on any page, including /lab, and sets
+// the auth cookie immediately when the value matches -- the interactive
+// login step was never a Jupyter Server 2.x requirement, just a wrong
+// value). Electron already has the real token, via the same
+// window.api.getCredentials() IPC Settings.jsx's "Show Credentials" panel
+// uses (electron/main.js reads it straight from JUPYTER_TOKEN in .env) --
+// so fetch it there instead of relying on this dead chain. No such secure
+// channel exists for the web build (no window.api there), so it keeps
+// using the fallback chain above and Jupyter's own login page as-is; wiring
+// one up is its own separately-scoped task, not a quick add-on here.
+async function getElectronJupyterToken() {
+  if (!window.api?.getCredentials) return null;
+  try {
+    const creds = await window.api.getCredentials();
+    return creds?.jupyterToken || null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function openUrl(url) {
   if (window.electronAPI?.openExternal) {
     window.electronAPI.openExternal(url);
@@ -285,11 +311,14 @@ function IdeServicesConsole() {
     return () => clearInterval(id);
   }, [pollAll]);
 
-  const handleOpen = (svc) => {
+  const handleOpen = async (svc) => {
     if (isElectron()) {
       const hostIp = getHostIp();
+      const token = svc.tool === "jupyter"
+        ? (await getElectronJupyterToken()) || getJupyterToken()
+        : null;
       const url = svc.tool === "jupyter"
-        ? `http://${hostIp}:${svc.port}?token=${getJupyterToken()}`
+        ? `http://${hostIp}:${svc.port}?token=${token}`
         : `http://${hostIp}:${svc.port}`;
       openUrl(url);
       return;
