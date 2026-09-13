@@ -132,7 +132,19 @@ function buildCategories(BASE) {
         { label:"Policy Engine",    url:"/_svc/policy/docs",         icon:"📋", desc:"RBAC · ABAC decisions"            },
         { label:"HPC Policy",       url:"/_svc/hpc/",                icon:"⚡", desc:"GPU/CPU quota governance"         },
         { label:"Security Audit",   url:"/_svc/audit/docs",          icon:"📝", desc:"Redis Streams audit log"          },
-        { label:"OPA",              url:"/_svc/opa",                 icon:"🛡️", desc:"Open Policy Agent"               },
+        // Trailing slash is required, not cosmetic: nginx-router.conf's
+        // `location ^~ /_svc/opa { rewrite ^/_svc/opa(/.*)$ $1 break; ... }`
+        // only fires when something follows the prefix. Without it (as this
+        // tile had until the 404 was diagnosed), the unrewritten "/_svc/opa"
+        // path gets forwarded straight to OPA, which -- unlike the Vite dev
+        // servers most other /_svc/* tiles proxy to, which fall back to
+        // index.html for any unknown path -- has no such fallback and
+        // genuinely 404s. Same convention already used correctly by the
+        // RAG and HPC Policy tiles above (`/_svc/rag/`, `/_svc/hpc/`): any
+        // tile whose nginx location strips its prefix via this rewrite
+        // pattern needs a trailing slash on its url here, or it silently
+        // breaks for whichever upstream doesn't paper over the raw path.
+        { label:"OPA",              url:"/_svc/opa/",                icon:"🛡️", desc:"Open Policy Agent"               },
         { label:"API Keys & Service Accounts", url:"https://admin.omnibioai.org/iam/service-accounts", icon:"🔑", desc:"API Keys · OAuth · Revocation", requiresAnyPermission:["manage_api_keys", "manage_oauth_clients", MANAGE_ALL_ORGS_PERMISSION] },
         { label:"Compliance Center", url:"https://admin.omnibioai.org/hipaa-compliance", icon:"🛡️", desc:"HIPAA · Controls · Evidence", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
         { label:"Security Posture",  url:"https://admin.omnibioai.org/security-posture", icon:"🔍", desc:"Controls · Enforcement · Readiness", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
