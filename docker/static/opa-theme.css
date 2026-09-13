@@ -1,0 +1,36 @@
+/*
+ * OmniBioAI OPA Playground override
+ *
+ * OPA's built-in "/" query playground ships zero CSS and no
+ * <meta name="color-scheme"> of its own -- just a bare <textarea>/<button>
+ * page. Chromium/Electron's forced-dark-mode heuristic (auto-inverts pages
+ * with no declared color scheme) then paints the page background black
+ * while leaving its own black text alone, so it's unreadable except when
+ * selected. Explicit color-scheme + background/color below opt this page
+ * out of that heuristic instead of fighting it after the fact.
+ *
+ * Injected into OPA's page by nginx sub_filter (see nginx-router.conf's
+ * /_svc/opa location) -- same mechanism already used for Prometheus'
+ * theme (prometheus-theme.css), scoped to this one route only.
+ */
+
+:root {
+  color-scheme: light;
+}
+
+html, body {
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+}
+
+textarea,
+input,
+button {
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+  border: 1px solid #ccc !important;
+}
+
+a {
+  color: #0060df !important;
+}
