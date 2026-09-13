@@ -34,3 +34,5 @@ docker/*.bak-*
 # vitest/v8 coverage report output (npm run coverage:ui, packages/omnibioai-ui's
 # npm run coverage) -- generated, not source.
 coverage/
+# Local Mac workstation environment
+.env.mac
