@@ -82,7 +82,7 @@
   },
   "publish": {
     "provider": "github",
-    "owner": "man4ish",
+    "owner": "OmniBioAI",
     "repo": "omnibioai-studio"
   }
 }
