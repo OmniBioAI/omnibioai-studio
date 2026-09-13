@@ -9,15 +9,21 @@ RAG service endpoints (FastAPI, port 8090 external / 8096 internal):
   POST /v1/ingest       — ingest PubMed articles (SSE stream)
   POST /v1/embed        — embed a study (SSE stream)
 
-Authentication: Bearer token via Authorization header (RAGBIO_API_KEY).
+Authentication: /v1/studies and /v1/cache accept the static RAGBIO_API_KEY
+bearer token. /v1/query is further along the Multi-user Workspaces Phase 0a
+migration and requires a real IAM-issued JWT instead (ragbio/api/iam.py) --
+minted the same way test_cross_app_sso.py does, by registering/logging in
+against the central auth service and reusing its access_token.
 
 Run: pytest tests/integration/test_rag_integration.py -v
 """
 
+import uuid
+
 import pytest
 import requests
 
-from conftest import RAG_DIRECT_URL, RAGBIO_API_KEY, TIMEOUT
+from conftest import AUTH_DIRECT_URL, RAG_DIRECT_URL, RAGBIO_API_KEY, TIMEOUT
 
 BASE = RAG_DIRECT_URL
 
@@ -38,6 +44,32 @@ def _get(path: str, auth: bool = True) -> requests.Response:
 def _post(path: str, body: dict, auth: bool = True) -> requests.Response:
     headers = {"Authorization": f"Bearer {RAGBIO_API_KEY}"} if auth else {}
     return requests.post(f"{BASE}{path}", json=body, headers=headers, timeout=TIMEOUT)
+
+
+def _query_jwt() -> str:
+    """A real IAM-issued JWT, minted the same way test_cross_app_sso.py's
+    _register_and_login() does: register + log in against the central auth
+    service and reuse its access_token. /v1/query is IAM-gated and no
+    longer accepts the static RAGBIO_API_KEY (see module docstring)."""
+    email = f"itest-ragquery-{uuid.uuid4().hex}@example.com"
+    password = "S3curePass!1"
+
+    reg = requests.post(
+        f"{AUTH_DIRECT_URL}/auth/register", json={"email": email, "password": password}, timeout=TIMEOUT
+    )
+    assert reg.status_code == 200, f"setup: register failed: {reg.text}"
+
+    login = requests.post(
+        f"{AUTH_DIRECT_URL}/auth/login", json={"email": email, "password": password}, timeout=TIMEOUT
+    )
+    assert login.status_code == 200, f"setup: login failed: {login.text}"
+
+    return login.json()["access_token"]
+
+
+def _post_query(body: dict) -> requests.Response:
+    headers = {"Authorization": f"Bearer {_query_jwt()}"}
+    return requests.post(f"{BASE}/v1/query", json=body, headers=headers, timeout=TIMEOUT)
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -122,7 +154,7 @@ class TestRagCache:
 
 class TestRagQuery:
     def test_query_pmids_only_mode_returns_200(self):
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "BRCA1 cancer",
             "study": "*",
             "top_k": 3,
@@ -133,7 +165,7 @@ class TestRagQuery:
         assert r.status_code in (200, 404, 500)
 
     def test_query_pmids_only_returns_mode_field(self):
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "BRCA1 cancer",
             "study": "*",
             "top_k": 3,
@@ -144,7 +176,7 @@ class TestRagQuery:
             assert r.json()["mode"] == "pmids_only"
 
     def test_query_pmids_only_returns_pmids_list(self):
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "BRCA1",
             "study": "*",
             "top_k": 5,
@@ -155,7 +187,7 @@ class TestRagQuery:
             assert isinstance(r.json()["pmids"], list)
 
     def test_query_rag_mode_returns_events_key(self):
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "BRCA1",
             "study": "*",
             "top_k": 3,
@@ -166,7 +198,7 @@ class TestRagQuery:
 
     def test_query_no_study_data_returns_404_or_200(self):
         # When no studies are indexed, 404 is acceptable; 500 when Ollama not configured
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "BRCA1 cancer drug therapy",
             "study": "*",
             "top_k": 3,
@@ -175,7 +207,7 @@ class TestRagQuery:
         assert r.status_code in (200, 404, 500)
 
     def test_query_invalid_mode_returns_422(self):
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "BRCA1",
             "study": "default",
             "top_k": 3,
@@ -184,7 +216,7 @@ class TestRagQuery:
         assert r.status_code == 422
 
     def test_query_top_k_zero_returns_422(self):
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "BRCA1",
             "study": "default",
             "top_k": 0,
@@ -193,11 +225,11 @@ class TestRagQuery:
         assert r.status_code == 422
 
     def test_query_missing_required_fields_returns_422(self):
-        r = _post("/v1/query", {"study": "default"})
+        r = _post_query({"study": "default"})
         assert r.status_code == 422
 
     def test_query_wildcard_study_accepted(self):
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "cancer",
             "study": "*",
             "top_k": 3,
@@ -206,7 +238,7 @@ class TestRagQuery:
         assert r.status_code in (200, 404, 500)
 
     def test_query_all_study_accepted(self):
-        r = _post("/v1/query", {
+        r = _post_query({
             "query": "cancer",
             "study": "all",
             "top_k": 3,
@@ -232,7 +264,7 @@ class TestRagFullFlow:
         # If any studies are indexed, run a query against the first one
         if studies:
             study_name = studies[0]["name"]
-            r3 = _post("/v1/query", {
+            r3 = _post_query({
                 "query": "gene expression cancer",
                 "study": study_name,
                 "top_k": 3,
@@ -243,7 +275,7 @@ class TestRagFullFlow:
                 assert "events" in r3.json()
         else:
             # No studies indexed yet — verify query returns 404 or 500 (Ollama not configured)
-            r3 = _post("/v1/query", {
+            r3 = _post_query({
                 "query": "gene expression",
                 "study": "nonexistent",
                 "top_k": 3,
