@@ -45,7 +45,7 @@ Your OmniBioAI Studio license key:
   {key}
 
 Valid for {days} days (expires {expiry}).
-Download: https://github.com/man4ish/omnibioai-studio/releases/latest
+Download: https://github.com/OmniBioAI/omnibioai-studio/releases/latest
 """)
 
 if __name__ == "__main__":
