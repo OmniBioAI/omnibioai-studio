@@ -8,7 +8,7 @@ def test_compose_and_catalog_match():
     compose = compose_services(root / "docker-compose.yml")
     catalog = catalog_services(root / "docs" / "SYSTEM_ARCHITECTURE.md")
 
-    assert len(compose) == 40
-    assert len(catalog) == 40
+    assert len(compose) == 41
+    assert len(catalog) == 41
     assert set(compose) == set(catalog)
     assert duplicates(catalog) == []
