@@ -90,7 +90,13 @@ function buildCategories(BASE) {
         // open()-ed URL like Admin Console: this one has to land in a
         // real top-level tab/window for Cloudflare Access's login
         // challenge to complete, not ServiceViewer's iframe/webview.
-        { label:"Neo4j Browser",    url:"",                          icon:"🕸️", desc:"Knowledge-graph Cypher console", action: openNeo4jBrowser, requiresPermission: ADMIN_CONSOLE_PERMISSION },
+        // No "back to Workbench" link once there -- neo4j.omnibioai.org
+        // is a separate origin we don't control the content of (and in
+        // Electron this opens the OS default browser, outside the app
+        // entirely), so there's nothing to inject one into. The desc
+        // below flags "opens in new tab" up front instead, so closing
+        // that tab to get back reads as expected rather than a dead end.
+        { label:"Neo4j Browser",    url:"",                          icon:"🕸️", desc:"Knowledge-graph Cypher console · opens in new tab", action: openNeo4jBrowser, requiresPermission: ADMIN_CONSOLE_PERMISSION },
         { label:"LLM Runtime",      url:"",                                      icon:"🤖", desc:"Local models · GPU · Ollama", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 1 })), requiresPermission: MANAGE_CONFIG_PERMISSION },
         { label:"Entitlements",     url:"https://admin.omnibioai.org/billing",    icon:"🔑", desc:"Plans · Licenses · Access", requiresPermission: MANAGE_LICENSES_PERMISSION },
         // Internal Studio page (src/ui/pages/Billing.jsx, App.jsx step 12),
