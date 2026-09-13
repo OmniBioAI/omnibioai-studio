@@ -8,16 +8,39 @@ Services are reached:
 Run: pytest tests/integration/test_services_health.py -v
 """
 
+import uuid
+
 import pytest
 import requests
 
-from conftest import BASE_URL, TIMEOUT
+from conftest import AUTH_DIRECT_URL, BASE_URL, TIMEOUT
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _get(url: str) -> requests.Response:
-    return requests.get(url, timeout=TIMEOUT)
+def _get(url: str, headers: dict | None = None) -> requests.Response:
+    return requests.get(url, headers=headers or {}, timeout=TIMEOUT)
+
+
+def _bearer_token() -> str:
+    """A real access token from the central auth service, same pattern
+    test_cross_app_sso.py/test_rag_integration.py already use to satisfy an
+    auth_request-gated /_svc/* location (nginx-router.conf's
+    $control_authorization map accepts this directly as a Bearer header)."""
+    email = f"itest-toolserver-{uuid.uuid4().hex}@example.com"
+    password = "S3curePass!1"
+
+    reg = requests.post(
+        f"{AUTH_DIRECT_URL}/auth/register", json={"email": email, "password": password}, timeout=TIMEOUT
+    )
+    assert reg.status_code == 200, f"setup: register failed: {reg.text}"
+
+    login = requests.post(
+        f"{AUTH_DIRECT_URL}/auth/login", json={"email": email, "password": password}, timeout=TIMEOUT
+    )
+    assert login.status_code == 200, f"setup: login failed: {login.text}"
+
+    return login.json()["access_token"]
 
 
 def _is_up(url: str) -> bool:
@@ -191,7 +214,15 @@ class TestToolserverHealth:
         assert r.status_code == 200
 
     def test_via_nginx_health(self):
-        r = _get(f"{BASE_URL}/_svc/toolserver/health")
+        # /_svc/toolserver is auth_request-gated end to end (including this
+        # health path -- unlike Control Center's own health/summary/services
+        # paths just above, toolserver has no unauthenticated carve-out) since
+        # the SSRF-as-a-service exposure documented in
+        # ~/toolserver-auth-gap-report-2026-09-01.md. Needs a real token.
+        r = _get(
+            f"{BASE_URL}/_svc/toolserver/health",
+            headers={"Authorization": f"Bearer {_bearer_token()}"},
+        )
         assert r.status_code == 200
 
 
