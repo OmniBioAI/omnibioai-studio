@@ -23,6 +23,17 @@ Token delivery
 The cookie value can also be used as a plain Bearer token via the
 Authorization header (SimpleJWT's JWTAuthentication is still active).
 Tests use the Bearer-header approach so they don't need a cookie jar.
+
+`X-Forwarded-Proto: https` on every request here
+--------------------------------------------------
+Same reasoning as test_cross_app_sso.py's identical header: LIMS's
+SECURE_SSL_REDIRECT (lab_data_manager/settings.py) is on whenever DEBUG is
+off, and only /healthz, /readyz, /metrics are exempt
+(SECURE_REDIRECT_EXEMPT) -- every other path 301s to https://localhost/...
+without this header, which then fails to connect since nothing listens on
+443 here. This reproduces exactly what the real router already sets on
+every request LIMS actually receives; it is not bypassing a security
+check.
 """
 
 import pytest
@@ -31,17 +42,23 @@ import requests
 from conftest import LIMS_DIRECT_URL, LIMS_USERNAME, LIMS_PASSWORD, TIMEOUT
 
 BASE = LIMS_DIRECT_URL
+_TRUSTED_PROXY_HEADERS = {"X-Forwarded-Proto": "https"}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _get(path: str, headers: dict | None = None) -> requests.Response:
-    return requests.get(f"{BASE}{path}", headers=headers or {}, timeout=TIMEOUT)
+    return requests.get(
+        f"{BASE}{path}", headers={**_TRUSTED_PROXY_HEADERS, **(headers or {})}, timeout=TIMEOUT
+    )
 
 
 def _post(path: str, body: dict, headers: dict | None = None) -> requests.Response:
     return requests.post(
-        f"{BASE}{path}", json=body, headers=headers or {}, timeout=TIMEOUT
+        f"{BASE}{path}",
+        json=body,
+        headers={**_TRUSTED_PROXY_HEADERS, **(headers or {})},
+        timeout=TIMEOUT,
     )
 
 
@@ -61,12 +78,20 @@ def _obtain_tokens() -> dict:
     if _MODULE_TOKENS is not None:
         return _MODULE_TOKENS
     session = requests.Session()
+    session.headers.update(_TRUSTED_PROXY_HEADERS)
     r = session.post(
         f"{BASE}/api/token/",
         json={"username": LIMS_USERNAME, "password": LIMS_PASSWORD},
         timeout=TIMEOUT,
     )
     r.raise_for_status()
+    # LIMS sets both cookies with the Secure flag (real deploys terminate TLS
+    # in front of it). requests' cookie jar correctly refuses to resend a
+    # Secure cookie over this plain-http connection, even within the same
+    # Session, so /api/token/refresh/ would never actually see it. Re-set it
+    # without that flag -- same idea as test_refresh_with_invalid_token_returns_401
+    # below, which already does this for its own (fake) refresh token.
+    session.cookies.set("refresh_token", r.cookies.get("refresh_token", ""))
     _MODULE_TOKENS = {
         "access": r.cookies.get("access_token", ""),
         "refresh": r.cookies.get("refresh_token", ""),
@@ -146,6 +171,7 @@ class TestLimsTokenRefresh:
 
     def test_refresh_with_invalid_token_returns_401(self):
         bad_session = requests.Session()
+        bad_session.headers.update(_TRUSTED_PROXY_HEADERS)
         bad_session.cookies.set("refresh_token", "invalid.token.value")
         r = bad_session.post(f"{BASE}/api/token/refresh/", timeout=TIMEOUT)
         assert r.status_code == 401
