@@ -33,16 +33,16 @@ def _post(path: str, body: dict) -> requests.Response:
 
 class TestRegisterNewUser:
     def test_register_returns_200(self):
-        r = _post("/auth/register", {"email": _unique_email(), "password": "S3curePass!"})
+        r = _post("/auth/register", {"email": _unique_email(), "password": "S3curePass!1"})
         assert r.status_code == 200
 
     def test_register_returns_message(self):
-        r = _post("/auth/register", {"email": _unique_email(), "password": "S3curePass!"})
+        r = _post("/auth/register", {"email": _unique_email(), "password": "S3curePass!1"})
         assert "message" in r.json()
 
     def test_registered_user_can_log_in_immediately(self):
         email = _unique_email()
-        password = "S3curePass!"
+        password = "S3curePass!1"
 
         reg = _post("/auth/register", {"email": email, "password": password})
         assert reg.status_code == 200
@@ -54,7 +54,7 @@ class TestRegisterNewUser:
 
     def test_registered_user_wrong_password_rejected(self):
         email = _unique_email()
-        _post("/auth/register", {"email": email, "password": "S3curePass!"})
+        _post("/auth/register", {"email": email, "password": "S3curePass!1"})
 
         login = _post("/auth/login", {"email": email, "password": "wrong-password"})
         assert login.status_code == 401
@@ -63,7 +63,7 @@ class TestRegisterNewUser:
 class TestRegisterDuplicate:
     def test_duplicate_email_returns_400(self):
         email = _unique_email()
-        first = _post("/auth/register", {"email": email, "password": "S3curePass!"})
+        first = _post("/auth/register", {"email": email, "password": "S3curePass!1"})
         assert first.status_code == 200
 
         second = _post("/auth/register", {"email": email, "password": "AnotherPass!23"})

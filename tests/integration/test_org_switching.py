@@ -31,7 +31,7 @@ BASE = AUTH_DIRECT_URL
 
 def _register_and_login() -> dict:
     email = f"itest-orgswitch-{uuid.uuid4().hex}@example.com"
-    password = "S3curePass!"
+    password = "S3curePass!1"
 
     reg = requests.post(f"{BASE}/auth/register", json={"email": email, "password": password}, timeout=TIMEOUT)
     assert reg.status_code == 200, f"setup: register failed: {reg.text}"
