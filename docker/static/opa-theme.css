@@ -1,36 +1,50 @@
 /*
- * OmniBioAI OPA Playground override
+ * OmniBioAI OPA Playground override — dark terminal theme
  *
  * OPA's built-in "/" query playground ships zero CSS and no
  * <meta name="color-scheme"> of its own -- just a bare <textarea>/<button>
  * page. Chromium/Electron's forced-dark-mode heuristic (auto-inverts pages
- * with no declared color scheme) then paints the page background black
- * while leaving its own black text alone, so it's unreadable except when
- * selected. Explicit color-scheme + background/color below opt this page
- * out of that heuristic instead of fighting it after the fact.
+ * with no declared color scheme) paints the page background black while
+ * leaving its own black text alone, so it's unreadable except when
+ * selected.
+ *
+ * Rather than opt out of that heuristic (an earlier version of this file
+ * forced color-scheme: light + a white background), this instead aligns
+ * with it: dark background, green terminal-style text, matching the rest
+ * of OmniBioAI's dark theme rather than introducing a jarring white panel
+ * inside an otherwise-dark Workbench. Values below are the same
+ * --color-bg / --color-accent tokens from omnibioai-design-tokens/
+ * tokens.css that docker/static/prometheus-theme.css already re-declares
+ * for the same reason (no shared stylesheet across these injected pages).
  *
  * Injected into OPA's page by nginx sub_filter (see nginx-router.conf's
  * /_svc/opa location) -- same mechanism already used for Prometheus'
- * theme (prometheus-theme.css), scoped to this one route only.
+ * theme, scoped to this one route only.
  */
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html, body {
-  background-color: #ffffff !important;
-  color: #1a1a1a !important;
+  background-color: #0f1117 !important;
+  color: #00e5a0 !important;
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace !important;
 }
 
 textarea,
 input,
 button {
-  background-color: #ffffff !important;
-  color: #1a1a1a !important;
-  border: 1px solid #ccc !important;
+  background-color: #13161f !important;
+  color: #00e5a0 !important;
+  border: 1px solid rgba(0,229,160,0.30) !important;
+}
+
+pre,
+#result {
+  color: #00e5a0 !important;
 }
 
 a {
-  color: #0060df !important;
+  color: #00e5a0 !important;
 }
