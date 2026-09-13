@@ -64,6 +64,20 @@ function buildCategories(BASE) {
         { label:"Getting Started",  url:"/_svc/docs/user/getting-started/", icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
         { label:"Workbench",        url:"/_svc/workbench/",          icon:"🏠", desc:"Dashboard"                        },
+        // This tile is the authenticated internal view only (control-center's
+        // own backend-rendered ecosystem report, gated on platform.manage_infra
+        // like Admin Console below). control.omnibioai.org (ControlApp, a
+        // separate VITE_APP_MODE=control build) is NOT reachable from here,
+        // and that's by design, not a missing tile: it's a deliberately
+        // anonymous, unauthenticated public status dashboard (no AuthGate, no
+        // token ever sent -- see ControlApp.tsx's own doc comment and
+        // omnibioai-control-center/docs/public-control-center.md) meant for
+        // visitors with no Studio session at all, so it doesn't belong behind
+        // Studio's authenticated tile grid. Confirmed 2026-09-13: its backend
+        // routes (health/llm/cloud/integrations + /report/status,
+        // /report/public-stats) carry no require_permission dependency,
+        // deliberately, with a regression test (test_public_dashboard_no_leak.py)
+        // guarding that they never leak an identifier.
         { label:"Control Center",   url:"/_svc/control/",            icon:"🖥️", desc:"Health + Docker imgs"             },
         // Admin Console (control-center-web's AdminApp build, dist-admin) —
         // reached directly at admin.omnibioai.org, not through nginx-router
@@ -96,6 +110,18 @@ function buildCategories(BASE) {
         // entirely), so there's nothing to inject one into. The desc
         // below flags "opens in new tab" up front instead, so closing
         // that tab to get back reads as expected rather than a dead end.
+        //
+        // PERMANENT exception, not a bug and not temporary: every other
+        // tile in this file embeds its target inside ServiceViewer, this
+        // one deliberately never will. Why: Cloudflare Access's hosted
+        // email+code login is a top-level, cross-origin, cookie-setting
+        // redirect (see the openNeo4jBrowser comment above), and that
+        // can't complete inside an iframe/webview -- Access's own login
+        // page blocks framing, and the CF_Authorization cookie it sets is
+        // third-party in that context either way. There is no client-side
+        // fix available to Studio for that; it would need Neo4j Browser
+        // moved off Cloudflare Access entirely. Do not re-flag this as an
+        // inconsistency or try to route it through open()/ServiceViewer.
         { label:"Neo4j Browser",    url:"",                          icon:"🕸️", desc:"Knowledge-graph Cypher console · opens in new tab", action: openNeo4jBrowser, requiresPermission: ADMIN_CONSOLE_PERMISSION },
         { label:"LLM Runtime",      url:"",                                      icon:"🤖", desc:"Local models · GPU · Ollama", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 1 })), requiresPermission: MANAGE_CONFIG_PERMISSION },
         { label:"Entitlements",     url:"https://admin.omnibioai.org/billing",    icon:"🔑", desc:"Plans · Licenses · Access", requiresPermission: MANAGE_LICENSES_PERMISSION },
