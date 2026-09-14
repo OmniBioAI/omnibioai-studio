@@ -9,15 +9,43 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
+## v0.7.1 erratum (2026-09-14)
+
+A post-release audit verified every v0.7.1 claim below against real evidence
+(merged PRs, live container state, running code, passing tests). One claim
+did not hold up as originally written:
+
+- **"Hardened Neo4j: credential rotation, ..."** — the network-restriction
+  and tile-gating parts (below) were genuinely done for the v0.7.1 release.
+  The **credential-rotation part was not actually true when originally
+  published**: `NEO4J_PASSWORD` had been added to `.env.example` and the
+  container's env, but nothing had ever executed the rotation against the
+  already-initialized data volume (`NEO4J_AUTH` only takes effect on a
+  fresh volume), and the live instance's real credential no longer matched
+  *any* documented value — old default or "new" placeholder. **This has
+  now been genuinely rotated** (2026-09-14): the stale system/auth database
+  was reset, a newly generated strong password was set, verified live (old
+  credentials confirmed rejected, new one confirmed accepted, real graph
+  data — 138,621 nodes — confirmed intact throughout), and propagated to
+  every consumer (`rag`, `control-center`). Access-gated remote entry via
+  Cloudflare Access could not be verified either way from this repo — it's
+  infra-level, tracked for follow-up.
+
+Everything else in v0.7.1 (SSRF fix, info-disclosure fix, the nginx fixes,
+the 6 admin views, the documentation rewrite) was independently verified
+against real merged commits, running code, and passing tests, and stands
+as originally written.
+
+---
 ## v0.7.1 (2026-09-12)
 
 ### Security
 - Closed an SSRF exposure in toolserver by routing outbound calls through the authenticated gateway
 - Closed an information-disclosure surface in Control Center
-- Hardened Neo4j: credential rotation, network access restriction, Access-gated remote entry
+- Hardened Neo4j: network access restriction, tile gating on `platform.manage_infra` — credential rotation was documented but not actually executed at release time; see the 2026-09-14 erratum above
 
 ### Added
-- Compliance Center, Audit Explorer, Audit Logs, API Keys & Service Accounts, Security Posture, and Billing (Usage/Overview) admin views
+- Compliance Center, Audit Explorer, Audit Logs, API Keys & Service Accounts, Security Posture, and Billing (Usage/Overview) admin views — each backed by real API clients and real backend routes/services (verified 2026-09-14: real proxying to omnibioai-security-audit, a real SQLAlchemy-backed compliance service, 69 passing backend tests)
 
 ### Fixed
 - Fixed recurring nginx proxy bugs affecting RAG, Jupyter, RStudio, and VS Code
