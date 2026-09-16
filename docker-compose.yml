@@ -20,6 +20,23 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    # V2-002 (Track E2): this instance held only RDB snapshots (default
+    # save points 3600s/1 change, 300s/100, 60s/10000 -- confirmed live
+    # via CONFIG GET before this change), so up to ~60s or 10,000 writes
+    # -- including audit:events stream entries -- could be lost on an
+    # unclean crash/restart with nothing durable behind them yet. AOF
+    # with `everysec` fsync (Redis's own documented default trade-off,
+    # not a custom policy) bounds that loss window to ~1 second without
+    # the latency cost of fsyncing every single write. This instance is
+    # also shared with IAM cache and Celery broker/backend workloads
+    # (same db 0 for several of them) -- AOF durability applies to all
+    # of them, not just the audit stream, which is a strict improvement,
+    # not a narrower fix. requirepass/AUTH is a separate, much larger
+    # change (every one of ~15+ connecting services' REDIS_URL would
+    # need updating) -- deliberately NOT done here; see
+    # omnibioai-docs/security/hipaa_v2_002_audit_delivery_evidence.md
+    # for that documented-but-unresolved deployment prerequisite.
+    command: redis-server --appendonly yes --appendfsync everysec
     ports:
       - "6380:6379"
     volumes:

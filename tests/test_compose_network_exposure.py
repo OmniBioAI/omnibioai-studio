@@ -343,3 +343,48 @@ def test_dev_compose_still_publishes_for_local_development():
         "publish mysql locally -- if this is being changed, the release "
         "boundary tests above are the ones that matter, not this file"
     )
+
+
+# ── 6. V2-002 (Track E2): Redis AOF durability, all profiles ────────────
+#
+# Prior to this, redis held only RDB snapshots (default save points
+# 3600s/1 change, 300s/100, 60s/10000 -- confirmed live via CONFIG GET),
+# so up to ~60s or 10,000 writes -- including audit:events stream entries
+# -- could be lost on an unclean crash/restart. AOF with `everysec` fsync
+# (Redis's own documented default trade-off) bounds that to ~1s. This is
+# an additive, redis-service-only change -- no other service's
+# connection string, credentials, or behavior changes.
+
+ALL_COMPOSE_PATHS = [DEV_COMPOSE, *RELEASE_COMPOSE_PATHS]
+
+
+@pytest.mark.parametrize("compose_path", ALL_COMPOSE_PATHS, ids=lambda p: p.name)
+def test_redis_has_aof_durability_enabled(compose_path):
+    config = _load(compose_path)
+    command = config["services"]["redis"].get("command", "")
+    assert "--appendonly yes" in command, (
+        f"{compose_path.name}: redis must run with AOF enabled "
+        f"(--appendonly yes) so audit:events entries survive an unclean "
+        f"restart, not just RDB's default up-to-60s/10,000-write window"
+    )
+    assert "--appendfsync everysec" in command, (
+        f"{compose_path.name}: redis AOF fsync policy must be explicit "
+        f"(everysec), not left to Redis's own default"
+    )
+
+
+def test_redis_aof_config_is_identical_across_all_profiles():
+    """The two release files (docker-compose.release.yml and the
+    dash-named legacy docker-compose-release.yml) must be kept in parity
+    -- this exact drift (one file getting a fix, the other silently not)
+    is what test_dev_ports_overlay_matches_release_baseline and friends
+    already guard against for other settings; this pins it for the AOF
+    command specifically."""
+    commands = {
+        p.name: _load(p)["services"]["redis"].get("command", "")
+        for p in ALL_COMPOSE_PATHS
+    }
+    unique_commands = set(commands.values())
+    assert len(unique_commands) == 1, (
+        f"redis command must be identical across all compose profiles, got: {commands}"
+    )

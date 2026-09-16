@@ -16,9 +16,17 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-# Load .env
+# Load .env. 2026-09-16: this used to be
+# `source <(grep -v '^#' "$ENV_FILE" | grep -v '^$')`, which feeds every
+# KEY=VALUE line to the bash parser — a secret value containing shell
+# metacharacters (e.g. parentheses) breaks it with a syntax error
+# instead of loading. See scripts/lib-env.sh and
+# ../../omnibioai-docs/security/mysql_backup_recovery_evidence.md for
+# the incident this same bug caused in backup-mysql.sh.
+# shellcheck source=./lib-env.sh
+source "${SCRIPT_DIR}/lib-env.sh"
 set -a
-source <(grep -v '^#' "$ENV_FILE" | grep -v '^$')
+load_env_file "$ENV_FILE"
 set +a
 
 ERRORS=0
