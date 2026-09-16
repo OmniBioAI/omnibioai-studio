@@ -42,3 +42,109 @@ def test_row_content_is_never_selected_only_counts():
     text = SCRIPT.read_text(encoding="utf-8")
     assert "SELECT COUNT(*)" in text
     assert "SELECT *" not in text
+
+
+# ============================================================
+# Track E4 — encrypted-artifact decrypt path
+# ============================================================
+def test_decrypts_gpg_artifacts_and_checks_exit_code_explicitly():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert '"${ARTIFACT}" == *.gpg' in text
+    assert "gpg --batch" in text
+    # Must be an explicit `if ! gpg ...; then fail` style check, not a bare
+    # call relying only on `set -e` (which a `|| true` elsewhere in this
+    # script could still shadow) or a swallowed exit code.
+    assert "if ! gpg" in text
+    assert "gpg decryption failed" in text
+
+
+def test_decrypt_requires_passphrase_file_env_var_fails_closed_if_unset():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE" in text
+    assert "is not set" in text
+
+
+def test_checksum_verification_runs_before_decryption():
+    """The published artifact (ciphertext, if encrypted) must be checksum-
+    verified before any attempt to decrypt it -- corruption must be caught
+    as corruption, not surfaced as a confusing decrypt failure."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    checksum_pos = text.index("sha256sum -c")
+    decrypt_pos = text.index("gpg --batch")
+    assert checksum_pos < decrypt_pos
+
+
+# ============================================================
+# Track E4 (closure pass) — readiness-race fix + alerting + E3-structure verification
+# ============================================================
+def test_waits_for_temporary_server_to_stop_before_pinging():
+    """Diagnosed root cause of the previously-intermittent restore
+    failure: the official mysql:8.0 image runs a throwaway "temporary
+    server" first on a fresh (unvolumed) container, which responds to
+    `mysqladmin ping` exactly like the real one, then gets replaced.
+    Restoring during that window loses the connection mid-stream. Fix:
+    wait for the container's own "Temporary server stopped" log line
+    before trusting any ping success."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    # Compare the actual executable lines, not any mention in prose
+    # comments above them (which discuss both in explanatory order).
+    wait_loop_pos = text.index('grep -q "Temporary server stopped"')
+    ping_exec_pos = text.index("docker exec \"${TARGET}\" mysqladmin ping")
+    assert wait_loop_pos < ping_exec_pos
+    assert "docker logs" in text
+
+
+def test_readiness_waits_are_bounded_not_infinite():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "MYSQL_INIT_WAIT_SECONDS" in text
+    assert "MYSQL_READY_WAIT_SECONDS" in text
+
+
+def test_restore_command_failure_is_explicitly_checked():
+    """`docker exec -i ... mysql -uroot < dump` must not be trusted blindly
+    under `set -e` alone -- an explicit failure path must exist."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert 'mysql -uroot < "${DECOMPRESSED}" \\' in text or "mysql -uroot < \"${DECOMPRESSED}\"" in text
+    restore_pos = text.index('mysql -uroot < "${DECOMPRESSED}"')
+    following = text[restore_pos:restore_pos + 200]
+    assert "fail" in following
+
+
+def test_sources_the_shared_alert_library_and_uses_a_fail_helper():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "lib-alert.sh" in text
+    assert "emit_security_alert" in text
+    assert "restore_verification_failed" in text
+
+
+def test_every_early_failure_path_uses_fail_not_bare_exit():
+    """Regression guard: this script used to have several inline
+    `{ echo ...; exit 1; }` blocks that bypassed both health-file
+    recording and (now) alert emission. All of them must route through
+    fail() so no failure path silently skips observability."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "; exit 1; }" not in text, "a bare inline exit bypasses fail()'s health/alert recording"
+
+
+def test_verifies_e3_audit_hardening_structures_after_restore():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "record_integrity_hash" in text
+    assert "audit_legal_holds" in text
+    assert "information_schema.triggers" in text
+
+
+def test_e3_structure_check_targets_the_real_hardened_database_only():
+    """Diagnosed during this track: the live host also has an unrelated
+    `omnibioai.audit_events` table (a different, older, non-Track-E3
+    table). The E3-structure check must target omnibioai_audit
+    specifically -- the omnibioai-security-audit service's own
+    configured database -- not "whichever same-named table matched
+    last" in the unrelated informational row-count loop above it."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "table_schema='omnibioai_audit'" in text
+
+
+def test_append_only_trigger_is_functionally_probed_not_just_checked_for_existence():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "UPDATE" in text
+    assert "e4-restore-probe" in text

@@ -16,13 +16,24 @@
 # (this line is a recommendation, not installed by this script —
 # crontab changes are left to the operator to review and apply.)
 #
-# Exit 0 = healthy. Exit 1 = stale or failed — treat as needing attention.
+# Track E4: if BACKUP_REQUIRE_ENCRYPTION=true is set for this checker
+# (an independent assertion from backup-mysql.sh's own
+# MYSQL_BACKUP_REQUIRE_ENCRYPTION -- deliberately not read from the
+# same variable, so a misconfiguration in one script can't silently
+# suppress detection in the other), a most-recent-success backup that
+# is NOT recorded as encrypted is treated as unhealthy. This is how an
+# operator who requires encryption finds out if it silently stopped
+# happening (e.g. passphrase file deleted and REQUIRE flag unset by
+# mistake) without waiting for the next manual audit.
+#
+# Exit 0 = healthy. Exit 1 = stale, failed, or (if required) unencrypted.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HEALTH_FILE="${BACKUP_HEALTH_FILE:-${SCRIPT_DIR}/../work/backups/mysql-backup-health.env}"
 MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-30}"  # daily-at-4am backup + buffer
+REQUIRE_ENCRYPTION="${BACKUP_REQUIRE_ENCRYPTION:-false}"
 
 if [[ ! -f "$HEALTH_FILE" ]]; then
   echo "[FAIL] $(date -Iseconds) no health file at ${HEALTH_FILE} — no evidence a backup has ever run"
@@ -34,6 +45,7 @@ LAST_STAGE=""
 LAST_SUCCESS_TS=""
 LAST_ATTEMPT_TS=""
 LAST_ARTIFACT=""
+LAST_ARTIFACT_ENCRYPTED=""
 while IFS='=' read -r k v; do
   case "$k" in
     LAST_RESULT) LAST_RESULT="$v" ;;
@@ -41,6 +53,7 @@ while IFS='=' read -r k v; do
     LAST_SUCCESS_TS) LAST_SUCCESS_TS="$v" ;;
     LAST_ATTEMPT_TS) LAST_ATTEMPT_TS="$v" ;;
     LAST_ARTIFACT) LAST_ARTIFACT="$v" ;;
+    LAST_ARTIFACT_ENCRYPTED) LAST_ARTIFACT_ENCRYPTED="$v" ;;
   esac
 done < "$HEALTH_FILE"
 
@@ -73,6 +86,11 @@ fi
 
 if [[ -n "$LAST_ARTIFACT" && ! -f "$LAST_ARTIFACT" ]]; then
   echo "[FAIL] $(date -Iseconds) recorded artifact no longer exists on disk: ${LAST_ARTIFACT}"
+  FAIL=1
+fi
+
+if [[ "$REQUIRE_ENCRYPTION" == "true" && "$LAST_ARTIFACT_ENCRYPTED" != "true" ]]; then
+  echo "[FAIL] $(date -Iseconds) encryption is required (BACKUP_REQUIRE_ENCRYPTION=true) but the last recorded backup is not marked encrypted (LAST_ARTIFACT_ENCRYPTED='${LAST_ARTIFACT_ENCRYPTED}')"
   FAIL=1
 fi
 

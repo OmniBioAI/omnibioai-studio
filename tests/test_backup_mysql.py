@@ -15,6 +15,7 @@ omnibioai-docs/security/mysql_backup_recovery_evidence.md -- that step
 is deliberately not mocked here, per the 2026-09-16 incident's closure
 requirements.
 """
+import json
 import os
 import stat
 import subprocess
@@ -38,6 +39,18 @@ fi
 echo "fake docker: unhandled args: $*" >&2
 exit 1
 """
+# Track E4 note: mysqldump_output legitimately starts with "-- " (a SQL
+# comment, as real mysqldump output does) -- bash's printf builtin
+# otherwise parses a leading "-" as an option flag and errors out. Every
+# call site below uses `printf -- "%s"`-style option-termination so the
+# format string is never misread as flags, while `\n` escapes inside it
+# still expand to real newlines (format-string interpretation, unlike
+# `printf '%s' ...` which would leave literal backslash-n). Before this
+# fix, the printf failure was silently swallowed by the unconditional
+# `exit 0` after it (`printf ...; exit 0`), producing an *empty* fake
+# dump on every test in this file -- harmless for tests that only check
+# artifact existence, but would have hidden a real content mismatch from
+# any test (like the encryption round-trip below) that checks it.
 
 
 class Sandbox:
@@ -54,7 +67,7 @@ class Sandbox:
 
         container_name = "fake-mysql-1" if container_running else ""
         if mysqldump_exit == 0:
-            behavior = f'printf "{mysqldump_output}"; exit 0'
+            behavior = f'printf -- "{mysqldump_output}"; exit 0'
         else:
             behavior = f'echo "fake mysqldump failure" >&2; exit {mysqldump_exit}'
         docker_script = FAKE_DOCKER_TEMPLATE.format(
@@ -81,8 +94,11 @@ class Sandbox:
     def artifacts(self):
         return sorted(self.backup_dir.glob("omnibioai_*.sql.gz"))
 
+    def encrypted_artifacts(self):
+        return sorted(self.backup_dir.glob("omnibioai_*.sql.gz.gpg"))
+
     def partials(self):
-        return sorted(self.backup_dir.glob("*.partial"))
+        return sorted(self.backup_dir.glob("*.partial")) + sorted(self.backup_dir.glob("*.partial.gpg"))
 
     def health(self) -> dict:
         if not self.health_file.exists():
@@ -255,3 +271,275 @@ def test_exit_code_propagates_on_every_failure_path(tmp_path):
         sb = Sandbox(case_dir, **kwargs)
         result = sb.run()
         assert result.returncode != 0, f"case {i} ({kwargs}) did not propagate failure"
+
+
+# ============================================================
+# Track E4 — backup encryption at rest (real gpg, never faked)
+# ============================================================
+def _make_passphrase_file(tmp_path: Path, content: str = "correct-horse-battery-staple-not-real") -> Path:
+    f = tmp_path / "passphrase"
+    f.write_text(content, encoding="utf-8")
+    f.chmod(0o600)
+    return f
+
+
+def test_unconfigured_deployment_still_produces_plaintext_unchanged(tmp_path):
+    """No passphrase file, REQUIRE unset -> byte-identical rollout behavior
+    to before Track E4 (the live nightly cron job must not break)."""
+    sb = Sandbox(tmp_path)
+    result = sb.run()
+    assert result.returncode == 0, result.stderr
+    assert len(sb.artifacts()) == 1
+    assert not sb.encrypted_artifacts()
+    assert sb.health()["LAST_ARTIFACT_ENCRYPTED"] == "false"
+
+
+def test_passphrase_file_configured_encrypts_automatically(tmp_path):
+    """Providing a key is itself the opt-in signal -- no separate flag needed."""
+    sb = Sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode == 0, result.stderr
+    assert not sb.artifacts(), "no plaintext artifact should be published when encryption is active"
+    encrypted = sb.encrypted_artifacts()
+    assert len(encrypted) == 1
+    assert encrypted[0].with_suffix(encrypted[0].suffix + ".sha256").exists()
+    assert sb.health()["LAST_ARTIFACT_ENCRYPTED"] == "true"
+
+
+def test_encrypted_backup_is_real_ciphertext_not_gzip(tmp_path):
+    sb = Sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode == 0, result.stderr
+    artifact = sb.encrypted_artifacts()[0]
+    raw = artifact.read_bytes()
+    assert raw[:2] != b"\x1f\x8b", "artifact must not be plain gzip -- it must be gpg ciphertext"
+
+
+def test_real_encrypt_then_decrypt_round_trip_recovers_original_dump(tmp_path):
+    """Real gpg on both ends: encrypt via backup-mysql.sh, decrypt independently,
+    confirm the recovered plaintext matches what mysqldump actually emitted."""
+    dump_body = "-- fake sql dump\\nCREATE TABLE t (id INT);\\nINSERT INTO t VALUES (1);\\n"
+    sb = Sandbox(tmp_path, mysqldump_output=dump_body)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode == 0, result.stderr
+    artifact = sb.encrypted_artifacts()[0]
+
+    decrypted_gz = tmp_path / "decrypted.sql.gz"
+    decrypt = subprocess.run(
+        ["gpg", "--batch", "--yes", "--pinentry-mode", "loopback",
+         "--passphrase-file", str(passphrase_file), "-o", str(decrypted_gz), "-d", str(artifact)],
+        capture_output=True, text=True, timeout=20, check=False,
+    )
+    assert decrypt.returncode == 0, decrypt.stderr
+
+    import gzip as gzip_module
+    with gzip_module.open(decrypted_gz, "rt") as f:
+        recovered = f.read()
+    assert recovered == dump_body.replace("\\n", "\n")
+
+
+def test_wrong_passphrase_fails_closed_on_decrypt(tmp_path):
+    dump_body = "-- fake sql dump\\nSELECT 1;\\n"
+    sb = Sandbox(tmp_path, mysqldump_output=dump_body)
+    passphrase_file = _make_passphrase_file(tmp_path, content="right-passphrase")
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode == 0, result.stderr
+    artifact = sb.encrypted_artifacts()[0]
+
+    wrong_passphrase_file = tmp_path / "wrong-passphrase"
+    wrong_passphrase_file.write_text("wrong-passphrase", encoding="utf-8")
+    wrong_passphrase_file.chmod(0o600)
+
+    decrypt = subprocess.run(
+        ["gpg", "--batch", "--yes", "--pinentry-mode", "loopback",
+         "--passphrase-file", str(wrong_passphrase_file), "-o", str(tmp_path / "out.sql.gz"), "-d", str(artifact)],
+        capture_output=True, text=True, timeout=20, check=False,
+    )
+    assert decrypt.returncode != 0, "decryption with the wrong passphrase must fail, not silently succeed"
+    assert not (tmp_path / "out.sql.gz").exists() or (tmp_path / "out.sql.gz").stat().st_size == 0
+
+
+def test_corrupted_ciphertext_fails_closed_on_decrypt(tmp_path):
+    sb = Sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode == 0, result.stderr
+    artifact = sb.encrypted_artifacts()[0]
+
+    corrupted = tmp_path / "corrupted.sql.gz.gpg"
+    raw = bytearray(artifact.read_bytes())
+    # Flip bytes in the middle of the ciphertext -- not just truncate, which
+    # gpg may sometimes read partially; a mid-stream bitflip reliably breaks
+    # the authenticated/checksummed packet structure.
+    mid = len(raw) // 2
+    for i in range(mid, min(mid + 8, len(raw))):
+        raw[i] ^= 0xFF
+    corrupted.write_bytes(bytes(raw))
+
+    decrypt = subprocess.run(
+        ["gpg", "--batch", "--yes", "--pinentry-mode", "loopback",
+         "--passphrase-file", str(passphrase_file), "-o", str(tmp_path / "out2.sql.gz"), "-d", str(corrupted)],
+        capture_output=True, text=True, timeout=20, check=False,
+    )
+    assert decrypt.returncode != 0, "decryption of corrupted ciphertext must fail, not silently produce garbage"
+
+
+def test_require_encryption_true_without_passphrase_file_fails_closed(tmp_path):
+    sb = Sandbox(tmp_path)
+    result = sb.run(extra_env={"MYSQL_BACKUP_REQUIRE_ENCRYPTION": "true"})
+    assert result.returncode != 0
+    assert "MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE" in result.stderr
+    assert not sb.artifacts()
+    assert not sb.encrypted_artifacts()
+    assert not sb.partials(), "no plaintext .partial may survive an encryption-required failure"
+
+
+def test_missing_passphrase_file_fails_closed_no_plaintext_fallback(tmp_path):
+    sb = Sandbox(tmp_path)
+    nonexistent = tmp_path / "does-not-exist-passphrase"
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(nonexistent)})
+    assert result.returncode != 0
+    assert "passphrase file missing or empty" in result.stderr
+    assert not sb.artifacts(), "must never fall back to a plaintext artifact"
+    assert not sb.encrypted_artifacts()
+    assert not sb.partials()
+
+
+def test_empty_passphrase_file_fails_closed(tmp_path):
+    sb = Sandbox(tmp_path)
+    empty = tmp_path / "empty-passphrase"
+    empty.write_text("", encoding="utf-8")
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(empty)})
+    assert result.returncode != 0
+    assert not sb.artifacts()
+    assert not sb.encrypted_artifacts()
+
+
+def test_gpg_encryption_command_failure_fails_closed_no_plaintext_published(tmp_path):
+    """Simulate an encryption-tool failure (gpg missing from PATH) --
+    the run must fail, and no plaintext artifact may appear in its place."""
+    sb = Sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    # PATH is set inside sb.run() as f"{bin_dir}:{PATH}" -- putting a shim
+    # named 'gpg' that always fails in bin_dir shadows the real one first.
+    fake_gpg = sb.bin_dir / "gpg"
+    fake_gpg.write_text("#!/usr/bin/env bash\necho 'fake gpg failure' >&2\nexit 2\n", encoding="utf-8")
+    fake_gpg.chmod(fake_gpg.stat().st_mode | stat.S_IEXEC)
+
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode != 0
+    assert "gpg encryption failed" in result.stderr
+    assert not sb.artifacts(), "gpg failure must never leave a plaintext artifact published"
+    assert not sb.encrypted_artifacts()
+    assert not sb.partials()
+    h = sb.health()
+    assert h.get("LAST_RESULT") == "failure"
+    assert h.get("LAST_STAGE") == "encrypt"
+
+
+def test_checksum_covers_the_ciphertext_not_the_plaintext(tmp_path):
+    """The published .sha256 sidecar must validate against the actual
+    published (encrypted) bytes -- not the pre-encryption plaintext, which
+    is deleted and never published at all."""
+    sb = Sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode == 0, result.stderr
+    artifact = sb.encrypted_artifacts()[0]
+    sidecar = artifact.with_suffix(artifact.suffix + ".sha256")
+    check = subprocess.run(
+        ["sha256sum", "-c", sidecar.name], cwd=artifact.parent,
+        capture_output=True, text=True, timeout=10, check=False,
+    )
+    assert check.returncode == 0, check.stdout + check.stderr
+
+
+def test_passphrase_file_path_ok_but_contents_never_appear_in_logs(tmp_path):
+    secret_marker = "SUPER-SECRET-PASSPHRASE-MARKER-a1b2c3"
+    sb = Sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path, content=secret_marker)
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode == 0, result.stderr
+    assert secret_marker not in result.stdout
+    assert secret_marker not in result.stderr
+    assert secret_marker not in sb.health_file.read_text(encoding="utf-8")
+
+
+def test_encryption_status_recorded_in_health_file_and_preserved_on_later_failure(tmp_path):
+    sb = Sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    ok = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert ok.returncode == 0, ok.stderr
+    assert sb.health()["LAST_ARTIFACT_ENCRYPTED"] == "true"
+
+    sb.env_file.write_text("# password removed\n", encoding="utf-8")
+    failed = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert failed.returncode != 0
+    # A failed run must preserve the prior successful encrypted-artifact record.
+    assert sb.health()["LAST_ARTIFACT_ENCRYPTED"] == "true"
+
+
+def test_backup_failure_emits_a_backup_failed_security_alert(tmp_path):
+    sb = Sandbox(tmp_path, container_running=False)
+    result = sb.run()
+    assert result.returncode != 0
+    assert "[SECURITY-ALERT]" in result.stdout
+    line = next(line for line in result.stdout.splitlines() if line.startswith("[SECURITY-ALERT] "))
+    alert = json.loads(line[len("[SECURITY-ALERT] "):])
+    assert alert["condition"] == "backup_failed"
+    assert alert["severity"] == "critical"
+    assert alert["component"] == "mysql-backup"
+
+
+def test_encryption_stage_failure_emits_a_distinct_condition(tmp_path):
+    sb = Sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    fake_gpg = sb.bin_dir / "gpg"
+    fake_gpg.write_text("#!/usr/bin/env bash\nexit 2\n", encoding="utf-8")
+    fake_gpg.chmod(fake_gpg.stat().st_mode | stat.S_IEXEC)
+
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode != 0
+    line = next(line for line in result.stdout.splitlines() if line.startswith("[SECURITY-ALERT] "))
+    alert = json.loads(line[len("[SECURITY-ALERT] "):])
+    assert alert["condition"] == "backup_encryption_failed", \
+        "an encrypt-stage failure must be distinguishable from a generic backup_failed"
+
+
+def test_repeated_backup_failures_are_deduped_not_stormed(tmp_path):
+    sb = Sandbox(tmp_path, container_running=False)
+    r1 = sb.run()
+    r2 = sb.run()
+    assert "[SECURITY-ALERT]" in r1.stdout
+    assert "[SECURITY-ALERT]" not in r2.stdout, "a repeated identical failure within the dedup window must not storm"
+
+
+def test_successful_backup_emits_no_alert(tmp_path):
+    sb = Sandbox(tmp_path)
+    result = sb.run()
+    assert result.returncode == 0, result.stderr
+    assert "[SECURITY-ALERT]" not in result.stdout
+
+
+def test_retention_rotates_both_plaintext_and_encrypted_artifacts(tmp_path):
+    sb = Sandbox(tmp_path)
+    old_time = 1_000_000
+    plain = sb.backup_dir / "omnibioai_20200101_000000.sql.gz"
+    plain.write_bytes(b"\x1f\x8b" + b"0" * 50)
+    plain.with_suffix(plain.suffix + ".sha256").write_text("deadbeef  fake\n")
+    os.utime(plain, (old_time, old_time))
+
+    encrypted_old = sb.backup_dir / "omnibioai_20200102_000000.sql.gz.gpg"
+    encrypted_old.write_bytes(b"\x85\x01" + b"0" * 50)  # not real gpg framing, retention doesn't parse contents
+    encrypted_old.with_suffix(encrypted_old.suffix + ".sha256").write_text("deadbeef  fake\n")
+    os.utime(encrypted_old, (old_time, old_time))
+
+    passphrase_file = _make_passphrase_file(tmp_path)
+    result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file), "RETAIN_DAYS": "7"})
+    assert result.returncode == 0, result.stderr
+    assert not plain.exists(), "old plaintext artifact must still be rotated"
+    assert not encrypted_old.exists(), "old encrypted artifact must also be rotated"
+    assert len(sb.encrypted_artifacts()) == 1  # only today's fresh one survives
