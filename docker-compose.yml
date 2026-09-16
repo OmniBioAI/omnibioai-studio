@@ -1512,6 +1512,14 @@ services:
       # write-side routes (/health, /audit/test) never hit this and so
       # never surfaced it.
       AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
+      # HIPAA-V2-003 application redeploy (2026-09-16): this service's
+      # get_db() (db/session.py) binds to AUDIT_READER_DATABASE_URL when
+      # set, so read routes now run as the least-privilege audit_reader
+      # identity (SELECT only) instead of falling back to AUDIT_DATABASE_URL
+      # above (root). AUDIT_DATABASE_URL is kept as-is for any future
+      # admin/migration path in this container; it is no longer used for
+      # this service's actual read traffic once this var is set.
+      AUDIT_READER_DATABASE_URL: mysql+pymysql://audit_reader:${AUDIT_READER_DB_PASSWORD}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
         condition: service_healthy
@@ -1547,6 +1555,14 @@ services:
       # producer's valid signature as "invalid" once one does.
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
+      # HIPAA-V2-003 application redeploy (2026-09-16): worker/main.py's
+      # SessionLocal (db/session.py) binds to AUDIT_WRITER_DATABASE_URL
+      # when set, so the only runtime path that ever INSERTs into
+      # audit_events / quarantined_audit_events now runs as the
+      # least-privilege audit_writer identity (SELECT, INSERT only on
+      # those two tables) instead of falling back to AUDIT_DATABASE_URL
+      # above (root).
+      AUDIT_WRITER_DATABASE_URL: mysql+pymysql://audit_writer:${AUDIT_WRITER_DB_PASSWORD}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
         condition: service_healthy
