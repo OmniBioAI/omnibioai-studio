@@ -1645,7 +1645,15 @@ services:
       - "${HOST_IP:-0.0.0.0}:8080:8080"
     environment:
       PYTHONUNBUFFERED: "1"
-      REDIS_URL: redis://redis:6379
+      # Redis P1-5: purpose-separated named identities, isolated-validated
+      # and rotation-verified before this cutover -- IAM cache/policy
+      # invalidation and the audit producer now authenticate as their own
+      # least-privilege ACL users instead of Redis's unauthenticated
+      # default user. Passwords come from .env (same convention every
+      # other secret in this block already uses), never written here
+      # literally.
+      REDIS_URL: redis://redis_api_gateway_iam:${REDIS_API_GATEWAY_IAM_PASSWORD}@redis:6379/0
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379/0
       IAM_URL: http://auth-service:8001
       POLICY_URL: http://policy-engine:8002
       HPC_URL: http://hpc-policy-engine:8003
