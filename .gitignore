@@ -36,3 +36,6 @@ docker/*.bak-*
 coverage/
 # Local Mac workstation environment
 .env.mac
+
+# Local Redis/service credentials
+.secrets/
