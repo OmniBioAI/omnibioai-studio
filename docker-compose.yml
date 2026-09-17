@@ -691,11 +691,27 @@ services:
       DB_NAME: omnibioai
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
-      REDIS_HOST: redis
-      USAGE_REDIS_URL: redis://redis:6379
-      REDIS_PORT: "6379"
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      # Redis P1-5 (Workbench residual/web tier): the last default-user-
+      # capable paths in the platform. REDIS_HOST/REDIS_PORT (Django
+      # Channels' host/port tuple form has no way to carry auth -- see
+      # omnibioai/settings.py's own CHANNEL_LAYERS comment) are replaced
+      # by REDIS_CHANNELS_URL, a single connection-URL string that
+      # channels_redis's decode_hosts treats as {"address": url} and
+      # hands straight to ConnectionPool.from_url, giving it named-
+      # identity auth without any channels_redis version/shape change.
+      # USAGE_REDIS_URL/CELERY_BROKER_URL/CELERY_RESULT_BACKEND already
+      # supported credentialed URLs; they just weren't set here. Broker/
+      # result DB semantics (1/2) are unchanged and must stay identical
+      # to the already-CLOSED celery-worker service below, since both
+      # sides of the same queue/result-backend pair must literally point
+      # at the same DB -- only the identity authenticating them changes,
+      # from Redis's default user to the same redis_celery_workbench
+      # identity that service already uses.
+      REDIS_CHANNELS_URL: redis://redis_workbench_channels:${REDIS_WORKBENCH_CHANNELS_PASSWORD}@redis:6379/0
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379
+      CELERY_BROKER_URL: redis://redis_celery_workbench:${REDIS_CELERY_WORKBENCH_PASSWORD}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis_celery_workbench:${REDIS_CELERY_WORKBENCH_PASSWORD}@redis:6379/2
       TES_BASE_URL: http://tes:8081
       OLLAMA_BASE_URL: http://ollama:11434
       TOOLSERVER_BASE_URL: http://toolserver:9090
