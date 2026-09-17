@@ -1027,6 +1027,18 @@ services:
       # (previously falling back to the anonymous default) also migrates.
       REDIS_URL: redis://redis_control_center:${REDIS_CONTROL_CENTER_PASSWORD}@redis:6379/0
       AUDIT_REDIS: redis://redis_control_center:${REDIS_CONTROL_CENTER_PASSWORD}@redis:6379/0
+      # Redis P1-5 Stage 2 completion: checks/celery_status.py's Celery
+      # Inspect (control queue/pidbox broadcast, broker DB1) and
+      # result-backend SCAN (DB2) were still falling back to Redis's
+      # unauthenticated default user -- the only remaining default-user
+      # path this service had. redis_control_center_status is the
+      # bounded, isolated-validated identity for exactly that inspect/
+      # status/result-read surface; kept distinct from redis_control_center
+      # (~cc:*/~analytics:*/~audit:events/~blacklist:jti:*) rather than
+      # widening that identity's own key scope to cover Celery's pidbox/
+      # task-meta keyspace too.
+      CELERY_BROKER_URL: redis://redis_control_center_status:${REDIS_CONTROL_CENTER_STATUS_PASSWORD}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis_control_center_status:${REDIS_CONTROL_CENTER_STATUS_PASSWORD}@redis:6379/2
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-omnibioai}
