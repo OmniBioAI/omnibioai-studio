@@ -36,7 +36,11 @@ services:
     # need updating) -- deliberately NOT done here; see
     # omnibioai-docs/security/hipaa_v2_002_audit_delivery_evidence.md
     # for that documented-but-unresolved deployment prerequisite.
-    command: redis-server --appendonly yes --appendfsync everysec
+    # Redis P1-5 Stage 1: durable per-identity ACLs (users.acl lives on
+    # redis_data, outside git). default stays enabled transitionally
+    # until every consumer has migrated to its own named identity (later
+    # stage), so this is additive only.
+    command: redis-server --appendonly yes --appendfsync everysec --aclfile /data/users.acl
     ports:
       - "6380:6379"
     volumes:
@@ -163,7 +167,15 @@ services:
       POLICY_URL: http://policy-engine:8002
       HPC_POLICY_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
-      REDIS_URL: redis://redis:6379
+      # Redis P1-5: purpose-separated named identities, isolated-validated
+      # before this cutover -- IAM cache (service/security/iam.py) and the
+      # audit producer (service/security/audit.py) now authenticate as
+      # their own least-privilege ACL users instead of Redis's
+      # unauthenticated default user. Passwords come from .env (same
+      # convention every other secret in this block already uses), never
+      # written here literally.
+      REDIS_URL: redis://redis_tes_iam:${REDIS_TES_IAM_PASSWORD}@redis:6379/0
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379/0
       MS_GRAPH_TENANT_ID: ${MS_GRAPH_TENANT_ID:-}
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
       MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
@@ -246,8 +258,12 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "8095"
-      USAGE_REDIS_URL: redis://redis:6379
+      # Redis P1-5 Stage 5: usage_client producer identity, independent
+      # of REDIS_URL/IAM_REDIS_URL below.
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
       REDIS_URL: redis://redis:6379
+      # Redis P1-5 Stage 3: IAM-only migration, checked before REDIS_URL.
+      IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
@@ -283,8 +299,14 @@ services:
       DB_NAME: omnibioai_billing
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
-      USAGE_REDIS_URL: redis://redis:6379
+      # Redis P1-5 Stage 5: usage_client producer identity (billing-service
+      # itself only emits; app/consumers/stream_reader.py's usage WORKER
+      # is the separate billing-worker container below, with its own
+      # USAGE_REDIS_URL -> redis_usage_worker).
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
       REDIS_URL: redis://redis:6379
+      # Redis P1-5 Stage 3: IAM-only migration, checked before REDIS_URL.
+      IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
       IAM_URL: http://auth-service:8001
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
     depends_on:
@@ -308,7 +330,9 @@ services:
       DB_NAME: omnibioai_billing
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
-      USAGE_REDIS_URL: redis://redis:6379
+      # Redis P1-5 Stage 5: usage worker identity (XREADGROUP/XACK/
+      # XPENDING/XAUTOCLAIM on usage:events only).
+      USAGE_REDIS_URL: redis://redis_usage_worker:${REDIS_USAGE_WORKER_PASSWORD}@redis:6379
     depends_on:
       mysql:
         condition: service_healthy
@@ -353,8 +377,13 @@ services:
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
       CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
       REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      # Redis P1-5 Stage 3: IAM-only migration. core/authentication.py
+      # reads IAM_REDIS_URL first (falls back to REDIS_URL, left
+      # untouched here since Celery/Django-cache migration is a later,
+      # separate stage) -- named identity scoped to ~iam:* only.
+      IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
+      CELERY_BROKER_URL: redis://redis_celery_lims:${REDIS_CELERY_LIMS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis_celery_lims:${REDIS_CELERY_LIMS_PASSWORD}@redis:6379/0
     volumes:
       - ${MACHINE_DIR}/omnibioai-lims/core:/app/core
     depends_on:
@@ -429,10 +458,19 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:8090:8096"
       - "${HOST_IP:-0.0.0.0}:5175:5175"
+    env_file:
+      - .secrets/rag_redis.env
     environment:
       HOST: 0.0.0.0
       PORT: "8096"
-      USAGE_REDIS_URL: redis://redis:6379
+      # Redis P1-5 Stage 5: usage_client producer identity, independent
+      # of REDIS_URL.
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
+      # Redis P1-5 role separation: RAG IAM, interaction, cache, audit,
+      # and usage Redis clients each use their role-specific identity.
+      IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
+      INTERACTION_REDIS_URL: redis://redis_interaction_producer:${REDIS_INTERACTION_PRODUCER_PASSWORD}@redis:6379
+      AUDIT_REDIS_URL: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
       OLLAMA_BASE_URL: http://ollama:11434
       IAM_URL: http://auth-service:8001
@@ -837,8 +875,13 @@ services:
       REDIS_HOST: redis
       USAGE_REDIS_URL: redis://redis:6379
       REDIS_PORT: "6379"
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      # Redis P1-5 Stage 6A 2026-09-17: migrated to the dedicated
+      # redis_celery_workbench ACL identity (broker DB1, result backend DB2).
+      # Prior attempt rolled back on missing +zrevrangebyscore/+exists/pidbox
+      # key+channel scope/+unsubscribe/+client|setinfo -- all since verified
+      # and applied to redis_celery_workbench (see P1-5 session history).
+      CELERY_BROKER_URL: redis://redis_celery_workbench:${REDIS_CELERY_WORKBENCH_PASSWORD}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis_celery_workbench:${REDIS_CELERY_WORKBENCH_PASSWORD}@redis:6379/2
       TES_BASE_URL: http://tes:8081
       # #196: the 4 fixed TES call sites (bio_agent's factories,
       # step_executor.py, workflow_runner/views.py, catalog/services.py)
@@ -977,7 +1020,13 @@ services:
       MYSQL_PORT: "3306"
       MYSQL_USER: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
-      REDIS_URL: redis://redis:6379/0
+      # Redis P1-5 Stage 2: named ACL identity (~cc:*, ~analytics:*, read
+      # of audit:events, JWT-blacklist EXISTS -- selective DEL cannot
+      # target audit:events/blacklist:jti:*). AUDIT_REDIS is set to the
+      # same identity so checks/gateway_traffic.py's separate env var
+      # (previously falling back to the anonymous default) also migrates.
+      REDIS_URL: redis://redis_control_center:${REDIS_CONTROL_CENTER_PASSWORD}@redis:6379/0
+      AUDIT_REDIS: redis://redis_control_center:${REDIS_CONTROL_CENTER_PASSWORD}@redis:6379/0
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-omnibioai}
@@ -1283,6 +1332,12 @@ services:
       # same fallback's own db index, same as api/audit.py's separate
       # AUDIT_REDIS connection already does for its default.
       REDIS_URL: redis://redis:6379/0
+      # Redis P1-5 Stage 3: named identity scoped to ~workflow:iam:* only
+      # (api/iam.py's own cache_prefix="workflow:" -- distinct keyspace
+      # from the shared iam:* used by RAG/LIMS/model-registry/billing).
+      # AUTH_REDIS_URL is checked before REDIS_URL, which stays untouched
+      # so api/audit.py's separate AUDIT_REDIS-based producer is unaffected.
+      AUTH_REDIS_URL: redis://redis_workflow_iam:${REDIS_WORKFLOW_IAM_PASSWORD}@redis:6379/0
       # Previously unset here too, so api/iam.py's JWT_SECRET fell back
       # to its own hard-coded "change-me" -- never matches the real
       # signing key, so AsyncIAMClient.get_user()'s local decode step
@@ -1387,7 +1442,17 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: "15"
       REFRESH_TOKEN_EXPIRE_DAYS: "7"
 
-      REDIS_URL: redis://redis:6379
+      # Redis P1-5 role separation: REDIS_URL now serves only the
+      # security-state cluster (rate_limit.py/token_revocation.py/
+      # routes_auth.py's policy:invalidate publish) under redis_auth.
+      # app/services/interaction_service.py's producer role has its own
+      # independent identity below (INTERACTION_REDIS_URL ->
+      # redis_interaction_producer) so it can never inherit redis_auth's
+      # narrower security-key access, and redis_auth can never gain
+      # ~interactions:events/+xadd merely because they used to share
+      # this variable.
+      REDIS_URL: redis://redis_auth:${REDIS_AUTH_PASSWORD}@redis:6379
+      INTERACTION_REDIS_URL: redis://redis_interaction_producer:${REDIS_INTERACTION_PRODUCER_PASSWORD}@redis:6379
 
       CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ORIGINS:-http://localhost:5174,http://127.0.0.1:5174,https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org}
 
@@ -1448,7 +1513,10 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
-      REDIS_URL: redis://redis:6379
+      # Redis P1-5 Stage 5: dedicated container (interaction_consumer.py
+      # only), no coupling with auth-service's own REDIS_URL -- safe to
+      # migrate independently of the auth-service (Stage 4) blocker.
+      REDIS_URL: redis://redis_interaction_worker:${REDIS_INTERACTION_WORKER_PASSWORD}@redis:6379
     depends_on:
       mysql:
         condition: service_healthy
@@ -1464,7 +1532,9 @@ services:
       - "${HOST_IP:-0.0.0.0}:8002:8002"
     environment:
       PYTHONUNBUFFERED: "1"
-      REDIS_URL: redis://redis:6379
+      # Redis P1-5 Stage 2: named ACL identity (~policy:*, &policy:invalidate
+      # only) instead of the transitional anonymous default-user path.
+      REDIS_URL: redis://redis_policy:${REDIS_POLICY_PASSWORD}@redis:6379/0
     depends_on:
       redis:
         condition: service_healthy
@@ -1545,7 +1615,7 @@ services:
     restart: on-failure
     environment:
       PYTHONUNBUFFERED: "1"
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis_audit_worker:${REDIS_AUDIT_WORKER_PASSWORD}@redis:6379/0
       # Signing-secret provisioning fix: same var name/value the API
       # service above (and every other JWT_SECRET consumer in this file)
       # already receives. Previously unset here, so AuditConfig.
