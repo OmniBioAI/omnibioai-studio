@@ -376,12 +376,26 @@ services:
       LIMS_SSO_CLIENT_SECRET: ${LIMS_SSO_CLIENT_SECRET}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
       CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
-      REDIS_URL: redis://redis:6379/0
+      # Redis P1-5 residual cutover: settings.py's CACHES["default"]
+      # LOCATION reads this var directly (backs cache_page on 7
+      # reference-data ReadOnlyModelViewSets + DRF's login/SSO
+      # AnonRateThrottle counters, core/api/throttles.py) -- previously
+      # the plain default-ACL-user Redis, now the dedicated,
+      # least-privilege redis_lims_cache identity (~lims:* only,
+      # +get +set +client|setinfo, derived from actual django-redis/
+      # DRF-throttle command+key observation, not assumed).
+      REDIS_URL: redis://redis_lims_cache:${REDIS_LIMS_CACHE_PASSWORD}@redis:6379/0
       # Redis P1-5 Stage 3: IAM-only migration. core/authentication.py
-      # reads IAM_REDIS_URL first (falls back to REDIS_URL, left
-      # untouched here since Celery/Django-cache migration is a later,
-      # separate stage) -- named identity scoped to ~iam:* only.
+      # reads IAM_REDIS_URL first -- named identity scoped to ~iam:* only,
+      # unaffected by the REDIS_URL repoint above.
       IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
+      # Redis P1-5 residual cutover: core/audit_events.py reads AUDIT_REDIS
+      # first, falling back to REDIS_URL only if unset. Setting it
+      # explicitly here (same redis_audit_producer identity RAG/gateway/
+      # TES/Workbench/control-center already use for this same
+      # audit:events stream) means the audit producer no longer depends
+      # on REDIS_URL's value at all -- both paths are now fully separated.
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://redis_celery_lims:${REDIS_CELERY_LIMS_PASSWORD}@redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis_celery_lims:${REDIS_CELERY_LIMS_PASSWORD}@redis:6379/0
     volumes:
