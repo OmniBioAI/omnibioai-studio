@@ -1607,7 +1607,15 @@ services:
       - "${HOST_IP:-0.0.0.0}:8004:8004"
     environment:
       PYTHONUNBUFFERED: "1"
-      REDIS_URL: redis://redis:6379
+      # Redis P1-5: this API container's only Redis consumer is
+      # api/routes_audit_health.py's StreamReader (GET /audit/pipeline-health
+      # -- XLEN/XPENDING/XINFO GROUPS/XINFO CONSUMERS on audit:events, all
+      # read-only, empirically confirmed via MONITOR against an isolated
+      # instance). Distinct, narrower identity from the worker's
+      # redis_audit_worker (which needs XREADGROUP/XACK/XCLAIM/XGROUP
+      # CREATE) -- intentionally not reused, same rationale as this repo's
+      # own AUDIT_READER_DATABASE_URL/AUDIT_WRITER_DATABASE_URL MySQL split.
+      REDIS_URL: redis://redis_audit_health_reader:${REDIS_AUDIT_HEALTH_READER_PASSWORD}@redis:6379/0
       # Signing-secret provisioning fix: same var name/value already wired
       # into every other JWT_SECRET consumer in this file (see tes's own
       # entry above). Previously unset here, so this service's own JWT
