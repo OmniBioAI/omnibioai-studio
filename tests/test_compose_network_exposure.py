@@ -28,6 +28,9 @@ High-severity exposure in the shipped release configuration:
 Development access to mysql/redis is preserved through an explicit,
 separate overlay file rather than by weakening the release default -- see
 SECURITY-COMPOSE-HARDENING.md.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 from pathlib import Path
 
@@ -89,6 +92,8 @@ def _config_only(path):
     scope="module", params=RELEASE_COMPOSE_PATHS, ids=lambda p: p.name
 )
 def release_compose(request):
+    """Parses each release compose file (parametrized over the dot and dash variants)
+    once per module and returns the loaded YAML."""
     return _load(request.param)
 
 
@@ -96,6 +101,8 @@ def release_compose(request):
     scope="module", params=RELEASE_COMPOSE_PATHS, ids=lambda p: p.name
 )
 def release_compose_text(request):
+    """Returns each release compose file's text with comment lines removed, so substring
+    checks see configuration rather than prose that quotes removed defaults."""
     return _config_only(request.param)
 
 
@@ -276,6 +283,8 @@ def test_api_gateway_remains_published(release_compose):
 
 
 def test_dev_ports_overlay_exists():
+    """The development-only overlay docker-compose.release.dev-ports.yml exists, so
+    local datastore access does not require editing the release files."""
     assert DEV_PORTS_OVERLAY.exists(), (
         "an explicit development-only overlay must exist so local datastore "
         "access is achievable without weakening the release default"
@@ -360,6 +369,8 @@ ALL_COMPOSE_PATHS = [DEV_COMPOSE, *RELEASE_COMPOSE_PATHS]
 
 @pytest.mark.parametrize("compose_path", ALL_COMPOSE_PATHS, ids=lambda p: p.name)
 def test_redis_has_aof_durability_enabled(compose_path):
+    """Parametrized over the dev compose file and both release files: the redis command
+    enables AOF (--appendonly yes) with an explicit --appendfsync everysec policy."""
     config = _load(compose_path)
     command = config["services"]["redis"].get("command", "")
     assert "--appendonly yes" in command, (
@@ -374,12 +385,9 @@ def test_redis_has_aof_durability_enabled(compose_path):
 
 
 def test_redis_aof_config_is_identical_across_all_profiles():
-    """The two release files (docker-compose.release.yml and the
-    dash-named legacy docker-compose-release.yml) must be kept in parity
-    -- this exact drift (one file getting a fix, the other silently not)
-    is what test_dev_ports_overlay_matches_release_baseline and friends
-    already guard against for other settings; this pins it for the AOF
-    command specifically."""
+    """The redis service command must be identical across docker-compose.yml and both
+    release files (docker-compose.release.yml and docker-compose-release.yml), so a
+    redis-server flag change cannot land in only one profile."""
     commands = {
         p.name: _load(p)["services"]["redis"].get("command", "")
         for p in ALL_COMPOSE_PATHS

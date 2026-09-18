@@ -14,6 +14,9 @@ scripts/verify-mysql-backup-restore.sh and recorded in
 omnibioai-docs/security/mysql_backup_recovery_evidence.md -- that step
 is deliberately not mocked here, per the 2026-09-16 incident's closure
 requirements.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 import json
 import os
@@ -54,6 +57,10 @@ exit 1
 
 
 class Sandbox:
+    """Isolated synthetic sandbox for running backup-mysql.sh: a throwaway backup dir,
+    health file and .env under tmp_path plus a fake docker shim on PATH (never the real
+    daemon), with configurable container state, mysqldump exit code and mysqldump
+    output."""
     def __init__(self, tmp_path: Path, *, container_running=True, mysqldump_exit=0,
                  mysqldump_output="-- fake sql dump\\nSELECT 1;\\n", env_content="MYSQL_ROOT_PASSWORD=test-password-not-real\\n"):
         self.tmp_path = tmp_path
@@ -78,6 +85,8 @@ class Sandbox:
         fake_docker.chmod(fake_docker.stat().st_mode | stat.S_IEXEC)
 
     def run(self, extra_env: dict | None = None) -> subprocess.CompletedProcess:
+        """Runs backup-mysql.sh as a subprocess with PATH, OMNIBIOAI_ENV_FILE,
+        BACKUP_DIR and the health file redirected into the sandbox."""
         env = os.environ.copy()
         env["PATH"] = f"{self.bin_dir}:{env['PATH']}"
         env["OMNIBIOAI_ENV_FILE"] = str(self.env_file)
@@ -101,6 +110,8 @@ class Sandbox:
         return sorted(self.backup_dir.glob("*.partial")) + sorted(self.backup_dir.glob("*.partial.gpg"))
 
     def health(self) -> dict:
+        """Parses the KEY=VALUE health file into a dict, or returns an empty dict when
+        the file does not exist."""
         if not self.health_file.exists():
             return {}
         out = {}
@@ -113,11 +124,15 @@ class Sandbox:
 
 @pytest.fixture
 def sandbox(tmp_path):
+    """Default sandbox: MySQL container running, mysqldump succeeding and a synthetic
+    .env with a placeholder password."""
     return Sandbox(tmp_path)
 
 
 # 1. secret retrieval failure -> backup fails
 def test_missing_mysql_root_password_fails_closed(tmp_path):
+    """A .env with no MYSQL_ROOT_PASSWORD makes the backup exit non-zero, name the
+    missing variable on stderr and publish no artifact."""
     sb = Sandbox(tmp_path, env_content="# no password set at all\n")
     result = sb.run()
     assert result.returncode != 0
@@ -127,6 +142,9 @@ def test_missing_mysql_root_password_fails_closed(tmp_path):
 
 # 13. malformed secret/config fails closed (not a crash with a stray artifact)
 def test_env_file_with_shell_metacharacter_secret_does_not_crash_and_loads(tmp_path):
+    """A password value containing parentheses (the shape of the original incident)
+    loads without a shell syntax error, and the backup succeeds with exactly one
+    artifact."""
     # The exact incident shape: a password-shaped value containing parens.
     sb = Sandbox(tmp_path, env_content="MYSQL_ROOT_PASSWORD=abc(def)ghi\n")
     result = sb.run()
@@ -137,6 +155,9 @@ def test_env_file_with_shell_metacharacter_secret_does_not_crash_and_loads(tmp_p
 
 # 2. database connection failure -> backup fails
 def test_container_not_running_fails_closed(tmp_path):
+    """When the MySQL container is not running, the backup fails with 'not running' on
+    stderr, publishes no artifact and records LAST_RESULT=failure at the preflight
+    stage."""
     sb = Sandbox(tmp_path, container_running=False)
     result = sb.run()
     assert result.returncode != 0
@@ -149,6 +170,8 @@ def test_container_not_running_fails_closed(tmp_path):
 
 # 3. dump failure -> no successful artifact
 def test_mysqldump_failure_produces_no_artifact(tmp_path):
+    """A failing mysqldump leaves no artifact and no leftover .partial file, and the
+    health file records a failure at the dump stage."""
     sb = Sandbox(tmp_path, mysqldump_exit=1)
     result = sb.run()
     assert result.returncode != 0
@@ -161,6 +184,8 @@ def test_mysqldump_failure_produces_no_artifact(tmp_path):
 
 # 6. partial backup never published as completed
 def test_failed_run_never_leaves_a_partial_at_the_final_name(tmp_path):
+    """After a failed dump, no file in the backup directory carries the final .sql.gz
+    name."""
     sb = Sandbox(tmp_path, mysqldump_exit=1)
     sb.run()
     for f in sb.backup_dir.iterdir():
@@ -169,6 +194,8 @@ def test_failed_run_never_leaves_a_partial_at_the_final_name(tmp_path):
 
 # 7. success produces a completed artifact (with checksum sidecar)
 def test_successful_run_produces_completed_checksummed_artifact(tmp_path):
+    """A successful run publishes exactly one non-empty .sql.gz artifact together with a
+    .sha256 sidecar."""
     sb = Sandbox(tmp_path)
     result = sb.run()
     assert result.returncode == 0, result.stderr
@@ -181,6 +208,8 @@ def test_successful_run_produces_completed_checksummed_artifact(tmp_path):
 
 # 12. last-success state updates only after actual successful backup
 def test_last_success_timestamp_unchanged_by_a_failed_run(tmp_path):
+    """A later failed run records LAST_RESULT=failure but leaves LAST_SUCCESS_TS and
+    LAST_ARTIFACT from the earlier success untouched."""
     sb = Sandbox(tmp_path)
     ok = sb.run()
     assert ok.returncode == 0, ok.stderr
@@ -199,6 +228,8 @@ def test_last_success_timestamp_unchanged_by_a_failed_run(tmp_path):
 
 # 8. retention not run destructively after a failed backup
 def test_retention_never_runs_after_a_failed_backup(tmp_path):
+    """A run that fails before the dump (password removed) never reaches retention, so a
+    backdated existing artifact is not rotated away."""
     sb = Sandbox(tmp_path)
     ok = sb.run()
     assert ok.returncode == 0, ok.stderr
@@ -218,6 +249,7 @@ def test_retention_never_runs_after_a_failed_backup(tmp_path):
 
 # 9. retention failure is observable / retention never deletes the last backup
 def test_retention_never_deletes_the_last_remaining_backup(tmp_path):
+    """Even with RETAIN_DAYS=0, the backup just created survives retention."""
     sb = Sandbox(tmp_path)
     ok = sb.run(extra_env={"RETAIN_DAYS": "0"})
     assert ok.returncode == 0, ok.stderr
@@ -226,6 +258,8 @@ def test_retention_never_deletes_the_last_remaining_backup(tmp_path):
 
 
 def test_retention_keeps_at_least_one_when_multiple_are_old(tmp_path):
+    """With two seeded old artifacts and RETAIN_DAYS=7, at least one artifact remains
+    and the freshly created one survives."""
     sb = Sandbox(tmp_path)
     # Seed two fake old artifacts directly (faster than 3 real runs).
     old_time = 1_000_000
@@ -244,6 +278,8 @@ def test_retention_keeps_at_least_one_when_multiple_are_old(tmp_path):
 
 # 10. secret values not emitted to logs
 def test_password_value_never_appears_in_script_output(tmp_path):
+    """The MYSQL_ROOT_PASSWORD marker value appears in neither stdout, stderr, the
+    health file nor any .sha256 sidecar."""
     secret_marker = "SUPER-SECRET-MARKER-VALUE-9f8e7d"
     sb = Sandbox(tmp_path, env_content=f"MYSQL_ROOT_PASSWORD={secret_marker}\n")
     result = sb.run()
@@ -261,6 +297,8 @@ def test_password_value_never_appears_in_script_output(tmp_path):
 # asserts via result.returncode != 0 -- restated explicitly here since it's
 # the thing that actually made the real incident invisible to cron/logs).
 def test_exit_code_propagates_on_every_failure_path(tmp_path):
+    """Each failure mode (container down, mysqldump failure, missing password) makes the
+    script exit non-zero, so a scheduler sees the failure."""
     for i, kwargs in enumerate((
         dict(container_running=False),
         dict(mysqldump_exit=1),
@@ -277,6 +315,8 @@ def test_exit_code_propagates_on_every_failure_path(tmp_path):
 # Track E4 — backup encryption at rest (real gpg, never faked)
 # ============================================================
 def _make_passphrase_file(tmp_path: Path, content: str = "correct-horse-battery-staple-not-real") -> Path:
+    """Writes a throwaway 0600 passphrase file with a synthetic, non-real value and
+    returns its path."""
     f = tmp_path / "passphrase"
     f.write_text(content, encoding="utf-8")
     f.chmod(0o600)
@@ -308,6 +348,8 @@ def test_passphrase_file_configured_encrypts_automatically(tmp_path):
 
 
 def test_encrypted_backup_is_real_ciphertext_not_gzip(tmp_path):
+    """With a passphrase file configured, the published artifact does not begin with the
+    gzip magic bytes, i.e. it is gpg output rather than plain gzip."""
     sb = Sandbox(tmp_path)
     passphrase_file = _make_passphrase_file(tmp_path)
     result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
@@ -342,6 +384,8 @@ def test_real_encrypt_then_decrypt_round_trip_recovers_original_dump(tmp_path):
 
 
 def test_wrong_passphrase_fails_closed_on_decrypt(tmp_path):
+    """Decrypting an encrypted backup with a different passphrase exits non-zero and
+    leaves no non-empty output file."""
     dump_body = "-- fake sql dump\\nSELECT 1;\\n"
     sb = Sandbox(tmp_path, mysqldump_output=dump_body)
     passphrase_file = _make_passphrase_file(tmp_path, content="right-passphrase")
@@ -363,6 +407,8 @@ def test_wrong_passphrase_fails_closed_on_decrypt(tmp_path):
 
 
 def test_corrupted_ciphertext_fails_closed_on_decrypt(tmp_path):
+    """Decrypting ciphertext whose mid-stream bytes were flipped exits non-zero instead
+    of producing output."""
     sb = Sandbox(tmp_path)
     passphrase_file = _make_passphrase_file(tmp_path)
     result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
@@ -388,6 +434,8 @@ def test_corrupted_ciphertext_fails_closed_on_decrypt(tmp_path):
 
 
 def test_require_encryption_true_without_passphrase_file_fails_closed(tmp_path):
+    """MYSQL_BACKUP_REQUIRE_ENCRYPTION=true with no passphrase file fails naming the
+    missing variable and leaves no plaintext, encrypted or .partial artifact."""
     sb = Sandbox(tmp_path)
     result = sb.run(extra_env={"MYSQL_BACKUP_REQUIRE_ENCRYPTION": "true"})
     assert result.returncode != 0
@@ -398,6 +446,8 @@ def test_require_encryption_true_without_passphrase_file_fails_closed(tmp_path):
 
 
 def test_missing_passphrase_file_fails_closed_no_plaintext_fallback(tmp_path):
+    """A configured but nonexistent passphrase file fails with 'passphrase file missing
+    or empty' and never falls back to a plaintext artifact."""
     sb = Sandbox(tmp_path)
     nonexistent = tmp_path / "does-not-exist-passphrase"
     result = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(nonexistent)})
@@ -409,6 +459,8 @@ def test_missing_passphrase_file_fails_closed_no_plaintext_fallback(tmp_path):
 
 
 def test_empty_passphrase_file_fails_closed(tmp_path):
+    """An empty passphrase file fails the run and publishes neither a plaintext nor an
+    encrypted artifact."""
     sb = Sandbox(tmp_path)
     empty = tmp_path / "empty-passphrase"
     empty.write_text("", encoding="utf-8")
@@ -458,6 +510,8 @@ def test_checksum_covers_the_ciphertext_not_the_plaintext(tmp_path):
 
 
 def test_passphrase_file_path_ok_but_contents_never_appear_in_logs(tmp_path):
+    """The passphrase file's contents appear in neither stdout, stderr nor the health
+    file."""
     secret_marker = "SUPER-SECRET-PASSPHRASE-MARKER-a1b2c3"
     sb = Sandbox(tmp_path)
     passphrase_file = _make_passphrase_file(tmp_path, content=secret_marker)
@@ -469,6 +523,8 @@ def test_passphrase_file_path_ok_but_contents_never_appear_in_logs(tmp_path):
 
 
 def test_encryption_status_recorded_in_health_file_and_preserved_on_later_failure(tmp_path):
+    """LAST_ARTIFACT_ENCRYPTED=true is recorded after an encrypted success and is
+    preserved when a later run fails."""
     sb = Sandbox(tmp_path)
     passphrase_file = _make_passphrase_file(tmp_path)
     ok = sb.run(extra_env={"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
@@ -483,6 +539,8 @@ def test_encryption_status_recorded_in_health_file_and_preserved_on_later_failur
 
 
 def test_backup_failure_emits_a_backup_failed_security_alert(tmp_path):
+    """A failed backup prints a [SECURITY-ALERT] JSON line with condition backup_failed,
+    severity critical and component mysql-backup."""
     sb = Sandbox(tmp_path, container_running=False)
     result = sb.run()
     assert result.returncode != 0
@@ -495,6 +553,8 @@ def test_backup_failure_emits_a_backup_failed_security_alert(tmp_path):
 
 
 def test_encryption_stage_failure_emits_a_distinct_condition(tmp_path):
+    """A gpg failure emits a security alert with condition backup_encryption_failed,
+    distinguishable from the generic backup_failed."""
     sb = Sandbox(tmp_path)
     passphrase_file = _make_passphrase_file(tmp_path)
     fake_gpg = sb.bin_dir / "gpg"
@@ -510,6 +570,8 @@ def test_encryption_stage_failure_emits_a_distinct_condition(tmp_path):
 
 
 def test_repeated_backup_failures_are_deduped_not_stormed(tmp_path):
+    """A second identical failure within the dedup window emits no further
+    [SECURITY-ALERT] line."""
     sb = Sandbox(tmp_path, container_running=False)
     r1 = sb.run()
     r2 = sb.run()
@@ -518,6 +580,7 @@ def test_repeated_backup_failures_are_deduped_not_stormed(tmp_path):
 
 
 def test_successful_backup_emits_no_alert(tmp_path):
+    """A successful backup emits no [SECURITY-ALERT] line."""
     sb = Sandbox(tmp_path)
     result = sb.run()
     assert result.returncode == 0, result.stderr
@@ -525,6 +588,8 @@ def test_successful_backup_emits_no_alert(tmp_path):
 
 
 def test_retention_rotates_both_plaintext_and_encrypted_artifacts(tmp_path):
+    """Retention removes old artifacts of both kinds (.sql.gz and .sql.gz.gpg), leaving
+    only the newly created encrypted artifact."""
     sb = Sandbox(tmp_path)
     old_time = 1_000_000
     plain = sb.backup_dir / "omnibioai_20200101_000000.sql.gz"

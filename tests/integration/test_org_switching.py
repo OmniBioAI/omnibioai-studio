@@ -18,6 +18,9 @@ org_service.create_organization() makes the creator an org_admin member of
 whatever org they create (app/services/org_service.py), so two POST /orgs
 calls by the same user are enough to set up multi-org membership -- no
 /orgs/{id}/invite round trip needed.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 
 import uuid
@@ -30,6 +33,8 @@ BASE = AUTH_DIRECT_URL
 
 
 def _register_and_login() -> dict:
+    """Registers a throwaway user with a unique email against the auth service and logs
+    in, returning the token response."""
     email = f"itest-orgswitch-{uuid.uuid4().hex}@example.com"
     password = "S3curePass!1"
 
@@ -46,6 +51,8 @@ def _headers(access_token: str) -> dict:
 
 
 def _create_org(access_token: str) -> dict:
+    """Creates an organization with a unique slug as the given user (asserting HTTP 201)
+    and returns its JSON; the creator becomes an org admin member."""
     slug = f"itest-org-{uuid.uuid4().hex[:12]}"
     r = requests.post(
         f"{BASE}/orgs",
@@ -58,7 +65,10 @@ def _create_org(access_token: str) -> dict:
 
 
 class TestMultiOrgUserCanActOnEachOwnOrg:
+    """A user who created several orgs can act on each with the same access token,
+    because authorization is re-derived per request from the org id in the URL path."""
     def test_user_can_get_first_org_they_created(self):
+        """GET /orgs/{id} for an org the user created returns 200 with that org's id."""
         tokens = _register_and_login()
         org_a = _create_org(tokens["access_token"])
 
@@ -67,6 +77,8 @@ class TestMultiOrgUserCanActOnEachOwnOrg:
         assert r.json()["id"] == org_a["id"]
 
     def test_same_token_can_act_on_a_second_org_too(self):
+        """The same access token can GET two different orgs the user created, each
+        returning 200 with distinct ids."""
         tokens = _register_and_login()
         org_a = _create_org(tokens["access_token"])
         org_b = _create_org(tokens["access_token"])
@@ -79,6 +91,7 @@ class TestMultiOrgUserCanActOnEachOwnOrg:
         assert r_a.json()["id"] != r_b.json()["id"]
 
     def test_list_my_orgs_includes_both_created_orgs(self):
+        """GET /orgs lists both orgs the user created."""
         tokens = _register_and_login()
         org_a = _create_org(tokens["access_token"])
         org_b = _create_org(tokens["access_token"])
@@ -91,7 +104,9 @@ class TestMultiOrgUserCanActOnEachOwnOrg:
 
 
 class TestNonMemberCannotAccessAnotherUsersOrg:
+    """A user who is not a member of an org cannot see it."""
     def test_get_org_owned_by_a_different_user_returns_404(self):
+        """GET /orgs/{id} for another user's org returns 404 for a non-member."""
         owner_tokens = _register_and_login()
         outsider_tokens = _register_and_login()
 
@@ -105,6 +120,7 @@ class TestNonMemberCannotAccessAnotherUsersOrg:
         assert r.status_code == 404
 
     def test_outsiders_org_list_does_not_include_owners_org(self):
+        """A non-member's GET /orgs succeeds but does not include the other user's org."""
         owner_tokens = _register_and_login()
         outsider_tokens = _register_and_login()
 

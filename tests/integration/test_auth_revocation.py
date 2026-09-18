@@ -18,6 +18,9 @@ Each test registers its own throwaway user (unique email per run) instead
 of reusing conftest's session-scoped admin tokens, since this test
 deliberately revokes its own token and must not interfere with other test
 files sharing that session-scoped login.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 
 import uuid
@@ -30,6 +33,8 @@ BASE = AUTH_DIRECT_URL
 
 
 def _register_and_login() -> dict:
+    """Registers a throwaway user with a unique email against the auth service and logs
+    in, returning the token response; a failed setup step fails the test."""
     email = f"itest-revoke-{uuid.uuid4().hex}@example.com"
     password = "S3curePass!1"
 
@@ -50,12 +55,17 @@ def _list_orgs(access_token: str) -> requests.Response:
 
 
 class TestAccessTokenRevokedAfterLogout:
+    """Logout with the access token in the request body revokes it, and the refresh
+    token is rejected too; omitting the access token leaves it valid until it expires."""
     def test_access_token_works_before_logout(self):
+        """A freshly issued access token can list orgs with HTTP 200 before logout."""
         tokens = _register_and_login()
         r = _list_orgs(tokens["access_token"])
         assert r.status_code == 200
 
     def test_access_token_rejected_after_logout(self):
+        """After a logout that supplies both tokens, the same access token is rejected
+        with 401 on GET /orgs."""
         tokens = _register_and_login()
 
         # Sanity: token is live before logout.
@@ -72,6 +82,7 @@ class TestAccessTokenRevokedAfterLogout:
         assert r.status_code == 401
 
     def test_refresh_token_also_rejected_after_logout(self):
+        """After logout, POST /auth/refresh with the refresh token returns 401."""
         tokens = _register_and_login()
 
         requests.post(

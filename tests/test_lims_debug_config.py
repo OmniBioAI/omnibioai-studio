@@ -25,6 +25,9 @@ shipped DJANGO_DEBUG: "true" with FIELD_ENCRYPTION_KEY entirely absent. This
 suite pins both files so that specific drift can't silently reappear --
 mirroring test_compose_release_config.py's approach to the JWT-secret drift
 between the same two files.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 from pathlib import Path
 
@@ -51,6 +54,8 @@ def _load(path):
 
 @pytest.fixture(scope="module", params=RELEASE_COMPOSE_PATHS, ids=lambda p: p.name)
 def release_compose(request):
+    """Loads each release compose file (parametrized over the dot and dash variants) for
+    the lims DEBUG and encryption-key checks."""
     return _load(request.param)
 
 

@@ -3,6 +3,9 @@ Shared fixtures for OmniBioAI integration tests.
 
 Services are accessed through the nginx router at http://localhost (port 80)
 and also directly via their native ports where noted.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 
 import os
@@ -99,6 +102,9 @@ def _login_or_skip() -> dict:
 
 @pytest.fixture(scope="session")
 def auth_tokens():
+    """Session-scoped login to the auth service with the
+    OMNIBIOAI_AUTH_EMAIL/OMNIBIOAI_AUTH_PASSWORD credentials; skips when credentials are
+    not configured or the service is unreachable."""
     return _login_or_skip()
 
 
@@ -144,6 +150,9 @@ def _lims_login_or_skip() -> requests.Session:
 
 @pytest.fixture(scope="session")
 def lims_session():
+    """Session-scoped requests.Session authenticated against LIMS with the
+    OMNIBIOAI_LIMS_USER/OMNIBIOAI_LIMS_PASSWORD credentials; skips when LIMS is
+    unreachable."""
     return _lims_login_or_skip()
 
 
@@ -151,4 +160,6 @@ def lims_session():
 
 @pytest.fixture(scope="session")
 def rag_headers():
+    """Authorization header built from RAGBIO_API_KEY; the key is an empty string when
+    the environment variable is not set."""
     return {"Authorization": f"Bearer {RAGBIO_API_KEY}"}

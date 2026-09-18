@@ -24,6 +24,9 @@ pool. See test_proxy_live_integration.py's
 TestConnectionReuseDoesNotCauseIntermittentFailures for that live,
 real-daemon reproduction; these tests pin down the pure header-framing
 fix in isolation, no daemon needed.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 from __future__ import annotations
 
@@ -36,11 +39,15 @@ from proxy import _force_connection_close  # noqa: E402
 
 
 def _raw(status_line: str, *header_lines: str) -> bytes:
+    """Builds raw response header bytes (status line plus header lines, blank-line
+    terminated, ISO-8859-1) as input for _force_connection_close."""
     text = "\r\n".join([status_line, *header_lines, "", ""])
     return text.encode("iso-8859-1")
 
 
 class TestForceConnectionClose:
+    """_force_connection_close() rewrites an upstream response header block so it always
+    carries exactly one Connection: close header and leaves everything else intact."""
     def test_adds_close_when_no_connection_header_present(self):
         """The exact real-world case that caused the bug: the real
         daemon's /_ping response carries no Connection header at all."""
@@ -52,6 +59,8 @@ class TestForceConnectionClose:
         assert text.count("Connection:") == 1
 
     def test_overrides_existing_keep_alive_value(self):
+        """An upstream Connection: keep-alive header is replaced by a single Connection:
+        close."""
         raw = _raw("HTTP/1.1 200 OK", "Content-Length: 0", "Connection: keep-alive")
         out = _force_connection_close(raw).decode("iso-8859-1")
         assert "Connection: close" in out
@@ -59,6 +68,8 @@ class TestForceConnectionClose:
         assert out.count("Connection:") == 1
 
     def test_case_insensitive_header_name_match(self):
+        """The Connection header name is matched case-insensitively, so 'CONNECTION:
+        Keep-Alive' is replaced and exactly one Connection header remains."""
         raw = _raw("HTTP/1.1 200 OK", "content-length: 0", "CONNECTION: Keep-Alive")
         out = _force_connection_close(raw).decode("iso-8859-1")
         assert "Connection: close" in out
@@ -67,6 +78,8 @@ class TestForceConnectionClose:
         assert sum(1 for line in out.split("\r\n") if line.lower().startswith("connection:")) == 1
 
     def test_preserves_status_line_and_other_headers(self):
+        """The status line and unrelated headers are kept unchanged when Connection:
+        close is added."""
         raw = _raw(
             "HTTP/1.1 404 Not Found",
             "Content-Type: application/json",
@@ -82,6 +95,8 @@ class TestForceConnectionClose:
         assert "Connection: close" in lines
 
     def test_no_headers_besides_status_line(self):
+        """A response consisting only of a status line still gets a Connection: close
+        header."""
         raw = _raw("HTTP/1.1 204 No Content")
         out = _force_connection_close(raw).decode("iso-8859-1")
         lines = out.split("\r\n")
@@ -89,6 +104,8 @@ class TestForceConnectionClose:
         assert "Connection: close" in lines
 
     def test_output_ends_with_blank_line_terminator(self):
+        """The rewritten header block still ends with a single CRLF CRLF terminator and
+        nothing follows it."""
         raw = _raw("HTTP/1.1 200 OK", "Content-Length: 0")
         out = _force_connection_close(raw)
         assert out.endswith(b"\r\n\r\n")
