@@ -1,3 +1,10 @@
+"""Static guard that the live-integration conftest never ships literal credential
+defaults. The file is parsed with ast and is never imported or executed.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
+"""
+
 import ast
 from pathlib import Path
 
@@ -13,6 +20,9 @@ CREDENTIAL_NAMES = {
 
 
 def test_integration_credentials_have_no_nonempty_literal_defaults():
+    """Each integration credential in tests/integration/conftest.py is read with
+    os.getenv and an empty-string default, so no non-empty literal credential can be
+    committed."""
     tree = ast.parse(CONFTEST.read_text(encoding="utf-8"))
     assignments = {
         node.targets[0].id: node.value

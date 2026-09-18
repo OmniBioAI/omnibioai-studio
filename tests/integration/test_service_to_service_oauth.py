@@ -20,6 +20,9 @@ and every documented rejection path (RFC 6749 SS5.2/SS2.3.1) -- and decode
 the returned JWT WITHOUT verifying its signature (no shared secret is
 exposed to a black-box test) purely to assert the claims a real consumer
 would need are actually present.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 
 import uuid
@@ -33,6 +36,8 @@ BASE = AUTH_DIRECT_URL
 
 
 def _register_and_login() -> dict:
+    """Registers a throwaway user with a unique email against the auth service and logs
+    in, returning the token response."""
     email = f"itest-svc2svc-{uuid.uuid4().hex}@example.com"
     password = "S3curePass!1"
 
@@ -77,6 +82,8 @@ def _setup_client(scopes: list) -> dict:
 
 
 def _mint_token(client_id: str, client_secret: str, scope: str | None = None) -> requests.Response:
+    """POSTs a form-encoded client_credentials grant to /oauth/token, optionally
+    requesting a scope, and returns the response."""
     data = {"grant_type": "client_credentials", "client_id": client_id, "client_secret": client_secret}
     if scope is not None:
         data["scope"] = scope
@@ -84,12 +91,17 @@ def _mint_token(client_id: str, client_secret: str, scope: str | None = None) ->
 
 
 class TestClientCredentialsHappyPath:
+    """Successful client_credentials token issue: status, token shape, scope defaulting
+    and subsetting, and claims that identify a service rather than a user."""
     def test_mint_token_returns_200(self):
+        """A registered client's client_credentials request to /oauth/token returns 200."""
         client = _setup_client(["read:reports", "write:reports"])
         r = _mint_token(client["client_id"], client["client_secret"])
         assert r.status_code == 200
 
     def test_mint_token_returns_access_token_and_bearer_type(self):
+        """The token response has a non-empty access_token, token_type bearer and a
+        positive expires_in."""
         client = _setup_client(["read:reports"])
         r = _mint_token(client["client_id"], client["client_secret"])
         body = r.json()
@@ -98,17 +110,24 @@ class TestClientCredentialsHappyPath:
         assert body["expires_in"] > 0
 
     def test_token_defaults_to_all_granted_scopes_when_scope_omitted(self):
+        """With no scope requested, the issued token's scope lists every scope granted
+        to the client."""
         client = _setup_client(["read:reports", "write:reports"])
         r = _mint_token(client["client_id"], client["client_secret"])
         assert set(r.json()["scope"].split()) == {"read:reports", "write:reports"}
 
     def test_token_can_request_a_subset_of_granted_scopes(self):
+        """Requesting a subset of the granted scopes returns 200 with exactly that
+        scope."""
         client = _setup_client(["read:reports", "write:reports"])
         r = _mint_token(client["client_id"], client["client_secret"], scope="read:reports")
         assert r.status_code == 200
         assert r.json()["scope"] == "read:reports"
 
     def test_minted_token_claims_identify_a_service_not_a_user(self):
+        """The decoded token (signature not verified) has auth_method
+        client_credentials, the client_id and the granted scopes, and carries no sub or
+        email claim."""
         client = _setup_client(["read:reports"])
         r = _mint_token(client["client_id"], client["client_secret"])
         payload = pyjwt.decode(r.json()["access_token"], options={"verify_signature": False})
@@ -121,21 +140,28 @@ class TestClientCredentialsHappyPath:
 
 
 class TestClientCredentialsRejections:
+    """Rejection paths of /oauth/token: bad credentials return 401, while ungranted
+    scopes, unsupported grant types and missing credentials return 400."""
     def test_wrong_client_secret_returns_401(self):
+        """A wrong client_secret for a real client returns 401."""
         client = _setup_client(["read:reports"])
         r = _mint_token(client["client_id"], "not-the-real-secret")
         assert r.status_code == 401
 
     def test_unknown_client_id_returns_401(self):
+        """An unknown client_id returns 401."""
         r = _mint_token(f"nonexistent-{uuid.uuid4().hex}", "whatever")
         assert r.status_code == 401
 
     def test_requesting_ungranted_scope_returns_400(self):
+        """Requesting a scope the client was not granted returns 400."""
         client = _setup_client(["read:reports"])
         r = _mint_token(client["client_id"], client["client_secret"], scope="delete:everything")
         assert r.status_code == 400
 
     def test_unsupported_grant_type_returns_400(self):
+        """The password grant type is rejected with 400 even with valid client
+        credentials."""
         client = _setup_client(["read:reports"])
         r = requests.post(
             f"{BASE}/oauth/token",
@@ -149,12 +175,17 @@ class TestClientCredentialsRejections:
         assert r.status_code == 400
 
     def test_missing_credentials_returns_400(self):
+        """A client_credentials request with no client credentials returns 400."""
         r = requests.post(f"{BASE}/oauth/token", data={"grant_type": "client_credentials"}, timeout=TIMEOUT)
         assert r.status_code == 400
 
 
 class TestClientCredentialsViaHttpBasic:
+    """Client credentials supplied through HTTP Basic authentication instead of form
+    fields."""
     def test_basic_auth_credentials_are_accepted(self):
+        """HTTP Basic client credentials are accepted: the token request returns 200
+        with an access_token."""
         client = _setup_client(["read:reports"])
         r = requests.post(
             f"{BASE}/oauth/token",

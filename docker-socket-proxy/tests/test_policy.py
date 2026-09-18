@@ -8,6 +8,9 @@ capability grants, direct API access to EXEC/SWARM/SECRETS/etc.).
 Each "must still work" test encodes what this codebase's real docker.sock
 consumers actually send (grepped and confirmed against
 omnibioai/plugin_executor/ml_utils.py's real docker run invocation).
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 import json
 import sys
@@ -40,19 +43,30 @@ def _body(d: dict) -> bytes:
 # ---------------------------------------------------------------------------
 
 class TestEndpointAllowlist:
+    """Endpoint allowlist: container/image lifecycle endpoints are allowed; exec, swarm,
+    secrets, network and volume management, plugins, build, nodes and any unknown
+    endpoint are denied."""
     def test_containers_json_allowed(self):
+        """GET /containers/json (container listing) is on the endpoint allowlist."""
         assert check_endpoint("GET", "/containers/json").allowed
 
     def test_containers_create_allowed(self):
+        """POST /containers/create is allowed at the endpoint layer; its body is
+        validated separately."""
         assert check_endpoint("POST", "/containers/create").allowed
 
     def test_versioned_path_allowed(self):
+        """A version-prefixed path such as /v1.43/containers/json is normalized and
+        allowed."""
         assert check_endpoint("GET", "/v1.43/containers/json").allowed
 
     def test_images_pull_allowed(self):
+        """POST /images/create (image pull) is allowed."""
         assert check_endpoint("POST", "/images/create").allowed
 
     def test_container_start_stop_wait_logs_attach_allowed(self):
+        """Start, stop, wait, logs, attach and DELETE on a specific container id are all
+        allowed."""
         for method, path in [
             ("POST", "/containers/abc123/start"),
             ("POST", "/containers/abc123/stop"),
@@ -64,34 +78,43 @@ class TestEndpointAllowlist:
             assert check_endpoint(method, path).allowed, f"{method} {path} should be allowed"
 
     def test_exec_blocked(self):
+        """POST /containers/{id}/exec is denied."""
         d = check_endpoint("POST", "/containers/abc123/exec")
         assert not d.allowed
 
     def test_exec_start_blocked(self):
+        """POST /exec/{id}/start is denied."""
         d = check_endpoint("POST", "/exec/abc123/start")
         assert not d.allowed
 
     def test_swarm_blocked(self):
+        """The swarm API (/swarm/init) is denied."""
         assert not check_endpoint("POST", "/swarm/init").allowed
 
     def test_secrets_blocked(self):
+        """Both listing and creating secrets through the Docker API are denied."""
         assert not check_endpoint("GET", "/secrets").allowed
         assert not check_endpoint("POST", "/secrets/create").allowed
 
     def test_networks_management_blocked(self):
+        """Creating and deleting networks through the Docker API are both denied."""
         assert not check_endpoint("POST", "/networks/create").allowed
         assert not check_endpoint("DELETE", "/networks/abc").allowed
 
     def test_volumes_management_blocked(self):
+        """Creating volumes through /volumes/create is denied."""
         assert not check_endpoint("POST", "/volumes/create").allowed
 
     def test_plugins_blocked(self):
+        """GET /plugins is denied."""
         assert not check_endpoint("GET", "/plugins").allowed
 
     def test_build_blocked(self):
+        """POST /build is denied."""
         assert not check_endpoint("POST", "/build").allowed
 
     def test_nodes_blocked(self):
+        """GET /nodes (swarm node API) is denied."""
         assert not check_endpoint("GET", "/nodes").allowed
 
     def test_unknown_endpoint_defaults_denied(self):
@@ -100,6 +123,8 @@ class TestEndpointAllowlist:
         assert not check_endpoint("POST", "/some/brand/new/v2/endpoint").allowed
 
     def test_deny_reason_is_legible(self):
+        """A denied /swarm/init decision carries a reason that mentions swarm or the
+        allowlist."""
         d = check_endpoint("POST", "/swarm/init")
         assert "swarm" in d.reason.lower() or "not on the allowlist" in d.reason.lower()
 
@@ -109,21 +134,27 @@ class TestEndpointAllowlist:
 # ---------------------------------------------------------------------------
 
 class TestPrivilegedBlocked:
+    """HostConfig.Privileged validation on /containers/create bodies."""
     def test_privileged_true_blocked(self):
+        """HostConfig.Privileged=true is denied and the reason names 'privileged'."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {"Privileged": True}}), POLICY)
         assert not d.allowed
         assert "privileged" in d.reason.lower()
 
     def test_privileged_false_allowed(self):
+        """HostConfig.Privileged=false is allowed."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {"Privileged": False}}), POLICY)
         assert d.allowed
 
     def test_privileged_absent_allowed(self):
+        """A HostConfig with no Privileged key is allowed."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {}}), POLICY)
         assert d.allowed
 
 
 class TestHostBindMountBlocked:
+    """Bind and Mounts source validation: a source must be absolute and stay under an
+    allowed prefix after normalization, otherwise the create request is denied."""
     def test_dotdot_traversal_out_of_allowed_prefix_blocked(self):
         """Caught in review, before merge: a naive string-prefix check
         lets '/app/work/../../../etc' through because it literally
@@ -162,6 +193,7 @@ class TestHostBindMountBlocked:
         assert d.allowed
 
     def test_relative_bind_source_blocked(self):
+        """A relative bind source such as 'relative/path:/x' is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Binds": ["relative/path:/x"]}}), POLICY
         )
@@ -176,12 +208,14 @@ class TestHostBindMountBlocked:
         assert "outside the allowed prefixes" in d.reason
 
     def test_etc_bind_mount_blocked(self):
+        """Bind-mounting the host /etc is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Binds": ["/etc:/hostetc"]}}), POLICY
         )
         assert not d.allowed
 
     def test_home_bind_mount_blocked(self):
+        """Bind-mounting the host /home is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Binds": ["/home:/hosthome"]}}), POLICY
         )
@@ -218,12 +252,16 @@ class TestHostBindMountBlocked:
         assert d.allowed
 
     def test_exact_prefix_dir_itself_allowed(self):
+        """Binding the allowed prefix directory itself (/app/work) is allowed, not only
+        its subdirectories."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Binds": ["/app/work:/work"]}}), POLICY
         )
         assert d.allowed
 
     def test_mounts_form_validated_same_as_binds(self):
+        """A HostConfig.Mounts bind entry with Source '/' is denied, the same as the
+        Binds form."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {
                 "Mounts": [{"Type": "bind", "Source": "/", "Target": "/hostroot"}]
@@ -232,6 +270,8 @@ class TestHostBindMountBlocked:
         assert not d.allowed
 
     def test_mounts_form_allowed_prefix(self):
+        """A HostConfig.Mounts bind entry whose Source is under an allowed prefix is
+        allowed."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {
                 "Mounts": [{"Type": "bind", "Source": "/app/work/run-1", "Target": "/work"}]
@@ -240,6 +280,7 @@ class TestHostBindMountBlocked:
         assert d.allowed
 
     def test_no_binds_no_mounts_allowed(self):
+        """A body with neither Binds nor Mounts is allowed."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {}}), POLICY)
         assert d.allowed
 
@@ -254,6 +295,8 @@ class TestNamedVolumeBindsAllowlist:
     volumes are denied by default)."""
 
     def test_allowlisted_named_volume_allowed(self):
+        """A read-only bind of the allowlisted docker-proxy-socket named volume is
+        allowed."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {
                 "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro"]
@@ -327,6 +370,8 @@ class TestNamedVolumeMustBeReadOnly:
         assert "must be mounted read-only" in d.reason
 
     def test_explicit_rw_blocked(self):
+        """An explicit :rw mode on the allowlisted named volume is denied with a
+        must-be-mounted-read-only reason."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {
                 "Binds": ["docker-proxy-socket:/var/run/proxy-socket:rw"]
@@ -346,6 +391,7 @@ class TestNamedVolumeMustBeReadOnly:
         assert not d.allowed
 
     def test_plain_ro_allowed(self):
+        """An explicit :ro mode on the allowlisted named volume is allowed."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {
                 "Binds": ["docker-proxy-socket:/var/run/proxy-socket:ro"]
@@ -383,6 +429,9 @@ class TestVolumeTypeMountBlocked:
     ever sends anyway."""
 
     def test_volume_type_with_bind_driveropts_blocked_even_with_decoy_source(self):
+        """A Type=volume mount is denied even when its Source is a decoy under an
+        allowed prefix and the real host device is set through DriverConfig options; the
+        reason mentions the mount type."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Mounts": [{
                 "Type": "volume",
@@ -397,6 +446,7 @@ class TestVolumeTypeMountBlocked:
         assert "type" in d.reason.lower()
 
     def test_tmpfs_type_blocked(self):
+        """A Type=tmpfs mount is denied, since only bind mounts are accepted."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Mounts": [
                 {"Type": "tmpfs", "Target": "/tmp/x"}
@@ -405,6 +455,7 @@ class TestVolumeTypeMountBlocked:
         assert not d.allowed
 
     def test_bind_type_still_allowed(self):
+        """A Type=bind mount whose Source is under an allowed prefix is still allowed."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Mounts": [
                 {"Type": "bind", "Source": "/app/work/run-1", "Target": "/work"}
@@ -413,6 +464,8 @@ class TestVolumeTypeMountBlocked:
         assert d.allowed
 
     def test_missing_type_defaults_to_bind_and_is_allowed(self):
+        """A Mounts entry with no Type is treated as a bind mount and allowed when its
+        Source is under an allowed prefix."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Mounts": [
                 {"Source": "/app/work/run-1", "Target": "/work"}
@@ -422,7 +475,11 @@ class TestVolumeTypeMountBlocked:
 
 
 class TestDevicesSecurityOptUsernsBlocked:
+    """Denies host Devices, weakening SecurityOpt values (seccomp or apparmor
+    unconfined, no-new-privileges=false) and UsernsMode=host, while benign settings stay
+    allowed."""
     def test_devices_blocked(self):
+        """Passing a host device (/dev/sda) through HostConfig.Devices is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {
                 "Devices": [{"PathOnHost": "/dev/sda", "PathInContainer": "/dev/sda", "CgroupPermissions": "rwm"}]
@@ -431,34 +488,40 @@ class TestDevicesSecurityOptUsernsBlocked:
         assert not d.allowed
 
     def test_no_devices_allowed(self):
+        """An empty Devices list is allowed."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {"Devices": []}}), POLICY)
         assert d.allowed
 
     def test_seccomp_unconfined_blocked(self):
+        """SecurityOpt seccomp=unconfined is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"SecurityOpt": ["seccomp=unconfined"]}}), POLICY
         )
         assert not d.allowed
 
     def test_apparmor_unconfined_blocked(self):
+        """SecurityOpt apparmor=unconfined is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"SecurityOpt": ["apparmor=unconfined"]}}), POLICY
         )
         assert not d.allowed
 
     def test_no_new_privileges_false_blocked(self):
+        """SecurityOpt no-new-privileges=false is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"SecurityOpt": ["no-new-privileges=false"]}}), POLICY
         )
         assert not d.allowed
 
     def test_benign_security_opt_allowed(self):
+        """SecurityOpt no-new-privileges=true is allowed."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"SecurityOpt": ["no-new-privileges=true"]}}), POLICY
         )
         assert d.allowed
 
     def test_userns_mode_host_blocked(self):
+        """UsernsMode=host is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"UsernsMode": "host"}}), POLICY
         )
@@ -466,7 +529,10 @@ class TestDevicesSecurityOptUsernsBlocked:
 
 
 class TestCapAddBlocked:
+    """Linux capability grants through HostConfig.CapAdd are denied; an empty list is
+    allowed."""
     def test_cap_add_sys_admin_blocked(self):
+        """CapAdd SYS_ADMIN is denied and the reason mentions capadd."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"CapAdd": ["SYS_ADMIN"]}}), POLICY
         )
@@ -474,12 +540,16 @@ class TestCapAddBlocked:
         assert "capadd" in d.reason.lower()
 
     def test_empty_cap_add_allowed(self):
+        """An empty CapAdd list is allowed."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {"CapAdd": []}}), POLICY)
         assert d.allowed
 
 
 class TestHostNamespacesBlocked:
+    """Host namespace sharing through NetworkMode, PidMode and IpcMode set to host is
+    denied; bridge networking stays allowed."""
     def test_network_mode_host_blocked(self):
+        """NetworkMode=host is denied and the reason names networkmode."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"NetworkMode": "host"}}), POLICY
         )
@@ -487,30 +557,39 @@ class TestHostNamespacesBlocked:
         assert "networkmode" in d.reason.lower()
 
     def test_network_mode_bridge_allowed(self):
+        """NetworkMode=bridge is allowed."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"NetworkMode": "bridge"}}), POLICY
         )
         assert d.allowed
 
     def test_pid_mode_host_blocked(self):
+        """PidMode=host is denied."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {"PidMode": "host"}}), POLICY)
         assert not d.allowed
 
     def test_ipc_mode_host_blocked(self):
+        """IpcMode=host is denied."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": {"IpcMode": "host"}}), POLICY)
         assert not d.allowed
 
 
 class TestMalformedBody:
+    """Malformed /containers/create bodies: invalid JSON, non-object JSON, a non-object
+    HostConfig and an unparseable Binds entry are denied; an empty body is allowed."""
     def test_invalid_json_blocked(self):
+        """A body that is not valid JSON is denied."""
         d = check_create_body(b"{not valid json", POLICY)
         assert not d.allowed
 
     def test_non_object_json_blocked(self):
+        """A JSON body that is not an object (a list) is denied."""
         d = check_create_body(b"[1, 2, 3]", POLICY)
         assert not d.allowed
 
     def test_empty_body_allowed(self):
+        """An empty create body is allowed; it fails open here by design, with the
+        endpoint allowlist and the daemon's own validation as the backstop."""
         # In practice /containers/create always has a body from a real
         # client; an empty body isn't itself a way to request anything
         # dangerous, so this fails open here rather than blocking
@@ -520,10 +599,12 @@ class TestMalformedBody:
         assert d.allowed
 
     def test_non_dict_host_config_blocked(self):
+        """A HostConfig value that is not an object is denied."""
         d = check_create_body(_body({"Image": "alpine", "HostConfig": "not-a-dict"}), POLICY)
         assert not d.allowed
 
     def test_unparseable_bind_entry_blocked(self):
+        """A Binds entry with no source:target colon is denied."""
         d = check_create_body(
             _body({"Image": "alpine", "HostConfig": {"Binds": ["no-colon-here"]}}), POLICY
         )
@@ -535,6 +616,8 @@ class TestMalformedBody:
 # ---------------------------------------------------------------------------
 
 class TestEvaluateRequest:
+    """End-to-end evaluate_request(): the endpoint allowlist and create-body validation
+    applied together."""
     def test_realistic_ml_utils_create_call_allowed(self):
         """Mirrors omnibioai/plugin_executor/ml_utils.py's real
         `docker run --rm --gpus all -v run_dir:/work -v cache_dir:/root/.cache/torch
@@ -555,6 +638,8 @@ class TestEvaluateRequest:
         assert d.allowed
 
     def test_privileged_escape_attempt_blocked_end_to_end(self):
+        """A /containers/create combining Privileged=true with a '/' bind mount is
+        denied through evaluate_request."""
         body = _body({
             "Image": "alpine",
             "Cmd": ["sh"],
@@ -564,6 +649,7 @@ class TestEvaluateRequest:
         assert not d.allowed
 
     def test_exec_into_running_container_blocked_end_to_end(self):
+        """POST /v1.43/containers/{id}/exec is denied through evaluate_request."""
         d = evaluate_request("POST", "/v1.43/containers/some-id/exec", b"", POLICY)
         assert not d.allowed
 

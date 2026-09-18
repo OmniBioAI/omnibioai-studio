@@ -5,6 +5,9 @@ check-env.sh had the identical bug as backup-mysql.sh (same
 validator would itself crash on the same rotated secret it exists to
 help catch problems with. See scripts/lib-env.sh and
 omnibioai-docs/security/mysql_backup_recovery_evidence.md.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 import subprocess
 import tempfile
@@ -14,6 +17,8 @@ SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "check-env.sh"
 
 
 def test_uses_the_safe_loader_not_the_vulnerable_pattern():
+    """check-env.sh loads its .env through lib-env.sh's load_env_file and its
+    non-comment code never uses the source <( ... ) pattern."""
     text = SCRIPT.read_text(encoding="utf-8")
     code_lines = [ln for ln in text.splitlines() if not ln.strip().startswith("#")]
     code = "\n".join(code_lines)
@@ -23,6 +28,9 @@ def test_uses_the_safe_loader_not_the_vulnerable_pattern():
 
 
 def test_survives_a_value_containing_parentheses():
+    """check-env.sh exits 0 and reports all critical secrets set when a secret value
+    contains parentheses and shell metacharacters; run against a throwaway copy in a
+    temp dir."""
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
         (root / "scripts").mkdir()

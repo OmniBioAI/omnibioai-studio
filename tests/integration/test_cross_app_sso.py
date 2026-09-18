@@ -40,6 +40,9 @@ service (unique email per run) rather than relying on conftest's
 session-scoped admin login, since that fixture's fixed admin/admin
 credentials are shared (and sometimes already consumed) across every other
 test file in this suite.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 
 import uuid
@@ -53,6 +56,8 @@ _TRUSTED_PROXY_HEADERS = {"X-Forwarded-Proto": "https"}
 
 
 def _register_and_login() -> dict:
+    """Registers a throwaway user with a unique email in the central auth service and
+    logs in, returning the tokens plus the email."""
     email = f"itest-crosssso-{uuid.uuid4().hex}@example.com"
     password = "S3curePass!1"
 
@@ -72,7 +77,10 @@ def _register_and_login() -> dict:
 
 
 class TestCentralAuthTokenWorksAgainstLims:
+    """An access token issued by the central auth service is accepted directly by LIMS
+    at /api/auth/me/, with no LIMS login (the cross-application SSO contract)."""
     def test_central_access_token_authenticates_to_lims(self):
+        """GET /api/auth/me/ on LIMS with a central-auth access token returns HTTP 200."""
         tokens = _register_and_login()
         r = requests.get(
             LIMS_ME_URL,
@@ -82,6 +90,7 @@ class TestCentralAuthTokenWorksAgainstLims:
         assert r.status_code == 200
 
     def test_lims_resolves_the_same_email_from_the_central_token(self):
+        """LIMS's /api/auth/me/ reports the same email the central token was issued for."""
         tokens = _register_and_login()
         r = requests.get(
             LIMS_ME_URL,
@@ -105,11 +114,14 @@ class TestCentralAuthTokenWorksAgainstLims:
 
 
 class TestLimsRejectsWithoutAToken:
+    """LIMS /api/auth/me/ rejects requests that carry no valid token."""
     def test_me_endpoint_requires_authentication(self):
+        """GET /api/auth/me/ with no Authorization header returns 401."""
         r = requests.get(LIMS_ME_URL, headers=_TRUSTED_PROXY_HEADERS, timeout=TIMEOUT)
         assert r.status_code == 401
 
     def test_me_endpoint_rejects_garbage_bearer_token(self):
+        """A garbage bearer token on /api/auth/me/ returns 401."""
         r = requests.get(
             LIMS_ME_URL,
             headers={**_TRUSTED_PROXY_HEADERS, "Authorization": "Bearer not.a.real.jwt"},

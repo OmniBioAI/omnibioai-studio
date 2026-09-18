@@ -34,6 +34,9 @@ without this header, which then fails to connect since nothing listens on
 443 here. This reproduces exactly what the real router already sets on
 every request LIMS actually receives; it is not bypassing a security
 check.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 
 import pytest
@@ -103,11 +106,14 @@ def _obtain_tokens() -> dict:
 # ── Health probes ─────────────────────────────────────────────────────────────
 
 class TestLimsHealth:
+    """LIMS liveness (/healthz) and readiness (/readyz) probes respond 200."""
     def test_healthz_returns_200(self):
+        """GET /healthz returns HTTP 200."""
         r = _get("/healthz")
         assert r.status_code == 200
 
     def test_readyz_returns_200(self):
+        """GET /readyz returns HTTP 200."""
         r = _get("/readyz")
         assert r.status_code == 200
 
@@ -115,6 +121,8 @@ class TestLimsHealth:
 # ── JWT authentication ────────────────────────────────────────────────────────
 
 class TestLimsAuth:
+    """POST /api/token/ delivers tokens as cookies and rejects wrong, unknown and
+    missing credentials; the login is cached because LIMS rate-limits the endpoint."""
     @pytest.fixture(autouse=True)
     def _tokens(self):
         # Use cached login to avoid rate-limiting the /api/token/ endpoint.
@@ -123,26 +131,35 @@ class TestLimsAuth:
         self._refresh = data["refresh"]
 
     def test_obtain_token_returns_200(self):
+        """The cached LIMS login succeeded and set a non-empty access_token cookie."""
         # Verified by the fact that _obtain_tokens() succeeded (raise_for_status called).
         assert self._access, "access_token cookie was not set after successful login"
 
     def test_obtain_token_returns_access_field(self):
+        """The login delivers a non-empty access_token cookie; tokens are not in the
+        JSON body."""
         # Tokens are in Set-Cookie headers, not in the JSON body.
         assert self._access, "access_token cookie not set"
 
     def test_obtain_token_returns_refresh_field(self):
+        """The login delivers a non-empty refresh_token cookie."""
         assert self._refresh, "refresh_token cookie not set"
 
     def test_wrong_credentials_returns_401(self):
+        """A wrong password on /api/token/ returns 401, or 429 when the rate limiter
+        answers first."""
         # 429 is also acceptable: rate limiter fires before credentials are checked.
         r = _post("/api/token/", {"username": LIMS_USERNAME, "password": "wrongpassword"})
         assert r.status_code in (401, 429)
 
     def test_unknown_user_returns_401(self):
+        """An unknown username on /api/token/ returns 401, or 429 when the rate limiter
+        answers first."""
         r = _post("/api/token/", {"username": "nobody", "password": "x"})
         assert r.status_code in (401, 429)
 
     def test_missing_credentials_returns_400_or_422(self):
+        """An empty body on /api/token/ returns one of 400, 401, 422 or 429."""
         r = _post("/api/token/", {})
         assert r.status_code in (400, 401, 422, 429)
 
@@ -152,6 +169,8 @@ class TestLimsAuth:
 # Use a requests.Session so the cookie is sent automatically.
 
 class TestLimsTokenRefresh:
+    """POST /api/token/refresh/ reads the refresh_token cookie from the session's cookie
+    jar."""
     @pytest.fixture(autouse=True)
     def _session_data(self):
         data = _obtain_tokens()
@@ -160,16 +179,19 @@ class TestLimsTokenRefresh:
         self.session = data["session"]
 
     def test_refresh_returns_200(self):
+        """POST /api/token/refresh/ with the session's refresh_token cookie returns 200."""
         r = self.session.post(f"{BASE}/api/token/refresh/", timeout=TIMEOUT)
         assert r.status_code == 200
 
     def test_refresh_returns_new_access_token(self):
+        """The refresh response sets a new, non-empty access_token cookie."""
         r = self.session.post(f"{BASE}/api/token/refresh/", timeout=TIMEOUT)
         assert r.status_code == 200
         # New access_token is set in a cookie
         assert r.cookies.get("access_token"), "No new access_token cookie in refresh response"
 
     def test_refresh_with_invalid_token_returns_401(self):
+        """A refresh with an invalid refresh_token cookie returns 401."""
         bad_session = requests.Session()
         bad_session.headers.update(_TRUSTED_PROXY_HEADERS)
         bad_session.cookies.set("refresh_token", "invalid.token.value")
@@ -180,6 +202,8 @@ class TestLimsTokenRefresh:
 # ── Projects API ──────────────────────────────────────────────────────────────
 
 class TestLimsProjects:
+    """GET /api/projects/ requires authentication; the access token cookie value is sent
+    as a Bearer header."""
     @pytest.fixture(autouse=True)
     def _auth_headers(self):
         data = _obtain_tokens()
@@ -187,20 +211,24 @@ class TestLimsProjects:
         self.headers = {"Authorization": f"Bearer {data['access']}"}
 
     def test_projects_list_returns_200(self):
+        """An authenticated GET /api/projects/ returns 200."""
         r = _get("/api/projects/", self.headers)
         assert r.status_code == 200
 
     def test_projects_list_returns_json_array_or_paginated(self):
+        """The projects response is JSON that is either a list or a paginated object."""
         r = _get("/api/projects/", self.headers)
         data = r.json()
         # DRF can return a plain list or a paginated {"count": ..., "results": [...]}
         assert isinstance(data, (list, dict))
 
     def test_projects_list_without_auth_returns_401_or_403(self):
+        """GET /api/projects/ with no credentials returns 401 or 403."""
         r = _get("/api/projects/")
         assert r.status_code in (401, 403)
 
     def test_projects_list_with_bad_token_returns_401(self):
+        """A bad Bearer token on /api/projects/ returns 401 or 403."""
         r = _get("/api/projects/", {"Authorization": "Bearer bad-token"})
         assert r.status_code in (401, 403)
 
@@ -208,16 +236,19 @@ class TestLimsProjects:
 # ── Samples API ───────────────────────────────────────────────────────────────
 
 class TestLimsSamples:
+    """GET /api/samples/ requires authentication."""
     @pytest.fixture(autouse=True)
     def _auth_headers(self):
         data = _obtain_tokens()
         self.headers = {"Authorization": f"Bearer {data['access']}"}
 
     def test_samples_list_returns_200(self):
+        """An authenticated GET /api/samples/ returns 200."""
         r = _get("/api/samples/", self.headers)
         assert r.status_code == 200
 
     def test_samples_list_without_auth_returns_401(self):
+        """GET /api/samples/ with no credentials returns 401 or 403."""
         r = _get("/api/samples/")
         assert r.status_code in (401, 403)
 
@@ -225,21 +256,26 @@ class TestLimsSamples:
 # ── Current user (me) ─────────────────────────────────────────────────────────
 
 class TestLimsMe:
+    """GET /api/auth/me/ returns the current user when authenticated and is denied
+    otherwise."""
     @pytest.fixture(autouse=True)
     def _auth_headers(self):
         data = _obtain_tokens()
         self.headers = {"Authorization": f"Bearer {data['access']}"}
 
     def test_me_returns_200(self):
+        """An authenticated GET /api/auth/me/ returns 200."""
         r = _get("/api/auth/me/", self.headers)
         assert r.status_code == 200
 
     def test_me_returns_username_field(self):
+        """The /api/auth/me/ response includes a username or an email field."""
         r = _get("/api/auth/me/", self.headers)
         data = r.json()
         assert "username" in data or "email" in data
 
     def test_me_without_auth_returns_401(self):
+        """GET /api/auth/me/ with no credentials returns 401 or 403."""
         r = _get("/api/auth/me/")
         assert r.status_code in (401, 403)
 
@@ -247,16 +283,19 @@ class TestLimsMe:
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
 class TestLimsStats:
+    """GET /api/stats/ requires authentication."""
     @pytest.fixture(autouse=True)
     def _auth_headers(self):
         data = _obtain_tokens()
         self.headers = {"Authorization": f"Bearer {data['access']}"}
 
     def test_stats_returns_200(self):
+        """An authenticated GET /api/stats/ returns 200."""
         r = _get("/api/stats/", self.headers)
         assert r.status_code == 200
 
     def test_stats_without_auth_returns_401(self):
+        """GET /api/stats/ with no credentials returns 401 or 403."""
         r = _get("/api/stats/")
         assert r.status_code in (401, 403)
 
@@ -264,7 +303,12 @@ class TestLimsStats:
 # ── Full round-trip ───────────────────────────────────────────────────────────
 
 class TestLimsFullFlow:
+    """Login, list projects, refresh the access token and list projects again with the
+    refreshed token."""
     def test_login_list_projects_refresh_logout(self):
+        """With the cached login, list projects with the access token, refresh through
+        the cookie session to obtain a new access_token, then list projects again with
+        it (each step 200). No logout step is exercised despite the name."""
         # Use cached login to avoid rate-limiting — we already verified login works above.
         data = _obtain_tokens()
         access = data["access"]

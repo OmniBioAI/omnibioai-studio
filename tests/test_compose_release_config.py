@@ -14,6 +14,9 @@ actually bundle docker-compose.release.yml (dot) into every packaged desktop
 installer -- the dash file was fixed by PR1/PR2 while the dot file silently
 kept shipping the unfixed gap. Now parametrized over both files so neither
 can drift out of sync with the other again.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 from pathlib import Path
 
@@ -71,12 +74,17 @@ SERVICES_REQUIRING_AUTH_ENABLED = {"model-registry"}
 
 @pytest.fixture(scope="module", params=COMPOSE_PATHS, ids=lambda p: p.name)
 def compose_config(request):
+    """Parses each release compose file (parametrized over the dash and dot variants)
+    once per module and returns the loaded YAML."""
     with open(request.param) as f:
         return yaml.safe_load(f)
 
 
 @pytest.mark.parametrize("service,env_key", EXPECTED_SECRET_WIRING.items())
 def test_service_receives_shared_auth_secret(compose_config, service, env_key):
+    """Parametrized over every JWT consumer in EXPECTED_SECRET_WIRING: the service
+    defines its secret env key in each release compose file, and the value is sourced
+    from AUTH_SECRET_KEY rather than hardcoded."""
     env = compose_config["services"][service]["environment"]
     assert env_key in env, (
         f"{service} must receive {env_key} -- without it, this service's "

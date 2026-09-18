@@ -12,6 +12,9 @@ Skips entirely (not failed) if docker isn't available in this
 environment -- this is an opt-in live test, matching the pattern
 established elsewhere in this codebase for tests that need a real
 Docker daemon (e.g. pdf_report_builder's opt-in live E2E).
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 from __future__ import annotations
 
@@ -87,6 +90,8 @@ def proxy_env(tmp_path_factory):
 
 
 def _docker(env, *args, timeout=30):
+    """Runs the docker CLI with the given environment (whose DOCKER_HOST points at the
+    proxy socket) and captures its output."""
     return subprocess.run(
         [DOCKER_BIN, *args],
         env=env,
@@ -107,11 +112,14 @@ class TestLegitimateTrafficWorksEndToEnd:
     without breaking it."""
 
     def test_docker_ps(self, proxy_env):
+        """docker ps through the proxy exits 0."""
         env, _ = proxy_env
         result = _docker(env, "ps")
         assert result.returncode == 0, result.stderr
 
     def test_run_with_allowed_bind_mount_full_round_trip(self, proxy_env):
+        """A docker run bind-mounting the allowed workdir succeeds, and the file the
+        container wrote is visible in the host workdir."""
         env, workdir = proxy_env
         name = _unique_container_name()
         result = _docker(
@@ -132,6 +140,8 @@ class TestLegitimateTrafficWorksEndToEnd:
         assert result.returncode == 0, result.stderr
 
     def test_logs_on_a_running_container(self, proxy_env):
+        """docker logs on a running proxied container returns its output; the container
+        is force-removed afterwards."""
         env, workdir = proxy_env
         name = _unique_container_name()
         try:
@@ -155,6 +165,8 @@ class TestAdversarialRequestsAreBlocked:
     (403-style denial) -- never merely fail for some other reason."""
 
     def test_privileged_blocked(self, proxy_env):
+        """docker run --privileged is rejected by the proxy with a denial message that
+        names privileged."""
         env, workdir = proxy_env
         result = _docker(
             env, "run", "--rm", "--privileged",
@@ -165,12 +177,15 @@ class TestAdversarialRequestsAreBlocked:
         assert "privileged" in result.stderr.lower()
 
     def test_root_bind_mount_blocked(self, proxy_env):
+        """docker run -v /:/hostroot is rejected by the proxy with a denial message."""
         env, _ = proxy_env
         result = _docker(env, "run", "--rm", "-v", "/:/hostroot", "alpine:latest", "true")
         assert result.returncode != 0
         assert "denied" in result.stderr.lower()
 
     def test_bind_mount_outside_allowed_prefix_blocked(self, proxy_env):
+        """A bind mount of /tmp, outside the allowed workdir prefix, is rejected by the
+        proxy with a denial message."""
         env, _ = proxy_env
         result = _docker(env, "run", "--rm", "-v", "/tmp:/hosttmp", "alpine:latest", "true")
         assert result.returncode != 0
@@ -190,6 +205,8 @@ class TestAdversarialRequestsAreBlocked:
         assert "denied" in result.stderr.lower()
 
     def test_cap_add_blocked(self, proxy_env):
+        """docker run --cap-add SYS_ADMIN is rejected by the proxy with a denial message
+        that names capadd."""
         env, workdir = proxy_env
         result = _docker(
             env, "run", "--rm", "--cap-add", "SYS_ADMIN",
@@ -200,6 +217,8 @@ class TestAdversarialRequestsAreBlocked:
         assert "capadd" in result.stderr.lower()
 
     def test_network_host_blocked(self, proxy_env):
+        """docker run --network host is rejected by the proxy with a denial message that
+        names networkmode."""
         env, workdir = proxy_env
         result = _docker(
             env, "run", "--rm", "--network", "host",
@@ -210,6 +229,8 @@ class TestAdversarialRequestsAreBlocked:
         assert "networkmode" in result.stderr.lower()
 
     def test_exec_into_running_container_blocked(self, proxy_env):
+        """docker exec into a running proxied container is rejected with a denial
+        message citing the allowlist; the container is force-removed afterwards."""
         env, workdir = proxy_env
         name = _unique_container_name()
         try:
@@ -251,6 +272,8 @@ class TestConnectionReuseDoesNotCauseIntermittentFailures:
     against the real published (pre-fix) image."""
 
     def test_many_sequential_legitimate_runs_all_succeed(self, proxy_env):
+        """Fifteen back-to-back allowed docker runs all succeed with no reset,
+        broken-pipe or closed-idle-connection errors, and each writes its output file."""
         env, workdir = proxy_env
         for i in range(15):
             result = _docker(

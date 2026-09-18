@@ -6,6 +6,9 @@ stack and is not exercised by this file).
 
 pymysql.connect is patched before importing license_server, since that
 module calls init_db() (a real MySQL connection attempt) at import time.
+
+Developer:
+    Manish Kumar <manish@omnibioai.org>
 """
 import sys
 from pathlib import Path
@@ -23,10 +26,14 @@ with patch("pymysql.connect", return_value=MagicMock()):
 
 @pytest.fixture
 def client():
+    """FastAPI TestClient bound to license_server.app; pymysql was already patched when
+    the module was imported."""
     return TestClient(license_server.app)
 
 
 def _mock_response(status_code=200, json_data=None):
+    """Builds a MagicMock HTTP response with the given status_code and a json()
+    returning json_data, or an empty dict when none is given."""
     resp = MagicMock()
     resp.status_code = status_code
     resp.json.return_value = json_data or {}
@@ -37,6 +44,8 @@ def _mock_response(status_code=200, json_data=None):
 
 
 def test_validate_token_returns_user_dict_on_valid_token(monkeypatch):
+    """_validate_token returns the user dict (email and permissions included) when the
+    mocked auth service reports the token valid."""
     monkeypatch.setattr(
         license_server.requests, "post",
         lambda *a, **kw: _mock_response(200, {
@@ -50,6 +59,7 @@ def test_validate_token_returns_user_dict_on_valid_token(monkeypatch):
 
 
 def test_validate_token_returns_none_on_invalid_token(monkeypatch):
+    """_validate_token returns None when the mocked auth service reports valid=False."""
     monkeypatch.setattr(
         license_server.requests, "post", lambda *a, **kw: _mock_response(200, {"valid": False}),
     )
@@ -57,6 +67,8 @@ def test_validate_token_returns_none_on_invalid_token(monkeypatch):
 
 
 def test_validate_token_returns_none_on_network_error(monkeypatch):
+    """_validate_token returns None instead of raising when the auth service is
+    unreachable."""
     def _boom(*a, **kw):
         raise ConnectionError("auth service unreachable")
     monkeypatch.setattr(license_server.requests, "post", _boom)
@@ -67,18 +79,22 @@ def test_validate_token_returns_none_on_network_error(monkeypatch):
 
 
 def test_require_permission_missing_header_raises_401():
+    """_require_permission raises HTTP 401 when no Authorization header is supplied."""
     with pytest.raises(license_server.HTTPException) as exc_info:
         license_server._require_permission(None, "manage_licenses", action="test")
     assert exc_info.value.status_code == 401
 
 
 def test_require_permission_non_bearer_header_raises_401():
+    """_require_permission raises HTTP 401 for a non-Bearer Authorization scheme
+    (Basic)."""
     with pytest.raises(license_server.HTTPException) as exc_info:
         license_server._require_permission("Basic abc123", "manage_licenses", action="test")
     assert exc_info.value.status_code == 401
 
 
 def test_require_permission_invalid_token_raises_401(monkeypatch):
+    """_require_permission raises HTTP 401 when token validation returns None."""
     monkeypatch.setattr(license_server, "_validate_token", lambda token: None)
     with pytest.raises(license_server.HTTPException) as exc_info:
         license_server._require_permission("Bearer badtoken", "manage_licenses", action="test")
@@ -86,6 +102,8 @@ def test_require_permission_invalid_token_raises_401(monkeypatch):
 
 
 def test_require_permission_missing_permission_raises_403(monkeypatch):
+    """_require_permission raises HTTP 403 when the validated user lacks the required
+    manage_licenses permission."""
     monkeypatch.setattr(
         license_server, "_validate_token",
         lambda token: {"user_id": 2, "email": "u@omnibioai.test", "permissions": ["manage_config"]},
@@ -96,6 +114,8 @@ def test_require_permission_missing_permission_raises_403(monkeypatch):
 
 
 def test_require_permission_grants_and_returns_user(monkeypatch):
+    """_require_permission returns the user dict when the validated user holds
+    manage_licenses."""
     monkeypatch.setattr(
         license_server, "_validate_token",
         lambda token: {"user_id": 1, "email": "admin@omnibioai.test", "permissions": ["manage_licenses"]},
@@ -108,11 +128,14 @@ def test_require_permission_grants_and_returns_user(monkeypatch):
 
 
 def test_generate_without_token_returns_401(client):
+    """POST /api/license/generate without a token returns 401."""
     resp = client.post("/api/license/generate", json={"email": "x@example.com"})
     assert resp.status_code == 401
 
 
 def test_generate_without_manage_licenses_permission_returns_403(client, monkeypatch):
+    """POST /api/license/generate with a valid token whose user has no permissions
+    returns 403."""
     monkeypatch.setattr(
         license_server, "_validate_token",
         lambda token: {"user_id": 3, "email": "nope@omnibioai.test", "permissions": []},
@@ -125,6 +148,8 @@ def test_generate_without_manage_licenses_permission_returns_403(client, monkeyp
 
 
 def test_generate_with_manage_licenses_permission_succeeds(client, monkeypatch):
+    """POST /api/license/generate with the manage_licenses permission returns 200 with
+    the requested email and a key; the database connection is mocked."""
     monkeypatch.setattr(
         license_server, "_validate_token",
         lambda token: {"user_id": 1, "email": "admin@omnibioai.test", "permissions": ["manage_licenses"]},
@@ -150,6 +175,7 @@ def test_generate_request_body_no_longer_accepts_admin_key_field():
 
 
 def test_list_licenses_without_token_returns_401(client):
+    """GET /api/license/list without a token returns 401."""
     resp = client.get("/api/license/list")
     assert resp.status_code == 401
 
@@ -163,6 +189,8 @@ def test_list_licenses_no_longer_accepts_admin_key_query_param(client, monkeypat
 
 
 def test_list_licenses_with_manage_licenses_permission_succeeds(client, monkeypatch):
+    """GET /api/license/list with the manage_licenses permission returns 200 and an
+    empty list when the mocked database has no rows."""
     monkeypatch.setattr(
         license_server, "_validate_token",
         lambda token: {"user_id": 1, "email": "admin@omnibioai.test", "permissions": ["manage_licenses"]},
@@ -183,6 +211,8 @@ def test_list_licenses_with_manage_licenses_permission_succeeds(client, monkeypa
 
 
 def test_validate_endpoint_unaffected_by_iam_changes(client, monkeypatch):
+    """POST /api/license/validate stays unauthenticated: with no Authorization header it
+    returns valid=True for a mocked valid license."""
     monkeypatch.setattr(
         license_server, "_load_valid_license",
         lambda key: {
@@ -199,12 +229,16 @@ def test_validate_endpoint_unaffected_by_iam_changes(client, monkeypatch):
 
 
 def test_verify_service_identity_skips_when_not_configured(monkeypatch):
+    """verify_service_identity returns False without contacting the auth service when no
+    service client id or secret is configured."""
     monkeypatch.setattr(license_server, "STUDIO_SERVICE_CLIENT_ID", "")
     monkeypatch.setattr(license_server, "STUDIO_SERVICE_CLIENT_SECRET", "")
     assert license_server.verify_service_identity() is False
 
 
 def test_verify_service_identity_succeeds_end_to_end(monkeypatch):
+    """verify_service_identity returns True after a client_credentials token request to
+    /oauth/token and a bearer-authenticated /service/me call, both mocked."""
     monkeypatch.setattr(license_server, "STUDIO_SERVICE_CLIENT_ID", "omni_client_test")
     monkeypatch.setattr(license_server, "STUDIO_SERVICE_CLIENT_SECRET", "shh")
 
@@ -227,6 +261,8 @@ def test_verify_service_identity_succeeds_end_to_end(monkeypatch):
 
 
 def test_verify_service_identity_fails_gracefully_on_bad_token_response(monkeypatch):
+    """verify_service_identity returns False when the mocked token endpoint responds
+    401."""
     monkeypatch.setattr(license_server, "STUDIO_SERVICE_CLIENT_ID", "omni_client_test")
     monkeypatch.setattr(license_server, "STUDIO_SERVICE_CLIENT_SECRET", "wrong")
     monkeypatch.setattr(license_server.requests, "post", lambda *a, **kw: _mock_response(401, {}))
@@ -235,6 +271,8 @@ def test_verify_service_identity_fails_gracefully_on_bad_token_response(monkeypa
 
 
 def test_verify_service_identity_never_raises_on_network_error(monkeypatch):
+    """verify_service_identity returns False rather than raising when the auth service
+    is unreachable."""
     monkeypatch.setattr(license_server, "STUDIO_SERVICE_CLIENT_ID", "omni_client_test")
     monkeypatch.setattr(license_server, "STUDIO_SERVICE_CLIENT_SECRET", "shh")
 
