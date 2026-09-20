@@ -1,7 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
 
 const VIDEOS_JSON = "/_svc/videos/videos.json";
-const VIDEOS_BASE = "/_svc/videos/videos/";
+const VIDEOS_BASE = "/_svc/videos/";
+
+export function getVideoSource(filename) {
+  return `${VIDEOS_BASE}${encodeURIComponent(filename)}`;
+}
+
+export function formatVideoDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+  const total = Math.round(seconds);
+  if (total < 60) return `${total} sec`;
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  if (hours > 0) return `${hours} hr ${String(minutes).padStart(2, "0")} min`;
+  return `${minutes} min`;
+}
+
+function readVideoDuration(node) {
+  return formatVideoDuration(node?.duration);
+}
 
 export default function Videos({ onBack }) {
   const [videos,  setVideos]  = useState([]);
@@ -158,6 +176,22 @@ function Empty() {
 function VideoCard({ video, onPlay }) {
   const { title, description, filename, tags = [] } = video;
   const [hovered, setHovered] = useState(false);
+  const [duration, setDuration] = useState("");
+  const previewRef = useRef(null);
+
+  const updateDuration = event => {
+    const nextDuration = readVideoDuration(event?.currentTarget ?? previewRef.current);
+    if (nextDuration) setDuration(nextDuration);
+  };
+
+  useEffect(() => {
+    setDuration("");
+    const node = previewRef.current;
+    if (node?.readyState >= 1) {
+      const nextDuration = readVideoDuration(node);
+      if (nextDuration) setDuration(nextDuration);
+    }
+  }, [filename]);
 
   return (
     <div
@@ -181,9 +215,12 @@ function VideoCard({ video, onPlay }) {
       {/* Thumbnail strip */}
       <div style={{ position:"relative", aspectRatio:"16/9", background:"#000", overflow:"hidden" }}>
         <video
-          src={`${VIDEOS_BASE}${filename}`}
+          ref={previewRef}
+          src={getVideoSource(filename)}
           preload="metadata"
           muted
+          onLoadedMetadata={updateDuration}
+          onDurationChange={updateDuration}
           style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}
         />
         {/* Play overlay */}
@@ -203,6 +240,17 @@ function VideoCard({ video, onPlay }) {
             <span style={{ fontSize:18, marginLeft:4, color: hovered ? "#000" : "#fff" }}>▶</span>
           </div>
         </div>
+        {duration && (
+          <div style={{
+            position:"absolute", right:8, bottom:8,
+            fontSize:"var(--font-size-xs)", fontFamily:"var(--mono)",
+            padding:"2px 7px", borderRadius:"var(--radius-xs)",
+            background:"rgba(0,0,0,0.72)", color:"#fff",
+            border:"1px solid rgba(255,255,255,0.14)",
+          }}>
+            {duration}
+          </div>
+        )}
       </div>
 
       {/* Card body */}
@@ -293,7 +341,7 @@ function PlayerModal({ video, onClose }) {
         {/* Video player */}
         <video
           ref={videoRef}
-          src={`${VIDEOS_BASE}${filename}`}
+          src={getVideoSource(filename)}
           controls
           autoPlay
           style={{ width:"100%", background:"#000", display:"block", flexShrink:0 }}

@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import Videos from "../../src/ui/pages/Videos";
+import Videos, { formatVideoDuration, getVideoSource } from "../../src/ui/pages/Videos";
 
 function jsonRes(body, status = 200) {
   return new Response(JSON.stringify(body), { status });
@@ -10,6 +10,43 @@ function jsonRes(body, status = 200) {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("Videos page", () => {
+
+  it("builds media URLs through the Studio video-service proxy", () => {
+    expect(getVideoSource("intro_getting_started.mp4")).toBe("/_svc/videos/intro_getting_started.mp4");
+    expect(getVideoSource("space name.mp4")).toBe("/_svc/videos/space%20name.mp4");
+  });
+
+  it("formats only finite positive media durations", () => {
+    expect(formatVideoDuration(0)).toBe("");
+    expect(formatVideoDuration(NaN)).toBe("");
+    expect(formatVideoDuration(Infinity)).toBe("");
+    expect(formatVideoDuration(42.2)).toBe("42 sec");
+    expect(formatVideoDuration(435.6)).toBe("7 min");
+    expect(formatVideoDuration(3671)).toBe("1 hr 01 min");
+  });
+
+  it("omits duration until metadata reports a finite positive duration, then updates the card", async () => {
+    const video = { filename: "a.mp4", title: "Intro", description: "Getting started" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonRes([video])));
+    const { container } = render(<Videos onBack={vi.fn()} />);
+    await screen.findByRole("button", { name: "Play Intro" });
+    const preview = container.querySelector('video[preload="metadata"]');
+
+    expect(preview).toHaveAttribute("src", "/_svc/videos/a.mp4");
+    expect(screen.queryByText(/min|sec|hr/)).not.toBeInTheDocument();
+
+    Object.defineProperty(preview, "duration", { configurable: true, value: NaN });
+    fireEvent(preview, new Event("loadedmetadata"));
+    expect(screen.queryByText(/min|sec|hr/)).not.toBeInTheDocument();
+
+    Object.defineProperty(preview, "duration", { configurable: true, value: Infinity });
+    fireEvent(preview, new Event("durationchange"));
+    expect(screen.queryByText(/min|sec|hr/)).not.toBeInTheDocument();
+
+    Object.defineProperty(preview, "duration", { configurable: true, value: 435.6 });
+    fireEvent(preview, new Event("loadedmetadata"));
+    expect(await screen.findByText("7 min")).toBeInTheDocument();
+  });
   it("shows a loading spinner before the fetch resolves", async () => {
     let resolveFetch;
     vi.stubGlobal("fetch", vi.fn(() => new Promise((res) => { resolveFetch = res; })));
