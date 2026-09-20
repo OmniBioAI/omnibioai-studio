@@ -776,10 +776,10 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:5190:5190"
     environment:
+      # The lifecycle API verifies every caller's bearer token with omnibioai-auth (fails closed).
+      IAM_URL: http://auth-service:8001
       REACT_APP_OMNIBIOAI_BASE_URL: ${OMNIBIOAI_BASE_URL:-http://localhost:8000}
-      REACT_APP_OMNIBIOAI_TOKEN: ${OMNIBIOAI_TOKEN:-dev}
       REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://localhost:8888}
-      REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:?JUPYTER_TOKEN must be set}
       REACT_APP_USE_MOCK: "false"
     depends_on:
       workbench:

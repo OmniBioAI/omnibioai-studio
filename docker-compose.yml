@@ -1224,23 +1224,21 @@ services:
       context: ${MACHINE_DIR}/omnibioai-launcher
       dockerfile: Dockerfile
       # CRA bakes REACT_APP_* vars in at `npm run build` time, not at container
-      # runtime -- the `environment:` block below only reaches the already-built
-      # bundle's (irrelevant) process.env, so these have to be repeated here as
-      # build args or the src/*.jsx hardcoded fallbacks are the only value that
-      # ever actually ships.
+      # runtime, and inlines the WHOLE set into the PUBLIC JavaScript bundle. So
+      # only non-secret configuration (URLs, flags) may appear here -- never a
+      # token, password or API key. The UI once shipped the Jupyter token this way;
+      # it now sends the signed-in user's own token and Jupyter authenticates the
+      # user itself. omnibioai-launcher's prebuild guard and
+      # tests/test_compose_no_secret_frontend_inputs.py fail any reintroduction.
       args:
         REACT_APP_OMNIBIOAI_BASE_URL: ${OMNIBIOAI_BASE_URL:-http://192.168.86.234:8000}
-        REACT_APP_OMNIBIOAI_TOKEN: ${OMNIBIOAI_TOKEN:-dev}
         REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://192.168.86.234:8890}
-        REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-devtoken}
         REACT_APP_USE_MOCK: "false"
     ports:
       - "${HOST_IP:-0.0.0.0}:5190:5190"
     environment:
       REACT_APP_OMNIBIOAI_BASE_URL: ${OMNIBIOAI_BASE_URL:-http://192.168.86.234:8000}
-      REACT_APP_OMNIBIOAI_TOKEN: ${OMNIBIOAI_TOKEN:-dev}
       REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://192.168.86.234:8890}
-      REACT_APP_JUPYTER_TOKEN: ${JUPYTER_TOKEN:-devtoken}
       REACT_APP_USE_MOCK: "false"
       # #54: talk to the docker-socket-proxy's exposed socket, not the
       # raw host one -- server.js's dockerRequest() reads this (no
@@ -1252,6 +1250,9 @@ services:
       # never /containers/create, so no PROXY_ALLOWED_BIND_PREFIXES
       # additions needed for this service.
       DOCKER_SOCKET_PATH: /var/run/proxy-socket/docker.sock
+      # The lifecycle API (server.js) verifies every caller's bearer token with
+      # omnibioai-auth and fails closed if it cannot reach it.
+      IAM_URL: http://auth-service:8001
     volumes:
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_SOCKET_PATH in environment: above. :ro because launcher
