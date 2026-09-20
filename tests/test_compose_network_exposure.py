@@ -396,3 +396,15 @@ def test_redis_aof_config_is_identical_across_all_profiles():
     assert len(unique_commands) == 1, (
         f"redis command must be identical across all compose profiles, got: {commands}"
     )
+
+
+def test_dev_compose_devhub_ui_port_is_loopback_bound_but_api_port_unchanged():
+    """Dev Hub UI port 5173 is a first-party UI surface and must not be
+    published on every host interface. The backend/API port 8082 is recorded
+    as a separate hardening item and is intentionally not changed by this P0
+    bypass closure."""
+    dev = _load(DEV_COMPOSE)
+    published = [str(item) for item in dev["services"]["dev-hub"].get("ports", [])]
+    assert "127.0.0.1:5173:5173" in published
+    assert "${HOST_IP:-0.0.0.0}:5173:5173" not in published
+    assert "${HOST_IP:-0.0.0.0}:8082:8082" in published

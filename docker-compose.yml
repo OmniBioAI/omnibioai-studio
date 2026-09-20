@@ -1184,7 +1184,7 @@ services:
       dockerfile: Dockerfile
       target: backend
     ports:
-      - "${HOST_IP:-0.0.0.0}:5173:5173"
+      - "127.0.0.1:5173:5173"
       - "${HOST_IP:-0.0.0.0}:8082:8082"
     environment:
       PYTHONUNBUFFERED: "1"
