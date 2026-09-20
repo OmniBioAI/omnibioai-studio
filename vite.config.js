@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
             registerType: "autoUpdate",
             includeAssets: ["pwa-192x192.png", "pwa-512x512.png"],
             workbox: {
+              importScripts: ["sw-client-reload.js"],
               // generateSW's default SPA fallback registers a Workbox
               // NavigationRoute matching every same-origin navigation
               // (request.mode === 'navigate' — this includes iframe/webview
