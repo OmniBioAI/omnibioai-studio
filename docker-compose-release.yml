@@ -634,6 +634,7 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "8096"
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       OLLAMA_BASE_URL: http://ollama:11434
       IAM_URL: http://auth-service:8001
       GATEWAY_URL: http://api-gateway:8080

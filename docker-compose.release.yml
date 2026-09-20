@@ -650,6 +650,7 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "8096"
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       OLLAMA_BASE_URL: http://ollama:11434
       RAG_EMBEDDING_PROVIDER: sentence_transformers
       RAG_EMBEDDING_MODEL: mixedbread-ai/mxbai-embed-large-v1
