@@ -145,6 +145,15 @@ def test_active_rstudio_not_publicly_bound():
     assert ports == ["127.0.0.1:8787:8787"]
 
 
+def test_active_vscode_not_publicly_bound():
+    """The active production compose routes /vscode/ through nginx over the
+    Docker network (vscode:8080), so the direct host publication must not
+    listen on every interface."""
+    compose = _load(DEV_COMPOSE)
+    ports = compose["services"]["vscode"].get("ports") or []
+    assert ports == ["127.0.0.1:8083:8080"]
+
+
 def test_control_center_is_loopback_bound_in_release_configs(release_compose):
     """control-center is documented (SECURITY-COMPOSE-HARDENING.md SS7 item 1,
     docker-compose.yml's own inline comment) as loopback-only -- unlike the

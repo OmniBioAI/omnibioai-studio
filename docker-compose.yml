@@ -1303,7 +1303,7 @@ services:
     image: ghcr.io/omnibioai/omnibioai-vscode:1.0
     container_name: omnibioai-vscode
     ports:
-      - "${HOST_IP:-0.0.0.0}:8083:8080"
+      - "127.0.0.1:8083:8080"
     volumes:
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
       - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
