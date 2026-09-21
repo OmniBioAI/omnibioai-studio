@@ -1287,7 +1287,7 @@ services:
     image: ghcr.io/omnibioai/omnibioai-rstudio:1.0
     container_name: omnibioai-rstudio
     ports:
-      - "${HOST_IP:-0.0.0.0}:8787:8787"
+      - "127.0.0.1:8787:8787"
     volumes:
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
       - ${MACHINE_DIR}/work:${MACHINE_DIR}/work

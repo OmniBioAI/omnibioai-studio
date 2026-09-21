@@ -135,6 +135,16 @@ def test_datastore_still_reachable_internally(release_compose, service):
     )
 
 
+
+def test_active_rstudio_not_publicly_bound():
+    """The active production compose routes /rstudio/ through nginx over the
+    Docker network (rstudio:8787), so the direct host publication must not
+    listen on every interface."""
+    compose = _load(DEV_COMPOSE)
+    ports = compose["services"]["rstudio"].get("ports") or []
+    assert ports == ["127.0.0.1:8787:8787"]
+
+
 def test_control_center_is_loopback_bound_in_release_configs(release_compose):
     """control-center is documented (SECURITY-COMPOSE-HARDENING.md SS7 item 1,
     docker-compose.yml's own inline comment) as loopback-only -- unlike the
