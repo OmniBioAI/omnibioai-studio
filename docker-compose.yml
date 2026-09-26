@@ -1869,6 +1869,10 @@ services:
     container_name: omnibioai-redis-exporter
     environment:
       REDIS_ADDR: redis://redis:6379
+      REDIS_USER: redis_monitoring
+      REDIS_PASSWORD_FILE: /run/secrets/redis-exporter-passwords.json
+    volumes:
+      - /home/manish/redis-prod-credentials/redis_exporter_passwords.json:/run/secrets/redis-exporter-passwords.json:ro
     ports:
       - "9121:9121"
     depends_on:
