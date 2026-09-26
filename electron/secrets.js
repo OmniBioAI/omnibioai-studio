@@ -37,6 +37,7 @@ const crypto = require("crypto");
 const SECRET_DEFAULTS = {
   AUTH_SECRET_KEY: "change-me",
   MYSQL_ROOT_PASSWORD: "omnibioai",
+  INTERACTION_DB_PASSWORD: "change-me-in-production",
   GF_ADMIN_PASSWORD: "omnibioai",
   LICENSE_SECRET: "omnibioai-secret-change-in-production",
   LIMSX_DJANGO_SECRET_KEY: "omnibioai-studio-secret",

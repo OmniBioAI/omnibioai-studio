@@ -38,6 +38,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set -- see DEPLOYMENT.md. Refusing to start with a silently-guessable default}
       MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
+      INTERACTION_DB_PASSWORD: ${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}
     volumes:
       - mysql_data:/var/lib/mysql
       - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d:ro

@@ -192,6 +192,7 @@ function writeEnvFile(config) {
     `DB_INIT_DIR=${getDbInitPath()}`,
     `VIDEO_DIR=${workDir}/videos`,
     `MYSQL_ROOT_PASSWORD=${existing.MYSQL_ROOT_PASSWORD || ''}`,
+    `INTERACTION_DB_PASSWORD=${existing.INTERACTION_DB_PASSWORD || ''}`,
     `MYSQL_DEFAULT_DB=omnibioai`,
     `LIMSX_DJANGO_SECRET_KEY=${existing.LIMSX_DJANGO_SECRET_KEY || ''}`,
     // Fernet key for LIMS's EncryptedCharField. Must be carried through

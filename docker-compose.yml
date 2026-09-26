@@ -6,6 +6,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
+      INTERACTION_DB_PASSWORD: ${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}
     ports:
       - "3306:3306"
     volumes:
@@ -1545,8 +1546,8 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_NAME: omnibioai
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_USER: omnibioai_interaction_worker
+      DB_PASSWORD: ${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}
       SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
       # Redis P1-5 Stage 5: dedicated container (interaction_consumer.py
       # only), no coupling with auth-service's own REDIS_URL -- safe to

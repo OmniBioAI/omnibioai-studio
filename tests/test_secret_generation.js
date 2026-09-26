@@ -34,6 +34,7 @@ function tmpEnvPath() {
 // the app actually provisions -- otherwise a fresh install fails to start.
 const COMPOSE_REQUIRED = [
   "MYSQL_ROOT_PASSWORD",
+  "INTERACTION_DB_PASSWORD",
   "AUTH_SECRET_KEY",
   "LICENSE_SECRET",
   "GF_ADMIN_PASSWORD",
