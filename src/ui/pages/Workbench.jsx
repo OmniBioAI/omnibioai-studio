@@ -27,7 +27,7 @@ function buildCategories(BASE) {
   return [
     {
       name: "Platform Services",
-      color: "var(--color-text-muted)",
+      color: "var(--accent-platform)",
       links: [
         // omnibioai-docs (Docusaurus) can't be proxied under a /_svc/
         // prefix the way the rest of these are — its build has baseUrl:

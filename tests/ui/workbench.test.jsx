@@ -340,6 +340,17 @@ describe("Workbench page", () => {
     expect(screen.getByText("18 modules")).toBeInTheDocument();
   });
 
+  it("uses the Platform Services cyan accent for indicators and names only", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const heading = screen.getByText("Platform Services");
+    expect(heading.style.color).toBe("var(--text)");
+    expect(heading.parentElement.querySelector("div").style.background).toBe("var(--accent-platform)");
+    expect(screen.getByText("Getting Started").style.color).toBe("var(--accent-platform)");
+    expect(screen.getByText("Setup · Cloud · HPC · LLM guide").style.color).toBe("var(--color-text-muted)");
+  });
+
   it("unsubscribes from session changes on unmount", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     const unsubscribe = vi.fn();
