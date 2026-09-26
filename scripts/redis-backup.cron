@@ -1,0 +1,2 @@
+# Redis backup schedule: credentials come from the script's protected external files.
+*/5 * * * * cd /home/manish/Desktop/machine/omnibioai-studio && /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-redis.sh >> /home/manish/Desktop/machine/omnibioai-studio/work/backups/omnibioai-redis-backup.log 2>&1
