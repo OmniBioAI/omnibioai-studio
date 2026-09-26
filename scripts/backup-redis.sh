@@ -10,6 +10,7 @@ REDIS_IMAGE="${REDIS_BACKUP_IMAGE:-redis:7-alpine}"
 REDIS_NETWORK="${REDIS_BACKUP_NETWORK:-omnibioai-studio_default}"
 REDIS_SERVICE="${REDIS_BACKUP_SERVICE:-redis}"
 REDIS_CREDENTIAL_FILE="${REDIS_BACKUP_CREDENTIAL_FILE:-/home/manish/redis-prod-credentials/redis_backup.pass}"
+REDIS_ADMIN_CREDENTIAL_FILE="${REDIS_BACKUP_ADMIN_CREDENTIAL_FILE:-/home/manish/redis-prod-credentials/redis_admin.pass}"
 ENCRYPTION_KEY_FILE="${REDIS_BACKUP_ENCRYPTION_KEY_FILE:-/home/manish/redis-prod-credentials/redis_backup_encryption.pass}"
 DESTINATION="${REDIS_BACKUP_DESTINATION:-/media/manish/omnibioai-data/secure-backup}"
 DESTINATION_DEVICE="${REDIS_BACKUP_DESTINATION_DEVICE:-/dev/sda1}"
@@ -19,8 +20,8 @@ POLL_SECONDS="${REDIS_BACKUP_POLL_SECONDS:-2}"
 HEALTH_FILE="${REDIS_BACKUP_HEALTH_FILE:-${DESTINATION}/redis-backup-health.env}"
 LOCK_FILE="${REDIS_BACKUP_LOCK_FILE:-${DESTINATION}/.redis-backup.lock}"
 WORK_DIR="${REDIS_BACKUP_WORK_DIR:-${DESTINATION}/.staging}"
-RUN_DIR=""; REDIS_ENV=""; ARTIFACT=""; STAGE=init; STATE=NONE
-SNAPSHOT_TS=""; VERIFIED_TS=""; TIMESTAMP=""
+RUN_DIR=""; REDIS_ENV=""; ADMIN_ENV=""; ARTIFACT=""; STAGE=init; STATE=NONE
+CUTOFF_TS=""; SNAPSHOT_TS=""; VERIFIED_TS=""; TIMESTAMP=""
 
 log() { echo "[INFO] $(date -Iseconds) $*"; }
 
@@ -30,7 +31,7 @@ write_health() {
   {
     printf 'LAST_ATTEMPT_TS=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf 'LAST_RESULT=%s\nLAST_STAGE=%s\n' "$result" "$stage"
-    printf 'LAST_SNAPSHOT_TS=%s\nLAST_VERIFIED_TS=%s\n' "$SNAPSHOT_TS" "$VERIFIED_TS"
+    printf 'LAST_CUTOFF_TS=%s\nLAST_SNAPSHOT_TS=%s\nLAST_VERIFIED_TS=%s\n' "$CUTOFF_TS" "$SNAPSHOT_TS" "$VERIFIED_TS"
     printf 'LAST_ARTIFACT=%s\nLAST_ARTIFACT_SHA256=%s\nLAST_ARTIFACT_STATE=%s\n' "$artifact" "$sha" "$state"
     printf 'LAST_ARTIFACT_ENCRYPTED=%s\nDESTINATION_DEVICE=%s\n' "$([[ -n "$artifact" ]] && echo true || echo false)" "$DESTINATION_DEVICE"
     printf 'RPO_TARGET_SECONDS=300\nSCHEDULE_INTERVAL_SECONDS=900\n'
@@ -42,11 +43,12 @@ fail() {
   local message="$1"
   write_health failure "$STAGE" "$ARTIFACT" "" "$STATE"
   emit_security_alert redis-backup "${ALERT_CONDITION:-backup_failed}" critical "$message" "stage=$STAGE"
+  [[ "$STATE" == "VERIFIED" ]] || rm -f "$ARTIFACT" "${ARTIFACT}.partial" 2>/dev/null || true
   rm -rf "$RUN_DIR" 2>/dev/null || true
   exit 1
 }
 
-cleanup() { rm -f "$REDIS_ENV" 2>/dev/null || true; rm -rf "$RUN_DIR" 2>/dev/null || true; }
+cleanup() { rm -f "$REDIS_ENV" "$ADMIN_ENV" 2>/dev/null || true; rm -rf "$RUN_DIR" 2>/dev/null || true; }
 trap cleanup EXIT
 trap 'fail "unexpected backup command failure"' ERR
 
@@ -76,9 +78,32 @@ make_redis_env() {
   { printf 'REDISCLI_AUTH='; cat "$REDIS_CREDENTIAL_FILE"; printf '\n'; } > "$REDIS_ENV"
 }
 
+make_admin_env() {
+  ADMIN_ENV="$(mktemp "${RUN_DIR}/admin-env.XXXXXX")"; chmod 600 "$ADMIN_ENV"
+  { printf 'REDISCLI_AUTH='; cat "$REDIS_ADMIN_CREDENTIAL_FILE"; printf '\n'; } > "$ADMIN_ENV"
+}
+
 redis_cli() {
   docker run --rm --network "$REDIS_NETWORK" --env-file "$REDIS_ENV" "$REDIS_IMAGE" \
     redis-cli -h "$REDIS_SERVICE" -p 6379 --user redis_backup "$@"
+}
+
+admin_cli() {
+  docker run --rm --network "$REDIS_NETWORK" --env-file "$ADMIN_ENV" "$REDIS_IMAGE" \
+    redis-cli -h "$REDIS_SERVICE" -p 6379 --user redis_admin "$@"
+}
+
+acl_sync_guard() {
+  STAGE=acl_precheck
+  local runtime_acl persisted_acl
+  runtime_acl="${RUN_DIR}/runtime.acl"
+  persisted_acl="${RUN_DIR}/persisted.acl"
+  admin_cli ACL LIST > "$runtime_acl" || { ALERT_CONDITION=backup_acl_drift; fail "runtime ACL inspection failed"; }
+  docker exec "$REDIS_CONTAINER" cat /data/users.acl > "$persisted_acl" || { ALERT_CONDITION=backup_acl_drift; fail "persisted ACL inspection failed"; }
+  if ! "${SCRIPT_DIR}/check-redis-acl-sync.sh" "$runtime_acl" "$persisted_acl"; then
+    ALERT_CONDITION=backup_acl_drift
+    fail "runtime and persisted ACL metadata differ"
+  fi
 }
 
 persistence_info() { redis_cli INFO persistence | tr '\r' '\n'; }
@@ -121,25 +146,29 @@ encrypt_artifact() {
 }
 
 verify_artifact() {
-  STAGE=verification; local sha listing
+  STAGE=verification; local sha listing acl_count
   sha="$(sha256sum "$ARTIFACT" | awk '{print $1}')"
   listing="$(gpg --batch --quiet --pinentry-mode loopback --passphrase-file "$ENCRYPTION_KEY_FILE" --decrypt "$ARTIFACT" | tar -tzf -)" || { ALERT_CONDITION=backup_checksum_failure; fail "encrypted artifact decryption failed"; }
   echo "$listing" | grep -qx 'dump.rdb' || { ALERT_CONDITION=backup_checksum_failure; fail "dump.rdb missing from encrypted artifact"; }
   echo "$listing" | grep -qx 'users.acl' || { ALERT_CONDITION=backup_checksum_failure; fail "users.acl missing from encrypted artifact"; }
+  acl_count="$(gpg --batch --quiet --pinentry-mode loopback --passphrase-file "$ENCRYPTION_KEY_FILE" --decrypt "$ARTIFACT" | gzip -dc | tar -xOf - users.acl | awk '/^user /{count++} /^user default off /{default_off=1} /^user redis_backup /{backup=1} END{if (!default_off || !backup || count == 0) exit 1; print count}')" || { ALERT_CONDITION=backup_checksum_failure; fail "encrypted ACL state is incomplete"; }
   local manifest="${ARTIFACT%.tar.gz.gpg}.manifest.json"
-  python3 - "$manifest" "$ARTIFACT" "$sha" "$SNAPSHOT_TS" <<'PY'
+  VERIFIED_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  python3 - "$manifest" "$ARTIFACT" "$sha" "$CUTOFF_TS" "$SNAPSHOT_TS" "$VERIFIED_TS" "$acl_count" <<'PY'
 import json, sys
 from pathlib import Path
-manifest, artifact, sha, snapshot = sys.argv[1:]
+manifest, artifact, sha, cutoff, snapshot, verified, acl_count = sys.argv[1:]
 data = {"schema_version": 1, "state": "VERIFIED", "artifact": Path(artifact).name,
         "artifact_size_bytes": Path(artifact).stat().st_size, "sha256": sha,
-        "snapshot_timestamp_utc": snapshot, "redis_version_classification": "redis-7",
+        "cutoff_timestamp_utc": cutoff, "snapshot_timestamp_utc": snapshot,
+        "local_verified_timestamp_utc": verified, "redis_version_classification": "redis-7",
         "format": "rdb-acl-v1", "default_user": "off",
-        "contains": ["dump.rdb", "users.acl"], "restore_verified": False}
+        "contains": ["dump.rdb", "users.acl"], "acl_user_count": int(acl_count),
+        "contains_redis_backup": True, "restore_verified": False}
 tmp = Path(str(manifest) + ".tmp"); tmp.write_text(json.dumps(data, sort_keys=True) + "\n", encoding="utf-8")
 tmp.chmod(0o600); tmp.replace(manifest)
 PY
-  STATE=VERIFIED; VERIFIED_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; write_health success verification "$ARTIFACT" "$sha" VERIFIED
+  STATE=VERIFIED; write_health success verification "$ARTIFACT" "$sha" VERIFIED
 }
 
 retain() {
@@ -151,10 +180,10 @@ retain() {
 
 main() {
   [[ "${1:-}" != --help ]] || { echo "usage: backup-redis.sh"; return 0; }
-  require_file "$REDIS_CREDENTIAL_FILE" "Redis backup credential"; require_file "$ENCRYPTION_KEY_FILE" "Redis backup encryption credential"
+  require_file "$REDIS_CREDENTIAL_FILE" "Redis backup credential"; require_file "$REDIS_ADMIN_CREDENTIAL_FILE" "Redis admin credential"; require_file "$ENCRYPTION_KEY_FILE" "Redis backup encryption credential"
   RUN_DIR="$(mktemp -d -p /tmp redis-backup.XXXXXX)"; chmod 700 "$RUN_DIR"
   exec 9>"$LOCK_FILE"; flock -n 9 || { STAGE=lock; ALERT_CONDITION=backup_lock_contention; fail "another Redis backup is already running"; }
-  check_destination; make_redis_env; snapshot; TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"; encrypt_artifact; verify_artifact; retain
+  check_destination; make_redis_env; make_admin_env; acl_sync_guard; CUTOFF_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; snapshot; TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"; encrypt_artifact; verify_artifact; retain
   log "Redis backup VERIFIED: encrypted artifact published locally"
 }
 main "$@"

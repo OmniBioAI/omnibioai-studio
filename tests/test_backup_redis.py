@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BACKUP = ROOT / "scripts" / "backup-redis.sh"
 VERIFY = ROOT / "scripts" / "verify-redis-backup.sh"
 HEALTH = ROOT / "scripts" / "redis-backup-health-check.sh"
+ACL_SYNC = ROOT / "scripts" / "check-redis-acl-sync.sh"
 
 
 def run(script, *args, env=None):
@@ -15,8 +16,34 @@ def run(script, *args, env=None):
 
 
 def test_scripts_have_valid_shell_syntax():
-    for script in (BACKUP, VERIFY, HEALTH):
+    for script in (BACKUP, VERIFY, HEALTH, ACL_SYNC):
         assert subprocess.run(["bash", "-n", str(script)]).returncode == 0
+
+
+def test_acl_sync_accepts_matching_metadata_without_hashes(tmp_path):
+    runtime = tmp_path / "runtime.acl"
+    persisted = tmp_path / "persisted.acl"
+    runtime.write_text("user redis_backup on #" + "a" * 64 + " -@all +ping\n", encoding="utf-8")
+    persisted.write_text("user redis_backup on #" + "b" * 64 + " -@all +ping\n", encoding="utf-8")
+    assert subprocess.run(["bash", str(ACL_SYNC), str(runtime), str(persisted)]).returncode == 0
+
+
+def test_acl_sync_rejects_identity_and_authorization_drift(tmp_path):
+    runtime = tmp_path / "runtime.acl"
+    persisted = tmp_path / "persisted.acl"
+    runtime.write_text("user redis_backup on -@all +ping\n", encoding="utf-8")
+    persisted.write_text("user redis_backup on -@all +ping\nuser redis_monitoring on -@all +ping\n", encoding="utf-8")
+    assert subprocess.run(["bash", str(ACL_SYNC), str(runtime), str(persisted)]).returncode != 0
+    persisted.write_text("user redis_backup on -@all +ping +info\n", encoding="utf-8")
+    assert subprocess.run(["bash", str(ACL_SYNC), str(runtime), str(persisted)]).returncode != 0
+
+
+def test_acl_sync_rejects_persisted_only_identity(tmp_path):
+    runtime = tmp_path / "runtime.acl"
+    persisted = tmp_path / "persisted.acl"
+    runtime.write_text("user redis_backup on -@all +ping\n", encoding="utf-8")
+    persisted.write_text("user redis_backup on -@all +ping\nuser redis_monitoring on -@all +ping\n", encoding="utf-8")
+    assert subprocess.run(["bash", str(ACL_SYNC), str(persisted), str(runtime)]).returncode != 0
 
 
 def test_backup_uses_named_auth_and_no_password_argument():

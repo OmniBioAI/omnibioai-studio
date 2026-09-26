@@ -4,7 +4,7 @@ Phase 1 implements an authenticated, encrypted Redis RDB plus ACL-file backup to
 
 The workflow uses `redis_backup` with only `PING`, `INFO`, `LASTSAVE`, and `BGSAVE`. It has no ACL, CONFIG, key, stream, or broad-category permissions. The password and dedicated encryption credential remain outside Git and containers with mode 0600 files under the protected credential directory.
 
-`scripts/backup-redis.sh` requires authenticated precheck, healthy AOF/RDB state, `BGSAVE`, bounded completion polling, an advancing `LASTSAVE`, encrypted publication, SHA-256 verification, decryption verification, and a non-secret manifest. The encrypted archive contains `dump.rdb` and `users.acl`; the manifest asserts `default off` without ACL hashes or data values.
+`scripts/backup-redis.sh` requires authenticated `redis_backup` and `redis_admin` prechecks, and compares runtime ACL metadata with `/data/users.acl` after removing password hashes. Any runtime-only identity or authorization drift refuses publication. It then requires healthy AOF/RDB state, `BGSAVE`, bounded completion polling, an advancing `LASTSAVE`, encrypted publication, SHA-256 verification, decryption verification, and a non-secret manifest. The encrypted archive contains `dump.rdb` and `users.acl`; the manifest asserts `default off`, includes the ACL identity count and cutoff/snapshot/local-verification timestamps, and contains no ACL hashes or data values.
 
 `scripts/verify-redis-backup.sh` verifies ciphertext, manifest, checksum, decryption, and archive structure. It deliberately does not restore Redis and never marks an artifact `RESTORE-VERIFIED`.
 
