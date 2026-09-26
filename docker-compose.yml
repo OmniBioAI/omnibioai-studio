@@ -727,6 +727,15 @@ services:
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Licensed reference-database connectors (omnibioai-workbench plugins).
+      # Optional: each plugin reports not_configured when its variable is empty.
+      DRUGBANK_API_KEY: ${DRUGBANK_API_KEY:-}
+      ONCOKB_API_TOKEN: ${ONCOKB_API_TOKEN:-}
+      VARSOME_API_TOKEN: ${VARSOME_API_TOKEN:-}
+      VARSOME_API_ENVIRONMENT: ${VARSOME_API_ENVIRONMENT:-live}
+      MASTERMIND_API_TOKEN: ${MASTERMIND_API_TOKEN:-}
+      BIOCYC_EMAIL: ${BIOCYC_EMAIL:-}
+      BIOCYC_PASSWORD: ${BIOCYC_PASSWORD:-}
       CODE_LLM_MODEL: ${CODE_LLM_MODEL:-qwen2.5-coder:32b}
       REASONING_LLM_MODEL: ${REASONING_LLM_MODEL:-deepseek-r1:32b}
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-deepseek-r1:32b}
@@ -940,6 +949,15 @@ services:
       OMNIBIOAI_MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Licensed reference-database connectors (omnibioai-workbench plugins).
+      # Optional: each plugin reports not_configured when its variable is empty.
+      DRUGBANK_API_KEY: ${DRUGBANK_API_KEY:-}
+      ONCOKB_API_TOKEN: ${ONCOKB_API_TOKEN:-}
+      VARSOME_API_TOKEN: ${VARSOME_API_TOKEN:-}
+      VARSOME_API_ENVIRONMENT: ${VARSOME_API_ENVIRONMENT:-live}
+      MASTERMIND_API_TOKEN: ${MASTERMIND_API_TOKEN:-}
+      BIOCYC_EMAIL: ${BIOCYC_EMAIL:-}
+      BIOCYC_PASSWORD: ${BIOCYC_PASSWORD:-}
       CODE_LLM_MODEL: ${CODE_LLM_MODEL:-qwen2.5-coder:32b}
       REASONING_LLM_MODEL: ${REASONING_LLM_MODEL:-deepseek-r1:32b}
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-deepseek-r1:32b}
