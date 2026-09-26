@@ -173,7 +173,7 @@ PY
 
 retain() {
   STAGE=retention
-  local restore_count; restore_count="$(grep -rl '"restore_verified": true' "$DESTINATION"/*.manifest.json 2>/dev/null || true)"; restore_count="$(printf '%s\n' "$restore_count" | sed '/^$/d' | wc -l)"
+  local restore_count; restore_count="$(find "$DESTINATION" -maxdepth 1 -type f -name '*.restore-verified.json' -print 2>/dev/null | wc -l)"
   if [[ "$restore_count" -eq 0 ]]; then log "Retention conservative mode: no RESTORE-VERIFIED artifact exists"; return 0; fi
   log "Retention restore-aware mode available; no artifact deleted in Phase 1"
 }

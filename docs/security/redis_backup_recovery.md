@@ -8,6 +8,8 @@ The workflow uses `redis_backup` with only `PING`, `INFO`, `LASTSAVE`, and `BGSA
 
 `scripts/verify-redis-backup.sh` verifies ciphertext, manifest, checksum, decryption, and archive structure. It deliberately does not restore Redis and never marks an artifact `RESTORE-VERIFIED`.
 
+After a complete isolated restore, `scripts/record-redis-restore-verification.py` writes an atomic, checksum-bound `.restore-verified.json` sidecar. The encrypted artifact and its original `VERIFIED` manifest remain immutable. Only a successful `VERIFIED` artifact with complete ACL evidence can transition to `RESTORE-VERIFIED`; repeated identical transitions are idempotent. Retention recognizes these sidecars and protects restore-verified artifacts.
+
 `scripts/redis-backup-health-check.sh` checks the machine-readable health state, freshness, checksum, mount source, and destination permissions. Existing local alert events are used; this is **LOCAL EVENT EMISSION ONLY**, not external operator notification.
 
 The Phase 1 schedule interval is recorded as 15 minutes and the strictest approved technical RPO is recorded as 5 minutes. A 15-minute schedule does not itself prove a 5-minute measured RPO; that requires the separately approved restore tranche.
