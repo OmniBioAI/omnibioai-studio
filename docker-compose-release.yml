@@ -644,6 +644,18 @@ services:
       - ollama
     restart: on-failure
 
+  neo4j:
+    image: neo4j:5.15
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?NEO4J_PASSWORD must be set}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_heap_max__size: 4G
+      NEO4J_dbms_memory_pagecache_size: 2G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    restart: unless-stopped
+
   control-center:
     image: ghcr.io/omnibioai/omnibioai-control-center:latest
     ports:
@@ -910,6 +922,7 @@ services:
       - jupyter
       - rstudio
       - vscode
+      - neo4j
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
@@ -929,6 +942,8 @@ volumes:
   redis_data:
   ollama_data:
   grafana_data:
+  neo4j_data:
+  neo4j_logs:
   # #265: docker-socket-proxy's exposed socket, shared with workbench.
   # #54: explicit `name:` pins this to the literal "docker-proxy-socket"
   # regardless of Compose's project-prefix convention -- workflow_runner's

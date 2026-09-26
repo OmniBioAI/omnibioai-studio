@@ -15,28 +15,6 @@ const MANAGE_CONFIG_PERMISSION = "manage_config";
 const MANAGE_LICENSES_PERMISSION = "manage_licenses";
 const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
 
-const NEO4J_BROWSER_URL = "https://neo4j.omnibioai.org/";
-
-// Neo4j Browser sits behind Cloudflare Access (dedicated cloudflared
-// ingress -- see the tile's own comment below), whose hosted email+code
-// challenge is a top-level, cross-origin, cookie-setting redirect flow.
-// That can't complete inside ServiceViewer's iframe/webview -- Access's
-// login page blocks framing and the CF_Authorization cookie it sets is
-// a third-party cookie in that context -- which is why the tile showed
-// blank/"refused to connect" while the same URL in a fresh top-level
-// tab worked fine. So, unlike every other absolute-URL tile here (e.g.
-// Admin Console, which isn't behind Cloudflare Access and loads fine
-// embedded), this one bypasses the open()/open-service/ServiceViewer
-// path entirely and opens a real top-level browsing context instead:
-// a new tab on web, the OS default browser in Electron.
-const openNeo4jBrowser = () => {
-  if (isElectron()) {
-    window.electronAPI?.openExternal(NEO4J_BROWSER_URL);
-  } else {
-    window.open(NEO4J_BROWSER_URL, "_blank", "noopener,noreferrer");
-  }
-};
-
 function getInitialHost() {
   return (
     window.__OMNIBIOAI_SERVER__ ||
@@ -93,36 +71,12 @@ function buildCategories(BASE) {
         // build has no `base` set either, so it's root-absolute-path and
         // can't be proxied under a /_svc/ prefix without breaking assets.
         { label:"Admin Console",    url:"https://admin.omnibioai.org/", icon:"🛡️", desc:"Org/user/IAM · Billing · Compliance", requiresPermission: ADMIN_CONSOLE_PERMISSION },
-        // Neo4j Browser — a full read/write Cypher console over the
-        // knowledge graph, so it is permission-gated on the same
-        // platform.manage_infra check as Admin Console / Control Center
-        // rather than shown to every signed-in researcher. Reached via a
-        // dedicated cloudflared ingress (neo4j.omnibioai.org ->
-        // localhost:7474) behind Cloudflare Access; the container's 7474/
-        // 7687 ports are otherwise loopback-only (docker-compose.yml).
-        // url:"" + action (see openNeo4jBrowser above), not a plain
-        // open()-ed URL like Admin Console: this one has to land in a
-        // real top-level tab/window for Cloudflare Access's login
-        // challenge to complete, not ServiceViewer's iframe/webview.
-        // No "back to Workbench" link once there -- neo4j.omnibioai.org
-        // is a separate origin we don't control the content of (and in
-        // Electron this opens the OS default browser, outside the app
-        // entirely), so there's nothing to inject one into. The desc
-        // below flags "opens in new tab" up front instead, so closing
-        // that tab to get back reads as expected rather than a dead end.
-        //
-        // PERMANENT exception, not a bug and not temporary: every other
-        // tile in this file embeds its target inside ServiceViewer, this
-        // one deliberately never will. Why: Cloudflare Access's hosted
-        // email+code login is a top-level, cross-origin, cookie-setting
-        // redirect (see the openNeo4jBrowser comment above), and that
-        // can't complete inside an iframe/webview -- Access's own login
-        // page blocks framing, and the CF_Authorization cookie it sets is
-        // third-party in that context either way. There is no client-side
-        // fix available to Studio for that; it would need Neo4j Browser
-        // moved off Cloudflare Access entirely. Do not re-flag this as an
-        // inconsistency or try to route it through open()/ServiceViewer.
-        { label:"Neo4j Browser",    url:"",                          icon:"🕸️", desc:"Knowledge-graph Cypher console · opens in new tab", action: openNeo4jBrowser, requiresPermission: ADMIN_CONSOLE_PERMISSION },
+        // Neo4j Browser uses the same authenticated, same-origin
+        // ServiceViewer path as the other Workbench services. Neo4j serves
+        // its Browser UI below /browser/ (the root is JSON discovery), so
+        // retain that path under the protected /neo4j/ prefix for relative
+        // assets and Browser API/WebSocket URLs.
+        { label:"Neo4j Browser",    url:"/neo4j/browser/",            icon:"🕸️", desc:"Knowledge-graph Cypher console", requiresPermission: ADMIN_CONSOLE_PERMISSION },
         { label:"LLM Runtime",      url:"",                                      icon:"🤖", desc:"Local models · GPU · Ollama", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 1 })), requiresPermission: MANAGE_CONFIG_PERMISSION },
         { label:"Entitlements",     url:"https://admin.omnibioai.org/billing",    icon:"🔑", desc:"Plans · Licenses · Access", requiresPermission: MANAGE_LICENSES_PERMISSION },
         // Internal Studio page (src/ui/pages/Billing.jsx, App.jsx step 12),
