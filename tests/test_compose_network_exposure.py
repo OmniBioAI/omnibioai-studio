@@ -68,6 +68,7 @@ REQUIRED_SECRETS = {
     "JUPYTER_TOKEN": "omnibioai",
     "RSTUDIO_PASSWORD": "omnibioai",
     "VSCODE_PASSWORD": "omnibioai",
+    "NEO4J_PASSWORD": "omnibioai",
 }
 
 
@@ -152,6 +153,15 @@ def test_active_vscode_not_publicly_bound():
     compose = _load(DEV_COMPOSE)
     ports = compose["services"]["vscode"].get("ports") or []
     assert ports == ["127.0.0.1:8083:8080"]
+
+
+def test_release_neo4j_is_internal_only(release_compose):
+    """Neo4j Browser is reachable through nginx-router, not raw database
+    ports. Bolt and HTTP stay on the Compose network."""
+    neo4j = release_compose["services"].get("neo4j")
+    assert neo4j is not None
+    assert not neo4j.get("ports")
+    assert neo4j["environment"]["NEO4J_AUTH"].startswith("neo4j/${NEO4J_PASSWORD:?")
 
 
 def test_control_center_is_loopback_bound_in_release_configs(release_compose):

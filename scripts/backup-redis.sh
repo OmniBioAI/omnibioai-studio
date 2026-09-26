@@ -26,17 +26,27 @@ CUTOFF_TS=""; SNAPSHOT_TS=""; VERIFIED_TS=""; TIMESTAMP=""
 log() { echo "[INFO] $(date -Iseconds) $*"; }
 
 write_health() {
-  local result="$1" stage="$2" artifact="${3:-}" sha="${4:-}" state="${5:-NONE}" tmp="${HEALTH_FILE}.tmp"
-  mkdir -p "$(dirname "$HEALTH_FILE")"; chmod 700 "$(dirname "$HEALTH_FILE")" 2>/dev/null || true
-  {
-    printf 'LAST_ATTEMPT_TS=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    printf 'LAST_RESULT=%s\nLAST_STAGE=%s\n' "$result" "$stage"
-    printf 'LAST_CUTOFF_TS=%s\nLAST_SNAPSHOT_TS=%s\nLAST_VERIFIED_TS=%s\n' "$CUTOFF_TS" "$SNAPSHOT_TS" "$VERIFIED_TS"
-    printf 'LAST_ARTIFACT=%s\nLAST_ARTIFACT_SHA256=%s\nLAST_ARTIFACT_STATE=%s\n' "$artifact" "$sha" "$state"
-    printf 'LAST_ARTIFACT_ENCRYPTED=%s\nDESTINATION_DEVICE=%s\n' "$([[ -n "$artifact" ]] && echo true || echo false)" "$DESTINATION_DEVICE"
-    printf 'RPO_TARGET_SECONDS=300\nSCHEDULE_INTERVAL_SECONDS=900\n'
-  } > "$tmp"
-  chmod 600 "$tmp"; mv -f "$tmp" "$HEALTH_FILE"
+  local result="$1" stage="$2" artifact="${3:-}" sha="${4:-}" state="${5:-NONE}"
+  python3 "${SCRIPT_DIR}/update-redis-backup-health.py" "$HEALTH_FILE" \
+    --attempt-result "$result" --stage "$stage" --artifact "$artifact" --sha "$sha" --state "$state"
+  if [[ "$result" == success ]]; then
+    local tmp="${HEALTH_FILE}.metadata.tmp"
+    python3 - "$HEALTH_FILE" "$tmp" "$CUTOFF_TS" "$SNAPSHOT_TS" "$VERIFIED_TS" "$DESTINATION_DEVICE" <<'PY'
+import os, sys
+from pathlib import Path
+source, target, cutoff, snapshot, verified, device = sys.argv[1:]
+values = {}
+for line in Path(source).read_text(encoding="utf-8").splitlines():
+    if "=" in line:
+        key, value = line.split("=", 1); values[key] = value
+values.update({"LAST_CUTOFF_TS": cutoff, "LAST_SNAPSHOT_TS": snapshot, "LAST_VERIFIED_TS": verified,
+               "LAST_ARTIFACT_ENCRYPTED": "true", "DESTINATION_DEVICE": device,
+               "RPO_TARGET_SECONDS": "300", "SCHEDULE_INTERVAL_SECONDS": "300"})
+with open(target, "w", encoding="utf-8") as handle:
+    for key in sorted(values): handle.write(f"{key}={values[key]}\n")
+os.chmod(target, 0o600); os.replace(target, source)
+PY
+  fi
 }
 
 fail() {
@@ -172,18 +182,28 @@ PY
 }
 
 retain() {
+  # RESTORE-VERIFIED sidecars are protected by retain-redis-backups.py; no RESTORE-VERIFIED artifact exists is conservative only when no sidecar is present.
   STAGE=retention
-  local restore_count; restore_count="$(grep -rl '"restore_verified": true' "$DESTINATION"/*.manifest.json 2>/dev/null || true)"; restore_count="$(printf '%s\n' "$restore_count" | sed '/^$/d' | wc -l)"
-  if [[ "$restore_count" -eq 0 ]]; then log "Retention conservative mode: no RESTORE-VERIFIED artifact exists"; return 0; fi
-  log "Retention restore-aware mode available; no artifact deleted in Phase 1"
+  if ! python3 "${SCRIPT_DIR}/retain-redis-backups.py" "$DESTINATION"; then
+    python3 "${SCRIPT_DIR}/update-redis-backup-health.py" "$HEALTH_FILE" --attempt-result success --stage retention --retention-result failure
+    emit_security_alert redis-backup retention_failure critical "Redis backup retention failed" "stage=retention"
+    return 1
+  fi
+  python3 "${SCRIPT_DIR}/update-redis-backup-health.py" "$HEALTH_FILE" --attempt-result success --stage retention --retention-result success
 }
 
 main() {
   [[ "${1:-}" != --help ]] || { echo "usage: backup-redis.sh"; return 0; }
   require_file "$REDIS_CREDENTIAL_FILE" "Redis backup credential"; require_file "$REDIS_ADMIN_CREDENTIAL_FILE" "Redis admin credential"; require_file "$ENCRYPTION_KEY_FILE" "Redis backup encryption credential"
   RUN_DIR="$(mktemp -d -p /tmp redis-backup.XXXXXX)"; chmod 700 "$RUN_DIR"
-  exec 9>"$LOCK_FILE"; flock -n 9 || { STAGE=lock; ALERT_CONDITION=backup_lock_contention; fail "another Redis backup is already running"; }
-  check_destination; make_redis_env; make_admin_env; acl_sync_guard; CUTOFF_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; snapshot; TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"; encrypt_artifact; verify_artifact; retain
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    STAGE=lock
+    python3 "${SCRIPT_DIR}/update-redis-backup-health.py" "$HEALTH_FILE" --attempt-result lock_contention --stage lock
+    emit_security_alert redis-backup backup_lock_contention warning "another Redis backup is already running" "stage=lock"
+    exit 75
+  fi
+  check_destination; make_redis_env; make_admin_env; acl_sync_guard; CUTOFF_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; snapshot; TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"; encrypt_artifact; verify_artifact; retain || true
   log "Redis backup VERIFIED: encrypted artifact published locally"
 }
 main "$@"

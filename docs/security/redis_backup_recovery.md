@@ -8,9 +8,15 @@ The workflow uses `redis_backup` with only `PING`, `INFO`, `LASTSAVE`, and `BGSA
 
 `scripts/verify-redis-backup.sh` verifies ciphertext, manifest, checksum, decryption, and archive structure. It deliberately does not restore Redis and never marks an artifact `RESTORE-VERIFIED`.
 
+After a complete isolated restore, `scripts/record-redis-restore-verification.py` writes an atomic, checksum-bound `.restore-verified.json` sidecar. The encrypted artifact and its original `VERIFIED` manifest remain immutable. Only a successful `VERIFIED` artifact with complete ACL evidence can transition to `RESTORE-VERIFIED`; repeated identical transitions are idempotent. Retention recognizes these sidecars and protects restore-verified artifacts.
+
 `scripts/redis-backup-health-check.sh` checks the machine-readable health state, freshness, checksum, mount source, and destination permissions. Existing local alert events are used; this is **LOCAL EVENT EMISSION ONLY**, not external operator notification.
 
-The Phase 1 schedule interval is recorded as 15 minutes and the strictest approved technical RPO is recorded as 5 minutes. A 15-minute schedule does not itself prove a 5-minute measured RPO; that requires the separately approved restore tranche.
+The production schedule is implemented as one host cron entry in `scripts/redis-backup.cron`, running every five minutes. Credentials are read only from the protected external credential directory; they are not present in the cron command. The workflow uses an exclusive `flock` and records lock contention separately from last-good backup health, so an overlapping invocation cannot start a second `BGSAVE` or turn a healthy backup into a false failure.
+
+Retention keeps 288 newest valid recovery points plus up to 14 older daily points. Artifact, manifest, and any restore-verification sidecar are treated as one unit. Malformed or unrecognized units are preserved, restore-verified units are protected, and retention failure is observable without invalidating a successfully verified artifact. A one-gigabyte minimum-free-space guard prevents uncontrolled operation when the destination becomes constrained; the threshold is well above the measured two-times projected five-minute steady-state footprint and is configurable for operations.
+
+The strictest approved technical RPO is recorded as 5 minutes. A five-minute schedule establishes the intended maximum interval, not by itself a measured end-to-end RPO; actual scheduled cutoff, snapshot, and local-verification timestamps must be assessed over repeated runs. External/off-host protection and operator-visible alert delivery remain outside this local Phase 1 tranche.
 
 Retention stays conservative until an isolated restore establishes the first `RESTORE-VERIFIED` artifact. Failed backup, encryption, verification, or retention processing preserves existing artifacts.
 

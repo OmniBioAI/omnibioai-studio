@@ -340,6 +340,17 @@ describe("Workbench page", () => {
     expect(screen.getByText("18 modules")).toBeInTheDocument();
   });
 
+  it("uses the Platform Services cyan accent for indicators and names only", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Workbench />);
+
+    const heading = screen.getByText("Platform Services");
+    expect(heading.style.color).toBe("var(--text)");
+    expect(heading.parentElement.querySelector("div").style.background).toBe("var(--accent-platform)");
+    expect(screen.getByText("Getting Started").style.color).toBe("var(--accent-platform)");
+    expect(screen.getByText("Setup · Cloud · HPC · LLM guide").style.color).toBe("var(--color-text-muted)");
+  });
+
   it("unsubscribes from session changes on unmount", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     const unsubscribe = vi.fn();
@@ -350,36 +361,35 @@ describe("Workbench page", () => {
     expect(unsubscribe).toHaveBeenCalled();
   });
 
-  it("opens Neo4j Browser in a real new tab on web, bypassing ServiceViewer/open-service", () => {
+  it("opens Neo4j Browser through the same-origin embedded service route", () => {
     usePermissions(["platform.manage_infra"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    const openSpy = vi.spyOn(window, "open").mockImplementation(() => {});
     render(<Workbench />);
 
     const tile = screen.getByRole("button", { name: "Neo4j Browser — Knowledge-graph Cypher console" });
     const opened = vi.fn();
     window.addEventListener("open-service", opened);
     fireEvent.click(tile);
-    expect(openSpy).toHaveBeenCalledWith("https://neo4j.omnibioai.org/", "_blank", "noopener,noreferrer");
-    expect(opened).not.toHaveBeenCalled();
+    expect(opened).toHaveBeenCalledWith(expect.objectContaining({
+      detail: { url: "/neo4j/browser/", label: "Neo4j Browser" },
+    }));
     window.removeEventListener("open-service", opened);
   });
 
-  it("opens Neo4j Browser in the OS default browser under Electron, not an embedded webview", () => {
+  it("keeps Neo4j Browser embedded under Electron", () => {
     isElectron.mockReturnValue(true);
     usePermissions(["platform.manage_infra"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    window.electronAPI = { openExternal: vi.fn() };
     render(<Workbench />);
 
     const tile = screen.getByRole("button", { name: "Neo4j Browser — Knowledge-graph Cypher console" });
     const opened = vi.fn();
     window.addEventListener("open-service", opened);
     fireEvent.click(tile);
-    expect(window.electronAPI.openExternal).toHaveBeenCalledWith("https://neo4j.omnibioai.org/");
-    expect(opened).not.toHaveBeenCalled();
+    expect(opened).toHaveBeenCalledWith(expect.objectContaining({
+      detail: { url: "http://localhost/neo4j/browser/", label: "Neo4j Browser" },
+    }));
     window.removeEventListener("open-service", opened);
-    delete window.electronAPI;
   });
 
   it("hides Neo4j Browser without platform.manage_infra", () => {
