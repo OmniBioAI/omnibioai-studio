@@ -28,7 +28,7 @@ describe("GrafanaViewer — web build", () => {
     fireEvent.click(screen.getByText("RAG"));
     expect(document.querySelector("iframe").src).toContain("omnibioai-rag");
 
-    fireEvent.click(screen.getByText("← Back to Workbench"));
+    fireEvent.click(screen.getByText("← Back to Studio"));
     expect(onBack).toHaveBeenCalled();
   });
 

@@ -189,7 +189,7 @@ function buildCategories(BASE) {
   ];
 }
 
-export default function Workbench() {
+export default function Studio() {
   const [host,     setHost]     = useState(getInitialHost);
   const [online,   setOnline]   = useState(false);
   const [checking, setChecking] = useState(true);
@@ -275,10 +275,10 @@ export default function Workbench() {
       <div className="workbench-header">
         <div>
           <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
-            Workbench
+            OmniBioAI Studio
           </div>
           <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
-            OmniBioAI bioinformatics platform — quick access to key modules
+            Unified access to OmniBioAI platform services, workflows, AI, and security
           </div>
         </div>
 

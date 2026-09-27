@@ -28,7 +28,7 @@ vi.mock("../../src/ui/pages/HPC", () => ({ default: () => <div>HPC page</div> })
 vi.mock("../../src/ui/pages/Launch", () => ({ default: () => <div>Launch page</div> }));
 vi.mock("../../src/ui/pages/Services", () => ({ default: () => <div>Services page</div> }));
 vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> }));
-vi.mock("../../src/ui/pages/Workbench", () => ({ default: () => <div>Workbench page</div> }));
+vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <div>Studio page</div> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
 vi.mock("../../src/ui/pages/IdeServices", () => ({ default: () => <div>IDE page</div> }));
@@ -49,7 +49,7 @@ describe("application shell", () => {
   it("renders the authorized shell and responds to application navigation events", async () => {
     getCurrentUser.mockResolvedValueOnce({ userId: 1, email: "admin@test", permissions: ["manage_roles"] });
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     expect(screen.getByText("Roles")).toBeInTheDocument();
     window.dispatchEvent(new CustomEvent("navigate", { detail: 9 }));
     await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());

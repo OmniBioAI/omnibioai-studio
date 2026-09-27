@@ -12,7 +12,7 @@ import Launch    from "./pages/Launch";
 import Services  from "./pages/Services";
 import Logs      from "./pages/Logs";
 import Settings  from "./pages/Settings";
-import Workbench from "./pages/Workbench";
+import Studio from "./pages/Studio";
 import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
 import Videos        from "./pages/Videos";
@@ -37,7 +37,7 @@ const BASE_NAV = [
     { name:"Services",     idx:5  },
     { name:"IDE Services", idx:10 },
     { name:"Logs",         idx:6  },
-    { name:"Workbench",    idx:7  },
+    { name:"Studio",       idx:7  },
     { name:"Jobs",         idx:9  },
     { name:"Billing",      idx:12 },
   ]},
@@ -63,8 +63,11 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","workbench","settings","jobs","ide-services","roles","billing"
+  "services","logs","studio","settings","jobs","ide-services","roles","billing"
 ];
+
+const STUDIO_PATH = "/studio";
+const LEGACY_PORTAL_PATH = "/workbench";
 
 // Same-origin relative paths only -- must start with exactly one "/",
 // never "//" (browsers treat a leading "//" as protocol-relative, an open
@@ -86,7 +89,7 @@ function getSafeReturnTo() {
 }
 
 export default function App() {
-  const [step,         setStep]         = useState(0);
+  const [step,         setStep]         = useState(7);
   const [systemStatus, setSystemStatus] = useState("idle");
   const [ready,        setReady]        = useState(false);
   const [config,       setConfig]       = useState({
@@ -135,6 +138,18 @@ export default function App() {
       }
     };
     init();
+  }, []);
+
+  // The shell historically loaded at `/`. Keep that entry point working while
+  // giving the authenticated portal a stable `/studio` URL. `/workbench` is
+  // retained as a bookmark-safe alias for the portal; the real Workbench
+  // service remains under `/_svc/workbench/` and is never claimed here.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.pathname === "/" || url.pathname === LEGACY_PORTAL_PATH) {
+      url.pathname = STUDIO_PATH;
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
   }, []);
 
   // ─── Listen for navigate events (from Workbench page) ──
@@ -226,7 +241,7 @@ export default function App() {
     <Launch    config={config} onStatusChange={setSystemStatus} />,
     <Services  config={config} currentUser={currentUser} />,
     <Logs      />,
-    <Workbench />,
+    <Studio />,
     <Settings  config={config} setConfig={setConfig} currentUser={currentUser} />,
     <Jobs         />,
     <IdeServices  currentUser={currentUser} />,
@@ -239,7 +254,7 @@ export default function App() {
 
   function handleStudioClick() {
     setService(null);
-    setStep(7); // return to Workbench
+    setStep(7); // return to Studio
   }
 
   // Electron webview bypasses Vite proxy for relative URLs; prefix /_svc/*
@@ -335,7 +350,7 @@ export default function App() {
             <span
               onClick={handleStudioClick}
               style={{ cursor:"pointer" }}
-              title="Back to Workbench"
+              title="Back to Studio"
             >studio</span>
             {" / "}
             <span style={{ color:"var(--text)" }}>{currentName}</span>

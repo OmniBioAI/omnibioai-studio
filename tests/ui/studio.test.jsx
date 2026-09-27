@@ -10,7 +10,7 @@ const { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } = vi.h
 }));
 vi.mock("../../src/ui/lib/session", () => ({ isElectron, getCurrentUserSync, getCurrentUser, onSessionChange }));
 
-import Workbench from "../../src/ui/pages/Workbench";
+import Studio from "../../src/ui/pages/Studio";
 
 function usePermissions(permissions) {
   const user = { permissions };
@@ -27,10 +27,20 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); delete window.api; });
 
-describe("Workbench page", () => {
+describe("Studio portal", () => {
+  it("renders the Studio identity, security section, and real Workbench service tile", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Studio />);
+    expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument();
+    expect(screen.getByText("Unified access to OmniBioAI platform services, workflows, AI, and security")).toBeInTheDocument();
+    expect(screen.getByText("Platform Services")).toBeInTheDocument();
+    expect(screen.getByText("Security Control Plane")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Workbench — Dashboard" })).toBeInTheDocument();
+  });
+
   it("shows online status once the health check succeeds and opens local links", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.getByText("Checking...")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
     expect(screen.queryByText(/Workbench offline/)).not.toBeInTheDocument();
@@ -52,7 +62,7 @@ describe("Workbench page", () => {
 
   it("shows the offline banner and navigates to Launch from it", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")));
-    render(<Workbench />);
+    render(<Studio />);
     await waitFor(() => expect(screen.getByText("Offline")).toBeInTheDocument());
     expect(screen.getByText(/Workbench offline/)).toBeInTheDocument();
 
@@ -69,7 +79,7 @@ describe("Workbench page", () => {
 
   it("launches the workbench dashboard from the header and the explore-more banner", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
     const opened = vi.fn();
     window.addEventListener("open-service", opened);
@@ -84,7 +94,7 @@ describe("Workbench page", () => {
   it("re-checks health on demand via the refresh button", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
-    render(<Workbench />);
+    render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
     const before = fetchMock.mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: "Refresh connection status" }));
@@ -94,7 +104,7 @@ describe("Workbench page", () => {
   it("loads a saved host from window.api.loadConfig", async () => {
     window.api = { loadConfig: vi.fn().mockResolvedValue({ server: { host_ip: "10.1.1.1" } }) };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     await waitFor(() => expect(screen.getByText("10.1.1.1")).toBeInTheDocument());
   });
 
@@ -102,20 +112,20 @@ describe("Workbench page", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     getCurrentUserSync.mockReturnValue({ permissions: [] });
     getCurrentUser.mockResolvedValue({ permissions: [] });
-    render(<Workbench />);
+    render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
     expect(screen.queryByText("Admin Console")).not.toBeInTheDocument();
     cleanup();
 
     getCurrentUserSync.mockReturnValue({ permissions: ["platform.manage_infra"] });
     getCurrentUser.mockResolvedValue({ permissions: ["platform.manage_infra"] });
-    render(<Workbench />);
+    render(<Studio />);
     await waitFor(() => expect(screen.getByText("Admin Console")).toBeInTheDocument());
     cleanup();
 
     getCurrentUserSync.mockReturnValue(null);
     getCurrentUser.mockResolvedValue(null);
-    render(<Workbench />);
+    render(<Studio />);
     await waitFor(() => expect(screen.getByText("Admin Console")).toBeInTheDocument());
   });
 
@@ -124,7 +134,7 @@ describe("Workbench page", () => {
     (permission) => {
       usePermissions([permission]);
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-      render(<Workbench />);
+      render(<Studio />);
       expect(screen.getByRole("button", { name: "API Keys & Service Accounts — API Keys · OAuth · Revocation" })).toBeInTheDocument();
     },
   );
@@ -132,7 +142,7 @@ describe("Workbench page", () => {
   it("opens the canonical API Keys & Service Accounts destination without exposing sensitive details", () => {
     usePermissions(["manage_api_keys"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "API Keys & Service Accounts — API Keys · OAuth · Revocation" });
     expect(screen.getByText("API Keys · OAuth · Revocation")).toBeInTheDocument();
@@ -152,14 +162,14 @@ describe("Workbench page", () => {
   it("hides API Keys & Service Accounts without any accepted permission", () => {
     usePermissions([]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.queryByText("API Keys & Service Accounts")).not.toBeInTheDocument();
   });
 
   it("keeps single-permission tiles independent from requiresAnyPermission tiles", () => {
     usePermissions(["manage_config"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.getByText("LLM Runtime")).toBeInTheDocument();
     expect(screen.queryByText("API Keys & Service Accounts")).not.toBeInTheDocument();
   });
@@ -167,7 +177,7 @@ describe("Workbench page", () => {
   it("shows Compliance Center to manage_all_orgs users and opens its HIPAA page", () => {
     usePermissions(["manage_all_orgs"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "Compliance Center — HIPAA · Controls · Evidence" });
     expect(screen.getByText("HIPAA · Controls · Evidence")).toBeInTheDocument();
@@ -184,14 +194,14 @@ describe("Workbench page", () => {
   it("hides Compliance Center without manage_all_orgs", () => {
     usePermissions([]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.queryByText("Compliance Center")).not.toBeInTheDocument();
   });
 
   it("shows Security Posture to manage_all_orgs users and opens its canonical page", () => {
     usePermissions(["manage_all_orgs"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "Security Posture — Controls · Enforcement · Readiness" });
     expect(screen.getByText("Controls · Enforcement · Readiness")).toBeInTheDocument();
@@ -208,14 +218,14 @@ describe("Workbench page", () => {
   it("hides Security Posture without manage_all_orgs", () => {
     usePermissions([]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.queryByText("Security Posture")).not.toBeInTheDocument();
   });
 
   it("shows Audit Explorer to manage_all_orgs users and opens its canonical page", () => {
     usePermissions(["manage_all_orgs"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "Audit Explorer \u2014 Events \u00b7 Evidence \u00b7 Investigation" });
     const opened = vi.fn();
@@ -232,7 +242,7 @@ describe("Workbench page", () => {
   it("shows Audit Logs to manage_all_orgs users and opens its canonical page", () => {
     usePermissions(["manage_all_orgs"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "Audit Logs \u2014 Identity \u00b7 Access \u00b7 Changes" });
     const opened = vi.fn();
@@ -249,7 +259,7 @@ describe("Workbench page", () => {
   it("hides Audit Explorer and Audit Logs without manage_all_orgs", () => {
     usePermissions(["manage_api_keys"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     expect(screen.getByText("API Keys & Service Accounts")).toBeInTheDocument();
     expect(screen.queryByText("Audit Explorer")).not.toBeInTheDocument();
@@ -259,7 +269,7 @@ describe("Workbench page", () => {
   it("shows LLM Runtime to manage_config users and navigates to the existing LLM page", () => {
     usePermissions(["manage_config"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "LLM Runtime — Local models · GPU · Ollama" });
     expect(screen.getByText("Local models · GPU · Ollama")).toBeInTheDocument();
@@ -281,14 +291,14 @@ describe("Workbench page", () => {
   it("hides LLM Runtime without manage_config", () => {
     usePermissions([]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.queryByText("LLM Runtime")).not.toBeInTheDocument();
   });
 
   it("shows Entitlements to manage_licenses users and opens Admin Console billing", () => {
     usePermissions(["manage_licenses"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "Entitlements — Plans · Licenses · Access" });
     expect(screen.getByText("Plans · Licenses · Access")).toBeInTheDocument();
@@ -307,14 +317,14 @@ describe("Workbench page", () => {
   it("hides Entitlements without manage_licenses", () => {
     usePermissions([]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.queryByText("Entitlements")).not.toBeInTheDocument();
   });
 
   it("shows all 12 Security Control Plane modules to a fully authorized user", () => {
     usePermissions(["manage_api_keys", "manage_oauth_clients", "manage_all_orgs"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     [
       "API Gateway",
@@ -336,13 +346,13 @@ describe("Workbench page", () => {
   it("shows 18 Platform Services modules to a fully authorized user", () => {
     usePermissions(["platform.manage_infra", "manage_config", "manage_licenses"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.getByText("18 modules")).toBeInTheDocument();
   });
 
   it("uses the Platform Services cyan accent for indicators and names only", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const heading = screen.getByText("Platform Services");
     expect(heading.style.color).toBe("var(--text)");
@@ -355,7 +365,7 @@ describe("Workbench page", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     const unsubscribe = vi.fn();
     onSessionChange.mockReturnValue(unsubscribe);
-    const { unmount } = render(<Workbench />);
+    const { unmount } = render(<Studio />);
     await waitFor(() => expect(onSessionChange).toHaveBeenCalled());
     unmount();
     expect(unsubscribe).toHaveBeenCalled();
@@ -364,7 +374,7 @@ describe("Workbench page", () => {
   it("opens Neo4j Browser through the same-origin embedded service route", () => {
     usePermissions(["platform.manage_infra"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "Neo4j Browser — Knowledge-graph Cypher console" });
     const opened = vi.fn();
@@ -380,7 +390,7 @@ describe("Workbench page", () => {
     isElectron.mockReturnValue(true);
     usePermissions(["platform.manage_infra"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
 
     const tile = screen.getByRole("button", { name: "Neo4j Browser — Knowledge-graph Cypher console" });
     const opened = vi.fn();
@@ -395,14 +405,14 @@ describe("Workbench page", () => {
   it("hides Neo4j Browser without platform.manage_infra", () => {
     usePermissions([]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     expect(screen.queryByText("Neo4j Browser")).not.toBeInTheDocument();
   });
 
   it("builds an absolute Electron webview URL for local links", async () => {
     isElectron.mockReturnValue(true);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
-    render(<Workbench />);
+    render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
     const opened = vi.fn();
     window.addEventListener("open-service", opened);

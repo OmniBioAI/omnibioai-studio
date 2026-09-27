@@ -92,7 +92,7 @@ function Toolbar({ onBack, count }) {
           fontSize:"var(--font-size-xs)", fontWeight:600, cursor:"pointer",
         }}
       >
-        ← Back to Workbench
+        ← Back to Studio
       </button>
 
       <span style={{ fontSize:"var(--font-size-xs)", fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
