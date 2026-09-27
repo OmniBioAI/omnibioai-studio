@@ -39,9 +39,9 @@ operation; it is not treated as fresh.
 Credential references name protected environment variables for application
 identities whose Compose variable names are established; the Studio secret
 generator materializes those values as per-user files, which the bootstrap
-reads rather than inheriting secrets in its process environment. It uses protected files for
-`redis_admin` and `redis_backup`; the existing exporter password-map file for
-`redis_monitoring`; and a separate protected `redis_rag_cache.pass` input.
+reads rather than inheriting secrets in its process environment. It uses
+protected files for `redis_admin`, `redis_backup`, and
+`redis_monitoring.pass`; and a separate protected `redis_rag_cache.pass` input.
 The running RAG container obtains `CACHE_REDIS_URL` from the protected
 `.secrets/rag_redis.env` file; its username is `redis_rag_cache`. The URL
 credential matches the running Redis identity and can be preserved without
@@ -52,14 +52,17 @@ the existing decoded credential into the protected input through an approved,
 no-overwrite procedure before bootstrap validation.
 
 The running exporter is configured as `redis_monitoring` and reads the
-read-only protected exporter password map. Its current map entry matches the
-protected `redis_monitoring.pass` value, and the exporter reports a successful
-Redis scrape. However, the map key is a target-URI key, not the
-`redis_monitoring` key currently referenced by `acl-policy.json`; therefore
-the canonical bootstrap credential reference must be reconciled before it can
-render this identity. Do not activate bootstrap while either credential
-reference is unresolved. The renderer never prints credential contents or ACL
-hashes. The Studio `.env` generator creates
+read-only protected exporter password map. The map's value matches the
+protected `redis_monitoring.pass` credential; the map uses a target-URI key,
+not a username key. The canonical ACL bootstrap therefore references the
+dedicated protected `.pass` file directly, avoiding dependence on exporter
+map-key semantics. The exporter map and runtime wiring are unchanged. The
+running RAG container obtains `CACHE_REDIS_URL` from the protected
+`.secrets/rag_redis.env`; its credential is preserved in that source, but the
+dedicated `redis_rag_cache.pass` input expected by bootstrap must be safely
+materialized without rotation before activation. Do not activate bootstrap
+until that source is reconciled. The renderer never prints credential
+contents or ACL hashes. The Studio `.env` generator creates
 missing established application Redis credentials once, preserves existing
 values, and enforces owner-only (`0600`) `.env` mode. The derived
 `.secrets/redis-acl/<user>.pass` files are held in a `0700` directory, mode

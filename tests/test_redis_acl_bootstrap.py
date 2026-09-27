@@ -65,6 +65,8 @@ class RedisAclBootstrapTests(unittest.TestCase):
         cache_manager = next(u for u in self.policy["users"] if u["name"] == "redis_cache_manager")
         self.assertEqual(cache_manager["key_patterns"], ["~omnibioai:cache:*", "~cache-manager-lock:*"])
         self.assertEqual(cache_manager["command_rules"], ["-@all", "+ping", "+get", "+set", "+del", "+scan", "+eval", "+evalsha"])
+        monitoring = next(u for u in self.policy["users"] if u["name"] == "redis_monitoring")
+        self.assertEqual(monitoring["credential"], {"file": "redis_monitoring.pass"})
         rag_target = json.loads((ROOT / "config/redis/rag-cache-target-policy.json").read_text())
         self.assertEqual(rag_target["status"], "future-contract-not-assigned-to-a-production-identity")
         self.assertEqual(rag_target["commands"], ["PING", "GET", "SETEX", "DEL", "ZADD", "ZRANGE", "ZRANGEBYLEX", "ZREM", "ZCARD", "MULTI", "EXEC"])
