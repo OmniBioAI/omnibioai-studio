@@ -470,6 +470,26 @@ ipcMain.handle("open-external", async (_, url) => {
   if (isExternalUrl(url)) shell.openExternal(url);
 });
 
+// ServiceViewer's Electron webviews use http://localhost as a separate
+// browsing context from the main renderer (which may be file://). Mirror the
+// existing Studio access token into Electron's session cookie jar so the
+// router's established cookie fallback can authenticate protected services.
+ipcMain.handle("sync-auth-cookie", async (_, token) => {
+  const cookieUrl = "http://localhost/";
+  if (typeof token === "string" && token.length > 0) {
+    await session.defaultSession.cookies.set({
+      url: cookieUrl,
+      name: "omnibioai_access_token",
+      value: token,
+      path: "/",
+      sameSite: "lax",
+    });
+  } else {
+    await session.defaultSession.cookies.remove(cookieUrl, "omnibioai_access_token");
+  }
+  return true;
+});
+
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 ipcMain.handle("save-config", async (_, config) => {
   const result = writeConfig(config);

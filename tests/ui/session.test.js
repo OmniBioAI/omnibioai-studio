@@ -19,6 +19,17 @@ describe("session boundary", () => {
     expect(localStorage.length).toBe(0);
   });
 
+  it("syncs the access token with the Electron service-webview session", () => {
+    const syncAuthCookie = vi.fn(() => Promise.resolve());
+    window.api = { syncAuthCookie };
+
+    setSession("access", "refresh");
+    expect(syncAuthCookie).toHaveBeenLastCalledWith("access");
+
+    clearSession();
+    expect(syncAuthCookie).toHaveBeenLastCalledWith(null);
+  });
+
   it("validates and caches the current user, then clears invalid sessions", async () => {
     setSession("token");
     const fetchMock = vi.spyOn(globalThis, "fetch")

@@ -34,6 +34,9 @@ contextBridge.exposeInMainWorld("api", {
 
   // ─── CREDENTIALS ──────────────────────────────────
   getCredentials: ()        => ipcRenderer.invoke("get-credentials"),
+  // Keep the existing Studio access token available to same-machine service
+  // webviews through Electron's session cookie jar.
+  syncAuthCookie: (token) => ipcRenderer.invoke("sync-auth-cookie", token),
 
   // ─── WORKBENCH & LINKS ────────────────────────────
   openWorkbench: ()         => ipcRenderer.invoke("open-workbench"),

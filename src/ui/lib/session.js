@@ -47,10 +47,19 @@ export function getRefreshToken() {
 function setTokenCookie(token) {
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
   document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax${secure}`;
+  // The Electron service webview has a separate http://localhost session
+  // from the main renderer (which may be file://). Keep the same access token
+  // in that session without putting credentials in a URL.
+  if (window.api?.syncAuthCookie) {
+    Promise.resolve(window.api.syncAuthCookie(token)).catch(() => {});
+  }
 }
 
 function clearTokenCookie() {
   document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  if (window.api?.syncAuthCookie) {
+    Promise.resolve(window.api.syncAuthCookie(null)).catch(() => {});
+  }
 }
 
 export function setSession(accessToken, refreshToken) {
