@@ -18,6 +18,7 @@ import re
 import stat
 import sys
 import tempfile
+from urllib.parse import unquote_to_bytes, urlsplit
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -83,11 +84,19 @@ def validate_policy(policy: Any) -> None:
                 file_name = credential["file"]
                 if set(credential) - {"file", "json_key"} or not isinstance(file_name, str) or Path(file_name).name != file_name:
                     raise BootstrapError("credential file reference is invalid")
-                if "json_key" in credential and (
-                    not isinstance(credential["json_key"], str)
-                    or not re.fullmatch(r"[a-zA-Z0-9_.-]+", credential["json_key"])
-                ):
-                    raise BootstrapError("credential JSON key reference is invalid")
+                if "json_key" in credential:
+                    key = credential["json_key"]
+                    if not isinstance(key, str) or not key or len(key) > 256 or any(ord(c) < 0x20 for c in key):
+                        raise BootstrapError("credential JSON key reference is invalid")
+                    if not re.fullmatch(r"[a-zA-Z0-9_.-]+", key):
+                        try:
+                            target = urlsplit(key)
+                            if (target.scheme not in {"redis", "rediss"} or not target.hostname
+                                    or target.port is None or target.username is None
+                                    or target.password is not None or target.query or target.fragment):
+                                raise ValueError
+                        except (ValueError, UnicodeError):
+                            raise BootstrapError("credential JSON key reference is invalid") from None
             else:
                 raise BootstrapError("unsupported credential reference")
         if not isinstance(user.get("flags"), list) or any(
@@ -200,8 +209,14 @@ def _read_credential(user: Mapping[str, Any], credential_dir: Path) -> bytes:
             raise BootstrapError("required credential file is missing or unreadable") from None
         if "json_key" in ref:
             try:
-                value = json.loads(value)[ref["json_key"]].encode("utf-8")
-            except (UnicodeError, json.JSONDecodeError, KeyError, TypeError, AttributeError):
+                mapping = json.loads(value, object_pairs_hook=_unique_json_object)
+                if not isinstance(mapping, dict) or ref["json_key"] not in mapping:
+                    raise ValueError
+                mapped_value = mapping[ref["json_key"]]
+                if not isinstance(mapped_value, str):
+                    raise ValueError
+                value = mapped_value.encode("utf-8")
+            except (UnicodeError, json.JSONDecodeError, KeyError, TypeError, AttributeError, ValueError):
                 raise BootstrapError("credential map is malformed or missing the required entry") from None
         if value.endswith(b"\n"):
             value = value[:-1]
@@ -239,6 +254,15 @@ def render_acl(policy: Mapping[str, Any], credential_dir: Path) -> bytes:
 
 def _policy_digest(policy: Mapping[str, Any]) -> str:
     return hashlib.sha256(_canonical_json(policy)).hexdigest()
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate key")
+        result[key] = value
+    return result
 
 
 def _normalized_acl(data: bytes) -> list[str]:
@@ -349,6 +373,176 @@ def bootstrap(data_dir: Path, policy_path: Path, credential_dir: Path) -> str:
         raise BootstrapError("ACL bootstrap I/O failed; no reconciliation attempted") from None
 
 
+def _validate_existing(data_dir: Path, policy: Mapping[str, Any], candidate: bytes) -> bytes:
+    acl_path = data_dir / ACL_NAME
+    marker_path = data_dir / MARKER_NAME
+    try:
+        if marker_path.is_symlink() or not marker_path.is_file():
+            raise BootstrapError("managed ACL marker is missing or unsafe")
+        marker = json.loads(marker_path.read_bytes(), object_pairs_hook=_unique_json_object)
+        if marker != {"schema_version": 1, "policy_sha256": _policy_digest(policy)}:
+            raise BootstrapError("managed ACL policy marker mismatch; refusing drift")
+        if acl_path.is_symlink() or not acl_path.is_file():
+            raise BootstrapError("managed ACL file is missing or unsafe")
+        existing = acl_path.read_bytes()
+    except BootstrapError:
+        raise
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError, TypeError):
+        raise BootstrapError("managed ACL state is malformed") from None
+    expected_users = {user["name"] for user in policy["users"]}
+    actual_users = _acl_usernames(existing)
+    if actual_users != expected_users:
+        raise BootstrapError("managed ACL identity set mismatch; refusing drift")
+    metadata = sanitized_acl_metadata(existing.decode("utf-8"))
+    default = next((row for row in metadata if row["username"] == "default"), None)
+    if default is None or default["enabled"]:
+        raise BootstrapError("default ACL identity must remain disabled")
+    if _normalized_acl(existing) != _normalized_acl(candidate):
+        raise BootstrapError("managed ACL policy mismatch; refusing drift")
+    return existing
+
+
+def _atomic_create_exclusive(directory: Path, name: str, contents: bytes) -> None:
+    """Publish one file atomically without replacing an existing directory entry."""
+    fd, temporary = tempfile.mkstemp(prefix=".redis-acl-marker-", dir=directory)
+    temp_path = Path(temporary)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(contents)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temp_path, directory / name, follow_symlinks=False)
+        temp_path.unlink()
+        dir_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+    except FileExistsError:
+        try:
+            temp_path.unlink()
+        except OSError:
+            pass
+        raise BootstrapError("ownership marker already exists; refusing adoption") from None
+    except Exception:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        try:
+            temp_path.unlink()
+        except OSError:
+            pass
+        raise
+
+
+def adopt(data_dir: Path, policy_path: Path, credential_dir: Path) -> str:
+    """Mark an exact pre-existing ACL volume as managed without changing ACL bytes."""
+    try:
+        if data_dir.is_symlink() or not data_dir.is_dir():
+            raise BootstrapError("Redis data directory is missing or unsafe")
+        policy = load_policy(policy_path)
+        candidate = render_acl(policy, credential_dir)
+        acl_path = data_dir / ACL_NAME
+        marker_path = data_dir / MARKER_NAME
+        entries = {entry.name for entry in data_dir.iterdir() if entry.name != "lost+found"}
+        if marker_path.exists() or marker_path.is_symlink():
+            _validate_existing(data_dir, policy, candidate)
+            return "managed-match"
+        if not entries:
+            raise BootstrapError("adoption requires a non-empty pre-existing volume")
+        if acl_path.is_symlink() or not acl_path.is_file():
+            raise BootstrapError("adoption requires a regular existing ACL file")
+        existing = acl_path.read_bytes()
+        expected_users = {user["name"] for user in policy["users"]}
+        if _acl_usernames(existing) != expected_users:
+            raise BootstrapError("existing ACL identity set mismatch; refusing adoption")
+        metadata = sanitized_acl_metadata(existing.decode("utf-8"))
+        default = next((row for row in metadata if row["username"] == "default"), None)
+        if default is None or default["enabled"]:
+            raise BootstrapError("default ACL identity must remain disabled")
+        if _normalized_acl(existing) != _normalized_acl(candidate):
+            raise BootstrapError("existing ACL differs from canonical policy; refusing adoption")
+        marker = _canonical_json({
+            "schema_version": 1,
+            "policy_sha256": _policy_digest(policy),
+        })
+        _atomic_create_exclusive(data_dir, MARKER_NAME, marker)
+        return "adopted"
+    except BootstrapError:
+        raise
+    except (OSError, UnicodeError, ValueError):
+        raise BootstrapError("adoption validation failed; no ACL reconciliation attempted") from None
+
+
+def materialize_rag_credential(source_path: Path, credential_dir: Path) -> str:
+    """Safely preserve the password in an existing redis_rag_cache URL."""
+    try:
+        if source_path.is_symlink() or not source_path.is_file():
+            raise BootstrapError("RAG credential source is missing or unsafe")
+        source_stat = source_path.stat()
+        if stat.S_IMODE(source_stat.st_mode) & 0o077:
+            raise BootstrapError("RAG credential source permissions are unsafe")
+        source = source_path.read_text(encoding="utf-8")
+        matches = [line.partition("=")[2] for line in source.splitlines()
+                   if line.startswith("CACHE_REDIS_URL=")]
+        if len(matches) != 1 or not matches[0]:
+            raise BootstrapError("RAG credential source is missing or ambiguous")
+        parsed = urlsplit(matches[0])
+        if parsed.scheme not in {"redis", "rediss"} or not parsed.hostname or parsed.port is None:
+            raise BootstrapError("RAG credential URL is malformed")
+        if parsed.username is None or unquote_to_bytes(parsed.username).decode("utf-8") != "redis_rag_cache":
+            raise BootstrapError("RAG credential URL identity is invalid")
+        if parsed.password is None or parsed.query or parsed.fragment:
+            raise BootstrapError("RAG credential URL is malformed")
+        password = unquote_to_bytes(parsed.password)
+        if not 16 <= len(password) <= 4096 or any(char in password for char in (0, 10, 13)):
+            raise BootstrapError("RAG credential URL password is malformed")
+
+        if credential_dir.exists() or credential_dir.is_symlink():
+            if credential_dir.is_symlink() or not credential_dir.is_dir():
+                raise BootstrapError("credential directory is unsafe")
+            if stat.S_IMODE(credential_dir.stat().st_mode) != 0o700:
+                raise BootstrapError("credential directory permissions must be 0700")
+        else:
+            credential_dir.mkdir(mode=0o700, parents=True)
+        destination = credential_dir / "redis_rag_cache.pass"
+        if destination.exists() or destination.is_symlink():
+            if destination.is_symlink() or not destination.is_file():
+                raise BootstrapError("existing RAG credential file is unsafe")
+            dest_stat = destination.stat()
+            if stat.S_IMODE(dest_stat.st_mode) != 0o600:
+                raise BootstrapError("existing RAG credential file permissions must be 0600")
+            if destination.read_bytes() != password:
+                raise BootstrapError("existing RAG credential differs; refusing overwrite")
+            return "already-present"
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(destination, flags, 0o600)
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(password)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except Exception:
+            try:
+                destination.unlink()
+            except OSError:
+                pass
+            raise
+        dir_fd = os.open(credential_dir, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+        return "created"
+    except BootstrapError:
+        raise
+    except Exception:
+        # Never echo parser, path, or URL values: they may contain credentials.
+        raise BootstrapError("RAG credential materialization failed safely") from None
+
+
 def inspect_acl_file(path: Path) -> list[dict[str, Any]]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -366,10 +560,23 @@ def main(argv: list[str] | None = None) -> int:
     boot.add_argument("--credential-dir", type=Path, required=True)
     inspect = sub.add_parser("inspect")
     inspect.add_argument("--acl-file", type=Path, required=True)
+    adoption = sub.add_parser("adopt")
+    adoption.add_argument("--policy", type=Path, required=True)
+    adoption.add_argument("--data-dir", type=Path, required=True)
+    adoption.add_argument("--credential-dir", type=Path, required=True)
+    rag = sub.add_parser("materialize-rag-credential")
+    rag.add_argument("--source", type=Path, required=True)
+    rag.add_argument("--credential-dir", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "inspect":
             print(json.dumps(inspect_acl_file(args.acl_file), sort_keys=True))
+        elif args.command == "adopt":
+            status = adopt(args.data_dir, args.policy, args.credential_dir)
+            print(f"redis ACL adoption: {status}")
+        elif args.command == "materialize-rag-credential":
+            status = materialize_rag_credential(args.source, args.credential_dir)
+            print(f"RAG credential materialization: {status}")
         else:
             status = bootstrap(args.data_dir, args.policy, args.credential_dir)
             print(f"redis ACL bootstrap: {status}")

@@ -29,40 +29,41 @@ file at process startup.
 The first run is permitted only when `/data` has no ACL file, ownership marker,
 or other data (apart from `lost+found`). It writes a non-secret marker binding
 the volume to the SHA-256 of the canonical policy. A subsequent run accepts a
-volume only when the marker and the full ACL—including password hashes
-compared internally—match the rendered policy. It never repairs, replaces, or
-silently adopts drift. Missing credentials, malformed inputs, missing or extra
-users, and policy mismatches exit nonzero before Redis starts. An existing
-unmanaged volume requires a separately reviewed adoption/reconciliation
-operation; it is not treated as fresh.
+volume only when the marker and the full ACL—including password verifiers
+compared internally—match the rendered policy. It never repairs or replaces
+drift. The explicit `adopt` command is only for a non-empty existing volume
+without a marker: it validates the exact identity set, disabled default user,
+all credential-backed verifiers, and the complete rendered policy, then
+atomically creates only the non-secret ownership marker. It does not rewrite
+`users.acl`, contact Redis, or alter persistence data. A repeat adoption
+validates managed state and returns `managed-match` without writing. Missing
+credentials, malformed inputs, identity/rule drift, or an existing mismatched
+marker fail closed.
 
-Credential references name protected environment variables for application
-identities whose Compose variable names are established; the Studio secret
-generator materializes those values as per-user files, which the bootstrap
-reads rather than inheriting secrets in its process environment. It uses
-protected files for `redis_admin`, `redis_backup`, and
-`redis_monitoring.pass`; and a separate protected `redis_rag_cache.pass` input.
-The running RAG container obtains `CACHE_REDIS_URL` from the protected
-`.secrets/rag_redis.env` file; its username is `redis_rag_cache`. The URL
-credential matches the running Redis identity and can be preserved without
-rotation, but the dedicated `redis_rag_cache.pass` input expected in the
-bootstrap credential directory is not present. Do not infer it from the
-different legacy `REDIS_IAM_RAG_PASSWORD` setting. An operator must transfer
-the existing decoded credential into the protected input through an approved,
-no-overwrite procedure before bootstrap validation.
+Credential references name established application environment variables; the
+bootstrap itself resolves only protected files, never inherited process
+environment. For an existing volume, use `adopt`, which compares every
+credential-derived verifier with `users.acl` before creating ownership. Do not
+populate protected activation files blindly from a stale Studio `.env`: a
+verifier mismatch must stop adoption. The exporter credential is resolved
+from its password map using the exact target-URI JSON key; duplicate, missing,
+or malformed map entries fail closed. The RAG credential can be materialized
+without rotation with `materialize-rag-credential --source <protected-rag-env>
+--credential-dir <protected-credential-dir>`. This reads the existing
+`CACHE_REDIS_URL`, requires the `redis_rag_cache` username, decodes the
+password in memory, and creates only `redis_rag_cache.pass` with exclusive
+mode-`0600` creation in a mode-`0700` directory. An identical existing file
+is a no-op; a different file is never overwritten. This command was not run
+against production during implementation.
 
 The running exporter is configured as `redis_monitoring` and reads the
-read-only protected exporter password map. The map's value matches the
-protected `redis_monitoring.pass` credential; the map uses a target-URI key,
-not a username key. The canonical ACL bootstrap therefore references the
-dedicated protected `.pass` file directly, avoiding dependence on exporter
-map-key semantics. The exporter map and runtime wiring are unchanged. The
-running RAG container obtains `CACHE_REDIS_URL` from the protected
-`.secrets/rag_redis.env`; its credential is preserved in that source, but the
-dedicated `redis_rag_cache.pass` input expected by bootstrap must be safely
-materialized without rotation before activation. Do not activate bootstrap
-until that source is reconciled. The renderer never prints credential
-contents or ACL hashes. The Studio `.env` generator creates
+read-only protected exporter password map. Its credential reference selects
+the exact target-URI key in that map; the value was verified in memory against
+both the protected `redis_monitoring.pass` file and the persisted ACL verifier.
+The RAG credential source is the protected `.secrets/rag_redis.env`; its
+password is preserved without rotation by the dedicated materialization
+command described above. The renderer never prints credential contents or ACL
+verifiers. The Studio `.env` generator creates
 missing established application Redis credentials once, preserves existing
 values, and enforces owner-only (`0600`) `.env` mode. The derived
 `.secrets/redis-acl/<user>.pass` files are held in a `0700` directory, mode
@@ -76,11 +77,12 @@ This tranche intentionally does not activate the bootstrap in Compose. The
 three Compose files currently have unrelated concurrent modifications. The
 tracked source and tests are ready for the Studio consolidation to add a
 one-shot initializer dependency and protected credential mounts. Before
-activation, the current production volume must be handled as **unmanaged**:
-it has no bootstrap ownership marker. Do not run this bootstrap against that
-volume; first perform a separately approved, read-only source/credential
-reconciliation and explicit adoption plan. Production ACLs and consumers were
-not changed here.
+activation, the existing production volume must use the separately controlled
+`adopt` mode only after every named credential file has been validated against
+the existing ACL. This tranche's read-only source comparison could not verify
+two identities from available protected/runtime sources; adoption and
+activation must remain stopped until those sources are reconciled. Production
+ACLs and consumers were not changed here.
 
 ## Identity ownership findings
 
@@ -103,7 +105,7 @@ an authorization boundary.
 | --- | --- |
 | Truly empty, no marker and no data | Render/validate and atomically create ACL plus marker, then caller may start Redis |
 | Managed marker and exact policy/hash match | No-op; caller may start Redis |
-| ACL without marker, marker without ACL, or non-empty unowned volume | Fail closed; require explicit operator reconciliation |
+| ACL without marker, marker without ACL, or non-empty unowned volume | Fail closed; require explicit `adopt` after exact credential/policy validation |
 | Missing/malformed credential, missing/extra identity, changed rules, marker mismatch | Fail closed; do not overwrite existing files |
 
 Compose activation is intentionally deferred to the existing Studio

@@ -66,7 +66,10 @@ class RedisAclBootstrapTests(unittest.TestCase):
         self.assertEqual(cache_manager["key_patterns"], ["~omnibioai:cache:*", "~cache-manager-lock:*"])
         self.assertEqual(cache_manager["command_rules"], ["-@all", "+ping", "+get", "+set", "+del", "+scan", "+eval", "+evalsha"])
         monitoring = next(u for u in self.policy["users"] if u["name"] == "redis_monitoring")
-        self.assertEqual(monitoring["credential"], {"file": "redis_monitoring.pass"})
+        self.assertEqual(monitoring["credential"], {
+            "file": "redis_exporter_passwords.json",
+            "json_key": "redis://redis_monitoring@redis:6379",
+        })
         rag_target = json.loads((ROOT / "config/redis/rag-cache-target-policy.json").read_text())
         self.assertEqual(rag_target["status"], "future-contract-not-assigned-to-a-production-identity")
         self.assertEqual(rag_target["commands"], ["PING", "GET", "SETEX", "DEL", "ZADD", "ZRANGE", "ZRANGEBYLEX", "ZREM", "ZCARD", "MULTI", "EXEC"])
@@ -105,6 +108,124 @@ class RedisAclBootstrapTests(unittest.TestCase):
             self.boot()
         self.assertFalse((self.data / acl.ACL_NAME).exists())
 
+    def test_exporter_map_uses_exact_target_key_and_fails_closed(self):
+        path = self.creds / "redis_exporter_passwords.json"
+        ref = next(u["credential"] for u in self.policy["users"] if u["name"] == "redis_monitoring")
+        expected = ref["json_key"]
+        value = self.credentials["redis_monitoring"]
+        self.assertEqual(acl._read_credential({"name": "redis_monitoring", "credential": ref}, self.creds), value.encode())
+        path.write_text(json.dumps({"wrong-target-key": value}), encoding="utf-8")
+        with self.assertRaises(acl.BootstrapError):
+            acl._read_credential({"name": "redis_monitoring", "credential": ref}, self.creds)
+        path.write_text("{\"" + expected + "\":\"" + value + "\",\"" + expected + "\":\"other-value\"}", encoding="utf-8")
+        with self.assertRaises(acl.BootstrapError):
+            acl._read_credential({"name": "redis_monitoring", "credential": ref}, self.creds)
+        path.write_text(json.dumps({expected: [value]}), encoding="utf-8")
+        with self.assertRaises(acl.BootstrapError):
+            acl._read_credential({"name": "redis_monitoring", "credential": ref}, self.creds)
+        path.write_text("{malformed synthetic map", encoding="utf-8")
+        with self.assertRaises(acl.BootstrapError) as caught:
+            acl._read_credential({"name": "redis_monitoring", "credential": ref}, self.creds)
+        self.assertNotIn(value, str(caught.exception))
+        path.write_text('{"' + expected + '":"' + value + '","' + expected + '":"other-value"}', encoding="utf-8")
+        with self.assertRaises(acl.BootstrapError):
+            acl._read_credential({"name": "redis_monitoring", "credential": ref}, self.creds)
+
+    def _existing_unmanaged_acl(self):
+        (self.data / acl.ACL_NAME).write_bytes(acl.render_acl(self.policy, self.creds))
+        (self.data / "dump.rdb").write_bytes(b"disposable fixture")
+
+    def test_adoption_is_marker_only_atomic_and_idempotent(self):
+        self._existing_unmanaged_acl()
+        acl_path = self.data / acl.ACL_NAME
+        before_bytes = acl_path.read_bytes()
+        before_stat = acl_path.stat()
+        self.assertEqual(acl.adopt(self.data, POLICY_PATH, self.creds), "adopted")
+        self.assertEqual(acl_path.read_bytes(), before_bytes)
+        after_stat = acl_path.stat()
+        self.assertEqual((after_stat.st_ino, after_stat.st_mode, after_stat.st_mtime_ns),
+                         (before_stat.st_ino, before_stat.st_mode, before_stat.st_mtime_ns))
+        self.assertEqual(acl.adopt(self.data, POLICY_PATH, self.creds), "managed-match")
+        self.assertEqual(acl_path.read_bytes(), before_bytes)
+        marker = json.loads((self.data / acl.MARKER_NAME).read_text())
+        self.assertEqual(marker, {"schema_version": 1, "policy_sha256": acl._policy_digest(self.policy)})
+        self.assertNotIn("test-only-", json.dumps(marker))
+
+    def test_adoption_uses_protected_files_not_inherited_stale_environment(self):
+        self._existing_unmanaged_acl()
+        previous = os.environ.get("REDIS_AUTH_PASSWORD")
+        os.environ["REDIS_AUTH_PASSWORD"] = "stale-synthetic-env-value"
+        try:
+            self.assertEqual(acl.adopt(self.data, POLICY_PATH, self.creds), "adopted")
+        finally:
+            if previous is None:
+                os.environ.pop("REDIS_AUTH_PASSWORD", None)
+            else:
+                os.environ["REDIS_AUTH_PASSWORD"] = previous
+
+    def test_adoption_refuses_default_enabled_identity_and_rule_drift(self):
+        rendered = acl.render_acl(self.policy, self.creds)
+        cases = [
+            (rendered.replace(b"user default off", b"user default on", 1), "default"),
+            (b"\n".join(line for line in rendered.splitlines() if not line.startswith(b"user redis_healthcheck ")) + b"\n", "identity"),
+            (rendered + b"user unexpected on #" + b"a" * 64 + b" -@all\n", "identity"),
+            (rendered.replace(b"+ping", b"+info", 1), "differs from canonical"),
+            (rendered.replace(b"~rag:query:*", b"~other:*", 1), "differs from canonical"),
+            (rendered.replace(b"user redis_healthcheck on", b"user redis_healthcheck off", 1), "differs from canonical"),
+            (b"user redis_admin on #" + b"x" * 64 + b" -@all\n", "identity"),
+        ]
+        for contents, message in cases:
+            with self.subTest(message=message, fixture="synthetic"):
+                (self.data / acl.ACL_NAME).write_bytes(contents)
+                (self.data / "dump.rdb").write_bytes(b"fixture")
+                with self.assertRaisesRegex(acl.BootstrapError, message):
+                    acl.adopt(self.data, POLICY_PATH, self.creds)
+                self.assertEqual((self.data / acl.ACL_NAME).read_bytes(), contents)
+                self.assertFalse((self.data / acl.MARKER_NAME).exists())
+
+    def test_adoption_refuses_missing_credentials_malformed_acl_and_existing_bad_marker(self):
+        self._existing_unmanaged_acl()
+        credential = self.creds / "redis_auth.pass"
+        original = credential.read_bytes()
+        credential.unlink()
+        with self.assertRaisesRegex(acl.BootstrapError, "credential file is missing"):
+            acl.adopt(self.data, POLICY_PATH, self.creds)
+        credential.write_bytes(original)
+        credential.chmod(0o600)
+        acl_path = self.data / acl.ACL_NAME
+        acl_path.write_bytes(b"not an ACL record\n")
+        with self.assertRaises(acl.BootstrapError):
+            acl.adopt(self.data, POLICY_PATH, self.creds)
+        acl_path.write_bytes(acl.render_acl(self.policy, self.creds))
+        (self.data / acl.MARKER_NAME).write_text('{"schema_version":1,"policy_sha256":"wrong"}')
+        with self.assertRaises(acl.BootstrapError):
+            acl.adopt(self.data, POLICY_PATH, self.creds)
+
+    def test_adoption_refuses_when_credential_verifier_does_not_match(self):
+        self._existing_unmanaged_acl()
+        credential = self.creds / "redis_auth.pass"
+        credential.write_bytes(b"different-synthetic-auth-credential\n")
+        credential.chmod(0o600)
+        acl_before = (self.data / acl.ACL_NAME).read_bytes()
+        with self.assertRaisesRegex(acl.BootstrapError, "differs from canonical"):
+            acl.adopt(self.data, POLICY_PATH, self.creds)
+        self.assertEqual((self.data / acl.ACL_NAME).read_bytes(), acl_before)
+        self.assertFalse((self.data / acl.MARKER_NAME).exists())
+
+    def test_adoption_marker_failure_leaves_no_partial_marker_or_acl_change(self):
+        self._existing_unmanaged_acl()
+        acl_before = (self.data / acl.ACL_NAME).read_bytes()
+        original = acl._atomic_create_exclusive
+        def fail_marker(*_args):
+            raise OSError("synthetic marker failure")
+        acl._atomic_create_exclusive = fail_marker
+        try:
+            with self.assertRaises(acl.BootstrapError):
+                acl.adopt(self.data, POLICY_PATH, self.creds)
+        finally:
+            acl._atomic_create_exclusive = original
+        self.assertFalse((self.data / acl.MARKER_NAME).exists())
+        self.assertEqual((self.data / acl.ACL_NAME).read_bytes(), acl_before)
     def test_unsafe_credential_permissions_fail_closed(self):
         path = self.creds / "redis_admin.pass"
         path.chmod(0o644)
