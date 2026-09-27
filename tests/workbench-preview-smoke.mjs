@@ -99,7 +99,7 @@ try {
   assert.equal(await page.locator(".native-workbench-card").count(), cards);
   await page.screenshot({ path: "/tmp/workbench-preview-desktop.png" });
   await page.getByRole("button", { name: /^Dashboard \d+$/ }).click();
-  const search = page.getByRole("textbox", { name: "Search apps", exact: true });
+  const search = page.getByRole("textbox", { name: "Search applications", exact: true });
   await search.fill("System Health");
   assert.equal(await page.locator(".native-workbench-card").count(), 1);
   await page.getByRole("button", { name: "Open System Health", exact: true }).press("Enter");

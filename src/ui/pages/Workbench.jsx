@@ -49,7 +49,9 @@ export default function Workbench({ state, onStateChange, onOpen }) {
       <div className="workbench-header">
         <div>
           <h1 id="native-workbench-title">Workbench</h1>
-          <p className="native-workbench-subtitle">Browse applications and open their existing Workbench pages.</p>
+          <p className="native-workbench-subtitle">
+            {catalog ? `${catalog.total_count} bioinformatics applications` : "Loading applications…"}
+          </p>
         </div>
       </div>
 
@@ -61,13 +63,13 @@ export default function Workbench({ state, onStateChange, onOpen }) {
         </PanelBody></Panel>
         : <>
           <Panel>
-            <PanelHeader title="Applications" />
+            <PanelHeader title="Plugins" />
             <PanelBody>
               <label className="native-workbench-search" onKeyDown={event => {
                 if (event.key === "Escape") onStateChange({ ...state, query: "", focusSlug: null });
               }}>
-                Search apps
-                <Input value={state.query} placeholder="Search by name, slug, or category"
+                Search applications
+                <Input value={state.query} placeholder="Search applications…"
                   onChange={event => onStateChange({ ...state, query: event.target.value, focusSlug: null })} />
               </label>
               <div role="group" aria-label="Plugin categories" className="native-workbench-filters">

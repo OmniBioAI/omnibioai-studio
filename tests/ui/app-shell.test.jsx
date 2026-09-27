@@ -354,15 +354,15 @@ describe("App shell — native Workbench catalog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Workbench catalog" }));
     await screen.findByRole("button", { name: "Open RNA Analysis" });
     fireEvent.click(screen.getByRole("button", { name: "Analysis 2" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Search apps" }), { target: { value: "rna" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Search applications" }), { target: { value: "rna" } });
     fireEvent.click(screen.getByRole("button", { name: "Open RNA Analysis" }));
     const origin = electron ? "http://localhost:5174" : "";
     expect(screen.getByText(`ServiceViewer:RNA Analysis:${origin}/_svc/workbench/plugins/rna/`)).toBeInTheDocument();
     fireEvent.click(screen.getByText("svback"));
     const launch = await screen.findByRole("button", { name: "Open RNA Analysis" });
-    expect(screen.getByRole("textbox", { name: "Search apps" })).toHaveValue("rna");
+    expect(screen.getByRole("textbox", { name: "Search applications" })).toHaveValue("rna");
     await waitFor(() => expect(launch).toHaveFocus());
-    fireEvent.keyDown(screen.getByRole("textbox", { name: "Search apps" }), { key: "Escape" });
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Search applications" }), { key: "Escape" });
     expect(screen.getByRole("button", { name: "Analysis 2" })).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
     expect(screen.getByText("Studio page")).toBeInTheDocument();

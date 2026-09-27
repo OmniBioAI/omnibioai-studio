@@ -18,6 +18,8 @@ describe("Native Workbench catalog", () => {
     render(<Harness onOpen={onOpen} />);
     expect(await screen.findByRole("button", { name: "Open System Health" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Workbench" })).toBeInTheDocument();
+    expect(screen.getByText("3 bioinformatics applications")).toBeInTheDocument();
+    expect(screen.getByText("Plugins", { exact: true })).toBeInTheDocument();
     expect(screen.queryByText("OmniBioAI")).not.toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 3 }).map(el => el.textContent)).toEqual(["System Health", "RNA Analysis", "Quality Control"]);
     expect(screen.getByText("Transcript processing")).toBeInTheDocument();
@@ -34,7 +36,8 @@ describe("Native Workbench catalog", () => {
     await screen.findByRole("button", { name: "Open System Health" });
     await user.click(screen.getByRole("button", { name: "Dashboard 1" }));
     expect(screen.queryByRole("button", { name: "Open RNA Analysis" })).not.toBeInTheDocument();
-    const search = screen.getByRole("textbox", { name: "Search apps" });
+    const search = screen.getByRole("textbox", { name: "Search applications" });
+    expect(search).toHaveAttribute("placeholder", "Search applications…");
     await user.type(search, "RNA");
     expect(screen.getByRole("button", { name: "Open RNA Analysis" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "All 1" })).toHaveAttribute("aria-pressed", "true");
@@ -57,7 +60,7 @@ describe("Native Workbench catalog", () => {
   it("supports keyboard focus, filter activation, and launching without clicking the card div", async () => {
     const user = userEvent.setup(); const onOpen = vi.fn(); render(<Harness onOpen={onOpen} />);
     await screen.findByRole("button", { name: "Open System Health" });
-    await user.tab(); expect(screen.getByRole("textbox", { name: "Search apps" })).toHaveFocus();
+    await user.tab(); expect(screen.getByRole("textbox", { name: "Search applications" })).toHaveFocus();
     await user.tab(); expect(screen.getByRole("button", { name: "All 3" })).toHaveFocus();
     await user.tab(); await user.keyboard(" ");
     expect(screen.getByRole("button", { name: "Dashboard 1" })).toHaveAttribute("aria-pressed", "true");
@@ -95,7 +98,7 @@ describe("Native Workbench catalog", () => {
     render(<Harness initial={{ category: "analysis", query: "rna", focusSlug: "rna" }} />);
     const card = await screen.findByRole("button", { name: "Open RNA Analysis" });
     await waitFor(() => expect(card).toHaveFocus());
-    expect(screen.getByRole("textbox", { name: "Search apps" })).toHaveValue("rna");
+    expect(screen.getByRole("textbox", { name: "Search applications" })).toHaveValue("rna");
   });
   it("renders metadata as text, never as executable HTML", async () => {
     const data = structuredClone(catalog);
