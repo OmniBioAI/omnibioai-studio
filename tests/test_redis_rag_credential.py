@@ -22,6 +22,7 @@ class RagCredentialMaterializationTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.source = self.root / "rag.env"
         self.credential_dir = self.root / "protected" / "redis-acl"
+        self.credential_dir.parent.mkdir(mode=0o700)
         self.secret = b"synthetic-rag-password-value"
         self._write_url("redis_rag_cache", self.secret)
 
@@ -85,6 +86,12 @@ class RagCredentialMaterializationTests(unittest.TestCase):
         self.source.chmod(0o644)
         with self.assertRaisesRegex(acl.BootstrapError, "permissions"):
             acl.materialize_rag_credential(self.source, self.credential_dir)
+
+    def test_insecure_parent_directory_fails_before_creation(self):
+        self.credential_dir.parent.chmod(0o755)
+        with self.assertRaisesRegex(acl.BootstrapError, "parent directory"):
+            acl.materialize_rag_credential(self.source, self.credential_dir)
+        self.assertFalse(self.credential_dir.exists())
 
     def test_cli_diagnostics_do_not_leak_synthetic_credential(self):
         secret = "synthetic-cli-secret-value"

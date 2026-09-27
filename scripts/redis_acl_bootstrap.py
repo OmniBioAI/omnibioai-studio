@@ -500,13 +500,16 @@ def materialize_rag_credential(source_path: Path, credential_dir: Path) -> str:
         if not 16 <= len(password) <= 4096 or any(char in password for char in (0, 10, 13)):
             raise BootstrapError("RAG credential URL password is malformed")
 
+        parent = credential_dir.parent
+        if parent.is_symlink() or not parent.is_dir() or stat.S_IMODE(parent.stat().st_mode) != 0o700:
+            raise BootstrapError("credential parent directory permissions must be 0700")
         if credential_dir.exists() or credential_dir.is_symlink():
             if credential_dir.is_symlink() or not credential_dir.is_dir():
                 raise BootstrapError("credential directory is unsafe")
             if stat.S_IMODE(credential_dir.stat().st_mode) != 0o700:
                 raise BootstrapError("credential directory permissions must be 0700")
         else:
-            credential_dir.mkdir(mode=0o700, parents=True)
+            credential_dir.mkdir(mode=0o700)
         destination = credential_dir / "redis_rag_cache.pass"
         if destination.exists() or destination.is_symlink():
             if destination.is_symlink() or not destination.is_file():
