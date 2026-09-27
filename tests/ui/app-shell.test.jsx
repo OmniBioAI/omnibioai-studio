@@ -68,6 +68,24 @@ describe("App shell — Studio landing", () => {
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     expect(window.location.pathname).toBe("/studio");
   });
+
+  it("renders the shared module header for native pages and returns to /studio", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "← Back to Studio" })).not.toBeInTheDocument();
+
+    for (const page of [
+      "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "IDE Services",
+      "Logs", "Jobs", "Roles", "Settings", "Billing",
+    ]) {
+      fireEvent.click(screen.getByText(page, { selector: "div" }));
+      expect(await screen.findByRole("button", { name: "← Back to Studio" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
+      await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+      expect(window.location.pathname).toBe("/studio");
+    }
+  });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.clearAllMocks(); delete window.api; });
 

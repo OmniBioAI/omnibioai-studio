@@ -19,6 +19,7 @@ import Videos        from "./pages/Videos";
 import IdeServices   from "./pages/IdeServices";
 import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
+import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
 import { GrafanaViewer } from "./components/GrafanaViewer";
@@ -64,6 +65,11 @@ const WIZARD_MAX   = 4;
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
   "services","logs","studio","settings","jobs","ide-services","roles","billing"
+];
+
+const PAGE_LABELS = [
+  "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
+  "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -257,6 +263,13 @@ export default function App() {
     setStep(7); // return to Studio
   }
 
+  function handleModuleBack() {
+    const url = new URL(window.location.href);
+    url.pathname = STUDIO_PATH;
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    handleStudioClick();
+  }
+
   // Electron webview bypasses Vite proxy for relative URLs; prefix /_svc/*
   // with the Vite dev server so the proxy routes them correctly.
   const resolveServiceUrl = (url) => {
@@ -439,7 +452,17 @@ export default function App() {
               : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
                 : <ServiceViewer url={resolveServiceUrl(service.url)} label={service.label} onBack={() => setService(null)} />
-            : <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>{pages[step]}</div>
+            : (
+              <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
+                {step === 7 ? null : (
+                  <WorkbenchModuleHeader
+                    title={PAGE_LABELS[step] || currentName}
+                    onBack={handleModuleBack}
+                  />
+                )}
+                {pages[step]}
+              </div>
+            )
           }
         </div>
 
