@@ -57,8 +57,25 @@ describe("App shell — Studio landing", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     expect(screen.getByText("Studio", { selector: "div" })).toBeInTheDocument();
+    const sections = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
+    expect(sections.map((section) => section.getAttribute("data-nav-section"))).toEqual([
+      "", "Setup", "Runtime", "Security", "System",
+    ]);
+    expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
+    expect(sections[2].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Jobs.*Billing/);
+    expect(sections[2].textContent).not.toContain("Studio");
     fireEvent.click(screen.getByText("Mode", { selector: "div" }));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+  });
+
+  it("returns to the canonical /studio path when Studio is selected", async () => {
+    window.history.replaceState({}, "", "/jobs");
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    fireEvent.click(screen.getByText("Studio", { selector: "div" }));
+    expect(window.location.pathname).toBe("/studio");
   });
 
   it("maps the legacy portal path to /studio", async () => {

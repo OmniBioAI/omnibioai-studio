@@ -104,19 +104,20 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
         {/* Nav items — same sections/items/active-state as desktop Sidebar */}
         <nav style={{ padding: 8, flex: 1, overflowY: "auto" }}>
           {nav.map(({ section, items }) => (
-            <div key={section}>
-              <div style={{
+            <div key={section || "top-level"} data-nav-section={section || ""}>
+              {section && <div style={{
                 fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)", color: "var(--color-text-muted)",
                 letterSpacing: "0.12em", textTransform: "uppercase",
                 padding: "10px 8px 6px", marginTop: 4,
               }}>
                 {section}
-              </div>
+              </div>}
               {items.map(({ name, idx }) => {
                 const isActive = step === idx;
                 return (
                   <div
                     key={name}
+                    data-nav-item={name}
                     onClick={() => go(idx)}
                     role="button"
                     tabIndex={0}

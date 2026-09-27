@@ -27,6 +27,7 @@ import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron
 import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 
 const BASE_NAV = [
+  { section: null,     items: [{ name:"Studio", idx:7 }] },
   { section: "Setup",   items: [
     { name:"Mode",      idx:0 },
     { name:"LLM",       idx:1 },
@@ -38,7 +39,6 @@ const BASE_NAV = [
     { name:"Services",     idx:5  },
     { name:"IDE Services", idx:10 },
     { name:"Logs",         idx:6  },
-    { name:"Studio",       idx:7  },
     { name:"Jobs",         idx:9  },
     { name:"Billing",      idx:12 },
   ]},
@@ -54,8 +54,9 @@ function buildNav(canManageRoles) {
   return [
     BASE_NAV[0],
     BASE_NAV[1],
-    { section: "Security", items: [{ name: "Roles", idx: 11 }] },
     BASE_NAV[2],
+    { section: "Security", items: [{ name: "Roles", idx: 11 }] },
+    BASE_NAV[3],
   ];
 }
 
@@ -263,6 +264,15 @@ export default function App() {
     setStep(7); // return to Studio
   }
 
+  function handleNavClick(idx) {
+    setStep(idx);
+    if (idx === 7) {
+      const url = new URL(window.location.href);
+      url.pathname = STUDIO_PATH;
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }
+
   function handleModuleBack() {
     const url = new URL(window.location.href);
     url.pathname = STUDIO_PATH;
@@ -329,7 +339,7 @@ export default function App() {
         flexShrink: 0,
       }}>
         <Sidebar
-          nav={nav} step={step} setStep={setStep} systemStatus={systemStatus}
+          nav={nav} step={step} setStep={handleNavClick} systemStatus={systemStatus}
           isServiceView={!!service} onStudioClick={handleStudioClick}
           currentUser={currentUser}
         />
@@ -531,7 +541,7 @@ export default function App() {
           entirely; renders identically on desktop (just permanently closed
           since the hamburger that opens it is display:none there). */}
       <MobileNav
-        nav={nav} step={step} setStep={setStep} currentUser={currentUser}
+        nav={nav} step={step} setStep={handleNavClick} currentUser={currentUser}
         open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}
       />
     </div>
