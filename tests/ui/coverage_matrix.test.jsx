@@ -39,7 +39,7 @@ import Logs from "../../src/ui/pages/Logs";
 import Services from "../../src/ui/pages/Services";
 import IdeServices from "../../src/ui/pages/IdeServices";
 import Jobs from "../../src/ui/pages/Jobs";
-import Workbench from "../../src/ui/pages/Workbench";
+import Studio from "../../src/ui/pages/Studio";
 import RoleManagement from "../../src/ui/pages/RoleManagement";
 import ServiceViewer from "../../src/ui/pages/ServiceViewer";
 import Videos from "../../src/ui/pages/Videos";
@@ -71,7 +71,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 describe("page and component coverage matrix", () => {
   it("walks the authorized production shell through every route", async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Runtime Mode")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument());
     for (let step = 0; step <= 14; step += 1) {
       window.dispatchEvent(new CustomEvent("navigate", { detail: step }));
       await waitFor(() => expect(document.body.textContent.length).toBeGreaterThan(20));
@@ -96,7 +96,7 @@ describe("page and component coverage matrix", () => {
       [Services, { config, currentUser: user }],
       [IdeServices, { currentUser: user }],
       [Jobs, {}],
-      [Workbench, {}],
+      [Studio, {}],
     ]) {
       const { unmount } = render(<Page {...props} />);
       await waitFor(() => expect(document.body.textContent.length).toBeGreaterThan(0));

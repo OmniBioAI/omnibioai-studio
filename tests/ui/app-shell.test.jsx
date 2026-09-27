@@ -31,7 +31,7 @@ vi.mock("../../src/ui/pages/HPC", () => ({ default: () => <div>HPC page</div> })
 vi.mock("../../src/ui/pages/Launch", () => ({ default: ({ onStatusChange }) => <div>Launch page<button onClick={() => onStatusChange("running")}>go-running</button><button onClick={() => onStatusChange("error")}>go-error</button><button onClick={() => onStatusChange("starting")}>go-starting</button></div> }));
 vi.mock("../../src/ui/pages/Services", () => ({ default: () => <div>Services page</div> }));
 vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> }));
-vi.mock("../../src/ui/pages/Workbench", () => ({ default: () => <div>Workbench page</div> }));
+vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <div>Studio page</div> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
 vi.mock("../../src/ui/pages/IdeServices", () => ({ default: () => <div>IDE page</div> }));
@@ -49,6 +49,25 @@ beforeEach(() => {
   getRefreshToken.mockReturnValue(null);
   onSessionChange.mockReturnValue(vi.fn());
   window.history.replaceState({}, "", "/");
+});
+
+describe("App shell — Studio landing", () => {
+  it("lands authenticated users on Studio and keeps Mode accessible", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    expect(screen.getByText("Studio", { selector: "div" })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Mode", { selector: "div" }));
+    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+  });
+
+  it("maps the legacy portal path to /studio", async () => {
+    window.history.replaceState({}, "", "/workbench");
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    expect(window.location.pathname).toBe("/studio");
+  });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.clearAllMocks(); delete window.api; });
 
@@ -72,24 +91,24 @@ describe("App shell — loading and first-run", () => {
 
     window.api = { loadConfig: vi.fn().mockResolvedValue({ mode: "local", settings: { data_dir: "/d" } }) };
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 
   it("stays ready and on Mode when loadConfig throws (dev mode)", async () => {
     window.api = { loadConfig: vi.fn().mockRejectedValue(new Error("no ipc")) };
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 
   it("becomes ready immediately with no window.api at all", async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 
   it("defaults an unset saved mode to beta", async () => {
     window.api = { loadConfig: vi.fn().mockResolvedValue({ settings: { data_dir: "/d" } }) };
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 });
 
@@ -108,7 +127,7 @@ describe("App shell — web auth gate", () => {
     isElectron.mockReturnValue(false);
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     expect(screen.getByText("Roles")).toBeInTheDocument();
   });
 });
@@ -117,7 +136,7 @@ describe("App shell — navigation and roles nav", () => {
   it("hides the Roles nav item for a user without manage_roles, once known", async () => {
     getCurrentUser.mockResolvedValue({ userId: 2, email: "u@test", permissions: [] });
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     expect(screen.queryByText("Roles")).not.toBeInTheDocument();
   });
 
@@ -132,7 +151,7 @@ describe("App shell — navigation and roles nav", () => {
   it("responds to navigate and open-service window events", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     window.dispatchEvent(new CustomEvent("navigate", { detail: 9 }));
     await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
 
@@ -145,13 +164,13 @@ describe("App shell — navigation and roles nav", () => {
     await waitFor(() => expect(screen.getByText(/ServiceViewer:Other Service/)).toBeInTheDocument());
     // breadcrumb "studio" click returns to Workbench and clears the service view
     fireEvent.click(screen.getByText("studio"));
-    await waitFor(() => expect(screen.getByText("Workbench page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 
   it("routes videos and Grafana service opens to their dedicated viewers", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
     window.dispatchEvent(new CustomEvent("open-service", { detail: { url: "/_svc/videos", label: "Videos" } }));
     await waitFor(() => expect(screen.getByText("Videos page")).toBeInTheDocument());
@@ -181,6 +200,8 @@ describe("App shell — navigation and roles nav", () => {
   it("walks the wizard controls: dot navigation, Back/Next, and boundary disabling", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Mode", { selector: "div" }));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
     expect(screen.getByText("Back")).toBeDisabled();
     fireEvent.click(screen.getByText("Next →"));
@@ -188,7 +209,7 @@ describe("App shell — navigation and roles nav", () => {
     fireEvent.click(screen.getByText("Back"));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByTitle("Launch"));
+    fireEvent.click(screen.getByText("Launch", { selector: "div" }));
     await waitFor(() => expect(screen.getByText("Launch page")).toBeInTheDocument());
     expect(screen.getByText("Next →")).toBeDisabled();
   });
@@ -196,8 +217,8 @@ describe("App shell — navigation and roles nav", () => {
   it("reflects running and error system status from the Launch page", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
-    fireEvent.click(screen.getByTitle("Launch"));
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Launch", { selector: "div" }));
     await waitFor(() => expect(screen.getByText("Launch page")).toBeInTheDocument());
     fireEvent.click(screen.getByText("go-starting"));
     await waitFor(() => expect(screen.getAllByText("STARTING").length).toBeGreaterThan(0));
@@ -249,7 +270,7 @@ describe("App shell — token refresh and return_to redirect", () => {
     getRefreshToken.mockReturnValue(null);
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     expect(refresh).not.toHaveBeenCalled();
   });
 
@@ -282,6 +303,6 @@ describe("App shell — token refresh and return_to redirect", () => {
     render(<App />);
     // jsdom doesn't implement real navigation, but the assignment itself
     // must not throw and the shell should still render.
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 });

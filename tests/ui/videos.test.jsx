@@ -102,7 +102,7 @@ describe("Videos page", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(screen.queryByText("✕ Close")).not.toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("← Back to Workbench"));
+    fireEvent.click(screen.getByText("← Back to Studio"));
     expect(onBack).toHaveBeenCalled();
   });
 

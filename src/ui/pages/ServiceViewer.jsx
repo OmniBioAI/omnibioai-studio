@@ -35,7 +35,7 @@ export default function ServiceViewer({ url, label, onBack }) {
             fontWeight: 600, cursor: "pointer",
           }}
         >
-          ← Back to Workbench
+          ← Back to Studio
         </button>
         <span style={{
           fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",

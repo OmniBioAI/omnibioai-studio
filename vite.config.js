@@ -39,7 +39,9 @@ export default defineConfig(({ mode }) => {
               // shell; every nginx-router-proxied path must reach the
               // network. Matched against url.pathname only (query strings,
               // e.g. an OAuth redirect's "/?status=...", still match "/").
-              navigateFallbackAllowlist: [/^\/$/],
+              // `/studio` is the canonical portal path and `/workbench` is a
+              // legacy alias. Service paths remain network-only.
+              navigateFallbackAllowlist: [/^\/(?:studio|workbench)?$/],
             },
             manifest: {
               name: "OmniBioAI Studio",

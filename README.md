@@ -42,7 +42,7 @@ forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-stud
 
 ### v0.7.0 ✅
 - 🔐 **Unified license key system** (`OMNI-XXXX-XXXX-XXXX-XXXX`) — one key works for web + desktop, auto-creates user on first validation, same JWT as OAuth login
-- 🌐 **webstudio.omnibioai.org fully working** — license key login enforced, all workbench pages loading correctly, service worker fixed, nginx routes fixed (`/license/`, `/roles/`), Control Center JWT cookie fallback
+- 🌐 **webstudio.omnibioai.org fully working** — license key login enforced, all Studio pages loading correctly, service worker fixed, nginx routes fixed (`/license/`, `/roles/`), Control Center JWT cookie fallback
 - 👥 **Team expansion** — Dr. Rajnish Kumar (Scientific Consultant, SR University), Praveen C.V. Raghavulu (Scientific Advisor, KUMC); About page restructured as company team page
 - 🛠 **12,110 bioinformatics tools** (up from 11,577) — 100+ new HTTP API tools added, all tools validated (100% clean), 0 duplicates, 0 ToolSpec errors
 - 🤖 **Tool selection AI improved** — GPU enabled for Ollama (57x faster: 120s → 2.1s), accuracy 0% → 60%, Recall@K 60% → 85%

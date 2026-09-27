@@ -21,7 +21,7 @@ describe("ServiceViewer", () => {
   it("calls onBack", () => {
     const onBack = vi.fn();
     render(<ServiceViewer url="/service" label="Service" onBack={onBack} />);
-    fireEvent.click(screen.getByText("← Back to Workbench"));
+    fireEvent.click(screen.getByText("← Back to Studio"));
     expect(onBack).toHaveBeenCalled();
   });
 
