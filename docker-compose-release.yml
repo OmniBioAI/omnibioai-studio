@@ -175,8 +175,13 @@ services:
       # audit/identity.py::validate_identity_token both fell back to the
       # public literal "change-me" instead of the real secret.
       JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
+      # Runtime API access is reader-only. Schema/admin operations use a
+      # separate explicitly provisioned maintenance path outside this service.
+      AUDIT_READER_DATABASE_URL: mysql+pymysql://audit_reader:${AUDIT_READER_DB_PASSWORD:?AUDIT_READER_DB_PASSWORD must be set}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
+        condition: service_healthy
+      mysql:
         condition: service_healthy
     restart: on-failure
 
@@ -187,14 +192,8 @@ services:
   # AuditConfig.EVENT_SIGNING_SECRET/DATABASE_URL consumers -- see
   # worker/main.py and db/session.py in that repo), just with this file's
   # required (:?) secret guards instead of dev's silently-defaulting ones.
-  # Note: unlike the security-audit (API) entry directly above, this
-  # worker entry includes AUDIT_DATABASE_URL and a mysql depends_on --
-  # the worker is the process that actually writes audit_events rows
-  # (Sink.write() in consumers/sink.py), so it needs the DB connection
-  # regardless of whether the API entry in this particular file currently
-  # has it (a pre-existing gap between this file and docker-compose.
-  # release.yml's fuller security-audit block, not introduced or fixed
-  # here -- out of scope for this change). No ports: -- Dockerfile.worker
+  # The worker writes audit_events rows through its dedicated writer
+  # identity. No ports: -- Dockerfile.worker
   # doesn't EXPOSE anything, it's a Redis Streams consumer loop, not an
   # HTTP service.
   security-audit-worker:
@@ -203,7 +202,9 @@ services:
       PYTHONUNBUFFERED: "1"
       REDIS_URL: redis://redis_audit_worker:${REDIS_AUDIT_WORKER_PASSWORD}@redis:6379/0
       JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
-      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}@mysql:3306/omnibioai_audit
+      # Runtime ingestion is writer-only. Schema/admin operations use a
+      # separate explicitly provisioned maintenance path outside this service.
+      AUDIT_WRITER_DATABASE_URL: mysql+pymysql://audit_writer:${AUDIT_WRITER_DB_PASSWORD:?AUDIT_WRITER_DB_PASSWORD must be set}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
         condition: service_healthy

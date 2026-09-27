@@ -130,6 +130,7 @@ services:
       PYTHONUNBUFFERED: "1"
       IAM_URL: http://auth-service:8001
       AUDIT_URL: http://security-audit:8004
+      TOOLSERVER_REGISTRATION_CLIENT_IDS: ${TES_TOOLSERVER_REGISTRATION_CLIENT_ID:?}
     # deploy-verify default (14d) is fine for this one -- no override.
     volumes:
       - ${WORKSPACE_HOST}:/workspace
@@ -184,6 +185,10 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       TOOLSERVER_BASE_URL: http://toolserver:9090
+      TES_TOOLSERVER_REGISTRATION_CLIENT_ID: ${TES_TOOLSERVER_REGISTRATION_CLIENT_ID:?}
+      TES_TOOLSERVER_REGISTRATION_CLIENT_SECRET: ${TES_TOOLSERVER_REGISTRATION_CLIENT_SECRET:?}
+      TES_TOOLSERVER_CLIENT_ID: ${TES_TOOLSERVER_CLIENT_ID:?}
+      TES_TOOLSERVER_CLIENT_SECRET: ${TES_TOOLSERVER_CLIENT_SECRET:?}
       TES_TOOLS: /workspace/configs/tools
       TES_SERVERS: /workspace/configs/servers
       TMPDIR: /tmp/omnibioai_tes_runs
@@ -1523,8 +1528,9 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_NAME: omnibioai
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_USER: omnibioai_auth_runtime
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
+      AUTH_AUDIT_INTEGRITY_KEY: ${AUTH_AUDIT_INTEGRITY_KEY:?AUTH_AUDIT_INTEGRITY_KEY must be set}
 
       SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
 
