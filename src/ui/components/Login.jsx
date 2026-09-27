@@ -179,7 +179,7 @@ export default function Login({ title, description }) {
                 color: ACCENT,
               }}
             >
-              ● Private beta · v0.7.1
+              ● Private beta · v0.8.0
             </div>
           </div>
 

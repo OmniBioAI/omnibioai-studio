@@ -4,7 +4,7 @@ This is the system-level map for the OmniBioAI ecosystem assembled by Studio.
 Component API and implementation details belong in their owning repositories.
 
 The root [`docker-compose.yml`](../docker-compose.yml) is the source of truth
-for local development. It currently defines **41 Compose services**. This count
+for local development. It currently defines **42 Compose services**. This count
 includes products, workers, databases, IDEs, monitoring agents, routing, and a
 one-shot deployment verifier.
 
@@ -56,12 +56,13 @@ Ollama for local model inference when local AI is enabled.
 
 These are the exact Compose keys, grouped by responsibility.
 
-### Foundation and startup (3)
+### Foundation and startup (4)
 
 | Service | Responsibility |
 |---|---|
 | `mysql` | Shared relational persistence |
 | `redis` | Cache, queues, usage data, and event streams |
+| `redis-acl-init` | One-shot Redis ACL bootstrap from the canonical policy |
 | `deploy-verify` | One-shot image and source freshness validation |
 
 ### Execution and applications (12)
@@ -160,5 +161,5 @@ docker compose ps
 docker compose logs --tail=200 <service>
 ```
 
-The first command should list 41 services. `npm run check-docs` fails when the
+The first command should list 42 services. `npm run check-docs` fails when the
 catalog and Compose differ. Use `docker compose ps` for runtime state and health.

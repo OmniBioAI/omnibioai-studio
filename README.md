@@ -13,7 +13,26 @@
 
 ---
 
-## ✨ What's New in v0.7.1
+## ✨ What's New in v0.8.0-beta
+
+**Platform Consolidation & Security Hardening.** This release consolidates the
+ecosystem and hardens its security foundation; it adds no major new product
+surface. See [docs/CHANGELOG.md](docs/CHANGELOG.md) for details.
+
+- 🧭 **Ecosystem consolidation** — every OmniBioAI repository consolidated onto a clean `main` branch
+- 🔐 **Authentication & authorization hardening** — fail-closed token-revocation checks, HMAC-signed IAM identity caches, plugin API authorization and run-ownership enforcement in Workbench
+- ⚙️ **Delegated execution security** — dedicated, service-only credentials for TES → ToolServer delegated execution and registration
+- 🧱 **Redis hardening** — per-service least-privilege Redis identities, a canonical ACL bootstrap (`redis-acl-init`), protected/verified Redis backups, exporter `CONFIG` access removed
+- 🧾 **Audit integrity** — signed, audit-atomic Auth mutations, least-privilege audit reader/writer DB identities, observable (not silent) audit-delivery failures
+- 👤 **Per-user isolation controls** — owner-scoped TES personal runs and fail-closed TES work-dir isolation
+- 🛡️ **Operational hardening** — loopback-only RStudio/VS Code host ports, encrypted MySQL backups with restore proof, frontend builds guarded against secret-bearing `VITE_` variables, sensitive-data egress gate for external LLMs
+- 🧩 **Plugins & docs** — scaffold reference-db plugins replaced with real implementations, standardized plugin READMEs, service catalog and test-suite documentation refreshed
+
+Remaining Trusted Tool Catalog verification, multi-tenant production validation,
+and HIPAA-aligned technical-readiness evidence closure are intentionally carried
+forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-studio/issues/100)).
+
+### v0.7.1 ✅
 
 - 🔒 **Security & integrity hardening** — closed an SSRF exposure in toolserver (routed through the authenticated gateway) and an information-disclosure surface in Control Center; hardened Neo4j (credential rotation, network restriction, Access-gated remote entry)
 - 🌐 **Nginx proxy fixes** — resolved recurring proxy bugs affecting RAG, Jupyter, RStudio, and VS Code
@@ -503,10 +522,10 @@ changing one requires a full stack restart.
 - `docker-compose.yml`'s `volumes:` block for each service is the ground
   truth for its exact mount paths (verified against commit `48c858d`).
 
-### About (v0.7.1)
+### About (v0.8.0)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.7.1 |
+| Studio Version | v0.8.0 |
 | Electron | Electron + Vite |
 | Node.js | See `package.json` toolchain |
 | Platform | Runtime-dependent (Linux, macOS, or Windows) |
@@ -588,11 +607,13 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 
 ## 🗺 Roadmap
 
-v0.8.0 onward are gated on the stated exit criteria below, not dates —
-each ships only once its "Requires" list is independently verifiable,
-not just built. Earlier roadmap language promising specific feature
-counts (e.g. a fixed number of trained ML models) or unverified
-compliance/SSO claims has been superseded by this table.
+v0.9.0 onward are gated on the stated exit criteria below, not dates.
+Each ships only once its required capabilities are independently
+verifiable, not merely built. v0.8.0-beta is the platform-consolidation
+and security-hardening release; remaining Trusted Tool Catalog,
+multi-tenancy, and technical-readiness closure work is carried forward
+to v0.9.0. Earlier roadmap language promising specific feature counts or
+unverified compliance/SSO claims has been superseded by this table.
 
 | Version         | Status        | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -603,10 +624,10 @@ compliance/SSO claims has been superseded by this table.
 | v0.5.0-beta     | ✅ Released    | 225+ plugins, 36M-abstract RAG index, 1,120+ container images, full beta launch                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | v0.6.0-beta     | ✅ Released    | Web version (`webstudio.omnibioai.org`), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, Hugging Face integration, Model Registry HF push button                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | v0.7.0          | ✅ Released    | Unified License Key (one `OMNI-XXXX` key for web + desktop, auto-creates user, same JWT as OAuth login), `webstudio.omnibioai.org` fully working end-to-end, 12,110 tools (100+ new HTTP API tools), Tool Selection AI 57x faster with GPU-enabled Ollama (accuracy 0%→60%, Recall@K 60%→85%), 1,000 ARM64 SIF images, Control Center web service, Billing service integrated, **Admin Console** at `admin.omnibioai.org`, team expansion (Dr. Rajnish Kumar, Praveen C.V. Raghavulu) |
-| **v0.7.1**      | ✅ **Current** | **Security & Integrity Hardening** — closed SSRF exposure in toolserver (routed through authenticated gateway); closed info-disclosure surface in Control Center; hardened Neo4j (credential rotation, network restriction, Access-gated remote entry); fixed recurring nginx proxy bugs affecting RAG/Jupyter/RStudio/VS Code; shipped Compliance Center, Audit Explorer, Audit Logs, API Keys & Service Accounts, Security Posture, and Billing (Usage/Overview) admin views; found and fixed real correctness bugs in the plugin execution layer; rewrote documentation for 28+ plugins and core services to reflect verified, not assumed, behavior |
-| **v0.8.0**      | 🔜 Planned — gated on exit criteria | **Trusted Tool Catalog.** Goal: close the gap between "registered" and "verified usable" in the tool catalog. Requires: an audited, verified subset of the tool catalog with confirmed working I/O contracts and accurate documentation; visible in-output disclosure for any illustrative/placeholder methods; public tool/model counts describing the verified subset rather than the full registry |
-| **v0.9.0**      | 🔜 Planned — gated on exit criteria | **Real Multi-Tenancy.** Goal: support genuine multi-org usage. Requires: tested multi-user workspaces with 2+ concurrent real organizations; a real team/role management UI; all default/placeholder secrets rotated with a documented rotation process; realistic load testing |
-| **v1.0.0**      | 🔜 Planned — gated on exit criteria | **Enterprise Claims.** Goal: only claim what's independently verifiable. Requires: SAML SSO tested against a real identity provider; HIPAA compliance backed by a real audit or documented control mapping, not a dashboard alone; agentic tool-suggestion features (OmniBioAgent v2) built only on top of v0.8.0's verified catalog; model portfolio counts reflecting real, current, verified numbers |
+| v0.7.1          | ✅ Released    | **Security & Integrity Hardening** — closed SSRF exposure in toolserver (routed through authenticated gateway); closed info-disclosure surface in Control Center; hardened Neo4j (credential rotation, network restriction, Access-gated remote entry); fixed recurring nginx proxy bugs affecting RAG/Jupyter/RStudio/VS Code; shipped Compliance Center, Audit Explorer, Audit Logs, API Keys & Service Accounts, Security Posture, and Billing (Usage/Overview) admin views; found and fixed real correctness bugs in the plugin execution layer; rewrote documentation for 28+ plugins and core services to reflect verified, not assumed, behavior |
+| **v0.8.0-beta** | ✅ **Current** | **Platform Consolidation & Security Hardening** — all ecosystem repositories consolidated onto clean `main` branches; authentication/authorization hardening (fail-closed token revocation, HMAC-signed IAM identity caches, Workbench plugin authorization and run ownership); service-only credentials for delegated TES → ToolServer execution; per-service least-privilege Redis identities with canonical ACL bootstrap and protected, verified backups; Auth audit integrity signing, audit-atomic mutations, least-privilege audit DB identities, and observable audit-delivery failures; owner-scoped TES runs and fail-closed work-dir isolation; loopback-only IDE ports, encrypted MySQL backups, and secret-free frontend builds; reference-db plugin implementations and standardized plugin documentation; release/CI stabilization. HIPAA-aligned technical-readiness hardening only — not a HIPAA compliance or certification claim |
+| **v0.9.0**      | 🔜 Planned — gated on exit criteria | **Trusted Catalog, Multi-Tenancy & Technical-Readiness Closure.** *Trusted Tool Catalog* — requires an audited, verified usable subset of the catalog with confirmed I/O contracts and accurate documentation; explicit disclosure for illustrative/placeholder methods; public counts that distinguish verified tools/models from the full registry. *Multi-tenancy* — requires genuine multi-org testing, verified multi-user workspaces and team/role management, G1/G2/G4 production isolation evidence, synthetic cross-tenant/per-user testing, and realistic load testing. *HIPAA-aligned technical-readiness closure* — requires all default/placeholder secrets rotated with a documented rotation process, plus the remaining technical-readiness evidence tracked in [#100](https://github.com/OmniBioAI/omnibioai-studio/issues/100) |
+| **v1.0.0**      | 🔜 Planned — gated on exit criteria | **Enterprise Verification.** Goal: make enterprise/security claims only when independently supportable. Requires real SAML IdP validation, mature multi-tenancy, completion of the verified catalog foundation, current verified model/tool portfolio reporting, and appropriately supported HIPAA-related control/evidence claims |
 
 
 ---

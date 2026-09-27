@@ -9,6 +9,52 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
+## v0.8.0-beta (2026-09-27) — Platform Consolidation & Security Hardening
+
+This release consolidates the ecosystem and hardens its security foundation.
+It is HIPAA-aligned technical-readiness hardening, not a HIPAA compliance or
+certification claim.
+
+### Platform consolidation
+- All ecosystem repositories consolidated onto clean `main` branches
+
+### Security and identity
+- Fail-closed behavior when token-revocation state is unavailable (Auth, Control Center)
+- HMAC-signed IAM identity caches (API Gateway, Billing, LIMS, Model Registry)
+- Workbench plugin API authorization and run-ownership enforcement; insecure dev object routes removed; sensitive-data egress gate for external LLMs
+- Dedicated service-only credentials for delegated TES → ToolServer execution and registration
+- Owner-scoped TES personal runs and fail-closed TES work-dir isolation
+- RStudio and VS Code host ports restricted to loopback; Dev Hub RAG router bypass closed
+- Frontend builds guarded against secret-bearing `VITE_` variables; RAG/Jupyter/Launcher build-time token exposure removed
+
+### Audit and integrity
+- Auth audit integrity signing and audit-atomic Auth mutations
+- Least-privilege `audit_reader` / `audit_writer` database identities for security-audit
+- Audit-delivery failures made observable instead of silent
+
+### Redis and runtime
+- Per-service least-privilege Redis identities across TES, API Gateway, Control Center, Workbench, LIMS, and audit health reader
+- Canonical Redis ACL bootstrap (`redis-acl-init`) and finalized ACL startup topology
+- Protected Redis backup workflow with ACL-state verification and restore verification; Redis exporter `CONFIG` access removed
+- Encrypted MySQL backups with restore proof; least-privilege interaction DB identity
+
+### Tools, workflows, and plugins
+- Scaffold reference-db plugins replaced with real implementations; plugin registry duplicates repaired
+- Plugin READMEs standardized across the Workbench plugin catalog
+- Licensed reference-db credentials passed to Workbench; Neo4j Browser embedded securely
+
+### Documentation and operations
+- Test-suite documentation improved across repositories
+- Service catalog (`docs/SYSTEM_ARCHITECTURE.md`) updated for `redis-acl-init`
+- CI placeholder environment updated for the compose variables introduced by the Redis ACL, audit, and delegated-execution work, restoring the release pipeline
+
+### Known / deferred to v0.9.0
+Remaining Trusted Tool Catalog verification, multi-tenant production
+validation, and HIPAA-aligned technical-readiness evidence closure are
+intentionally carried forward to v0.9.0, tracked in
+[#100](https://github.com/OmniBioAI/omnibioai-studio/issues/100).
+
+---
 ## v0.7.1 erratum (2026-09-14)
 
 A post-release audit verified every v0.7.1 claim below against real evidence

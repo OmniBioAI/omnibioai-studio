@@ -68,6 +68,20 @@ jobs:
           JUPYTER_TOKEN=cijupyter
           RSTUDIO_PASSWORD=cirstudio
           VSCODE_PASSWORD=civscode
+          AUTH_DB_PASSWORD=ciauthdb
+          AUTH_AUDIT_INTEGRITY_KEY=ciauditintegrity
+          AUDIT_READER_DB_PASSWORD=ciauditreader
+          AUDIT_WRITER_DB_PASSWORD=ciauditwriter
+          INTERACTION_DB_PASSWORD=ciinteraction
+          NEO4J_PASSWORD=cineo4j
+          REDIS_HEALTHCHECK_PASSWORD=ciredishealth
+          REDIS_ACL_SCRIPT_PATH=/tmp/omnibioai/redis-acl/redis_acl_bootstrap.py
+          REDIS_ACL_POLICY_PATH=/tmp/omnibioai/redis-acl/acl-policy.json
+          REDIS_ACL_CREDENTIAL_DIR=/tmp/omnibioai/redis-acl/credentials
+          TES_TOOLSERVER_CLIENT_ID=ci-tes-toolserver
+          TES_TOOLSERVER_CLIENT_SECRET=citestoolserver
+          TES_TOOLSERVER_REGISTRATION_CLIENT_ID=ci-tes-toolserver-registration
+          TES_TOOLSERVER_REGISTRATION_CLIENT_SECRET=citestoolserverregistration
           ENVEOF
       - name: Validate docker-compose
         run: |
