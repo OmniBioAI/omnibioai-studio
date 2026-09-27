@@ -42,13 +42,24 @@ generator materializes those values as per-user files, which the bootstrap
 reads rather than inheriting secrets in its process environment. It uses protected files for
 `redis_admin` and `redis_backup`; the existing exporter password-map file for
 `redis_monitoring`; and a separate protected `redis_rag_cache.pass` input.
-The actual `redis_rag_cache` credential source was not located in the
-protected credential directory or Studio `.env`, so that input is a deliberate
-fail-closed prerequisite, not generated or inferred from another RAG/IAM
-secret. The exporter JSON's protected contents were not readable to this
-discovery process; its expected `redis_monitoring` map-key shape must be
-confirmed during credential-source reconciliation. The renderer never prints
-credential contents or ACL hashes. The Studio `.env` generator creates
+The running RAG container obtains `CACHE_REDIS_URL` from the protected
+`.secrets/rag_redis.env` file; its username is `redis_rag_cache`. The URL
+credential matches the running Redis identity and can be preserved without
+rotation, but the dedicated `redis_rag_cache.pass` input expected in the
+bootstrap credential directory is not present. Do not infer it from the
+different legacy `REDIS_IAM_RAG_PASSWORD` setting. An operator must transfer
+the existing decoded credential into the protected input through an approved,
+no-overwrite procedure before bootstrap validation.
+
+The running exporter is configured as `redis_monitoring` and reads the
+read-only protected exporter password map. Its current map entry matches the
+protected `redis_monitoring.pass` value, and the exporter reports a successful
+Redis scrape. However, the map key is a target-URI key, not the
+`redis_monitoring` key currently referenced by `acl-policy.json`; therefore
+the canonical bootstrap credential reference must be reconciled before it can
+render this identity. Do not activate bootstrap while either credential
+reference is unresolved. The renderer never prints credential contents or ACL
+hashes. The Studio `.env` generator creates
 missing established application Redis credentials once, preserves existing
 values, and enforces owner-only (`0600`) `.env` mode. The derived
 `.secrets/redis-acl/<user>.pass` files are held in a `0700` directory, mode
