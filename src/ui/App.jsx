@@ -13,6 +13,7 @@ import Services  from "./pages/Services";
 import Logs      from "./pages/Logs";
 import Settings  from "./pages/Settings";
 import Studio from "./pages/Studio";
+import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
 import Videos        from "./pages/Videos";
@@ -65,12 +66,12 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","studio","settings","jobs","ide-services","roles","billing"
+  "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench"
 ];
 
 const PAGE_LABELS = [
   "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
-  "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing",
+  "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -103,6 +104,7 @@ export default function App() {
     mode: "beta", llm: {}, cloud: {}, hpc: {}, settings: {},
   });
   const [service,      setService]      = useState(null); // { url, label } when viewing a service
+  const [workbenchState, setWorkbenchState] = useState({ query: "", category: "__all__", focusSlug: null });
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
   const [oauthNotice,  setOauthNotice]  = useState(null); // result of an OAuth redirect: link_required | error
@@ -254,6 +256,8 @@ export default function App() {
     <IdeServices  currentUser={currentUser} />,
     <RoleManagement currentUser={currentUser} />,
     <Billing currentUser={currentUser} />,
+    <Workbench state={workbenchState} onStateChange={setWorkbenchState}
+      onOpen={(url, label) => setService({ url, label, source: "workbench" })} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -265,6 +269,7 @@ export default function App() {
   }
 
   function handleNavClick(idx) {
+    if (service?.source === "workbench") setService(null);
     setStep(idx);
     if (idx === 7) {
       const url = new URL(window.location.href);
@@ -461,7 +466,9 @@ export default function App() {
               ? <Videos onBack={() => setService(null)} />
               : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
-                : <ServiceViewer url={resolveServiceUrl(service.url)} label={service.label} onBack={() => setService(null)} />
+                : <ServiceViewer url={service.source === "workbench" ? service.url : resolveServiceUrl(service.url)} label={service.label}
+                    backLabel={service.source === "workbench" ? "Back to Workbench" : undefined}
+                    onBack={() => setService(null)} />
             : (
               <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
                 {step === 7 ? null : (

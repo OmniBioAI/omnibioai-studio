@@ -293,3 +293,22 @@ a:focus:not(:focus-visible) {
   .studio-login-btn,
   .studio-login-tab { min-height: 44px; }
 }
+
+/* Native Studio Workbench catalog; legacy iframe styling is unaffected. */
+.native-workbench { display: flex; flex-direction: column; gap: 20px; min-width: 0; font-size: var(--font-size-base); }
+.native-workbench h1 { font-size: var(--font-size-2xl); }
+.native-workbench-subtitle, .native-workbench-summary { color: var(--color-text-secondary); font-size: var(--font-size-sm); margin-top: 8px; }
+.native-workbench-search { display: block; max-width: 520px; font-size: var(--font-size-sm); }
+.native-workbench-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.native-workbench-filters button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; min-height: 44px; background: var(--bg2); color: var(--text); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; cursor: pointer; }
+.native-workbench-filters button[aria-pressed="true"] { border-color: var(--accent); background: var(--color-accent-dim); }
+.native-workbench-category { display: flex; align-items: center; gap: 8px; font-size: var(--font-size-lg); margin-bottom: 12px; }
+.native-workbench-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.native-workbench-card { min-width: 0; }
+.native-workbench-card h3 { font-size: var(--font-size-md); }
+.native-workbench-launch { min-height: 44px; text-align: left; padding: 4px 0; background: none; border: 0; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; overflow-wrap: anywhere; }
+.native-workbench-launch:hover { color: var(--accent); }
+.native-workbench-card p { margin-top: 8px; color: var(--color-text-secondary); line-height: 1.5; overflow-wrap: anywhere; }
+.native-workbench-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.native-workbench-message { display: flex; align-items: center; gap: 12px; padding: 20px; }
+.native-workbench-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

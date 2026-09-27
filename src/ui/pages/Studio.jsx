@@ -41,22 +41,10 @@ function buildCategories(BASE) {
         // since the docs site moved to its current dist/user/... layout.
         { label:"Getting Started",  url:"/_svc/docs/user/getting-started/", icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
-        { label:"Workbench",        url:"/_svc/workbench/",          icon:"🏠", desc:"Dashboard"                        },
-        // This tile is the authenticated internal view only (control-center's
-        // own backend-rendered ecosystem report, gated on platform.manage_infra
-        // like Admin Console below). control.omnibioai.org (ControlApp, a
-        // separate VITE_APP_MODE=control build) is NOT reachable from here,
-        // and that's by design, not a missing tile: it's a deliberately
-        // anonymous, unauthenticated public status dashboard (no AuthGate, no
-        // token ever sent -- see ControlApp.tsx's own doc comment and
-        // omnibioai-control-center/docs/public-control-center.md) meant for
-        // visitors with no Studio session at all, so it doesn't belong behind
-        // Studio's authenticated tile grid. Confirmed 2026-09-13: its backend
-        // routes (health/llm/cloud/integrations + /report/status,
-        // /report/public-stats) carry no require_permission dependency,
-        // deliberately, with a regression test (test_public_dashboard_no_leak.py)
-        // guarding that they never leak an identifier.
-        { label:"Control Center",   url:"/_svc/control/",            icon:"🖥️", desc:"Health + Docker imgs"             },
+        { label:"Workbench",        url:"",                          icon:"🏠", desc:"Application catalog", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 13 })) },
+        // Same ControlApp as the standalone site, mounted through Studio's
+        // JWT gate and the existing platform.manage_infra permission check.
+        { label:"Control Center",   url:"/_svc/control/",            icon:"🖥️", desc:"Overview · Evidence · Ecosystem"   },
         // Admin Console (control-center-web's AdminApp build, dist-admin) —
         // reached directly at admin.omnibioai.org, not through nginx-router
         // at all: cloudflared points both admin.omnibioai.org and
@@ -142,7 +130,6 @@ function buildCategories(BASE) {
       name: "Core Platform",
       color: "var(--accent)",
       links: [
-        { label:"Home",             url:"/_svc/workbench/",                                    icon:"🏠", desc:"Dashboard"              },
         { label:"OnboardAI",        url:"/_svc/workbench/plugins/onboardai/",                  icon:"🤖", desc:"AI developer tools"     },
         { label:"OmniBioAgent",     url:"/_svc/workbench/plugins/bio_agent/",                  icon:"💬", desc:"AI assistant"           },
         { label:"Job Monitor",      url:"/_svc/workbench/plugins/job_monitor/",                icon:"📊", desc:"Monitor jobs"           },
@@ -331,7 +318,7 @@ export default function Studio() {
           </button>
 
           <button
-            onClick={() => online && open(`${BASE}/`, "Workbench Dashboard")}
+            onClick={() => online && window.dispatchEvent(new CustomEvent("navigate", { detail: 13 }))}
             aria-disabled={!online}
             aria-label="Launch workbench dashboard"
             style={{
@@ -474,7 +461,7 @@ export default function Studio() {
             <span aria-hidden="true">📦</span> Open Catalog
           </button>
           <button
-            onClick={() => online && open(`${BASE}/`, "Workbench Dashboard")}
+            onClick={() => online && window.dispatchEvent(new CustomEvent("navigate", { detail: 13 }))}
             aria-disabled={!online}
             aria-label="Launch workbench dashboard"
             style={{

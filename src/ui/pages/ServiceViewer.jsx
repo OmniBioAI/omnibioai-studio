@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import { isElectron } from "../lib/session";
 
-export default function ServiceViewer({ url, label, onBack }) {
+export default function ServiceViewer({ url, label, onBack, backLabel = "Back to Studio" }) {
   const webviewRef = useRef(null);
   const electron = isElectron();
 
@@ -35,7 +35,7 @@ export default function ServiceViewer({ url, label, onBack }) {
             fontWeight: 600, cursor: "pointer",
           }}
         >
-          ← Back to Studio
+          ← {backLabel}
         </button>
         <span style={{
           fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",

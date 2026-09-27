@@ -31,7 +31,7 @@ vi.mock("../../src/ui/pages/HPC", () => ({ default: () => <div>HPC page</div> })
 vi.mock("../../src/ui/pages/Launch", () => ({ default: ({ onStatusChange }) => <div>Launch page<button onClick={() => onStatusChange("running")}>go-running</button><button onClick={() => onStatusChange("error")}>go-error</button><button onClick={() => onStatusChange("starting")}>go-starting</button></div> }));
 vi.mock("../../src/ui/pages/Services", () => ({ default: () => <div>Services page</div> }));
 vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> }));
-vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <div>Studio page</div> }));
+vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <><div>Studio page</div><button onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: 13 }))}>Open Workbench catalog</button></> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
 vi.mock("../../src/ui/pages/IdeServices", () => ({ default: () => <div>IDE page</div> }));
@@ -339,5 +339,34 @@ describe("App shell — token refresh and return_to redirect", () => {
     // jsdom doesn't implement real navigation, but the assignment itself
     // must not throw and the shell should still render.
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+  });
+});
+
+describe("App shell — native Workbench catalog", () => {
+  it.each([false, true])("opens through ServiceViewer and restores filters in Electron=%s", async electron => {
+    const { catalogResponse } = await import("./workbench-fixture");
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => catalogResponse()));
+    isElectron.mockReturnValue(electron);
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await screen.findByText("Studio page");
+    expect(screen.queryByRole("heading", { name: "Workbench" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open Workbench catalog" }));
+    await screen.findByRole("button", { name: "Open RNA Analysis" });
+    fireEvent.click(screen.getByRole("button", { name: "Analysis 2" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Search apps" }), { target: { value: "rna" } });
+    fireEvent.click(screen.getByRole("button", { name: "Open RNA Analysis" }));
+    const origin = electron ? "http://localhost:5174" : "";
+    expect(screen.getByText(`ServiceViewer:RNA Analysis:${origin}/_svc/workbench/plugins/rna/`)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("svback"));
+    const launch = await screen.findByRole("button", { name: "Open RNA Analysis" });
+    expect(screen.getByRole("textbox", { name: "Search apps" })).toHaveValue("rna");
+    await waitFor(() => expect(launch).toHaveFocus());
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Search apps" }), { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Analysis 2" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
+    expect(screen.getByText("Studio page")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/studio");
+    vi.unstubAllGlobals();
   });
 });

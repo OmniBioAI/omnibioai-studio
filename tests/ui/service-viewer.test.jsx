@@ -45,3 +45,11 @@ describe("ServiceViewer", () => {
     expect(window.electronAPI.openExternal).toHaveBeenCalledTimes(1);
   });
 });
+
+it("labels the native catalog return action without changing the embedded application URL", () => {
+  const onBack = vi.fn();
+  render(<ServiceViewer url="/_svc/workbench/plugins/rna/" label="RNA Analysis" backLabel="Back to Workbench" onBack={onBack} />);
+  expect(screen.getByTitle("RNA Analysis")).toHaveAttribute("src", "/_svc/workbench/plugins/rna/");
+  fireEvent.click(screen.getByRole("button", { name: "← Back to Workbench" }));
+  expect(onBack).toHaveBeenCalledOnce();
+});
