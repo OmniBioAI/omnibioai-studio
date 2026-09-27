@@ -83,6 +83,10 @@ jobs:
           TES_TOOLSERVER_REGISTRATION_CLIENT_ID=ci-tes-toolserver-registration
           TES_TOOLSERVER_REGISTRATION_CLIENT_SECRET=citestoolserverregistration
           ENVEOF
+          # rag's env_file is gitignored and generated on real hosts; compose
+          # config refuses to render when it is missing.
+          mkdir -p .secrets
+          echo 'CACHE_REDIS_URL=redis://ci:ci@redis:6379/0' > .secrets/rag_redis.env
       - name: Validate docker-compose
         run: |
           docker compose -f docker-compose.yml config --quiet \
