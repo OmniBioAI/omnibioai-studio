@@ -38,6 +38,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set -- see DEPLOYMENT.md. Refusing to start with a silently-guessable default}
       MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
+      INTERACTION_DB_PASSWORD: ${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}
     volumes:
       - mysql_data:/var/lib/mysql
       - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d:ro
@@ -54,15 +55,35 @@ services:
     # for the full rationale -- same fix, both profiles. AOF with
     # `everysec` fsync bounds the crash-loss window to ~1s instead of
     # up to 60s/10,000 writes under RDB-only defaults.
-    command: redis-server --appendonly yes --appendfsync everysec
+    command: redis-server --appendonly yes --appendfsync everysec --aclfile /data/users.acl
     volumes:
       - redis_data:/data
+    environment:
+      REDIS_HEALTHCHECK_PASSWORD: ${REDIS_HEALTHCHECK_PASSWORD:?REDIS_HEALTHCHECK_PASSWORD must be set}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_HEALTHCHECK_PASSWORD\" redis-cli --user redis_healthcheck ping"]
       interval: 5s
       timeout: 3s
       retries: 30
+    depends_on:
+      redis-acl-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+  redis-acl-init:
+    image: python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+    command: ["python", "/opt/redis_acl_bootstrap.py", "bootstrap", "--policy", "/opt/acl-policy.json", "--data-dir", "/data", "--credential-dir", "/run/redis-acl"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    restart: "no"
+    volumes:
+      - ${REDIS_ACL_SCRIPT_PATH:?REDIS_ACL_SCRIPT_PATH must be set}:/opt/redis_acl_bootstrap.py:ro
+      - ${REDIS_ACL_POLICY_PATH:?REDIS_ACL_POLICY_PATH must be set}:/opt/acl-policy.json:ro
+      - ${REDIS_ACL_CREDENTIAL_DIR:?REDIS_ACL_CREDENTIAL_DIR must be set}:/run/redis-acl:ro
+      - redis_data:/data
 
   ollama:
     image: ollama/ollama
@@ -97,7 +118,7 @@ services:
       SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       ACCESS_TOKEN_EXPIRE_MINUTES: "15"
       REFRESH_TOKEN_EXPIRE_DAYS: "7"
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis_auth:${REDIS_AUTH_PASSWORD}@redis:6379
       CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ORIGINS:-http://localhost:5174,http://127.0.0.1:5174,https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
@@ -120,7 +141,7 @@ services:
       - "${HOST_IP:-0.0.0.0}:8002:8002"
     environment:
       PYTHONUNBUFFERED: "1"
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis_policy:${REDIS_POLICY_PASSWORD}@redis:6379/0
     depends_on:
       redis:
         condition: service_healthy
@@ -186,7 +207,7 @@ services:
     image: ghcr.io/omnibioai/omnibioai-security-audit-worker:latest
     environment:
       PYTHONUNBUFFERED: "1"
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis_audit_worker:${REDIS_AUDIT_WORKER_PASSWORD}@redis:6379/0
       JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}@mysql:3306/omnibioai_audit
     depends_on:
@@ -202,7 +223,8 @@ services:
       - "${HOST_IP:-0.0.0.0}:8080:8080"
     environment:
       PYTHONUNBUFFERED: "1"
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis_api_gateway_iam:${REDIS_API_GATEWAY_IAM_PASSWORD}@redis:6379/0
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379/0
       IAM_URL: http://auth-service:8001
       POLICY_URL: http://policy-engine:8002
       HPC_URL: http://hpc-policy-engine:8003
@@ -275,7 +297,8 @@ services:
       POLICY_URL: http://policy-engine:8002
       HPC_POLICY_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis_tes_iam:${REDIS_TES_IAM_PASSWORD}@redis:6379/0
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379/0
       SINGULARITY_CACHEDIR: /tmp/singularity_cache
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
       SENTRY_DSN: ${SENTRY_DSN:-}
@@ -399,7 +422,10 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       REDIS_HOST: redis
       REDIS_PORT: "6380"
-      CELERY_BROKER_URL: redis://redis:6379/1
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
+      CELERY_BROKER_URL: redis://redis_celery_workbench:${REDIS_CELERY_WORKBENCH_PASSWORD}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis_celery_workbench:${REDIS_CELERY_WORKBENCH_PASSWORD}@redis:6379/2
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379
       TES_BASE_URL: http://tes:8081
       OLLAMA_BASE_URL: http://ollama:11434
       TOOLSERVER_BASE_URL: http://toolserver:9090
@@ -516,7 +542,10 @@ services:
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       REDIS_HOST: redis
       REDIS_PORT: "6380"
-      CELERY_BROKER_URL: redis://redis:6379/1
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
+      CELERY_BROKER_URL: redis://redis_celery_workbench:${REDIS_CELERY_WORKBENCH_PASSWORD}@redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis_celery_workbench:${REDIS_CELERY_WORKBENCH_PASSWORD}@redis:6379/2
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379
       TES_BASE_URL: http://tes:8081
       # #196: fixed call sites read GATEWAY_URL exclusively -- was already
       # wired into docker-compose.yml (dev) but missing here, so the
@@ -589,6 +618,8 @@ services:
         condition: service_started
       workbench:
         condition: service_started
+      redis:
+        condition: service_healthy
     command: ["bash", "-lc", "celery -A omnibioai worker -l info"]
     restart: on-failure
 
@@ -604,6 +635,8 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: "8095"
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
+      IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
@@ -631,6 +664,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: on-failure
 
   lims:
@@ -650,9 +685,9 @@ services:
       FIELD_ENCRYPTION_KEY: ${LIMSX_FIELD_ENCRYPTION_KEY}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
       CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      REDIS_URL: redis://redis_lims_cache:${REDIS_LIMS_CACHE_PASSWORD}@redis:6379/0
+      CELERY_BROKER_URL: redis://redis_celery_lims:${REDIS_CELERY_LIMS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis_celery_lims:${REDIS_CELERY_LIMS_PASSWORD}@redis:6379/0
     depends_on:
       mysql:
         condition: service_healthy
@@ -662,6 +697,8 @@ services:
 
   rag:
     image: ghcr.io/omnibioai/omnibioai-rag:latest
+    env_file:
+      - .secrets/rag_redis.env
     ports:
       - "${HOST_IP:-0.0.0.0}:8090:8096"
       - "${HOST_IP:-0.0.0.0}:5175:5175"
@@ -679,8 +716,15 @@ services:
       GATEWAY_URL: http://api-gateway:8080
       RAGBIO_API_KEY: ${RAGBIO_API_KEY:-}
       RAGBIO_HOST: 0.0.0.0
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
+      IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
+      INTERACTION_REDIS_URL: redis://redis_interaction_producer:${REDIS_INTERACTION_PRODUCER_PASSWORD}@redis:6379
+      AUDIT_REDIS_URL: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379
     depends_on:
-      - ollama
+      ollama:
+        condition: service_started
+      redis:
+        condition: service_healthy
     restart: on-failure
 
   neo4j:
@@ -780,8 +824,12 @@ services:
       DB_NAME: omnibioai
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
+      AUTH_REDIS_URL: redis://redis_workflow_iam:${REDIS_WORKFLOW_IAM_PASSWORD}@redis:6379/0
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379/0
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: on-failure
 

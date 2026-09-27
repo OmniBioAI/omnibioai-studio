@@ -21,8 +21,10 @@ const path = require("node:path");
 const {
   SECRET_DEFAULTS,
   SECRET_GENERATORS,
+  REDIS_ACL_CREDENTIALS,
   parseEnvFile,
   generateSecrets,
+  writeRedisAclCredentialFiles,
 } = require("../electron/secrets.js");
 
 function tmpEnvPath() {
@@ -34,6 +36,7 @@ function tmpEnvPath() {
 // the app actually provisions -- otherwise a fresh install fails to start.
 const COMPOSE_REQUIRED = [
   "MYSQL_ROOT_PASSWORD",
+  "INTERACTION_DB_PASSWORD",
   "AUTH_SECRET_KEY",
   "LICENSE_SECRET",
   "GF_ADMIN_PASSWORD",
@@ -71,6 +74,11 @@ test("generates secrets into an empty/missing .env", () => {
 
   assert.strictEqual(changed, true, "should report that it wrote secrets");
   assert.ok(fs.existsSync(envPath), ".env should have been created");
+  assert.strictEqual(
+    fs.statSync(envPath).mode & 0o777,
+    0o600,
+    "generated credential file must be owner-only"
+  );
 
   const env = parseEnvFile(envPath);
   for (const key of Object.keys(SECRET_DEFAULTS)) {
@@ -84,6 +92,85 @@ test("generates secrets into an empty/missing .env", () => {
     );
     assert.match(env[key], /^[0-9a-f]{64}$/, `${key} should be lowercase hex`);
   }
+});
+
+test("generates canonical Redis ACL inputs once and preserves existing values", () => {
+  const envPath = tmpEnvPath();
+  const redisKeys = Object.keys(SECRET_DEFAULTS).filter((key) => key.startsWith("REDIS_"));
+  assert.ok(redisKeys.length >= 20, "canonical ACL user credential refs must be generated");
+  generateSecrets(envPath);
+  const first = parseEnvFile(envPath);
+  for (const key of redisKeys) {
+    assert.match(first[key], /^[0-9a-f]{64}$/, `${key} must be a fresh 256-bit hex secret`);
+  }
+  assert.strictEqual(generateSecrets(envPath), false, "existing credentials must not rotate");
+  const second = parseEnvFile(envPath);
+  for (const key of redisKeys) assert.strictEqual(second[key], first[key]);
+});
+
+test("canonical policy Redis env references map to protected per-user files", () => {
+  const policy = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "..", "config", "redis", "acl-policy.json"), "utf8"
+  ));
+  const expected = Object.fromEntries(policy.users
+    .filter((user) => user.credential && user.credential.env)
+    .map((user) => [user.name, user.credential.env]));
+  assert.deepStrictEqual(REDIS_ACL_CREDENTIALS, expected);
+  for (const key of Object.values(REDIS_ACL_CREDENTIALS)) {
+    assert.ok(key in SECRET_DEFAULTS, `${key} must have an established generator input`);
+  }
+});
+
+test("Redis credential materialization must succeed before Compose startup", () => {
+  const mainSrc = fs.readFileSync(path.join(__dirname, "..", "electron", "main.js"), "utf8");
+  const materialize = mainSrc.indexOf("writeRedisAclCredentialFiles(");
+  const composeStart = mainSrc.indexOf('spawn("docker", ["compose"');
+  assert.ok(materialize >= 0, "Studio startup must materialize protected ACL inputs");
+  assert.ok(composeStart > materialize, "Redis/Compose must not start before protected inputs exist");
+  const envWiring = mainSrc.slice(composeStart, mainSrc.indexOf("upProc.unref()", composeStart));
+  for (const name of ["REDIS_ACL_CREDENTIAL_DIR", "REDIS_ACL_SCRIPT_PATH", "REDIS_ACL_POLICY_PATH"]) {
+    assert.ok(envWiring.includes(name), `${name} must be passed to Compose without storing a secret`);
+  }
+});
+
+test("materializes owner-only Redis credential files without rotating values", () => {
+  const envPath = tmpEnvPath();
+  generateSecrets(envPath);
+  const dir = path.join(path.dirname(envPath), ".secrets", "redis-acl");
+  const count = writeRedisAclCredentialFiles(envPath, dir);
+  assert.strictEqual(count, Object.keys(REDIS_ACL_CREDENTIALS).length);
+  assert.strictEqual(fs.statSync(dir).mode & 0o777, 0o700);
+  const env = parseEnvFile(envPath);
+  const before = new Map();
+  for (const [user, key] of Object.entries(REDIS_ACL_CREDENTIALS)) {
+    const file = path.join(dir, `${user}.pass`);
+    assert.strictEqual(fs.statSync(file).mode & 0o777, 0o600);
+    assert.strictEqual(fs.readFileSync(file, "utf8"), env[key]);
+    before.set(user, fs.readFileSync(file, "utf8"));
+  }
+  assert.strictEqual(writeRedisAclCredentialFiles(envPath, dir), count);
+  for (const [user, value] of before) {
+    assert.strictEqual(fs.readFileSync(path.join(dir, `${user}.pass`), "utf8"), value);
+  }
+});
+
+test("credential materialization fails closed on missing or mismatched inputs", () => {
+  const envPath = tmpEnvPath();
+  const dir = path.join(path.dirname(envPath), ".secrets", "redis-acl");
+  fs.writeFileSync(envPath, "REDIS_AUTH_PASSWORD=synthetic-auth-password-value\n");
+  assert.throws(() => writeRedisAclCredentialFiles(envPath, dir), /missing or malformed/);
+  assert.strictEqual(fs.existsSync(dir), false, "preflight failure must publish no credential files");
+
+  generateSecrets(envPath);
+  writeRedisAclCredentialFiles(envPath, dir);
+  const env = parseEnvFile(envPath);
+  env.REDIS_AUTH_PASSWORD = "different-synthetic-auth-password";
+  fs.writeFileSync(envPath, Object.entries(env).map(([k, v]) => `${k}=${v}`).join("\n") + "\n", { mode: 0o600 });
+  assert.throws(() => writeRedisAclCredentialFiles(envPath, dir), /source mismatch/);
+  assert.strictEqual(
+    fs.readFileSync(path.join(dir, "redis_auth.pass"), "utf8"),
+    "synthetic-auth-password-value"
+  );
 });
 
 test("rotates values still set to the known-weak literals", () => {
@@ -137,6 +224,14 @@ test("preserves already-generated real secrets", () => {
         `would orphan the data encrypted/signed under the previous value`
     );
   }
+});
+
+test("tightens an existing populated credential file to owner-only", () => {
+  const envPath = tmpEnvPath();
+  generateSecrets(envPath);
+  fs.chmodSync(envPath, 0o644);
+  assert.strictEqual(generateSecrets(envPath), false);
+  assert.strictEqual(fs.statSync(envPath).mode & 0o777, 0o600);
 });
 
 test("preserves unrelated keys already in .env", () => {

@@ -6,6 +6,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
+      INTERACTION_DB_PASSWORD: ${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}
     ports:
       - "3306:3306"
     volumes:
@@ -36,20 +37,45 @@ services:
     # need updating) -- deliberately NOT done here; see
     # omnibioai-docs/security/hipaa_v2_002_audit_delivery_evidence.md
     # for that documented-but-unresolved deployment prerequisite.
-    # Redis P1-5 Stage 1: durable per-identity ACLs (users.acl lives on
-    # redis_data, outside git). default stays enabled transitionally
-    # until every consumer has migrated to its own named identity (later
-    # stage), so this is additive only.
+    # The ACL file is initialized and validated by redis-acl-init before
+    # Redis can start; the default identity is disabled from first use.
     command: redis-server --appendonly yes --appendfsync everysec --aclfile /data/users.acl
-    ports:
-      - "6380:6379"
     volumes:
       - redis_data:/data
+    environment:
+      REDIS_HEALTHCHECK_PASSWORD: ${REDIS_HEALTHCHECK_PASSWORD:?REDIS_HEALTHCHECK_PASSWORD must be set}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        - CMD-SHELL
+        - >
+          [ -n "$$REDIS_HEALTHCHECK_PASSWORD" ] || exit 1;
+          output="$$(redis-cli --user redis_healthcheck --pass "$$REDIS_HEALTHCHECK_PASSWORD" ping 2>&1)";
+          case "$$output" in
+            *WRONGPASS*|*NOAUTH*|*NOPERM*) exit 1 ;;
+            *PONG*) exit 0 ;;
+            *) exit 1 ;;
+          esac
       interval: 5s
       timeout: 3s
       retries: 30
+    depends_on:
+      redis-acl-init:
+        condition: service_completed_successfully
+
+  redis-acl-init:
+    image: python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+    command: ["python", "/opt/redis_acl_bootstrap.py", "bootstrap", "--policy", "/opt/acl-policy.json", "--data-dir", "/data", "--credential-dir", "/run/redis-acl"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    restart: "no"
+    volumes:
+      - ${REDIS_ACL_SCRIPT_PATH:?REDIS_ACL_SCRIPT_PATH must be set}:/opt/redis_acl_bootstrap.py:ro
+      - ${REDIS_ACL_POLICY_PATH:?REDIS_ACL_POLICY_PATH must be set}:/opt/acl-policy.json:ro
+      - ${REDIS_ACL_CREDENTIAL_DIR:?REDIS_ACL_CREDENTIAL_DIR must be set}:/run/redis-acl:ro
+      - redis_data:/data
 
   # Deploy-freshness check (issue #200/#194 pattern -- a container running
   # stale code relative to what's merged/available upstream, invisible
@@ -109,6 +135,8 @@ services:
       - ${WORKSPACE_HOST}:/workspace
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       deploy-verify:
         condition: service_completed_successfully
@@ -261,7 +289,6 @@ services:
       # Redis P1-5 Stage 5: usage_client producer identity, independent
       # of REDIS_URL/IAM_REDIS_URL below.
       USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
-      REDIS_URL: redis://redis:6379
       # Redis P1-5 Stage 3: IAM-only migration, checked before REDIS_URL.
       IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
       DB_HOST: mysql
@@ -282,6 +309,8 @@ services:
       - ${WORK_DIR}/runs:/app/work/runs:ro
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   billing-service:
@@ -304,7 +333,6 @@ services:
       # is the separate billing-worker container below, with its own
       # USAGE_REDIS_URL -> redis_usage_worker).
       USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
-      REDIS_URL: redis://redis:6379
       # Redis P1-5 Stage 3: IAM-only migration, checked before REDIS_URL.
       IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
       IAM_URL: http://auth-service:8001
@@ -507,7 +535,6 @@ services:
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       RAG_CACHE_ENABLED: "true"
       RAG_CACHE_TTL: "3600"
-      REDIS_URL: redis://redis:6379
     volumes:
       - ${DATA_DIR}/PubMed:/workspace/data/PubMed
       - ${DATA_DIR}/PubMed/Index:/workspace/data/Index
@@ -904,7 +931,7 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
       REDIS_HOST: redis
-      USAGE_REDIS_URL: redis://redis:6379
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
       REDIS_PORT: "6379"
       # Redis P1-5 Stage 6A 2026-09-17: migrated to the dedicated
       # redis_celery_workbench ACL identity (broker DB1, result backend DB2).
@@ -1017,6 +1044,8 @@ services:
         condition: service_started
       workbench:
         condition: service_started
+      redis:
+        condition: service_healthy
       deploy-verify:
         condition: service_completed_successfully
     command: ["bash", "-lc", "celery -A omnibioai worker -l info"]
@@ -1164,11 +1193,18 @@ services:
       sh -c "/usr/local/bin/pip install -q pytest pytest-cov pandas pytest-django django-environ django-extensions djangorestframework 2>&1 | grep -v '^Requirement' || true &&
       exec /usr/local/bin/uvicorn control_center.main:app --host 0.0.0.0 --port 7070"
     depends_on:
-      - docker-socket-proxy
-      - workbench
-      - tes
-      - toolserver
-      - billing-service
+      docker-socket-proxy:
+        condition: service_started
+      workbench:
+        condition: service_started
+      tes:
+        condition: service_started
+      toolserver:
+        condition: service_started
+      billing-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   # PR14.7B: control-center's Stage 3 (nginx) -- serves both frontend
   # bundles (dist-control/dist-admin, host-based split by Host header,
@@ -1384,13 +1420,13 @@ services:
       # either hitting cache or degrading gracefully. /0 matches that
       # same fallback's own db index, same as api/audit.py's separate
       # AUDIT_REDIS connection already does for its default.
-      REDIS_URL: redis://redis:6379/0
       # Redis P1-5 Stage 3: named identity scoped to ~workflow:iam:* only
       # (api/iam.py's own cache_prefix="workflow:" -- distinct keyspace
       # from the shared iam:* used by RAG/LIMS/model-registry/billing).
       # AUTH_REDIS_URL is checked before REDIS_URL, which stays untouched
       # so api/audit.py's separate AUDIT_REDIS-based producer is unaffected.
       AUTH_REDIS_URL: redis://redis_workflow_iam:${REDIS_WORKFLOW_IAM_PASSWORD}@redis:6379/0
+      AUDIT_REDIS: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379/0
       # Previously unset here too, so api/iam.py's JWT_SECRET fell back
       # to its own hard-coded "change-me" -- never matches the real
       # signing key, so AsyncIAMClient.get_user()'s local decode step
@@ -1563,8 +1599,8 @@ services:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_NAME: omnibioai
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      DB_USER: omnibioai_interaction_worker
+      DB_PASSWORD: ${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}
       SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
       # Redis P1-5 Stage 5: dedicated container (interaction_consumer.py
       # only), no coupling with auth-service's own REDIS_URL -- safe to

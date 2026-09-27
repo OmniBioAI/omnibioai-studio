@@ -6,7 +6,7 @@ const { spawn, execFile } = require("child_process");
 const os = require("os");
 const crypto = require("crypto");
 const { initAutoUpdater } = require("./updater");
-const { generateSecrets, parseEnvFile } = require("./secrets");
+const { generateSecrets, parseEnvFile, writeRedisAclCredentialFiles } = require("./secrets");
 
 // In packaged app (DMG/AppImage/EXE) → always production mode
 // In dev (npm run dev) → use env var
@@ -192,6 +192,7 @@ function writeEnvFile(config) {
     `DB_INIT_DIR=${getDbInitPath()}`,
     `VIDEO_DIR=${workDir}/videos`,
     `MYSQL_ROOT_PASSWORD=${existing.MYSQL_ROOT_PASSWORD || ''}`,
+    `INTERACTION_DB_PASSWORD=${existing.INTERACTION_DB_PASSWORD || ''}`,
     `MYSQL_DEFAULT_DB=omnibioai`,
     `LIMSX_DJANGO_SECRET_KEY=${existing.LIMSX_DJANGO_SECRET_KEY || ''}`,
     // Fernet key for LIMS's EncryptedCharField. Must be carried through
@@ -207,10 +208,34 @@ function writeEnvFile(config) {
     `RSTUDIO_PASSWORD=${existing.RSTUDIO_PASSWORD   || ''}`,
     `VSCODE_PASSWORD=${existing.VSCODE_PASSWORD     || ''}`,
     `ADMIN_KEY=${existing.ADMIN_KEY                 || ''}`,
+    // Preserve generated Redis ACL inputs when settings are saved. This
+    // whole-file writer must not drop or regenerate existing credentials.
+    `REDIS_API_GATEWAY_IAM_PASSWORD=${existing.REDIS_API_GATEWAY_IAM_PASSWORD || ''}`,
+    `REDIS_AUDIT_HEALTH_READER_PASSWORD=${existing.REDIS_AUDIT_HEALTH_READER_PASSWORD || ''}`,
+    `REDIS_AUDIT_PRODUCER_PASSWORD=${existing.REDIS_AUDIT_PRODUCER_PASSWORD || ''}`,
+    `REDIS_AUDIT_WORKER_PASSWORD=${existing.REDIS_AUDIT_WORKER_PASSWORD || ''}`,
+    `REDIS_AUTH_PASSWORD=${existing.REDIS_AUTH_PASSWORD || ''}`,
+    `REDIS_CACHE_MANAGER_PASSWORD=${existing.REDIS_CACHE_MANAGER_PASSWORD || ''}`,
+    `REDIS_CELERY_LIMS_PASSWORD=${existing.REDIS_CELERY_LIMS_PASSWORD || ''}`,
+    `REDIS_CELERY_WORKBENCH_PASSWORD=${existing.REDIS_CELERY_WORKBENCH_PASSWORD || ''}`,
+    `REDIS_CONTROL_CENTER_PASSWORD=${existing.REDIS_CONTROL_CENTER_PASSWORD || ''}`,
+    `REDIS_CONTROL_CENTER_STATUS_PASSWORD=${existing.REDIS_CONTROL_CENTER_STATUS_PASSWORD || ''}`,
+    `REDIS_HEALTHCHECK_PASSWORD=${existing.REDIS_HEALTHCHECK_PASSWORD || ''}`,
+    `REDIS_IAM_SHARED_PASSWORD=${existing.REDIS_IAM_SHARED_PASSWORD || ''}`,
+    `REDIS_INTERACTION_PRODUCER_PASSWORD=${existing.REDIS_INTERACTION_PRODUCER_PASSWORD || ''}`,
+    `REDIS_INTERACTION_WORKER_PASSWORD=${existing.REDIS_INTERACTION_WORKER_PASSWORD || ''}`,
+    `REDIS_LIMS_CACHE_PASSWORD=${existing.REDIS_LIMS_CACHE_PASSWORD || ''}`,
+    `REDIS_POLICY_PASSWORD=${existing.REDIS_POLICY_PASSWORD || ''}`,
+    `REDIS_TES_IAM_PASSWORD=${existing.REDIS_TES_IAM_PASSWORD || ''}`,
+    `REDIS_USAGE_PRODUCER_PASSWORD=${existing.REDIS_USAGE_PRODUCER_PASSWORD || ''}`,
+    `REDIS_USAGE_WORKER_PASSWORD=${existing.REDIS_USAGE_WORKER_PASSWORD || ''}`,
+    `REDIS_WORKBENCH_CHANNELS_PASSWORD=${existing.REDIS_WORKBENCH_CHANNELS_PASSWORD || ''}`,
+    `REDIS_WORKFLOW_IAM_PASSWORD=${existing.REDIS_WORKFLOW_IAM_PASSWORD || ''}`,
   ];
 
   fs.mkdirSync(path.dirname(envPath), { recursive: true });
   fs.writeFileSync(envPath, lines.join("\n") + "\n", "utf-8");
+  fs.chmodSync(envPath, 0o600);
 }
 
 // ─── ENV FILE READER ──────────────────────────────────────────────────────────
@@ -334,6 +359,19 @@ app.whenReady().then(() => {
   // Generate random secrets on first launch or when defaults are detected
   const repoEnvPath = getEnvPath();
   const rotated = generateSecrets(repoEnvPath);
+  try {
+    writeRedisAclCredentialFiles(
+      repoEnvPath,
+      path.join(path.dirname(repoEnvPath), ".secrets", "redis-acl")
+    );
+  } catch {
+    dialog.showErrorBox(
+      "Redis credential setup failed",
+      "Protected Redis ACL inputs are missing or inconsistent. Redis startup was not requested. Reconcile credentials through the protected operator workflow."
+    );
+    app.quit();
+    return;
+  }
   if (rotated) {
     dialog.showMessageBoxSync({
       type: 'info',
@@ -345,7 +383,16 @@ app.whenReady().then(() => {
 
   // Ensure Docker Compose always starts with the repo .env
   const upProc = spawn("docker", ["compose", "--env-file", repoEnvPath, "-f", getComposePath(), "up", "-d"], {
-    env: process.env,
+    env: {
+      ...process.env,
+      REDIS_ACL_CREDENTIAL_DIR: path.join(path.dirname(repoEnvPath), ".secrets", "redis-acl"),
+      REDIS_ACL_SCRIPT_PATH: app.isPackaged
+        ? path.join(process.resourcesPath, "redis-acl-bootstrap", "redis_acl_bootstrap.py")
+        : path.join(__dirname, "..", "scripts", "redis_acl_bootstrap.py"),
+      REDIS_ACL_POLICY_PATH: app.isPackaged
+        ? path.join(process.resourcesPath, "redis-acl-bootstrap", "acl-policy.json")
+        : path.join(__dirname, "..", "config", "redis", "acl-policy.json"),
+    },
     detached: true,
     stdio: 'ignore',
   });

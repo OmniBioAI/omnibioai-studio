@@ -148,6 +148,8 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 - [ ] Docker logged in to ghcr.io: `echo $GITHUB_TOKEN | docker login ghcr.io -u man4ish --password-stdin`
 - [ ] At least 50 GB disk free: `df -h .`
 - [ ] DB init SQL files present at `$DB_INIT_DIR`
+- [ ] `INTERACTION_DB_PASSWORD` is present in the protected environment and is distinct from root/Auth/audit credentials
+- [ ] After Auth migrations create `interactions`, run `scripts/provision-interaction-db-identity.sh` with the protected environment
 - [ ] `$WORK_DIR`, `$DATA_DIR`, `$VIDEO_DIR` directories exist and are writable
 
 ---
