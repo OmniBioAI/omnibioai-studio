@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "future-contract-not-assigned-to-a-production-identity",
+  "source_commit": "ecc6b9220e2840f5679e5fd6050a588903e46c01",
+  "commands": [
+    "PING", "GET", "SETEX", "DEL", "ZADD", "ZRANGE", "ZRANGEBYLEX",
+    "ZREM", "ZCARD", "MULTI", "EXEC"
+  ],
+  "key_patterns": ["~rag:query:*", "~rag:studies_list"],
+  "channel_patterns": []
+}
