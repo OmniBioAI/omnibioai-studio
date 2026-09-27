@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Card, Input, Badge, Spinner, Button } from "@omnibioai/ui";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
 import { applicationUrl, legacyWorkbenchUrl, loadWorkbenchCatalog } from "../lib/workbenchApi";
+import WorkbenchBase from "../components/WorkbenchBase";
+import OmniPage from "../components/OmniPage";
 
 // State lives in App so a ServiceViewer round trip preserves the user's place.
 export default function Workbench({ state, onStateChange, onOpen }) {
@@ -41,19 +43,16 @@ export default function Workbench({ state, onStateChange, onOpen }) {
 
   function openPlugin(plugin) {
     onStateChange({ ...state, focusSlug: plugin.slug });
-    onOpen(applicationUrl(plugin.launch_path), plugin.title);
+    onOpen(applicationUrl(plugin.launch_path), plugin.title, plugin);
   }
 
   return (
-    <section className="native-workbench" aria-labelledby="native-workbench-title">
-      <div className="workbench-header">
-        <div>
-          <h1 id="native-workbench-title">Workbench</h1>
-          <p className="native-workbench-subtitle">
-            {catalog ? `${catalog.total_count} bioinformatics applications` : "Loading applications…"}
-          </p>
-        </div>
-      </div>
+    <WorkbenchBase className="native-workbench">
+      <OmniPage
+        title="Workbench"
+        subtitle={catalog ? `${catalog.total_count} bioinformatics applications` : "Loading applications…"}
+        className="native-workbench-page"
+      >
 
       {loading ? <div role="status" className="native-workbench-message"><Spinner /> Loading applications…</div>
         : error ? <Panel><PanelBody>
@@ -105,6 +104,7 @@ export default function Workbench({ state, onStateChange, onOpen }) {
             </section>
           ))}
         </>}
-    </section>
+      </OmniPage>
+    </WorkbenchBase>
   );
 }

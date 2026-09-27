@@ -116,6 +116,8 @@ services:
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
       SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-omnibioai-platform}
+      JWT_ISSUER: ${JWT_ISSUER:-omnibioai-auth}
       ACCESS_TOKEN_EXPIRE_MINUTES: "15"
       REFRESH_TOKEN_EXPIRE_DAYS: "7"
       REDIS_URL: redis://redis_auth:${REDIS_AUTH_PASSWORD}@redis:6379
@@ -801,6 +803,8 @@ services:
       OLLAMA_HOST: http://ollama:11434
       REPO_BASE: /repos
       JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-omnibioai-platform}
+      JWT_ISSUER: ${JWT_ISSUER:-omnibioai-auth}
       AUTH_ENABLED: "true"
     volumes:
       - ${DATA_DIR}/dev-hub:/app/data

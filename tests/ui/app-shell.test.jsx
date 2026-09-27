@@ -37,6 +37,7 @@ vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> 
 vi.mock("../../src/ui/pages/IdeServices", () => ({ default: () => <div>IDE page</div> }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ url, label, onBack }) => <div>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
+vi.mock("../../src/ui/pages/PluginPage", () => ({ default: ({ url, label, onBack }) => <div>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: ({ onBack }) => <div>Videos page<button onClick={onBack}>vback</button></div> }));
 
 import App from "../../src/ui/App";
@@ -345,7 +346,12 @@ describe("App shell — token refresh and return_to redirect", () => {
 describe("App shell — native Workbench catalog", () => {
   it.each([false, true])("opens through ServiceViewer and restores filters in Electron=%s", async electron => {
     const { catalogResponse } = await import("./workbench-fixture");
-    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => catalogResponse()));
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async url => {
+      if (String(url).includes("/api/ui-schema/")) {
+        return { ok: true, json: async () => ({ schema_version: 1, plugin: { slug: "rna" }, renderer: "legacy", native_supported: false }) };
+      }
+      return catalogResponse();
+    }));
     isElectron.mockReturnValue(electron);
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);

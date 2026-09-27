@@ -67,7 +67,7 @@ describe("Native Workbench catalog", () => {
     await user.tab(); await user.tab();
     expect(screen.getByRole("button", { name: "Open System Health" })).toHaveFocus();
     await user.keyboard("{Enter}");
-    expect(onOpen).toHaveBeenCalledWith("/_svc/workbench/ops/", "System Health");
+    expect(onOpen).toHaveBeenCalledWith("/_svc/workbench/ops/", "System Health", expect.objectContaining({ slug: "ops_dashboard" }));
   });
   it("shows loading, safely aborts on unmount, and handles empty inventories", async () => {
     fetch.mockImplementationOnce(() => new Promise(() => {}));

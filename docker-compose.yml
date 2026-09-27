@@ -1252,6 +1252,8 @@ services:
       OLLAMA_HOST: http://ollama:11434
       REPO_BASE: /repos
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-omnibioai-platform}
+      JWT_ISSUER: ${JWT_ISSUER:-omnibioai-auth}
       AUTH_ENABLED: "true"
     volumes:
       - ${MACHINE_DIR}/omnibioai-dev-hub/data:/app/data
@@ -1533,6 +1535,8 @@ services:
       AUTH_AUDIT_INTEGRITY_KEY: ${AUTH_AUDIT_INTEGRITY_KEY:?AUTH_AUDIT_INTEGRITY_KEY must be set}
 
       SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-omnibioai-platform}
+      JWT_ISSUER: ${JWT_ISSUER:-omnibioai-auth}
 
       ACCESS_TOKEN_EXPIRE_MINUTES: "15"
       REFRESH_TOKEN_EXPIRE_DAYS: "7"

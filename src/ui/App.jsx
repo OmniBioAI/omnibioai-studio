@@ -16,6 +16,7 @@ import Studio from "./pages/Studio";
 import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
+import PluginPage from "./pages/PluginPage";
 import Videos        from "./pages/Videos";
 import IdeServices   from "./pages/IdeServices";
 import RoleManagement from "./pages/RoleManagement";
@@ -257,7 +258,7 @@ export default function App() {
     <RoleManagement currentUser={currentUser} />,
     <Billing currentUser={currentUser} />,
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}
-      onOpen={(url, label) => setService({ url, label, source: "workbench" })} />,
+      onOpen={(url, label, plugin) => setService({ url, label, source: "workbench", pluginSlug: plugin?.slug || null })} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -466,9 +467,11 @@ export default function App() {
               ? <Videos onBack={() => setService(null)} />
               : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
-                : <ServiceViewer url={service.source === "workbench" ? service.url : resolveServiceUrl(service.url)} label={service.label}
-                    backLabel={service.source === "workbench" ? "Back to Workbench" : undefined}
-                    onBack={() => setService(null)} />
+                : service.source === "workbench" && service.pluginSlug
+                  ? <PluginPage slug={service.pluginSlug} url={service.url} label={service.label} onBack={() => setService(null)} />
+                  : <ServiceViewer url={service.source === "workbench" ? service.url : resolveServiceUrl(service.url)} label={service.label}
+                      backLabel={service.source === "workbench" ? "Back to Workbench" : undefined}
+                      onBack={() => setService(null)} />
             : (
               <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
                 {step === 7 ? null : (

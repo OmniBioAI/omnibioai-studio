@@ -294,7 +294,22 @@ a:focus:not(:focus-visible) {
   .studio-login-tab { min-height: 44px; }
 }
 
-/* Native Studio Workbench catalog; legacy iframe styling is unaffected. */
+/* Native Studio Workbench pages; the Studio shell owns branding/auth/navigation. */
+.workbench-base { width: 100%; min-width: 0; box-sizing: border-box; }
+.omni-page { width: 100%; min-width: 0; box-sizing: border-box; }
+.omni-page-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 4px 0 18px; border-bottom: 1px solid var(--border); }
+.omni-page-hero-copy { min-width: 0; }
+.omni-page-hero h1 { margin: 0; font-size: var(--font-size-2xl); overflow-wrap: anywhere; }
+.omni-page-hero p { margin: 8px 0 0; color: var(--color-text-secondary); line-height: 1.5; overflow-wrap: anywhere; }
+.omni-page-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.omni-page-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.omni-page-messages { display: grid; gap: 8px; margin-top: 16px; }
+.omni-page-message { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); line-height: 1.45; }
+.omni-page-message--error { color: var(--danger); background: rgba(255,71,87,.08); border-color: rgba(255,71,87,.3); }
+.omni-page-message--warning { color: var(--warn); background: rgba(255,165,2,.08); border-color: rgba(255,165,2,.3); }
+.omni-page-message--success { color: var(--accent); background: rgba(0,229,160,.08); border-color: rgba(0,229,160,.3); }
+.omni-page-message--info { color: var(--accent2); background: rgba(0,148,255,.08); border-color: rgba(0,148,255,.3); }
+.omni-page-body { min-width: 0; padding-top: 16px; }
 .native-workbench { display: flex; flex-direction: column; gap: 20px; min-width: 0; font-size: var(--font-size-base); }
 .native-workbench h1 { font-size: var(--font-size-2xl); }
 .native-workbench-subtitle, .native-workbench-summary { color: var(--color-text-secondary); font-size: var(--font-size-sm); margin-top: 8px; }
@@ -312,3 +327,19 @@ a:focus:not(:focus-visible) {
 .native-workbench-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; font-size: var(--font-size-xs); color: var(--color-text-muted); }
 .native-workbench-message { display: flex; align-items: center; gap: 12px; padding: 20px; }
 .native-workbench-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.native-plugin-shell, .native-plugin-page { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.native-plugin-page { padding: 0 4px 24px; }
+.plugin-page-heading h1 { margin: 0; font-size: var(--font-size-2xl); overflow-wrap: anywhere; }
+.plugin-page-heading p { margin: 8px 0 4px; color: var(--color-text-secondary); line-height: 1.5; overflow-wrap: anywhere; }
+.plugin-meta, .plugin-field small, .plugin-muted { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.plugin-field { display: grid; gap: 6px; margin-bottom: 16px; min-width: 0; }
+.plugin-field label { color: var(--text); font-size: var(--font-size-sm); font-weight: 600; }
+.plugin-field input, .plugin-field textarea { width: 100%; box-sizing: border-box; background: var(--bg2); color: var(--text); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 8px 10px; font: inherit; }
+.plugin-field input:focus-visible, .plugin-field textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.plugin-error { color: var(--danger); overflow-wrap: anywhere; }
+.plugin-log { max-height: 260px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; }
+.plugin-artifact-list { display: grid; gap: 10px; list-style: none; padding: 0; margin: 0; }
+.plugin-artifact-list li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--border); padding: 8px 0; }
+.plugin-artifact-list a { color: var(--accent); }
+.native-plugin-loading, .native-plugin-error { padding: 20px; display: grid; gap: 12px; }
+@media (max-width: 700px) { .omni-page-hero { flex-direction: column; gap: 12px; } .omni-page-actions { justify-content: flex-start; } .omni-page-hero h1 { font-size: var(--font-size-xl); } .plugin-artifact-list li { align-items: flex-start; flex-direction: column; } }
