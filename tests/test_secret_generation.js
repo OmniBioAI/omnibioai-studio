@@ -127,6 +127,10 @@ test("Redis credential materialization must succeed before Compose startup", () 
   const composeStart = mainSrc.indexOf('spawn("docker", ["compose"');
   assert.ok(materialize >= 0, "Studio startup must materialize protected ACL inputs");
   assert.ok(composeStart > materialize, "Redis/Compose must not start before protected inputs exist");
+  const envWiring = mainSrc.slice(composeStart, mainSrc.indexOf("upProc.unref()", composeStart));
+  for (const name of ["REDIS_ACL_CREDENTIAL_DIR", "REDIS_ACL_SCRIPT_PATH", "REDIS_ACL_POLICY_PATH"]) {
+    assert.ok(envWiring.includes(name), `${name} must be passed to Compose without storing a secret`);
+  }
 });
 
 test("materializes owner-only Redis credential files without rotating values", () => {

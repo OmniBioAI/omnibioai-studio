@@ -232,10 +232,14 @@ def render_acl(policy: Mapping[str, Any], credential_dir: Path) -> bytes:
     lines: list[str] = []
     for user in policy["users"]:
         tokens = ["user", user["name"], "on" if user["enabled"] else "off"]
+        # Redis ACL SAVE serializes user flags before password verifiers.
+        # Keep this order so a canonical render can be compared with an
+        # existing users.acl without treating harmless token reordering as
+        # drift (the verifier itself is still compared exactly).
+        tokens.extend(user["flags"])
         if user["credential"] is not None:
             password = _read_credential(user, credential_dir)
             tokens.append("#" + hashlib.sha256(password).hexdigest())
-        tokens.extend(user["flags"])
         tokens.extend(user["key_patterns"])
         if user["reset_channels"]:
             tokens.append("resetchannels")

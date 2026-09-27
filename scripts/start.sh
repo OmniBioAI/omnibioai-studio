@@ -70,6 +70,13 @@ else
   export HOST_IP="0.0.0.0"
 fi
 
+# The ACL initializer consumes only these protected inputs. The script and
+# policy are read-only host mounts; in the packaged installer Electron sets
+# equivalent absolute resource paths directly in the Compose child process.
+export REDIS_ACL_CREDENTIAL_DIR="${REDIS_ACL_CREDENTIAL_DIR:-$SCRIPT_DIR/../.secrets/redis-acl}"
+export REDIS_ACL_SCRIPT_PATH="${REDIS_ACL_SCRIPT_PATH:-$SCRIPT_DIR/redis_acl_bootstrap.py}"
+export REDIS_ACL_POLICY_PATH="${REDIS_ACL_POLICY_PATH:-$SCRIPT_DIR/../config/redis/acl-policy.json}"
+
 echo "Mode:       ${MODE:-local}"
 echo "Data Dir:   $DATA_DIR"
 echo "Work Dir:   $WORK_DIR"

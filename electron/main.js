@@ -383,7 +383,16 @@ app.whenReady().then(() => {
 
   // Ensure Docker Compose always starts with the repo .env
   const upProc = spawn("docker", ["compose", "--env-file", repoEnvPath, "-f", getComposePath(), "up", "-d"], {
-    env: process.env,
+    env: {
+      ...process.env,
+      REDIS_ACL_CREDENTIAL_DIR: path.join(path.dirname(repoEnvPath), ".secrets", "redis-acl"),
+      REDIS_ACL_SCRIPT_PATH: app.isPackaged
+        ? path.join(process.resourcesPath, "redis-acl-bootstrap", "redis_acl_bootstrap.py")
+        : path.join(__dirname, "..", "scripts", "redis_acl_bootstrap.py"),
+      REDIS_ACL_POLICY_PATH: app.isPackaged
+        ? path.join(process.resourcesPath, "redis-acl-bootstrap", "acl-policy.json")
+        : path.join(__dirname, "..", "config", "redis", "acl-policy.json"),
+    },
     detached: true,
     stdio: 'ignore',
   });

@@ -32,6 +32,14 @@
       "to": "scripts"
     },
     {
+      "from": "scripts/redis_acl_bootstrap.py",
+      "to": "redis-acl-bootstrap/redis_acl_bootstrap.py"
+    },
+    {
+      "from": "config/redis/acl-policy.json",
+      "to": "redis-acl-bootstrap/acl-policy.json"
+    },
+    {
       "from": "monitoring",
       "to": "monitoring"
     },

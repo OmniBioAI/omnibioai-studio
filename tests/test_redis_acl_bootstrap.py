@@ -88,6 +88,16 @@ class RedisAclBootstrapTests(unittest.TestCase):
         self.assertNotIn("#", json.dumps(safe))
         self.assertNotIn("test-only-", json.dumps(safe))
 
+    def test_renderer_places_flags_before_password_verifier_like_redis_acl_save(self):
+        rendered = acl.render_acl(self.policy, self.creds).decode()
+        line = next(row for row in rendered.splitlines() if row.startswith("user redis_admin "))
+        tokens = line.split()
+        verifier = next(i for i, token in enumerate(tokens) if token.startswith("#"))
+        self.assertLess(tokens.index("on"), tokens.index("sanitize-payload"))
+        self.assertLess(tokens.index("sanitize-payload"), verifier)
+        self.assertLess(verifier, tokens.index("resetchannels"))
+        self.assertLess(tokens.index("resetchannels"), tokens.index("-@all"))
+
     def test_idempotent_managed_bootstrap_does_not_rewrite(self):
         self.assertEqual(self.boot(), "initialized")
         before_acl = (self.data / acl.ACL_NAME).read_bytes()
@@ -296,6 +306,10 @@ class RedisAclBootstrapTests(unittest.TestCase):
     )
     def test_no_listener_before_acl_and_default_is_off_from_first_redis_response(self):
         self.assertEqual(self.boot(), "initialized")
+        canonical_acl = (self.data / acl.ACL_NAME).read_bytes()
+        # Exercise an unmarked pre-existing volume: Redis may serialize its
+        # loaded ACL, after which adoption must only create the ownership marker.
+        (self.data / acl.MARKER_NAME).unlink()
         # Redis is not started by the bootstrapper. The only process that can
         # listen is launched below with the already validated ACL file.
         name = "redis-acl-test-" + next(tempfile._get_candidate_names())
@@ -309,13 +323,14 @@ class RedisAclBootstrapTests(unittest.TestCase):
         self.assertEqual(started.returncode, 0)
         container = started.stdout.strip()
 
-        def redis_exec(auth_user: str | None, command: str, password: str | None = None) -> str:
+        def redis_exec(auth_user: str | None, command: str, password: str | None = None,
+                       target: str = container) -> str:
             if auth_user:
                 shell = "IFS= read -r REDISCLI_AUTH; export REDISCLI_AUTH; exec redis-cli --raw --user " + auth_user + " " + command
                 input_data = (password or "").encode() + b"\n"
-                args = ["docker", "exec", "-i", container, "sh", "-c", shell]
+                args = ["docker", "exec", "-i", target, "sh", "-c", shell]
             else:
-                args = ["docker", "exec", container, "redis-cli", "--raw", *command.split()]
+                args = ["docker", "exec", target, "redis-cli", "--raw", *command.split()]
                 input_data = None
             proc = subprocess.run(args, input=input_data, capture_output=True, timeout=20)
             return proc.stdout.decode(errors="replace").strip() + proc.stderr.decode(errors="replace").strip()
@@ -338,10 +353,72 @@ class RedisAclBootstrapTests(unittest.TestCase):
                 self.fail("disposable Redis did not become ready; sanitized startup diagnostic: " + diagnostic[-1200:])
             self.assertIn("NOAUTH", redis_exec(None, "PING"))
             admin_password = self.credentials["redis_admin"]
-            rows = acl.sanitized_acl_metadata(redis_exec("redis_admin", "ACL LIST", admin_password))
+            runtime_acl = redis_exec("redis_admin", "ACL LIST", admin_password)
+            rows = acl.sanitized_acl_metadata(runtime_acl)
             self.assertEqual(len(rows), 26)
             self.assertFalse(next(r for r in rows if r["username"] == "default")["enabled"])
-            self.assertEqual(self.boot(), "managed-match")
+            self.assertEqual(redis_exec("redis_admin", "ACL SAVE", admin_password), "OK")
+            saved_acl = (self.data / acl.ACL_NAME).read_bytes()
+            self.assertEqual(acl._normalized_acl(saved_acl), acl._normalized_acl(canonical_acl))
+            admin_line = next(row for row in saved_acl.decode().splitlines() if row.startswith("user redis_admin "))
+            admin_tokens = admin_line.split()
+            verifier = next(i for i, token in enumerate(admin_tokens) if token.startswith("#"))
+            self.assertLess(admin_tokens.index("sanitize-payload"), verifier)
+            acl_before_adoption = saved_acl
+            acl_metadata_before_adoption = (acl_path := self.data / acl.ACL_NAME).stat()
+            self.assertEqual(acl.adopt(self.data, POLICY_PATH, self.creds), "adopted")
+            self.assertEqual(acl_path.read_bytes(), acl_before_adoption)
+            acl_metadata_after_adoption = acl_path.stat()
+            self.assertEqual(
+                (acl_metadata_after_adoption.st_ino, acl_metadata_after_adoption.st_mode, acl_metadata_after_adoption.st_mtime_ns),
+                (acl_metadata_before_adoption.st_ino, acl_metadata_before_adoption.st_mode, acl_metadata_before_adoption.st_mtime_ns),
+            )
+            self.assertEqual(acl.adopt(self.data, POLICY_PATH, self.creds), "managed-match")
+            self.assertEqual(acl_path.read_bytes(), acl_before_adoption)
+
+            # Redis accepts the prior flags-after-verifier spelling with the
+            # same effective users/rules. Its ACL LIST serialization is
+            # canonicalized, so compare internally without exposing verifiers.
+            head_order_data = self.root / "head-order-data"
+            head_order_data.mkdir(mode=0o700)
+            head_order_lines = []
+            for line in canonical_acl.decode().splitlines():
+                tokens = line.split()
+                verifier_index = next((i for i, token in enumerate(tokens) if token.startswith("#")), None)
+                if verifier_index is not None:
+                    flags = [token for token in tokens[2:verifier_index] if token in {"nopass", "sanitize-payload"}]
+                    tokens = [token for token in tokens if token not in flags]
+                    verifier_index = next(i for i, token in enumerate(tokens) if token.startswith("#"))
+                    tokens[verifier_index + 1:verifier_index + 1] = flags
+                head_order_lines.append(" ".join(tokens))
+            (head_order_data / acl.ACL_NAME).write_text("\n".join(head_order_lines) + "\n")
+            head_name = "redis-acl-head-order-" + next(tempfile._get_candidate_names())
+            head_started = subprocess.run(
+                ["docker", "run", "-d", "--network", "none", "--name", head_name,
+                 "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{head_order_data}:/data",
+                 "redis:7-alpine", "redis-server", "--port", "6379", "--aclfile", "/data/users.acl",
+                 "--save", "", "--appendonly", "no"],
+                capture_output=True, text=True, timeout=60,
+            )
+            self.assertEqual(head_started.returncode, 0)
+            head_container = head_started.stdout.strip()
+            try:
+                head_ping = ""
+                for _ in range(40):
+                    head_ping = redis_exec("redis_healthcheck", "PING", self.credentials["redis_healthcheck"], head_container)
+                    if head_ping == "PONG":
+                        break
+                    __import__("time").sleep(0.25)
+                if head_ping != "PONG":
+                    logs = subprocess.run(["docker", "logs", head_container], capture_output=True, text=True, timeout=10)
+                    diagnostic = re.sub(r"#[0-9a-fA-F]{64}", "#[redacted]", logs.stdout + logs.stderr)
+                    diagnostic = re.sub(r"test-only-[^\s]+", "[redacted]", diagnostic)
+                    self.fail("disposable Redis rejected prior token order; sanitized diagnostic: " + diagnostic[-1200:])
+                head_acl = redis_exec("redis_admin", "ACL LIST", admin_password, head_container)
+                self.assertTrue(acl._normalized_acl(head_acl.encode()) == acl._normalized_acl(runtime_acl.encode()),
+                                "Redis must treat the two token orders as the same ACL")
+            finally:
+                subprocess.run(["docker", "rm", "-f", head_container], capture_output=True, timeout=30)
             subprocess.run(["docker", "restart", container], check=True, capture_output=True, timeout=30)
             self.assertEqual(redis_exec("redis_healthcheck", "PING", health_password), "PONG")
         finally:
