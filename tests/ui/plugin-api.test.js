@@ -25,6 +25,16 @@ const descriptor = {
   },
 };
 
+const queryDescriptor = {
+  schema_version: 1,
+  plugin: { slug: "clinvar", name: "ClinVar", version: "1.0.0", description: "desc", category: "reference_db" },
+  renderer: "query", native_supported: true,
+  inputs: [{ id: "query", component: "text", label: "Query", description: "Search", required: true, format: "text" }],
+  outputs: [], capabilities: { query: true, detail: true },
+  endpoints: { query: "/plugins/clinvar/search/", detail: "/plugins/clinvar/variants/{detail_id}/" },
+  result: { presentation: "table", rows_path: "results", columns: [{ key: "accession", label: "Accession" }] },
+};
+
 beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -65,6 +75,34 @@ describe("plugin descriptor API boundary", () => {
       .toThrow("Invalid plugin endpoint");
     expect(() => validatePluginDescriptor({ ...descriptor, endpoints: { ...descriptor.endpoints, callback: "/plugins/deseq2_analysis/api/run/" } }, "deseq2_analysis"))
       .toThrow("Unsupported plugin endpoint role");
+  });
+
+  it("accepts the narrow query contract and rejects unsafe query extensions", () => {
+    expect(validatePluginDescriptor(queryDescriptor, "clinvar").renderer).toBe("query");
+    expect(() => validatePluginDescriptor({ ...queryDescriptor, capabilities: { query: true, detail: true, pagination: true } }, "clinvar"))
+      .toThrow("Invalid query capability schema");
+    expect(() => validatePluginDescriptor({ ...queryDescriptor, endpoints: { ...queryDescriptor.endpoints, query: "https://evil.example/search/" } }, "clinvar"))
+      .toThrow("Invalid plugin endpoint");
+    expect(() => validatePluginDescriptor({ ...queryDescriptor, endpoints: { ...queryDescriptor.endpoints, query: "/plugins/uniprot/search/" } }, "clinvar"))
+      .toThrow("Plugin endpoint scope mismatch");
+    expect(() => validatePluginDescriptor({ ...queryDescriptor, endpoints: { ...queryDescriptor.endpoints, detail: "/plugins/reactome/pathways/placeholder/" } }, "clinvar"))
+      .toThrow("Plugin endpoint scope mismatch");
+    expect(() => validatePluginDescriptor({ ...queryDescriptor, endpoints: { ...queryDescriptor.endpoints, query: "/plugins/clinvar-other/search/" } }, "clinvar"))
+      .toThrow("Plugin endpoint scope mismatch");
+    expect(() => validatePluginDescriptor({ ...queryDescriptor, endpoints: { ...queryDescriptor.endpoints, detail: "/plugins/clinvar/../other/search/" } }, "clinvar"))
+      .toThrow("Invalid plugin endpoint");
+    expect(() => validatePluginDescriptor({ ...queryDescriptor, result: { ...queryDescriptor.result, presentation: "json" } }, "clinvar"))
+      .toThrow("Invalid query result schema");
+  });
+
+  it.each([
+    ["clinvar", "/plugins/clinvar/search/", "/plugins/clinvar/variants/placeholder/"],
+    ["arrayexpress", "/plugins/arrayexpress/api/search/", "/plugins/arrayexpress/api/experiments/placeholder/"],
+    ["biostudies", "/plugins/biostudies/api/search/", "/plugins/biostudies/api/studies/placeholder/"],
+    ["gwas_catalog", "/plugins/gwas_catalog/studies/", "/plugins/gwas_catalog/studies/placeholder/"],
+    ["reactome", "/plugins/reactome/search/", "/plugins/reactome/pathways/placeholder/"],
+  ])("accepts exact plugin namespace for %s", (slug, query, detail) => {
+    expect(validatePluginDescriptor({ ...queryDescriptor, plugin: { ...queryDescriptor.plugin, slug }, endpoints: { query, detail } }, slug).renderer).toBe("query");
   });
 
   it("treats descriptor metadata as inert data", () => {

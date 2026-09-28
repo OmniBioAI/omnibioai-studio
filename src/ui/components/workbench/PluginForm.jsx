@@ -10,6 +10,7 @@ export default function PluginForm({
   onSubmit,
   error,
   submitting = false,
+  submitLabel = "Run analysis",
 }) {
   return (
     <form onSubmit={onSubmit} encType="multipart/form-data">
@@ -25,7 +26,7 @@ export default function PluginForm({
       ))}
       {error && <p role="alert" className="plugin-error">{error}</p>}
       <button type="submit" className="omni-btn omni-btn--primary" disabled={submitting}>
-        {submitting ? "Submitting…" : "Run analysis"}
+        {submitting ? "Loading…" : submitLabel}
       </button>
     </form>
   );

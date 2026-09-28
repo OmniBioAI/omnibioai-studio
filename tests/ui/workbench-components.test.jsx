@@ -19,20 +19,28 @@ const input = (overrides = {}) => ({
 });
 
 describe("allowlisted Workbench component registry", () => {
-  it("resolves only the proven file, text, and textarea types", () => {
-    expect(Object.keys(WORKBENCH_COMPONENT_REGISTRY).sort()).toEqual(["file", "text", "textarea"]);
+  it("resolves only the proven file, text, textarea, and query select types", () => {
+    expect(Object.keys(WORKBENCH_COMPONENT_REGISTRY).sort()).toEqual(["file", "select", "text", "textarea"]);
     expect(resolveWorkbenchComponent("file")).toBeTruthy();
     expect(resolveWorkbenchComponent("text")).toBeTruthy();
     expect(resolveWorkbenchComponent("textarea")).toBeTruthy();
-    expect(resolveWorkbenchComponent("select")).toBeNull();
+    expect(resolveWorkbenchComponent("select")).toBeTruthy();
     expect(resolveWorkbenchComponent("../../arbitrary")).toBeNull();
     expect(resolveWorkbenchComponent("constructor")).toBeNull();
   });
 
   it("fails safely for an unknown descriptor component", () => {
-    render(<PluginField input={input({ widget: "select" })} />);
+    render(<PluginField input={input({ widget: "graph" })} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Unsupported plugin input component");
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("renders allowlisted select choices", async () => {
+    const onValueChange = vi.fn();
+    render(<PluginField input={input({ id: "entity_type", label: "Entity type", component: "select", choices: ["", "pathway", "gene"] })} onValueChange={onValueChange} />);
+    expect(screen.getByRole("combobox")).toHaveValue("");
+    await userEvent.setup().selectOptions(screen.getByRole("combobox"), "pathway");
+    expect(onValueChange).toHaveBeenCalledWith("pathway");
   });
 });
 

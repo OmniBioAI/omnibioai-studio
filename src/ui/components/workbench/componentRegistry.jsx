@@ -1,4 +1,4 @@
-import { Textarea } from "../UI";
+import { Select, Textarea } from "../UI";
 
 /**
  * The descriptor is data. Keep this registry explicit so descriptor values
@@ -39,10 +39,25 @@ export function TextField({ input, value = "", onChange }) {
 // vocabulary without creating another design-system textarea implementation.
 export const TextareaField = TextField;
 
+export function SelectField({ input, value = "", onChange }) {
+  const options = (input.choices || []).map(choice => ({ value: choice, label: choice || "Any" }));
+  return (
+    <Select
+      id={`plugin-${input.id}`}
+      name={`query_${input.id}`}
+      value={value}
+      options={options}
+      onChange={event => onChange?.(event.target.value)}
+      aria-describedby={`plugin-${input.id}-description`}
+    />
+  );
+}
+
 export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
   file: FileUploadField,
   text: TextField,
   textarea: TextareaField,
+  select: SelectField,
 });
 
 export function resolveWorkbenchComponent(type) {

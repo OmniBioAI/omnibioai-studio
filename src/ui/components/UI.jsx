@@ -121,9 +121,10 @@ export function Textarea({ placeholder, value, onChange, rows = 4, ...props }) {
   );
 }
 
-export function Select({ value, onChange, options }) {
+export function Select({ value, onChange, options, ...props }) {
   return (
     <select
+      {...props}
       value={value}
       onChange={onChange}
       className="studio-field"
@@ -140,8 +141,8 @@ export function Select({ value, onChange, options }) {
       }}
     >
       {options.map((o) => (
-        <option key={o.value || o} value={o.value || o} style={{ background: "var(--bg2)" }}>
-          {o.label || o}
+        <option key={o.value ?? o} value={o.value ?? o} style={{ background: "var(--bg2)" }}>
+          {o.label ?? o}
         </option>
       ))}
     </select>
