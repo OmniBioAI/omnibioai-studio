@@ -94,9 +94,10 @@ export function Input({ type = "text", placeholder, value, onChange }) {
   );
 }
 
-export function Textarea({ placeholder, value, onChange, rows = 4 }) {
+export function Textarea({ placeholder, value, onChange, rows = 4, ...props }) {
   return (
     <textarea
+      {...props}
       placeholder={placeholder}
       value={value}
       onChange={onChange}

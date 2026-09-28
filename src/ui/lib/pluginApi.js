@@ -31,7 +31,9 @@ export function endpointUrl(path, options) {
 
 function validateField(field) {
   if (!field || typeof field.id !== "string" || !SLUG.test(field.id)) throw new PluginDescriptorError("Invalid plugin input schema.");
-  if (!["file", "text"].includes(field.widget) || typeof field.format !== "string") throw new PluginDescriptorError("Unsupported plugin input schema.");
+  const component = field.component ?? field.widget;
+  if (!["file", "text", "textarea"].includes(component) || typeof field.format !== "string") throw new PluginDescriptorError("Unsupported plugin input schema.");
+  if (field.component && field.widget && field.component !== field.widget) throw new PluginDescriptorError("Invalid plugin input schema.");
   if (typeof field.label !== "string" || typeof field.description !== "string" || typeof field.required !== "boolean") {
     throw new PluginDescriptorError("Invalid plugin input schema.");
   }

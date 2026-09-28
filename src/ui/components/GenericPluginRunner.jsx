@@ -2,12 +2,18 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@omnibioai/ui";
 import { Panel, PanelBody, PanelHeader } from "./UI";
 import PluginResults from "./PluginResults";
+import PluginForm from "./workbench/PluginForm";
+import LogViewer from "./workbench/LogViewer";
+import RunStatus from "./workbench/RunStatus";
+import { descriptorComponent } from "./workbench/PluginField";
 import { csrfToken, pluginEndpoint } from "../lib/pluginApi";
 
 const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR"]);
 
 function inputName(input) {
-  return input.widget === "text" ? `param_${input.id}` : `input_${input.id}`;
+  return descriptorComponent(input) === "text" || descriptorComponent(input) === "textarea"
+    ? `param_${input.id}`
+    : `input_${input.id}`;
 }
 
 export default function GenericPluginRunner({ descriptor }) {
@@ -69,18 +75,18 @@ export default function GenericPluginRunner({ descriptor }) {
     setError("");
     for (const input of inputs) {
       if (!input.required) continue;
-      if (input.widget === "file" && !(files[input.id] || []).length) {
+      if (descriptorComponent(input) === "file" && !(files[input.id] || []).length) {
         setError(`${input.label} is required.`);
         return;
       }
-      if (input.widget === "text" && !String(values[input.id] || "").trim()) {
+      if ((descriptorComponent(input) === "text" || descriptorComponent(input) === "textarea") && !String(values[input.id] || "").trim()) {
         setError(`${input.label} is required.`);
         return;
       }
     }
     const formData = new FormData();
     inputs.forEach(input => {
-      if (input.widget === "file") (files[input.id] || []).forEach(file => formData.append(inputName(input), file));
+      if (descriptorComponent(input) === "file") (files[input.id] || []).forEach(file => formData.append(inputName(input), file));
       else if (values[input.id]) formData.append(inputName(input), values[input.id]);
     });
     setSubmitting(true);
@@ -109,32 +115,24 @@ export default function GenericPluginRunner({ descriptor }) {
       <Panel>
         <PanelHeader title="Inputs" />
         <PanelBody>
-          <form onSubmit={submit} encType="multipart/form-data">
-            {inputs.map(input => (
-              <div className="plugin-field" key={input.id}>
-                <label htmlFor={`plugin-${input.id}`}>{input.label}{input.required ? " *" : ""}</label>
-                <small>{input.description} ({input.format})</small>
-                {input.widget === "text" ? (
-                  <textarea id={`plugin-${input.id}`} rows="3" placeholder={input.placeholder || ""}
-                    value={values[input.id] || ""} onChange={event => updateValue(input.id, event.target.value)} />
-                ) : (
-                  <input id={`plugin-${input.id}`} type="file" multiple={input.multiple}
-                    accept={input.accept || undefined} required={input.required}
-                    onChange={event => updateFiles(input.id, event.target.files)} />
-                )}
-              </div>
-            ))}
-            {error && <p role="alert" className="plugin-error">{error}</p>}
-            <button type="submit" className="omni-btn omni-btn--primary" disabled={submitting}>{submitting ? "Submitting…" : "Run analysis"}</button>
-          </form>
+          <PluginForm
+            inputs={inputs}
+            values={values}
+            files={files}
+            onValueChange={updateValue}
+            onFilesChange={updateFiles}
+            onSubmit={submit}
+            error={error}
+            submitting={submitting}
+          />
         </PanelBody>
       </Panel>
       {runId && (
         <Panel>
           <PanelHeader title="Run status" />
           <PanelBody>
-            <p role="status">{state || "Queued"}{status?.detail ? `: ${status.detail}` : ""}</p>
-            {logs.length > 0 && <pre className="plugin-log">{logs.join("\n")}</pre>}
+            <RunStatus status={status} />
+            <LogViewer lines={logs} />
             {state === "FAILED" || state === "ERROR" ? <p role="alert" className="plugin-error">{status?.detail || "The run failed."}</p> : null}
           </PanelBody>
         </Panel>

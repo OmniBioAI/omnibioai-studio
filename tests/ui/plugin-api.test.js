@@ -49,4 +49,11 @@ describe("plugin descriptor API boundary", () => {
     expect(validatePluginDescriptor({ schema_version: 1, plugin: { slug: "workflow_builder" }, renderer: "legacy", native_supported: false }, "workflow_builder").native_supported).toBe(false);
     expect(() => validatePluginDescriptor({ ...descriptor, renderer: "unknown" }, "deseq2_analysis")).toThrow("Unsupported plugin renderer");
   });
+
+  it("accepts the allowlisted textarea component and rejects mismatched component metadata", () => {
+    const textareaDescriptor = { ...descriptor, inputs: [{ ...descriptor.inputs[0], widget: "textarea" }] };
+    expect(validatePluginDescriptor(textareaDescriptor, "deseq2_analysis").inputs[0].widget).toBe("textarea");
+    expect(() => validatePluginDescriptor({ ...descriptor, inputs: [{ ...descriptor.inputs[0], widget: "file", component: "text" }] }, "deseq2_analysis"))
+      .toThrow("Invalid plugin input schema");
+  });
 });
