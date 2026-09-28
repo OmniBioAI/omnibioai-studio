@@ -32,7 +32,15 @@ const queryDescriptor = {
   inputs: [{ id: "query", component: "text", label: "Query", description: "Search", required: true, format: "text" }],
   outputs: [], capabilities: { query: true, detail: true },
   endpoints: { query: "/plugins/clinvar/search/", detail: "/plugins/clinvar/variants/{detail_id}/" },
-  result: { presentation: "table", rows_path: "results", columns: [{ key: "accession", label: "Accession" }] },
+  result: { presentation: "table", rows_path: "results", detail_key: "accession", columns: [{ key: "accession", label: "Accession" }] },
+};
+
+const noDetailQueryDescriptor = {
+  ...queryDescriptor,
+  plugin: { ...queryDescriptor.plugin, slug: "clinvitae" },
+  capabilities: { query: true },
+  endpoints: { query: "/plugins/clinvitae/search/" },
+  result: { presentation: "table", rows_path: "results", columns: [{ key: "query", label: "Query" }] },
 };
 
 beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
@@ -95,11 +103,24 @@ describe("plugin descriptor API boundary", () => {
       .toThrow("Invalid query result schema");
   });
 
+  it("accepts a query table without detail and rejects inconsistent detail metadata", () => {
+    expect(validatePluginDescriptor(noDetailQueryDescriptor, "clinvitae").capabilities).toEqual({ query: true });
+    expect(() => validatePluginDescriptor({ ...noDetailQueryDescriptor, capabilities: { query: true, detail: true } }, "clinvitae"))
+      .toThrow("Invalid query endpoint schema");
+    expect(() => validatePluginDescriptor({ ...noDetailQueryDescriptor, result: { ...noDetailQueryDescriptor.result, detail_key: "query" } }, "clinvitae"))
+      .toThrow("Invalid query result schema");
+    expect(() => validatePluginDescriptor({ ...noDetailQueryDescriptor, endpoints: { query: noDetailQueryDescriptor.endpoints.query, detail: "/plugins/clinvitae/search/" } }, "clinvitae"))
+      .toThrow("Invalid query endpoint schema");
+    expect(() => validatePluginDescriptor({ ...queryDescriptor, capabilities: { query: true, detail: false }, endpoints: { query: queryDescriptor.endpoints.query, detail: queryDescriptor.endpoints.detail }, result: { ...queryDescriptor.result, detail_key: undefined } }, "clinvar"))
+      .toThrow("Invalid query endpoint schema");
+  });
+
   it.each([
     ["clinvar", "/plugins/clinvar/search/", "/plugins/clinvar/variants/placeholder/"],
     ["arrayexpress", "/plugins/arrayexpress/api/search/", "/plugins/arrayexpress/api/experiments/placeholder/"],
     ["biostudies", "/plugins/biostudies/api/search/", "/plugins/biostudies/api/studies/placeholder/"],
     ["gwas_catalog", "/plugins/gwas_catalog/studies/", "/plugins/gwas_catalog/studies/placeholder/"],
+    ["pharmgkb", "/plugins/pharmgkb/genes/search/", "/plugins/pharmgkb/genes/placeholder/"],
     ["reactome", "/plugins/reactome/search/", "/plugins/reactome/pathways/placeholder/"],
   ])("accepts exact plugin namespace for %s", (slug, query, detail) => {
     expect(validatePluginDescriptor({ ...queryDescriptor, plugin: { ...queryDescriptor.plugin, slug }, endpoints: { query, detail } }, slug).renderer).toBe("query");

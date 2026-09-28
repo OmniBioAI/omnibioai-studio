@@ -2,7 +2,7 @@ import { isElectron } from "./session";
 
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
-const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|search|studies|experiments|variants|pathways)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
+const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|search|studies|experiments|variants|pathways|genes)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "query"]);
 const ASYNC_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
 const ASYNC_ENDPOINTS = ["submit", "status", "logs", "artifacts", "download"];
@@ -50,10 +50,11 @@ function validateField(field) {
 }
 
 function validateQueryDescriptor(data) {
-  if (!data.capabilities || Object.keys(data.capabilities).some(key => !QUERY_CAPABILITIES.includes(key)) || QUERY_CAPABILITIES.some(key => data.capabilities[key] !== true)) {
+  if (!data.capabilities || Object.keys(data.capabilities).some(key => !QUERY_CAPABILITIES.includes(key)) || data.capabilities.query !== true || (data.capabilities.detail !== undefined && typeof data.capabilities.detail !== "boolean")) {
     throw new PluginDescriptorError("Invalid query capability schema.");
   }
-  if (Object.keys(data.endpoints).some(key => !QUERY_ENDPOINTS.includes(key)) || QUERY_ENDPOINTS.some(key => typeof data.endpoints[key] !== "string")) {
+  const detailEnabled = data.capabilities.detail === true;
+  if (Object.keys(data.endpoints).some(key => !QUERY_ENDPOINTS.includes(key)) || typeof data.endpoints.query !== "string" || (detailEnabled && typeof data.endpoints.detail !== "string") || (!detailEnabled && data.endpoints.detail !== undefined)) {
     throw new PluginDescriptorError("Invalid query endpoint schema.");
   }
   data.inputs.forEach(validateField);
@@ -63,7 +64,12 @@ function validateQueryDescriptor(data) {
   if (data.result.columns.some(column => !column || typeof column.key !== "string" || !/^[a-z][a-z0-9_.]*$/.test(column.key) || typeof column.label !== "string")) {
     throw new PluginDescriptorError("Invalid query result schema.");
   }
-  for (const key of QUERY_ENDPOINTS) validatePluginEndpoint(data.endpoints[key].replace("{detail_id}", "placeholder"), data.plugin.slug);
+  if (detailEnabled && (typeof data.result.detail_key !== "string" || !/^[a-z][a-z0-9_.]*$/.test(data.result.detail_key))) {
+    throw new PluginDescriptorError("Invalid query result schema.");
+  }
+  if (!detailEnabled && data.result.detail_key !== undefined) throw new PluginDescriptorError("Invalid query result schema.");
+  validatePluginEndpoint(data.endpoints.query, data.plugin.slug);
+  if (detailEnabled) validatePluginEndpoint(data.endpoints.detail.replace("{detail_id}", "placeholder"), data.plugin.slug);
 }
 
 function validatePluginEndpoint(path, slug) {

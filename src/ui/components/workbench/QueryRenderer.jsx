@@ -70,6 +70,7 @@ export default function QueryRenderer({ descriptor }) {
 
   const result = descriptor.result;
   const rows = Array.isArray(payload && payload[result.rows_path]) ? payload[result.rows_path] : [];
+  const detailEnabled = descriptor.capabilities?.detail === true;
   return (
     <div className="native-plugin-page">
       <Panel>
@@ -86,10 +87,10 @@ export default function QueryRenderer({ descriptor }) {
           <PanelBody>
             {rows.length === 0 ? <p>No results.</p> : (
               <table className="omni-table">
-                <thead><tr>{result.columns.map(column => <th key={column.key}>{column.label}</th>)}{result.detail_key && <th>Detail</th>}</tr></thead>
+                <thead><tr>{result.columns.map(column => <th key={column.key}>{column.label}</th>)}{detailEnabled && result.detail_key && <th>Detail</th>}</tr></thead>
                 <tbody>{rows.map((row, index) => {
                   const detailId = result.detail_key ? valueAt(row, result.detail_key) : "";
-                  return <tr key={detailId || index}>{result.columns.map(column => <td key={column.key}>{String(valueAt(row, column.key))}</td>)}{result.detail_key && <td><button type="button" onClick={() => loadDetail(detailId)} disabled={!detailId || detailLoading}>View</button></td>}</tr>;
+                  return <tr key={detailId || index}>{result.columns.map(column => <td key={column.key}>{String(valueAt(row, column.key))}</td>)}{detailEnabled && result.detail_key && <td><button type="button" onClick={() => loadDetail(detailId)} disabled={!detailId || detailLoading}>View</button></td>}</tr>;
                 })}</tbody>
               </table>
             )}

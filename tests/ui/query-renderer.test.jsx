@@ -13,6 +13,23 @@ const descriptor = {
   result: { presentation: "table", rows_path: "results", detail_key: "accession", columns: [{ key: "accession", label: "Accession" }, { key: "title", label: "Title" }] },
 };
 
+const pharmgkbDescriptor = {
+  ...descriptor,
+  plugin: { ...descriptor.plugin, slug: "pharmgkb" },
+  inputs: [{ id: "symbol", component: "text", label: "Gene symbol", description: "Gene", required: true, format: "text", query_key: "symbol" }],
+  endpoints: { query: "/plugins/pharmgkb/genes/search/", detail: "/plugins/pharmgkb/genes/{detail_id}/" },
+  result: { presentation: "table", rows_path: "genes", detail_key: "pharmgkb_id", columns: [{ key: "symbol", label: "Symbol" }, { key: "pharmgkb_id", label: "PharmGKB ID" }] },
+};
+
+const noDetailDescriptor = {
+  ...descriptor,
+  plugin: { ...descriptor.plugin, slug: "clinvitae" },
+  inputs: [{ id: "query", component: "text", label: "Query", description: "Search", required: true, format: "text", query_key: "query" }],
+  capabilities: { query: true },
+  endpoints: { query: "/plugins/clinvitae/search/" },
+  result: { presentation: "table", rows_path: "results", columns: [{ key: "query", label: "Query" }, { key: "text", label: "Result" }] },
+};
+
 beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -39,5 +56,28 @@ describe("QueryRenderer", () => {
     fireEvent.click(screen.getByRole("button", { name: "View" }));
     await waitFor(() => expect(screen.getByText("pathogenic")).toBeInTheDocument());
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("supports the normalized PharmGKB gene-row contract without polling", async () => {
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ genes: [{ symbol: "TPMT", pharmgkb_id: "PA356", name: "TPMT" }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ symbol: "TPMT", pharmgkb_id: "PA356", name: "TPMT" }) });
+    render(<QueryRenderer descriptor={pharmgkbDescriptor} />);
+    fireEvent.change(screen.getByLabelText(/Gene symbol/), { target: { value: "TPMT" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await screen.findByText("TPMT");
+    fireEvent.click(screen.getByRole("button", { name: "View" }));
+    await waitFor(() => expect(screen.getByText("PA356")).toBeInTheDocument());
+    expect(fetch).toHaveBeenCalledWith("/_svc/workbench/plugins/pharmgkb/genes/search/?symbol=TPMT", expect.objectContaining({ credentials: "same-origin" }));
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders an optional-detail query as a read-only table without issuing detail requests", async () => {
+    fetch.mockResolvedValue({ ok: true, json: async () => ({ results: [{ query: "TP53", text: "No detail" }] }) });
+    render(<QueryRenderer descriptor={noDetailDescriptor} />);
+    fireEvent.change(screen.getByLabelText(/Query/), { target: { value: "TP53" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    await screen.findByText("No detail");
+    expect(screen.queryByRole("button", { name: "View" })).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
