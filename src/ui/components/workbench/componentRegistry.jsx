@@ -47,5 +47,7 @@ export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
 
 export function resolveWorkbenchComponent(type) {
   if (typeof type !== "string") return null;
-  return WORKBENCH_COMPONENT_REGISTRY[type] || null;
+  return Object.prototype.hasOwnProperty.call(WORKBENCH_COMPONENT_REGISTRY, type)
+    ? WORKBENCH_COMPONENT_REGISTRY[type]
+    : null;
 }

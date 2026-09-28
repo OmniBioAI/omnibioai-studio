@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const { loadPluginDescriptor } = vi.hoisted(() => ({ loadPluginDescriptor: vi.fn() }));
 vi.mock("../../src/ui/lib/pluginApi", () => ({ loadPluginDescriptor }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ label, backLabel }) => <div data-testid="service-viewer">Legacy {label} {backLabel}</div> }));
-vi.mock("../../src/ui/components/GenericPluginRunner", () => ({ default: () => <div data-testid="generic-runner">Native runner</div> }));
+vi.mock("../../src/ui/components/workbench/rendererRegistry", () => ({
+  resolveWorkbenchRenderer: () => () => <div data-testid="generic-runner">Native runner</div>,
+}));
 
 import PluginPage from "../../src/ui/pages/PluginPage";
 

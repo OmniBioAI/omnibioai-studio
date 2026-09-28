@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button, Spinner } from "@omnibioai/ui";
 import ServiceViewer from "./ServiceViewer";
-import GenericPluginRunner from "../components/GenericPluginRunner";
+import { resolveWorkbenchRenderer } from "../components/workbench/rendererRegistry";
 import { loadPluginDescriptor } from "../lib/pluginApi";
 import WorkbenchBase from "../components/WorkbenchBase";
 import OmniPage from "../components/OmniPage";
@@ -20,7 +20,8 @@ export default function PluginPage({ slug, url, label, onBack, backLabel = "Back
     return () => controller.abort();
   }, [slug, attempt]);
 
-  if (error?.status === 404 || (descriptor && (descriptor.native_supported === false || descriptor.renderer !== "generic_runner"))) {
+  const Renderer = descriptor?.native_supported ? resolveWorkbenchRenderer(descriptor.renderer) : null;
+  if (error?.status === 404 || (descriptor && (descriptor.native_supported === false || !Renderer))) {
     return <ServiceViewer url={url} label={label} onBack={onBack} backLabel={backLabel} />;
   }
   if (error) {
@@ -36,7 +37,7 @@ export default function PluginPage({ slug, url, label, onBack, backLabel = "Back
       <OmniPage title={descriptor.plugin.name} subtitle={descriptor.plugin.description}
         meta={<><span className="plugin-meta">v{descriptor.plugin.version}</span><span className="plugin-meta">{descriptor.plugin.category}</span></>}
         actions={<Button onClick={onBack}>{backLabel}</Button>}>
-        <GenericPluginRunner descriptor={descriptor} />
+        <Renderer descriptor={descriptor} />
       </OmniPage>
     </WorkbenchBase>
   );

@@ -26,6 +26,7 @@ describe("allowlisted Workbench component registry", () => {
     expect(resolveWorkbenchComponent("textarea")).toBeTruthy();
     expect(resolveWorkbenchComponent("select")).toBeNull();
     expect(resolveWorkbenchComponent("../../arbitrary")).toBeNull();
+    expect(resolveWorkbenchComponent("constructor")).toBeNull();
   });
 
   it("fails safely for an unknown descriptor component", () => {

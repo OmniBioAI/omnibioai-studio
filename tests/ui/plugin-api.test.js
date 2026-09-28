@@ -56,4 +56,25 @@ describe("plugin descriptor API boundary", () => {
     expect(() => validatePluginDescriptor({ ...descriptor, inputs: [{ ...descriptor.inputs[0], widget: "file", component: "text" }] }, "deseq2_analysis"))
       .toThrow("Invalid plugin input schema");
   });
+
+  it("accepts the formal async renderer contract and rejects unsafe capabilities/endpoints", () => {
+    expect(validatePluginDescriptor({ ...descriptor, renderer: "async_analysis" }, "deseq2_analysis").renderer).toBe("async_analysis");
+    expect(() => validatePluginDescriptor({ ...descriptor, capabilities: { ...descriptor.capabilities, search: true } }, "deseq2_analysis"))
+      .toThrow("Unsupported plugin capability");
+    expect(() => validatePluginDescriptor({ ...descriptor, endpoints: { ...descriptor.endpoints, submit: "https://evil.example/run" } }, "deseq2_analysis"))
+      .toThrow("Invalid plugin endpoint");
+    expect(() => validatePluginDescriptor({ ...descriptor, endpoints: { ...descriptor.endpoints, callback: "/plugins/deseq2_analysis/api/run/" } }, "deseq2_analysis"))
+      .toThrow("Unsupported plugin endpoint role");
+  });
+
+  it("treats descriptor metadata as inert data", () => {
+    const unsafe = {
+      ...descriptor,
+      callback: "javascript:alert(1)",
+      component: "../../evil",
+      credentials: { password: "secret", api_key: "token" },
+      html: "<script>alert(1)</script>",
+    };
+    expect(validatePluginDescriptor(unsafe, "deseq2_analysis")).toBe(unsafe);
+  });
 });

@@ -3,6 +3,9 @@ import { isElectron } from "./session";
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
 const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/api\/(run|status|log|artifacts|file)\/(?:[A-Za-z0-9_-]+\/)?$/;
+const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner"]);
+const ASYNC_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
+const ASYNC_ENDPOINTS = ["submit", "status", "logs", "artifacts", "download"];
 
 export class PluginDescriptorError extends Error {
   constructor(message, status = 0) {
@@ -46,8 +49,24 @@ export function validatePluginDescriptor(data, slug) {
     throw new PluginDescriptorError("Workbench returned an invalid plugin descriptor.");
   }
   if (!data.native_supported) return data;
-  if (data.renderer !== "generic_runner" || !Array.isArray(data.inputs) || !Array.isArray(data.outputs) || !data.endpoints) {
+  if (!NATIVE_RENDERERS.has(data.renderer) || !Array.isArray(data.inputs) || !Array.isArray(data.outputs) || !data.endpoints) {
     throw new PluginDescriptorError("Unsupported plugin renderer.");
+  }
+  const metadata = data.plugin;
+  if (["name", "version", "description", "category"].some(key => typeof metadata[key] !== "string")) {
+    throw new PluginDescriptorError("Invalid plugin metadata.");
+  }
+  if (!data.capabilities || typeof data.capabilities !== "object" || Array.isArray(data.capabilities)) {
+    throw new PluginDescriptorError("Invalid plugin capability schema.");
+  }
+  if (ASYNC_CAPABILITIES.some(key => data.capabilities[key] !== true)) {
+    throw new PluginDescriptorError("Invalid plugin capability schema.");
+  }
+  if (Object.keys(data.capabilities).some(key => !ASYNC_CAPABILITIES.includes(key))) {
+    throw new PluginDescriptorError("Unsupported plugin capability.");
+  }
+  if (Object.keys(data.endpoints).some(key => !ASYNC_ENDPOINTS.includes(key))) {
+    throw new PluginDescriptorError("Unsupported plugin endpoint role.");
   }
   data.inputs.forEach(validateField);
   data.outputs.forEach(output => {
@@ -55,7 +74,7 @@ export function validatePluginDescriptor(data, slug) {
       throw new PluginDescriptorError("Invalid plugin output schema.");
     }
   });
-  for (const key of ["submit", "status", "logs", "artifacts", "download"]) {
+  for (const key of ASYNC_ENDPOINTS) {
     if (typeof data.endpoints[key] !== "string") throw new PluginDescriptorError("Invalid plugin endpoint schema.");
     const endpoint = data.endpoints[key].replace("{run_id}", "placeholder");
     endpointUrl(endpoint);
