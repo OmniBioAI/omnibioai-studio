@@ -468,7 +468,7 @@ export default function App() {
               : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
                 : service.source === "workbench" && service.pluginSlug
-                  ? <PluginPage slug={service.pluginSlug} url={service.url} label={service.label} onBack={() => setService(null)} />
+                  ? <PluginPage slug={service.pluginSlug} url={service.url} label={service.label} backLabel={service.backLabel} onBack={() => setService(null)} />
                   : <ServiceViewer url={service.source === "workbench" ? service.url : resolveServiceUrl(service.url)} label={service.label}
                       backLabel={service.source === "workbench" ? "Back to Workbench" : undefined}
                       onBack={() => setService(null)} />

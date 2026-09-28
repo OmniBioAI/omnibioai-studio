@@ -13,6 +13,23 @@ const descriptor = {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("GenericPluginRunner", () => {
+  it.each([
+    ["alpha_diversity", "otu_table"], ["beta_diversity", "otu_table"],
+    ["binding_site_predictor", "structure_pdb"], ["chromatin_accessibility", "peak_count_matrix"],
+    ["chromatin_state", "chromatin_state_table"], ["counts_matrix_qc", "counts_matrix"],
+    ["gsea_enrichment", "ranked_genes"], ["hic_analysis", "hic_matrix"],
+    ["irfinder_analysis", "intron_retention_table"], ["isoform_analysis", "isoform_quant_table"],
+    ["mag_quality", "mag_stats"], ["methylation_qc", "methylation_table"],
+    ["nanopore_qc", "longread_stats"],
+  ])("renders the complete required file contract for %s", (slug, inputId) => {
+    render(<GenericPluginRunner descriptor={{
+      plugin: { name: slug, version: "1", category: "analysis" },
+      inputs: [{ id: inputId, label: inputId, description: "required input", required: true, format: "tsv", widget: "file", multiple: false }],
+      endpoints: descriptor.endpoints,
+    }} />);
+    expect(screen.getByLabelText(new RegExp(inputId))).toBeRequired();
+  });
+
   it("renders required files, submits FormData, polls, and lists downloads", async () => {
     const user = userEvent.setup();
     const file = new File(["a\tb\n"], "input.tsv", { type: "text/tab-separated-values" });

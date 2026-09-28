@@ -29,6 +29,27 @@ describe("Workbench API boundary", () => {
     expect(applicationUrl("/plugins/rna/", { electron, development })).toBe(expected);
     expect(legacyWorkbenchUrl({ electron, development })).toBe(expected.replace("plugins/rna/", ""));
   });
+  it("preserves the existing Provenance catalog launch target", () => {
+    const provenance = {
+      schema_version: 1,
+      total_count: 1,
+      categories: [{
+        key: "dashboard",
+        title: "Dashboard",
+        count: 1,
+        plugins: [{
+          slug: "provenance",
+          title: "Provenance",
+          description: "Audit trail & lineage for OmniObjects (reproducible workflows)",
+          version: "1.0.0",
+          category: "dashboard",
+          launch_path: "/plugins/provenance/",
+        }],
+      }],
+    };
+    expect(validateCatalog(provenance)).toBe(provenance);
+    expect(applicationUrl(provenance.categories[0].plugins[0].launch_path)).toBe("/_svc/workbench/plugins/provenance/");
+  });
   it.each(["//evil.test/", "https://evil.test/", "/plugins/../auth/", "/plugins/%2e%2e/", "/plugins/a/?x=1", "/plugins/a/#x", "/auth/logout/", "/plugins/a\\x/", "/plugins/a/\n", null])("rejects unsafe destinations %s", path => {
     expect(() => applicationUrl(path)).toThrow("Invalid application destination");
   });

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } = vi.hoisted(() => ({
@@ -36,6 +36,35 @@ describe("Studio portal", () => {
     expect(screen.getByText("Platform Services")).toBeInTheDocument();
     expect(screen.getByText("Security Control Plane")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Workbench — Application catalog" })).toBeInTheDocument();
+  });
+
+  it("renders Provenance after Admin and launches the canonical Workbench application", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    render(<Studio />);
+    await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
+
+    const coreSection = screen.getByText("Core Platform").parentElement.parentElement;
+    expect(within(coreSection).getByText("6 modules")).toBeInTheDocument();
+    expect(within(coreSection).getAllByRole("button").map(button => button.textContent)).toEqual([
+      "🤖OnboardAIAI developer tools",
+      "💬OmniBioAgentAI assistant",
+      "📊Job MonitorMonitor jobs",
+      "🔌Plugin ManagerManage plugins",
+      "⚙️AdminDjango admin",
+      "🧬ProvenanceTrack runs & lineage",
+    ]);
+
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(within(coreSection).getByRole("button", { name: "Provenance — Track runs & lineage" }));
+    expect(opened.mock.calls[0][0].detail).toEqual({
+      url: "/_svc/workbench/plugins/provenance/",
+      label: "Provenance",
+      source: "workbench",
+      pluginSlug: "provenance",
+      backLabel: "Back to Studio",
+    });
+    window.removeEventListener("open-service", opened);
   });
 
   it("shows online status once the health check succeeds and opens local links", async () => {

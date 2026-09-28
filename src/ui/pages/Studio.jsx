@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } from "../lib/session";
+import { applicationUrl } from "../lib/workbenchApi";
 
 // Permission gate for the Admin Console tile — reuses the same permission
 // string control-center's own backend gates its core admin routes on
@@ -14,6 +15,20 @@ const ADMIN_CONSOLE_PERMISSION = "platform.manage_infra";
 const MANAGE_CONFIG_PERMISSION = "manage_config";
 const MANAGE_LICENSES_PERMISSION = "manage_licenses";
 const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
+const PROVENANCE_SLUG = "provenance";
+const PROVENANCE_LAUNCH_PATH = "/plugins/provenance/";
+
+function openWorkbenchApplication(slug, launchPath, label) {
+  window.dispatchEvent(new CustomEvent("open-service", {
+    detail: {
+      url: applicationUrl(launchPath),
+      label,
+      source: "workbench",
+      pluginSlug: slug,
+      backLabel: "Back to Studio",
+    },
+  }));
+}
 
 function getInitialHost() {
   return (
@@ -135,6 +150,7 @@ function buildCategories(BASE) {
         { label:"Job Monitor",      url:"/_svc/workbench/plugins/job_monitor/",                icon:"📊", desc:"Monitor jobs"           },
         { label:"Plugin Manager",   url:"/_svc/workbench/plugins/plugin_manager/",             icon:"🔌", desc:"Manage plugins"         },
         { label:"Admin",            url:"/_svc/workbench/admin/",                              icon:"⚙️", desc:"Django admin"           },
+        { label:"Provenance",       url:applicationUrl(PROVENANCE_LAUNCH_PATH),                  icon:"🧬", desc:"Track runs & lineage", action:() => openWorkbenchApplication(PROVENANCE_SLUG, PROVENANCE_LAUNCH_PATH, "Provenance") },
       ]
     },
     {

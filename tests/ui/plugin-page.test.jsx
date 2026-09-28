@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { loadPluginDescriptor } = vi.hoisted(() => ({ loadPluginDescriptor: vi.fn() }));
 vi.mock("../../src/ui/lib/pluginApi", () => ({ loadPluginDescriptor }));
-vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ label }) => <div data-testid="service-viewer">Legacy {label}</div> }));
+vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ label, backLabel }) => <div data-testid="service-viewer">Legacy {label} {backLabel}</div> }));
 vi.mock("../../src/ui/components/GenericPluginRunner", () => ({ default: () => <div data-testid="generic-runner">Native runner</div> }));
 
 import PluginPage from "../../src/ui/pages/PluginPage";
@@ -29,6 +29,12 @@ describe("PluginPage capability routing", () => {
     loadPluginDescriptor.mockResolvedValue({ schema_version: 1, plugin: { slug: "workflow_builder" }, renderer: "legacy", native_supported: false });
     render(<PluginPage slug="workflow_builder" url="/_svc/workbench/plugins/workflow_builder/" label="Workflow Builder" onBack={vi.fn()} />);
     expect(await screen.findByTestId("service-viewer")).toHaveTextContent("Workflow Builder");
+  });
+
+  it("preserves Studio-origin back navigation for legacy Workbench applications", async () => {
+    loadPluginDescriptor.mockResolvedValue({ schema_version: 1, plugin: { slug: "provenance" }, renderer: "legacy", native_supported: false });
+    render(<PluginPage slug="provenance" url="/_svc/workbench/plugins/provenance/" label="Provenance" backLabel="Back to Studio" onBack={vi.fn()} />);
+    expect(await screen.findByTestId("service-viewer")).toHaveTextContent("Back to Studio");
   });
 
   it("falls back only for a missing descriptor, while showing retryable errors for server failures", async () => {
