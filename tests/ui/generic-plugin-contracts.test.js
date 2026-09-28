@@ -15,9 +15,10 @@ describe("validated GenericPluginRunner contract fixtures", () => {
   });
 
   it("keeps schema compatibility separate from native enablement", () => {
-    expect(CURRENT_NATIVE_PILOTS.size).toBe(17);
+    expect(CURRENT_NATIVE_PILOTS.size).toBe(35);
     expect(NORMALIZATION_REQUIRED.size).toBe(18);
-    expect(GENERIC_PLUGIN_CONTRACTS.filter(contract => contract.native_supported)).toHaveLength(17);
-    expect(GENERIC_PLUGIN_CONTRACTS.filter(contract => contract.normalization_required && contract.native_supported)).toHaveLength(0);
+    expect(GENERIC_PLUGIN_CONTRACTS.filter(contract => contract.native_supported)).toHaveLength(35);
+    expect(GENERIC_PLUGIN_CONTRACTS.filter(contract => contract.normalization_complete)).toHaveLength(35);
+    expect(GENERIC_PLUGIN_CONTRACTS.filter(contract => contract.normalization_required && contract.normalization_complete)).toHaveLength(18);
   });
 });
