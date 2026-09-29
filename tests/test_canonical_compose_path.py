@@ -24,3 +24,11 @@ def test_legacy_heredoc_is_not_presented_as_compose_yaml():
     """The legacy docker/docker-compose.yml path does not exist on disk, so it cannot be
     mistaken for a real Compose file."""
     assert not (ROOT / "docker/docker-compose.yml").exists()
+
+
+def test_compose_has_no_developer_absolute_workspace_paths():
+    """Compose paths must not depend on a particular developer's home directory."""
+    compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    assert "/home/manish/Desktop/machine" not in compose
+    assert "/Users/manishkumar/Desktop/machine" not in compose
+    assert "${MACHINE_DIR}/data:${MACHINE_DIR}/data" in compose

@@ -840,7 +840,7 @@ services:
     volumes:
       # #265: this used to be a single `${WORKSPACE_HOST}:/workspace` RW
       # bind mount of the ENTIRE host machine directory (WORKSPACE_HOST ==
-      # MACHINE_DIR == /home/manish/Desktop/machine) -- confirmed live to
+      # MACHINE_DIR == the shared parent workspace) -- confirmed live to
       # include every sibling repo's source/.git/secrets plus a symlink
       # (omnibioai-work -> /media/manish/OmniBioAI-SIFs/work) reaching an
       # external mounted drive, none of which this container's own code
@@ -858,7 +858,7 @@ services:
       #   - plugins/bio_agent/views.py reads a single tools.example.yaml
       #     config file under omnibioai-tes/configs/, read-only.
       # Neither needs the other ~48 sibling directories under
-      # /home/manish/Desktop/machine that the old blanket mount exposed.
+      # the shared parent workspace that the old blanket mount exposed.
       # NOTE: ${MACHINE_DIR}/data and ${MACHINE_DIR}/work (below, at their
       # own absolute paths, unrelated to /workspace) are separately still
       # full-directory RW mounts and were NOT in scope for this pass --
@@ -1181,7 +1181,7 @@ services:
         - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
         - /media/manish/OmniBioAI-SIFs/reference:/media/manish/OmniBioAI-SIFs/reference
         - /media/manish/OmniBioAI-SIFs/omnibioai-test-data:/media/manish/OmniBioAI-SIFs/omnibioai-test-data
-        - /home/manish/Desktop/machine/data:/home/manish/Desktop/machine/data
+        - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
         # #54: proxy's exposed socket, not the raw host one -- see
         # DOCKER_HOST in environment: above. :ro because control-center
         # only ever needs to *connect to* this socket file, never write
