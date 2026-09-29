@@ -22,6 +22,7 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
   const [status, setStatus] = useState(null);
   const [logs, setLogs] = useState([]);
   const [outputs, setOutputs] = useState([]);
+  const [renderedResult, setRenderedResult] = useState(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,7 +50,10 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
           const artifactResponse = await fetch(pluginEndpoint(endpoint("artifacts")), { credentials: "same-origin", headers: { Accept: "application/json" } });
           if (!artifactResponse.ok) throw new Error("Unable to read run artifacts.");
           const artifactPayload = await artifactResponse.json();
-          if (!cancelled) setOutputs(Array.isArray(artifactPayload.outputs) ? artifactPayload.outputs : []);
+          if (!cancelled) {
+            setOutputs(Array.isArray(artifactPayload.outputs) ? artifactPayload.outputs : []);
+            setRenderedResult(artifactPayload.render || null);
+          }
         } else if (TERMINAL.has(nextStatus.state)) window.clearInterval(timer);
       } catch (pollError) {
         window.clearInterval(timer);
@@ -89,7 +93,7 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
       else if (values[input.id]) formData.append(inputName(input), values[input.id]);
     });
     setSubmitting(true);
-    setRunId(""); setStatus(null); setLogs([]); setOutputs([]);
+    setRunId(""); setStatus(null); setLogs([]); setOutputs([]); setRenderedResult(null);
     try {
       const response = await fetch(pluginEndpoint(descriptor.endpoints.submit), {
         method: "POST", body: formData, credentials: "same-origin",
@@ -136,7 +140,14 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
           </PanelBody>
         </Panel>
       )}
-      {runId && ["COMPLETED", "COMPLETE"].includes(state) && <PluginResults outputs={outputs} downloadEndpoint={endpoint("download")} />}
+      {runId && ["COMPLETED", "COMPLETE"].includes(state) && (
+        <PluginResults
+          outputs={outputs}
+          downloadEndpoint={endpoint("download")}
+          renderEndpoint={descriptor.endpoints.render ? endpoint("render") : ""}
+          render={renderedResult}
+        />
+      )}
     </div>
   );
 }
