@@ -43,6 +43,14 @@ const noDetailQueryDescriptor = {
   result: { presentation: "table", rows_path: "results", columns: [{ key: "query", label: "Query" }] },
 };
 
+const informationalDescriptor = {
+  schema_version: 1,
+  plugin: { slug: "biosamples", name: "BioSamples", version: "1.0.0", description: "desc", category: "reference_db" },
+  renderer: "informational", native_supported: true,
+  inputs: [], outputs: [], capabilities: { read_only: true },
+  content: { summary: "Read-only sample records.", sections: [] },
+};
+
 beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -124,6 +132,14 @@ describe("plugin descriptor API boundary", () => {
       .toThrow("Invalid plugin endpoint");
     expect(() => validatePluginDescriptor({ ...queryDescriptor, result: { ...queryDescriptor.result, presentation: "json" } }, "clinvar"))
       .toThrow("Invalid query result schema");
+  });
+
+  it("accepts the finite informational contract and rejects executable or structured-content extensions", () => {
+    expect(validatePluginDescriptor(informationalDescriptor, "biosamples").renderer).toBe("informational");
+    expect(() => validatePluginDescriptor({ ...informationalDescriptor, content: { ...informationalDescriptor.content, html: "<script>" } }, "biosamples"))
+      .toThrow("Invalid informational descriptor");
+    expect(() => validatePluginDescriptor({ ...informationalDescriptor, content: { summary: "x", sections: [{ heading: "x", paragraphs: ["ok"], html: "<b>" }] } }, "biosamples"))
+      .toThrow("Invalid informational descriptor");
   });
 
   it("accepts a query table without detail and rejects inconsistent detail metadata", () => {

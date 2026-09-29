@@ -1,4 +1,5 @@
 import AsyncAnalysisRenderer from "./AsyncAnalysisRenderer";
+import InformationalRenderer from "./InformationalRenderer";
 import QueryRenderer from "./QueryRenderer";
 
 // Only a browser lifecycle with evidence in the current generic family is
@@ -6,13 +7,14 @@ import QueryRenderer from "./QueryRenderer";
 // it is not a second implementation or renderer family.
 export const RENDERER_REGISTRY = Object.freeze({
   async_analysis: AsyncAnalysisRenderer,
+  informational: InformationalRenderer,
   query: QueryRenderer,
 });
 
 const LEGACY_RENDERER_ALIASES = Object.freeze({ generic_runner: "async_analysis" });
 
 export function normalizeRendererName(renderer) {
-  if (renderer === "async_analysis" || renderer === "query") return renderer;
+  if (renderer === "async_analysis" || renderer === "informational" || renderer === "query") return renderer;
   return typeof renderer === "string" && Object.prototype.hasOwnProperty.call(LEGACY_RENDERER_ALIASES, renderer)
     ? LEGACY_RENDERER_ALIASES[renderer]
     : null;

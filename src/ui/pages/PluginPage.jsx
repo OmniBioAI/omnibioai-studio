@@ -21,7 +21,8 @@ export default function PluginPage({ slug, url, label, onBack, backLabel = "Back
   }, [slug, attempt]);
 
   const Renderer = descriptor?.native_supported ? resolveWorkbenchRenderer(descriptor.renderer) : null;
-  if (error?.status === 404 || (descriptor && (descriptor.native_supported === false || !Renderer))) {
+  const invalidDescriptor = error?.name === "PluginDescriptorError" && error.status === 0;
+  if (error?.status === 404 || invalidDescriptor || (descriptor && (descriptor.native_supported === false || !Renderer))) {
     return <ServiceViewer url={url} label={label} onBack={onBack} backLabel={backLabel} />;
   }
   if (error) {

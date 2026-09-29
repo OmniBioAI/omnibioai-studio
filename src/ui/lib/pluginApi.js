@@ -3,7 +3,7 @@ import { isElectron } from "./session";
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
 const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|search|studies|experiments|variants|pathways|genes)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
-const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "query"]);
+const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
 const ASYNC_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
 const ASYNC_ENDPOINTS = ["submit", "status", "logs", "artifacts", "download"];
 const QUERY_CAPABILITIES = ["query", "detail"];
@@ -117,6 +117,26 @@ function validateQueryDescriptor(data) {
   if (detailEnabled) validatePluginEndpoint(data.endpoints.detail.replace("{detail_id}", "placeholder"), data.plugin.slug);
 }
 
+function validateInformationalDescriptor(data) {
+  if (!Array.isArray(data.inputs) || data.inputs.length !== 0 ||
+      !Array.isArray(data.outputs) || data.outputs.length !== 0 ||
+      !data.capabilities || Object.keys(data.capabilities).join(",") !== "read_only" ||
+      data.capabilities.read_only !== true ||
+      !data.content || typeof data.content !== "object" || Array.isArray(data.content) ||
+      Object.keys(data.content).sort().join(",") !== "sections,summary" ||
+      typeof data.content.summary !== "string" || !Array.isArray(data.content.sections)) {
+    throw new PluginDescriptorError("Invalid informational descriptor.");
+  }
+  data.content.sections.forEach(section => {
+    if (!section || typeof section !== "object" || Array.isArray(section) ||
+        Object.keys(section).sort().join(",") !== "heading,paragraphs" ||
+        typeof section.heading !== "string" || !Array.isArray(section.paragraphs) ||
+        section.paragraphs.some(paragraph => typeof paragraph !== "string")) {
+      throw new PluginDescriptorError("Invalid informational descriptor.");
+    }
+  });
+}
+
 function validatePluginEndpoint(path, slug) {
   endpointUrl(path);
   const match = path.match(/^\/plugins\/([^/]+)\//);
@@ -128,12 +148,19 @@ export function validatePluginDescriptor(data, slug) {
     throw new PluginDescriptorError("Workbench returned an invalid plugin descriptor.");
   }
   if (!data.native_supported) return data;
-  if (!NATIVE_RENDERERS.has(data.renderer) || !Array.isArray(data.inputs) || !Array.isArray(data.outputs) || !data.endpoints) {
+  if (!NATIVE_RENDERERS.has(data.renderer)) {
     throw new PluginDescriptorError("Unsupported plugin renderer.");
   }
   const metadata = data.plugin;
   if (["name", "version", "description", "category"].some(key => typeof metadata[key] !== "string")) {
     throw new PluginDescriptorError("Invalid plugin metadata.");
+  }
+  if (data.renderer === "informational") {
+    validateInformationalDescriptor(data);
+    return data;
+  }
+  if (!Array.isArray(data.inputs) || !Array.isArray(data.outputs) || !data.endpoints) {
+    throw new PluginDescriptorError("Unsupported plugin renderer.");
   }
   if (data.renderer === "query") {
     validateQueryDescriptor(data);
