@@ -83,4 +83,33 @@ describe("AsyncAnalysisRenderer", () => {
     fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
     expect(await screen.findByRole("alert")).toHaveTextContent("network unavailable");
   });
+
+  it("retains and submits a hidden labels file after train-to-infer switching", async () => {
+    const user = userEvent.setup();
+    const conditionalDescriptor = {
+      ...descriptor,
+      inputs: [
+        { id: "mode", label: "Mode", description: "Mode", required: true, format: "text", component: "select", choices: ["infer", "train"], default: "infer" },
+        descriptor.inputs[0],
+        { id: "labels", label: "Labels", description: "Training labels", required: false, format: "csv", component: "file", conditions: [
+          { controller: "mode", operator: "equals", value: "train", effect: "visible" },
+          { controller: "mode", operator: "equals", value: "train", effect: "required" },
+        ] },
+      ],
+    };
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ error: "checked" }) });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AsyncAnalysisRenderer descriptor={conditionalDescriptor} />);
+    await user.upload(screen.getByLabelText(/Input File/), new File(["input"], "input.tsv"));
+    await user.selectOptions(screen.getByLabelText(/Mode/), "train");
+    await user.upload(screen.getByLabelText(/Labels/), new File(["labels"], "labels.csv"));
+    await user.selectOptions(screen.getByLabelText(/Mode/), "infer");
+    expect(screen.queryByLabelText(/Labels/)).not.toBeInTheDocument();
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    await screen.findByRole("alert");
+    const body = fetchMock.mock.calls[0][1].body;
+    expect(body.get("input_mode")).toBe("infer");
+    expect(body.get("input_labels")).toBeInstanceOf(File);
+    expect(body.get("input_labels").name).toBe("labels.csv");
+  });
 });

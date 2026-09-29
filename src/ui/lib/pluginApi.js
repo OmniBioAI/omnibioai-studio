@@ -46,7 +46,51 @@ function validateField(field) {
   if (component === "select" && (!Array.isArray(field.choices) || field.choices.some(choice => typeof choice !== "string"))) {
     throw new PluginDescriptorError("Invalid plugin choice schema.");
   }
+  if (component === "select" && field.default !== undefined &&
+      (typeof field.default !== "string" || !field.choices.includes(field.default))) {
+    throw new PluginDescriptorError("Invalid plugin default schema.");
+  }
   return field;
+}
+
+function validateConditionalInputs(inputs) {
+  const fields = new Map();
+  inputs.forEach(field => {
+    if (fields.has(field.id)) throw new PluginDescriptorError("Duplicate plugin input id.");
+    fields.set(field.id, field);
+  });
+  inputs.forEach(field => {
+    if (field.conditions === undefined) return;
+    if (!Array.isArray(field.conditions) || field.conditions.length === 0) {
+      throw new PluginDescriptorError("Invalid conditional input schema.");
+    }
+    const effects = new Set();
+    field.conditions.forEach(condition => {
+      if (!condition || typeof condition !== "object" || Array.isArray(condition) ||
+          Object.keys(condition).sort().join(",") !== "controller,effect,operator,value") {
+        throw new PluginDescriptorError("Invalid conditional input schema.");
+      }
+      const { controller, operator, value, effect } = condition;
+      const controllerField = fields.get(controller);
+      if (!controllerField) throw new PluginDescriptorError("Unknown conditional controller.");
+      if (controller === field.id) throw new PluginDescriptorError("Self-referential conditional input.");
+      if ((controllerField.component ?? controllerField.widget) !== "select") {
+        throw new PluginDescriptorError("Conditional controller must be a select.");
+      }
+      if (operator !== "equals") throw new PluginDescriptorError("Unsupported conditional operator.");
+      if (typeof value !== "string" || !value || !controllerField.choices.includes(value)) {
+        throw new PluginDescriptorError("Invalid conditional choice.");
+      }
+      if (effect !== "visible" && effect !== "required") {
+        throw new PluginDescriptorError("Unsupported conditional effect.");
+      }
+      if (effects.has(effect)) throw new PluginDescriptorError("Duplicate conditional effect.");
+      effects.add(effect);
+      if (controllerField.conditions !== undefined) {
+        throw new PluginDescriptorError("Conditional dependency chains are unsupported.");
+      }
+    });
+  });
 }
 
 function validateQueryDescriptor(data) {
@@ -58,6 +102,7 @@ function validateQueryDescriptor(data) {
     throw new PluginDescriptorError("Invalid query endpoint schema.");
   }
   data.inputs.forEach(validateField);
+  validateConditionalInputs(data.inputs);
   if (!data.result || data.result.presentation !== "table" || typeof data.result.rows_path !== "string" || !Array.isArray(data.result.columns)) {
     throw new PluginDescriptorError("Invalid query result schema.");
   }
@@ -107,6 +152,7 @@ export function validatePluginDescriptor(data, slug) {
     throw new PluginDescriptorError("Unsupported plugin endpoint role.");
   }
   data.inputs.forEach(validateField);
+  validateConditionalInputs(data.inputs);
   data.outputs.forEach(output => {
     if (!output || typeof output.id !== "string" || !SLUG.test(output.id) || typeof output.label !== "string" || typeof output.format !== "string") {
       throw new PluginDescriptorError("Invalid plugin output schema.");

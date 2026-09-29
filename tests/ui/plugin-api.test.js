@@ -75,6 +75,29 @@ describe("plugin descriptor API boundary", () => {
       .toThrow("Invalid plugin input schema");
   });
 
+  it("accepts independent finite conditional effects and rejects unsafe condition metadata", () => {
+    const conditional = {
+      ...descriptor,
+      inputs: [
+        { id: "mode", label: "Mode", description: "Mode", required: true, format: "text", widget: "select", choices: ["infer", "train"], default: "infer" },
+        { ...descriptor.inputs[0], id: "labels", required: false, conditions: [
+          { controller: "mode", operator: "equals", value: "train", effect: "visible" },
+          { controller: "mode", operator: "equals", value: "train", effect: "required" },
+        ] },
+      ],
+    };
+    expect(validatePluginDescriptor(conditional, "deseq2_analysis").inputs[1].conditions).toHaveLength(2);
+    for (const condition of [
+      { controller: "missing", operator: "equals", value: "train", effect: "visible" },
+      { controller: "mode", operator: "not_equals", value: "train", effect: "visible" },
+      { controller: "mode", operator: "equals", value: "predict", effect: "visible" },
+      { controller: "mode", operator: "equals", value: "train", effect: "callback" },
+    ]) {
+      expect(() => validatePluginDescriptor({ ...conditional, inputs: [conditional.inputs[0], { ...conditional.inputs[1], conditions: [condition] }] }, "deseq2_analysis"))
+        .toThrow();
+    }
+  });
+
   it("accepts the formal async renderer contract and rejects unsafe capabilities/endpoints", () => {
     expect(validatePluginDescriptor({ ...descriptor, renderer: "async_analysis" }, "deseq2_analysis").renderer).toBe("async_analysis");
     expect(() => validatePluginDescriptor({ ...descriptor, capabilities: { ...descriptor.capabilities, search: true } }, "deseq2_analysis"))

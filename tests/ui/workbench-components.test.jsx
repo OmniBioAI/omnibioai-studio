@@ -2,7 +2,7 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import PluginForm from "../../src/ui/components/workbench/PluginForm";
+import PluginForm, { validateConditionalInputs } from "../../src/ui/components/workbench/PluginForm";
 import PluginField from "../../src/ui/components/workbench/PluginField";
 import LogViewer from "../../src/ui/components/workbench/LogViewer";
 import RunStatus from "../../src/ui/components/workbench/RunStatus";
@@ -68,6 +68,56 @@ describe("PluginForm composition", () => {
     await user.type(control, "CCO");
     expect(onValueChange).toHaveBeenCalledWith("ligand_smiles", "C");
     expect(onValueChange).toHaveBeenLastCalledWith("ligand_smiles", "O");
+  });
+
+  it("evaluates independent visibility and required effects without clearing retained values", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    const onFilesChange = vi.fn();
+    const onSubmit = vi.fn(event => event.preventDefault());
+    const conditionalInputs = [
+      { id: "mode", label: "Mode", description: "Mode", required: true, format: "text", widget: "select", choices: ["infer", "train"], default: "infer" },
+      { id: "input_file", label: "Input", description: "Input", required: true, format: "tsv", widget: "file" },
+      { id: "labels", label: "Labels", description: "Labels", required: false, format: "csv", widget: "file", conditions: [
+        { controller: "mode", operator: "equals", value: "train", effect: "visible" },
+        { controller: "mode", operator: "equals", value: "train", effect: "required" },
+      ] },
+    ];
+    const { rerender } = render(<PluginForm inputs={conditionalInputs} values={{}} files={{}} onValueChange={onValueChange} onFilesChange={onFilesChange} onSubmit={onSubmit} />);
+    expect(screen.queryByLabelText("Labels")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Mode/)).toHaveValue("infer");
+    onValueChange.mockImplementation((id, value) => {
+      if (id === "mode") rerender(<PluginForm inputs={conditionalInputs} values={{ mode: value }} files={{}} onValueChange={onValueChange} onFilesChange={onFilesChange} onSubmit={onSubmit} />);
+    });
+    await user.selectOptions(screen.getByLabelText(/Mode/), "train");
+    expect(screen.getByLabelText(/Labels/)).toBeVisible();
+    expect(screen.getByLabelText(/Labels/)).toBeRequired();
+    const retained = new File(["label"], "labels.csv", { type: "text/csv" });
+    onFilesChange.mock.calls.push(["labels", [retained]]);
+    rerender(<PluginForm inputs={conditionalInputs} values={{ mode: "infer" }} files={{ labels: [retained] }} onValueChange={onValueChange} onFilesChange={onFilesChange} onSubmit={onSubmit} />);
+    expect(screen.queryByLabelText("Labels")).not.toBeInTheDocument();
+    expect(validateConditionalInputs(conditionalInputs)).toBe(true);
+  });
+
+  it("blocks train submission without active conditional labels", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    const conditionalInputs = [
+      { id: "mode", label: "Mode", description: "Mode", required: true, format: "text", widget: "select", choices: ["infer", "train"], default: "infer" },
+      { id: "labels", label: "Labels", description: "Labels", required: false, format: "csv", widget: "file", conditions: [
+        { controller: "mode", operator: "equals", value: "train", effect: "visible" },
+        { controller: "mode", operator: "equals", value: "train", effect: "required" },
+      ] },
+    ];
+    render(<PluginForm inputs={conditionalInputs} values={{ mode: "train" }} files={{}} onSubmit={onSubmit} />);
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Labels is required.");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("fails safely for invalid condition metadata", () => {
+    render(<PluginForm inputs={[input({ conditions: [{ controller: "missing", operator: "equals", value: "train", effect: "visible" }] })]} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Invalid conditional input metadata");
   });
 });
 

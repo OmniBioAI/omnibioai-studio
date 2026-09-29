@@ -28,6 +28,8 @@ export function TextField({ input, value = "", onChange }) {
       name={`param_${input.id}`}
       rows={3}
       placeholder={input.placeholder || ""}
+      required={Boolean(input.required)}
+      aria-required={Boolean(input.required)}
       value={value}
       onChange={event => onChange?.(event.target.value)}
       aria-describedby={`plugin-${input.id}-description`}
@@ -48,6 +50,8 @@ export function SelectField({ input, value = "", onChange }) {
       value={value}
       options={options}
       onChange={event => onChange?.(event.target.value)}
+      required={Boolean(input.required)}
+      aria-required={Boolean(input.required)}
       aria-describedby={`plugin-${input.id}-description`}
     />
   );
