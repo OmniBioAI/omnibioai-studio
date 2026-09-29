@@ -51,6 +51,21 @@ const informationalDescriptor = {
   content: { summary: "Read-only sample records.", sections: [] },
 };
 
+const staticPngDescriptor = {
+  ...descriptor,
+  plugin: { ...descriptor.plugin, slug: "volcano_plot" },
+  result: { presentation: "static_png", primary: { kind: "plot", media_type: "image/png", label: "Volcano Plot", alt: "Volcano plot result" } },
+  capabilities: { ...descriptor.capabilities, render: true },
+  endpoints: {
+    submit: "/plugins/volcano_plot/api/run/",
+    status: "/plugins/volcano_plot/api/status/{run_id}/",
+    logs: "/plugins/volcano_plot/api/log/{run_id}/",
+    artifacts: "/plugins/volcano_plot/api/artifacts/{run_id}/",
+    download: "/plugins/volcano_plot/api/file/{run_id}/",
+    render: "/plugins/volcano_plot/api/render/{run_id}/",
+  },
+};
+
 beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -114,6 +129,14 @@ describe("plugin descriptor API boundary", () => {
       .toThrow("Invalid plugin endpoint");
     expect(() => validatePluginDescriptor({ ...descriptor, endpoints: { ...descriptor.endpoints, callback: "/plugins/deseq2_analysis/api/run/" } }, "deseq2_analysis"))
       .toThrow("Unsupported plugin endpoint role");
+  });
+
+  it("accepts only the finite static PNG result contract", () => {
+    expect(validatePluginDescriptor(staticPngDescriptor, "volcano_plot").result.presentation).toBe("static_png");
+    expect(() => validatePluginDescriptor({ ...staticPngDescriptor, result: { ...staticPngDescriptor.result, primary: { ...staticPngDescriptor.result.primary, media_type: "image/svg+xml" } } }, "volcano_plot"))
+      .toThrow("Invalid static PNG result schema");
+    expect(() => validatePluginDescriptor({ ...staticPngDescriptor, endpoints: { ...staticPngDescriptor.endpoints, render: "https://evil.example/image.png" } }, "volcano_plot"))
+      .toThrow("Invalid plugin endpoint");
   });
 
   it("accepts the narrow query contract and rejects unsafe query extensions", () => {

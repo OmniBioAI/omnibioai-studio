@@ -2,10 +2,12 @@ import { isElectron } from "./session";
 
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
-const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|search|studies|experiments|variants|pathways|genes)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
+const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
-const ASYNC_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
-const ASYNC_ENDPOINTS = ["submit", "status", "logs", "artifacts", "download"];
+const ASYNC_REQUIRED_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
+const ASYNC_CAPABILITIES = [...ASYNC_REQUIRED_CAPABILITIES, "render"];
+const ASYNC_REQUIRED_ENDPOINTS = ["submit", "status", "logs", "artifacts", "download"];
+const ASYNC_ENDPOINTS = [...ASYNC_REQUIRED_ENDPOINTS, "render"];
 const QUERY_CAPABILITIES = ["query", "detail"];
 const QUERY_ENDPOINTS = ["query", "detail"];
 
@@ -137,6 +139,22 @@ function validateInformationalDescriptor(data) {
   });
 }
 
+function validateStaticPngResult(data) {
+  if (!data.result || typeof data.result !== "object" || Array.isArray(data.result) ||
+      Object.keys(data.result).sort().join(",") !== "presentation,primary" ||
+      data.result.presentation !== "static_png") {
+    throw new PluginDescriptorError("Invalid static PNG result schema.");
+  }
+  const primary = data.result.primary;
+  if (!primary || typeof primary !== "object" || Array.isArray(primary) ||
+      Object.keys(primary).sort().join(",") !== "alt,kind,label,media_type" ||
+      primary.kind !== "plot" || primary.media_type !== "image/png" ||
+      typeof primary.label !== "string" || !primary.label ||
+      typeof primary.alt !== "string" || !primary.alt) {
+    throw new PluginDescriptorError("Invalid static PNG result schema.");
+  }
+}
+
 function validatePluginEndpoint(path, slug) {
   endpointUrl(path);
   const match = path.match(/^\/plugins\/([^/]+)\//);
@@ -169,7 +187,7 @@ export function validatePluginDescriptor(data, slug) {
   if (!data.capabilities || typeof data.capabilities !== "object" || Array.isArray(data.capabilities)) {
     throw new PluginDescriptorError("Invalid plugin capability schema.");
   }
-  if (ASYNC_CAPABILITIES.some(key => data.capabilities[key] !== true)) {
+  if (ASYNC_REQUIRED_CAPABILITIES.some(key => data.capabilities[key] !== true)) {
     throw new PluginDescriptorError("Invalid plugin capability schema.");
   }
   if (Object.keys(data.capabilities).some(key => !ASYNC_CAPABILITIES.includes(key))) {
@@ -185,10 +203,19 @@ export function validatePluginDescriptor(data, slug) {
       throw new PluginDescriptorError("Invalid plugin output schema.");
     }
   });
-  for (const key of ASYNC_ENDPOINTS) {
+  for (const key of ASYNC_REQUIRED_ENDPOINTS) {
     if (typeof data.endpoints[key] !== "string") throw new PluginDescriptorError("Invalid plugin endpoint schema.");
     const endpoint = data.endpoints[key].replace("{run_id}", "placeholder");
     validatePluginEndpoint(endpoint, slug);
+  }
+  if (data.result !== undefined) {
+    validateStaticPngResult(data);
+    if (data.capabilities.render !== true || typeof data.endpoints.render !== "string") {
+      throw new PluginDescriptorError("Invalid static PNG result endpoint schema.");
+    }
+    validatePluginEndpoint(data.endpoints.render.replace("{run_id}", "placeholder"), slug);
+  } else if (data.capabilities.render !== undefined || data.endpoints.render !== undefined) {
+    throw new PluginDescriptorError("Invalid static PNG result endpoint schema.");
   }
   return data;
 }
