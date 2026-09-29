@@ -50,4 +50,11 @@ describe("PluginPage capability routing", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("server unavailable");
     expect(screen.queryByTestId("service-viewer")).not.toBeInTheDocument();
   });
+
+  it("falls back safely when descriptor validation rejects an informational payload", async () => {
+    const invalid = Object.assign(new Error("invalid descriptor"), { name: "PluginDescriptorError", status: 0 });
+    loadPluginDescriptor.mockRejectedValueOnce(invalid);
+    render(<PluginPage slug="biosamples" url="/_svc/workbench/plugins/biosamples/" label="BioSamples" onBack={vi.fn()} />);
+    expect(await screen.findByTestId("service-viewer")).toHaveTextContent("BioSamples");
+  });
 });
