@@ -87,6 +87,16 @@ describe("App shell — Studio landing", () => {
     expect(window.location.pathname).toBe("/studio");
   });
 
+  it("opens the Videos viewer when visiting /studio/videos directly", async () => {
+    window.history.replaceState({}, "", "/studio/videos");
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Videos page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("vback"));
+    await waitFor(() => expect(screen.queryByText("Videos page")).not.toBeInTheDocument());
+    expect(window.location.pathname).toBe("/studio");
+  });
+
   it("renders the shared module header for native pages and returns to /studio", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);

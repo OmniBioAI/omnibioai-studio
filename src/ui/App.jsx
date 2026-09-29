@@ -76,7 +76,15 @@ const PAGE_LABELS = [
 ];
 
 const STUDIO_PATH = "/studio";
+const VIDEO_STUDIO_PATH = "/studio/videos";
 const LEGACY_PORTAL_PATH = "/workbench";
+
+function getInitialService() {
+  if (typeof window !== "undefined" && window.location.pathname === VIDEO_STUDIO_PATH) {
+    return { url: "/_svc/videos", label: "Videos" };
+  }
+  return null;
+}
 
 // Same-origin relative paths only -- must start with exactly one "/",
 // never "//" (browsers treat a leading "//" as protocol-relative, an open
@@ -104,7 +112,7 @@ export default function App() {
   const [config,       setConfig]       = useState({
     mode: "beta", llm: {}, cloud: {}, hpc: {}, settings: {},
   });
-  const [service,      setService]      = useState(null); // { url, label } when viewing a service
+  const [service,      setService]      = useState(getInitialService); // { url, label } when viewing a service
   const [workbenchState, setWorkbenchState] = useState({ query: "", category: "__all__", focusSlug: null });
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
@@ -267,6 +275,14 @@ export default function App() {
   function handleStudioClick() {
     setService(null);
     setStep(7); // return to Studio
+  }
+
+  function handleVideoBack() {
+    const url = new URL(window.location.href);
+    url.pathname = STUDIO_PATH;
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    setService(null);
+    setStep(7);
   }
 
   function handleNavClick(idx) {
@@ -464,7 +480,7 @@ export default function App() {
         }}>
           {service
             ? service.url.includes("/_svc/videos")
-              ? <Videos onBack={() => setService(null)} />
+              ? <Videos onBack={handleVideoBack} />
               : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
                 : service.source === "workbench" && service.pluginSlug
