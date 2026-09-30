@@ -1,13 +1,12 @@
 name: Build Web UI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'packages/**'
-      - 'Dockerfile.web'
-      - 'docker/nginx-web.conf'
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'New immutable release version, for example 0.8.1'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -18,14 +17,47 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Assert full OCI revision
+        env:
+          FULL_SHA: ${{ github.sha }}
+        run: |
+          test "${#FULL_SHA}" -eq 40
+          test "$FULL_SHA" = "$(git rev-parse HEAD)"
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and push
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
-          docker build -f Dockerfile.web -t ghcr.io/omnibioai/omnibioai-web:latest -t ghcr.io/omnibioai/omnibioai-web:${{ github.sha }} .
-          docker push ghcr.io/omnibioai/omnibioai-web:latest
-          docker push ghcr.io/omnibioai/omnibioai-web:${{ github.sha }}
+          docker buildx build --platform linux/amd64,linux/arm64 --push \
+            -f Dockerfile.web \
+            -t ghcr.io/omnibioai/omnibioai-web:${RELEASE_VERSION} \
+            -t ghcr.io/omnibioai/omnibioai-web:${{ github.sha }} \
+            --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            --label org.opencontainers.image.version=${RELEASE_VERSION} \
+            --sbom=true \
+            --provenance=mode=max \
+            .
+
+      - name: Verify remote multiarch manifest
+        env:
+          IMAGE: ghcr.io/omnibioai/omnibioai-web
+          FULL_SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          manifest=$(docker buildx imagetools inspect "$IMAGE:$FULL_SHA")
+          echo "$manifest"
+          echo "$manifest" | grep -q 'Platform:    linux/amd64'
+          echo "$manifest" | grep -q 'Platform:    linux/arm64'

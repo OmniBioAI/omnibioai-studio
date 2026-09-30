@@ -6,16 +6,18 @@ name: Build docker-socket-proxy
 # see their own comments), so docker-socket-proxy needs a published
 # ghcr.io image like every other release-compose service, not a local
 # build context. This publishes it the same way omnibioai-web already
-# is: on push to main when the proxy's own source changes, using the
+# is: an explicit versioned manual release, using the
 # repo's own GITHUB_TOKEN (packages: write) -- no personal credentials
-# involved, same as every other image this repo publishes.
+# involved, same as every other image this repo publishes. Existing latest is
+# intentionally not modified by this controlled-release workflow.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'docker-socket-proxy/**'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'New immutable release version, for example 0.8.1'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -26,8 +28,21 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Assert full OCI revision
+        env:
+          FULL_SHA: ${{ github.sha }}
+        run: |
+          test "${#FULL_SHA}" -eq 40
+          test "$FULL_SHA" = "$(git rev-parse HEAD)"
 
       - name: Policy unit tests
         # Pure, no-I/O tests (test_policy.py) -- fast, no Docker needed.
@@ -44,7 +59,26 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and push
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
-          docker build -t ghcr.io/omnibioai/docker-socket-proxy:latest -t ghcr.io/omnibioai/docker-socket-proxy:${{ github.sha }} docker-socket-proxy
-          docker push ghcr.io/omnibioai/docker-socket-proxy:latest
-          docker push ghcr.io/omnibioai/docker-socket-proxy:${{ github.sha }}
+          docker buildx build --platform linux/amd64,linux/arm64 --push \
+            -t ghcr.io/omnibioai/docker-socket-proxy:${RELEASE_VERSION} \
+            -t ghcr.io/omnibioai/docker-socket-proxy:${{ github.sha }} \
+            --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            --label org.opencontainers.image.version=${RELEASE_VERSION} \
+            --sbom=true \
+            --provenance=mode=max \
+            docker-socket-proxy
+
+      - name: Verify remote multiarch manifest
+        env:
+          IMAGE: ghcr.io/omnibioai/docker-socket-proxy
+          FULL_SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          manifest=$(docker buildx imagetools inspect "$IMAGE:$FULL_SHA")
+          echo "$manifest"
+          echo "$manifest" | grep -q 'Platform:    linux/amd64'
+          echo "$manifest" | grep -q 'Platform:    linux/arm64'
