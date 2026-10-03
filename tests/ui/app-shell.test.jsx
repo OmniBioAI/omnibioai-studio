@@ -36,6 +36,7 @@ vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings pag
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
 vi.mock("../../src/ui/pages/IdeServices", () => ({ default: () => <div>IDE page</div> }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
+vi.mock("../../src/ui/pages/Developer", () => ({ default: () => <div>Developer page</div> }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ url, label, onBack }) => <div>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
 vi.mock("../../src/ui/pages/PluginPage", () => ({ default: ({ url, label, onBack, backLabel }) => <div data-testid="plugin-page-viewer" data-back-label={backLabel || ""}>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: ({ onBack }) => <div>Videos page<button onClick={onBack}>vback</button></div> }));
@@ -63,7 +64,7 @@ describe("App shell — Studio landing", () => {
       "", "Setup", "Runtime", "Security", "System",
     ]);
     expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
-    expect(sections[2].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Jobs.*Billing/);
+    expect(sections[2].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Jobs.*Billing.*Developer/);
     expect(sections[2].textContent).not.toContain("Studio");
     fireEvent.click(screen.getByText("Mode", { selector: "div" }));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
@@ -105,7 +106,7 @@ describe("App shell — Studio landing", () => {
 
     for (const page of [
       "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "IDE Services",
-      "Logs", "Jobs", "Roles", "Settings", "Billing",
+      "Logs", "Jobs", "Roles", "Settings", "Billing", "Developer",
     ]) {
       fireEvent.click(screen.getByText(page, { selector: "div" }));
       expect(await screen.findByRole("button", { name: "← Back to Studio" })).toBeInTheDocument();

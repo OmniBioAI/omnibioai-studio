@@ -71,6 +71,8 @@ check_not_default "DATA_DIR"      "/path/to/data"
 # Optional but worth noting if empty
 check_not_empty "ANTHROPIC_API_KEY"
 check_not_empty "SENTRY_DSN"
+# Empty disables omni_sk_ API keys (public Literature AI API) -- not a misconfig.
+check_not_empty "API_KEY_EXCHANGE_SECRET"
 # Empty disables Stripe-hosted payment-method management on the Billing
 # page (billing-service reports stripe_enabled: false) -- not a misconfig.
 check_not_empty "STRIPE_SECRET_KEY"

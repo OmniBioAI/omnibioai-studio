@@ -1549,6 +1549,12 @@ services:
       AUTH_AUDIT_INTEGRITY_KEY: ${AUTH_AUDIT_INTEGRITY_KEY:?AUTH_AUDIT_INTEGRITY_KEY must be set}
 
       SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
+
+      # omni_sk_ API keys: shared with api-gateway, which trades a key for a
+
+      # short-lived token at POST /auth/api-keys/exchange. Empty = API keys off.
+
+      API_KEY_EXCHANGE_SECRET: ${API_KEY_EXCHANGE_SECRET:-}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-omnibioai-platform}
       JWT_ISSUER: ${JWT_ISSUER:-omnibioai-auth}
 
@@ -1780,6 +1786,12 @@ services:
       HPC_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      # Same value as auth-service's: lets the gateway exchange omni_sk_ keys.
+      API_KEY_EXCHANGE_SECRET: ${API_KEY_EXCHANGE_SECRET:-}
+      # Billable /v1 usage events, via the existing usage-producer ACL user
+      # (XADD on usage:events only). V1_REDIS_URL is left unset, so rate
+      # limits and Idempotency-Key replay use the gateway's in-process store.
+      USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379
       TES_URL: http://tes:8081
       WORKBENCH_URL: http://workbench:8000
       TOOLSERVER_URL: http://toolserver:9090

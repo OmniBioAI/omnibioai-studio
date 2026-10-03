@@ -21,6 +21,7 @@ import Videos        from "./pages/Videos";
 import IdeServices   from "./pages/IdeServices";
 import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
+import Developer from "./pages/Developer";
 import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
@@ -43,6 +44,7 @@ const BASE_NAV = [
     { name:"Logs",         idx:6  },
     { name:"Jobs",         idx:9  },
     { name:"Billing",      idx:12 },
+    { name:"Developer",    idx:14 },
   ]},
   { section: "System",  items: [
     { name:"Settings",  idx:8 },
@@ -67,12 +69,12 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench"
+  "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench","developer"
 ];
 
 const PAGE_LABELS = [
   "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
-  "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench",
+  "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench", "Developer",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -267,6 +269,7 @@ export default function App() {
     <Billing currentUser={currentUser} />,
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={(url, label, plugin) => setService({ url, label, source: "workbench", pluginSlug: plugin?.slug || null })} />,
+    <Developer currentUser={currentUser} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
