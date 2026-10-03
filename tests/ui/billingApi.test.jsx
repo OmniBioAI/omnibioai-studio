@@ -8,9 +8,12 @@ const session = vi.hoisted(() => ({
 vi.mock("../../src/ui/lib/session", () => session);
 
 import {
+  createBillingPortalSession,
+  createPaymentSetupSession,
   getBillingSummary,
   getCostBreakdown,
   getCostHistory,
+  getPaymentMethod,
   getSubscription,
   getUsageLimits,
   getUsageSummary,
@@ -57,6 +60,61 @@ describe("billing API client", () => {
     await getSubscription("org-1");
 
     expect(fetchMock.mock.calls[0][1].headers).toEqual({ Accept: "application/json" });
+  });
+
+  it("GETs the payment-method endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      stripe_enabled: true, can_manage: true, has_payment_method: false, card: null,
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getPaymentMethod("org-7");
+
+    expect(fetchMock).toHaveBeenCalledWith("/billing/organizations/org-7/payment-method", expect.objectContaining({
+      method: "GET",
+      headers: { Accept: "application/json", Authorization: "Bearer token-123" },
+    }));
+    expect(result).toEqual({ stripe_enabled: true, can_manage: true, has_payment_method: false, card: null });
+  });
+
+  it("POSTs to create a payment setup session with no body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ url: "https://checkout.stripe.com/pay/cs_123" }), {
+      status: 200, headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createPaymentSetupSession("org-7");
+
+    expect(fetchMock).toHaveBeenCalledWith("/billing/organizations/org-7/payment-method/setup-session", expect.objectContaining({
+      method: "POST",
+      headers: { Accept: "application/json", Authorization: "Bearer token-123" },
+    }));
+    expect(fetchMock.mock.calls[0][1].body).toBeUndefined();
+    expect(result).toEqual({ url: "https://checkout.stripe.com/pay/cs_123" });
+  });
+
+  it("POSTs to create a billing portal session with no body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ url: "https://billing.stripe.com/session/abc" }), {
+      status: 200, headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createBillingPortalSession("org-7");
+
+    expect(fetchMock).toHaveBeenCalledWith("/billing/organizations/org-7/portal-session", expect.objectContaining({
+      method: "POST",
+      headers: { Accept: "application/json", Authorization: "Bearer token-123" },
+    }));
+    expect(result).toEqual({ url: "https://billing.stripe.com/session/abc" });
+  });
+
+  it("clears the session on a 401 from a POST session call too", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: "expired token" }), {
+      status: 401, statusText: "Unauthorized", headers: { "content-type": "application/json" },
+    })));
+
+    await expect(createPaymentSetupSession("org-1")).rejects.toMatchObject({ message: "expired token", status: 401 });
+    expect(session.clearSession).toHaveBeenCalledOnce();
   });
 
   it("clears the session and reports JSON error details for 401 responses", async () => {

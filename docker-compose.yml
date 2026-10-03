@@ -342,6 +342,20 @@ services:
       IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
       IAM_URL: http://auth-service:8001
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      # Stripe-hosted payment-method management (billing admin "add card" /
+      # "manage billing" on the Studio Billing page). Optional: empty
+      # STRIPE_SECRET_KEY means billing-service reports stripe_enabled:
+      # false and the payment-method endpoints return 503 — everything
+      # else on this page (subscription/usage/cost reporting) is unaffected.
+      # Stripe TEST-mode keys only outside of a real production deployment.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      # Signs/verifies POST /billing/stripe/webhook deliveries (see the
+      # unauthenticated exact-match location in docker/nginx-router.conf).
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # Base URL billing-service uses to build Stripe Checkout/Portal
+      # success_url/cancel_url/return_url server-side -- never supplied by
+      # the client. e.g. https://webstudio.omnibioai.org
+      BILLING_WEB_BASE_URL: ${BILLING_WEB_BASE_URL:-}
     depends_on:
       mysql:
         condition: service_healthy

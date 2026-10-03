@@ -71,6 +71,11 @@ check_not_default "DATA_DIR"      "/path/to/data"
 # Optional but worth noting if empty
 check_not_empty "ANTHROPIC_API_KEY"
 check_not_empty "SENTRY_DSN"
+# Empty disables Stripe-hosted payment-method management on the Billing
+# page (billing-service reports stripe_enabled: false) -- not a misconfig.
+check_not_empty "STRIPE_SECRET_KEY"
+check_not_empty "STRIPE_WEBHOOK_SECRET"
+check_not_empty "BILLING_WEB_BASE_URL"
 
 if [[ "$ERRORS" -gt 0 ]]; then
   echo ""
