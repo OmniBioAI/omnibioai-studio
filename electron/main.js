@@ -211,6 +211,7 @@ function writeEnvFile(config) {
     // Preserve generated Redis ACL inputs when settings are saved. This
     // whole-file writer must not drop or regenerate existing credentials.
     `REDIS_API_GATEWAY_IAM_PASSWORD=${existing.REDIS_API_GATEWAY_IAM_PASSWORD || ''}`,
+    `REDIS_API_GATEWAY_V1_PASSWORD=${existing.REDIS_API_GATEWAY_V1_PASSWORD || ''}`,
     `REDIS_AUDIT_HEALTH_READER_PASSWORD=${existing.REDIS_AUDIT_HEALTH_READER_PASSWORD || ''}`,
     `REDIS_AUDIT_PRODUCER_PASSWORD=${existing.REDIS_AUDIT_PRODUCER_PASSWORD || ''}`,
     `REDIS_AUDIT_WORKER_PASSWORD=${existing.REDIS_AUDIT_WORKER_PASSWORD || ''}`,

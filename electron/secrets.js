@@ -13,6 +13,7 @@ const crypto = require("crypto");
 // does not need the full .env or secret-bearing process arguments.
 const REDIS_ACL_CREDENTIALS = Object.freeze({
   redis_api_gateway_iam: "REDIS_API_GATEWAY_IAM_PASSWORD",
+  redis_api_gateway_v1: "REDIS_API_GATEWAY_V1_PASSWORD",
   redis_audit_health_reader: "REDIS_AUDIT_HEALTH_READER_PASSWORD",
   redis_audit_producer: "REDIS_AUDIT_PRODUCER_PASSWORD",
   redis_audit_worker: "REDIS_AUDIT_WORKER_PASSWORD",
@@ -77,6 +78,7 @@ const SECRET_DEFAULTS = {
   // Existing values are preserved; absent values are generated once. The
   // redis_admin and redis_backup break-glass inputs remain protected files.
   REDIS_API_GATEWAY_IAM_PASSWORD: null,
+  REDIS_API_GATEWAY_V1_PASSWORD: null,
   REDIS_AUDIT_HEALTH_READER_PASSWORD: null,
   REDIS_AUDIT_PRODUCER_PASSWORD: null,
   REDIS_AUDIT_WORKER_PASSWORD: null,
