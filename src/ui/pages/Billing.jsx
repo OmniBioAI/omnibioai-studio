@@ -3,16 +3,23 @@ import { Badge, Card, Button, ProgressBar, Spinner, Tabs, Table } from "@omnibio
 import Login from "../components/Login";
 import * as billingApi from "../lib/billingApi";
 
-// Read-only visibility into the organization's current billing state, backed
-// entirely by omnibioai-billing's existing GET endpoints (billing-service:8005,
-// proxied via nginx-router.conf's auth_request-gated /billing location). No
-// write path exists in that service — no plan changes, no payment-method
-// management, no invoice actions — so this page has none either.
+// Organization-scoped billing view, backed by omnibioai-billing
+// (billing-service:8005, proxied via nginx-router.conf's auth_request-gated
+// /billing location). Mostly read-only reporting, plus one write surface:
+// the Overview tab's Payment method card, which lets a billing admin add or
+// replace the organization's card and open the Stripe-hosted billing
+// portal. Those two actions never collect card data themselves — they only
+// request a Stripe-hosted Checkout/Portal session URL from billing-service
+// and hand the browser off to it, so a raw card number never reaches
+// OmniBioAI (see billingApi.js's createPaymentSetupSession /
+// createBillingPortalSession and isStripeHostedUrl below). Every other
+// endpoint on this page remains GET-only reporting.
 //
-// The page is two tabs: "Overview" (plan/status/limits/period, unchanged
-// from before) and "Usage" (raw usage + cost reporting, added alongside it).
+// The page is two tabs: "Overview" (plan/status/limits/period + payment
+// method) and "Usage" (raw usage + cost reporting).
 //
 // Overview data maps 1:1 to what the API actually returns today:
+//   /billing/organizations/{orgId}/payment-method           -> card on file + manage permission
 //   /billing/organizations/{orgId}/subscription            -> plan + status + dates + feature flags
 //   /billing/organizations/{orgId}/subscription/usage-limits -> per-dimension included/used
 //   /billing/organizations/{orgId}/summary                 -> current period + cost + invoice/outstanding totals
@@ -21,8 +28,9 @@ import * as billingApi from "../lib/billingApi";
 //   - seat / user-count usage (there is no seat concept in billing-service;
 //     `max_users` only ever appears as a plan_features *flag*, and only in
 //     test fixtures — see omnibioai-billing/app/core/feature_catalog.py)
-//   - billing account details (billing_email / provider / customer id — the
-//     BillingAccount model has these but no endpoint returns them)
+//   - billing account details beyond the card display fields above
+//     (billing_email / provider / customer id — the BillingAccount model
+//     has these but no endpoint returns them)
 //
 // Usage tab data, over a trailing 30-day window:
 //   /billing/organizations/{orgId}/usage          -> raw usage by service/action/resource
@@ -81,6 +89,165 @@ function featureValue(f) {
 const labelStyle = { fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", fontFamily: "var(--mono)", letterSpacing: "0.04em", textTransform: "uppercase" };
 const valueStyle = { fontSize: "var(--font-size-sm)", color: "var(--text)" };
 const sectionTitleStyle = { fontSize: "var(--font-size-sm)", fontWeight: 700, color: "#fff", marginBottom: 10, letterSpacing: "0.02em" };
+
+const PAYMENT_UNAVAILABLE_MESSAGE = "Online card payments are not available on this deployment yet.";
+
+// The only two pages billingApi's setup/portal sessions are ever allowed to
+// open: Stripe Checkout (setup mode) and the Stripe Billing Portal. Checked
+// against URL#origin (derived by the parser from scheme+host+port, not the
+// raw string), so something like "https://checkout.stripe.com@evil.example"
+// — whose origin is actually evil.example — is correctly rejected rather
+// than matched by a naive prefix/substring check.
+const STRIPE_HOSTED_ORIGINS = new Set(["https://checkout.stripe.com", "https://billing.stripe.com"]);
+
+export function isStripeHostedUrl(url) {
+  try {
+    return STRIPE_HOSTED_ORIGINS.has(new URL(url).origin);
+  } catch (_) {
+    return false;
+  }
+}
+
+// Card data must never pass through OmniBioAI, so the only thing this page
+// ever does with a setup/portal session is hand the browser off to Stripe's
+// own hosted page for it — never render it in an iframe, never fetch it
+// ourselves. Guarded by isStripeHostedUrl so a compromised or misbehaving
+// billing-service can't redirect the user (and their Electron app's
+// shell.openExternal privilege) somewhere arbitrary.
+function openStripeUrl(url) {
+  if (!isStripeHostedUrl(url)) {
+    throw new Error("Refused to open a non-Stripe-hosted URL");
+  }
+  if (window.electronAPI?.openExternal) {
+    window.electronAPI.openExternal(url);
+  } else if (window.api?.openExternal) {
+    window.api.openExternal(url);
+  } else {
+    window.location.assign(url);
+  }
+}
+
+// Stripe redirects back to <BILLING_WEB_BASE_URL>/billing?payment=success|
+// cancelled (billing-service builds that URL server-side — see
+// billingApi.js). Read it once on mount, then strip it from the address bar
+// so it doesn't linger or replay on a later reload — same reasoning as
+// App.jsx's ?return_to handling.
+function usePaymentNotice() {
+  const [notice] = useState(() => new URLSearchParams(window.location.search).get("payment"));
+  useEffect(() => {
+    if (!notice) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("payment");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return notice;
+}
+
+function PaymentMethodCard({ orgId }) {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState(null); // Error({ status, message }) | null
+  const [actionBusy, setActionBusy] = useState(null); // "setup" | "portal" | null
+  const [actionError, setActionError] = useState("");
+  const notice = usePaymentNotice();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      setData(await billingApi.getPaymentMethod(orgId));
+    } catch (err) {
+      setData(null);
+      setLoadError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function runAction(kind, call) {
+    setActionError("");
+    setActionBusy(kind);
+    try {
+      const { url } = await call();
+      openStripeUrl(url);
+    } catch (err) {
+      setActionError(err.message || "That action failed. Please try again.");
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  const unavailable = loadError?.status === 404 || (data != null && !data.stripe_enabled);
+
+  return (
+    <Card elevated>
+      <div style={sectionTitleStyle}>Payment method</div>
+
+      {notice === "success" && <Badge variant="success">Payment method saved.</Badge>}
+      {notice === "cancelled" && <Badge variant="info">Card setup was cancelled.</Badge>}
+
+      {loading ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--color-text-muted)" }}>
+          <Spinner size="sm" /> Loading payment method…
+        </div>
+      ) : unavailable ? (
+        <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+          {PAYMENT_UNAVAILABLE_MESSAGE}
+        </div>
+      ) : loadError ? (
+        <Badge variant="danger">{loadError.message || "Failed to load payment method"}</Badge>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {data.has_payment_method ? (
+            <div>
+              <span style={{ ...valueStyle, fontFamily: "var(--mono)" }}>
+                {String(data.card.brand || "").toUpperCase()} •••• {data.card.last4}
+              </span>
+              <span style={{ ...valueStyle, color: "var(--color-text-muted)", marginLeft: 10 }}>
+                {String(data.card.exp_month).padStart(2, "0")}/{data.card.exp_year}
+              </span>
+            </div>
+          ) : (
+            <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+              No card on file for this organization.
+            </div>
+          )}
+
+          {actionError && <Badge variant="danger">{actionError}</Badge>}
+
+          {data.can_manage ? (
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={actionBusy === "setup"}
+                onClick={() => runAction("setup", () => billingApi.createPaymentSetupSession(orgId))}
+              >
+                {data.has_payment_method ? "Replace card" : "Add card"}
+              </Button>
+              {data.has_payment_method && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={actionBusy === "portal"}
+                  onClick={() => runAction("portal", () => billingApi.createBillingPortalSession(orgId))}
+                >
+                  Manage billing
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
+              Only owners and billing admins can change the payment method.
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 export default function Billing({ currentUser }) {
   if (!currentUser) {
@@ -176,14 +343,14 @@ function BillingSummary({ orgId }) {
             Billing
           </div>
           <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
-            read-only view of organization #{orgId}’s current billing state
+            organization #{orgId}’s current billing state
           </div>
         </div>
       </div>
 
       <Tabs
         tabs={[
-          { key: "overview", label: "Overview", content: <BillingOverview load={load} error={error} hasSub={hasSub} subscription={subscription} limitRows={limitRows} summary={summary} /> },
+          { key: "overview", label: "Overview", content: <BillingOverview orgId={orgId} load={load} error={error} hasSub={hasSub} subscription={subscription} limitRows={limitRows} summary={summary} /> },
           { key: "usage", label: "Usage", content: <UsageTab orgId={orgId} /> },
         ]}
       />
@@ -191,7 +358,7 @@ function BillingSummary({ orgId }) {
   );
 }
 
-function BillingOverview({ load, error, hasSub, subscription, limitRows, summary }) {
+function BillingOverview({ orgId, load, error, hasSub, subscription, limitRows, summary }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -199,6 +366,9 @@ function BillingOverview({ load, error, hasSub, subscription, limitRows, summary
       </div>
 
       {error && <Badge variant="danger">{error}</Badge>}
+
+      {/* ── Payment method ────────────────────────────────────────────── */}
+      <PaymentMethodCard orgId={orgId} />
 
       {/* ── Plan & status ─────────────────────────────────────────────── */}
       <Card elevated>
@@ -300,9 +470,10 @@ function BillingOverview({ load, error, hasSub, subscription, limitRows, summary
       )}
 
       <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", fontFamily: "var(--mono)", lineHeight: 1.6 }}>
-        This is a read-only summary. Plan changes, payment methods, and invoice
-        downloads are not available here — billing-service exposes no write
-        endpoints for them.
+        Plan changes and invoice downloads are not available here. The
+        payment method above is managed directly through Stripe-hosted
+        pages — card details are never entered into, or stored by,
+        OmniBioAI.
       </div>
     </div>
   );

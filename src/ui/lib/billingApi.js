@@ -1,26 +1,23 @@
-// Client for omnibioai-billing's read-only reporting API (billing-service:8005).
+// Client for omnibioai-billing's billing API (billing-service:8005).
 //
-// Unlike rolesApi.js, every path here is same-origin and relative (never an
-// authUrl()-style absolute host:port): billing-service is not published on a
-// raw host port in any deployment — it is only reachable through
-// nginx-router.conf's `location ^~ /billing` / `location ^~ /entitlements`
-// blocks, which are auth_request-gated and proxy to billing-service:8005.
-// That gate is the real authorization boundary (billing.py's own docstring
-// flags its caller-identity check as a documented placeholder), so a browser
-// with a valid session cookie/JWT is all that's needed here.
+// Every path here is same-origin and relative (never an authUrl()-style
+// absolute host:port): billing-service is not published on a raw host port
+// in any deployment — it is only reachable through nginx-router.conf's
+// `location ^~ /billing` / `location ^~ /entitlements` blocks, which are
+// auth_request-gated and proxy to billing-service:8005. That gate is a
+// coarse "has a session" check; billing-service's own routers
+// (app/routers/billing.py) are what actually enforce per-organization and
+// per-permission authorization for the mutating payment-method calls below.
 //
 // "../lib/session" (not "./session") on purpose — see rolesApi.js's import
 // comment for why that exact spelling is what vite.config.js's web-build
 // alias matches.
 import { getToken, clearSession } from "../lib/session";
 
-// READ-ONLY by construction: only GET is ever issued. billing-service
-// exposes no write endpoints at all (no plan changes, no payment-method
-// management, no invoice actions), so there is nothing else to call.
-async function get(path) {
+async function request(path, method = "GET") {
   const token = getToken();
   const res = await fetch(path, {
-    method: "GET",
+    method,
     headers: {
       Accept: "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -48,6 +45,32 @@ async function get(path) {
 
   return res.json();
 }
+
+const get = (path) => request(path, "GET");
+const post = (path) => request(path, "POST");
+
+// GET /billing/organizations/{orgId}/payment-method
+//   -> { stripe_enabled, can_manage, has_payment_method,
+//        card: { brand, last4, exp_month, exp_year } | null }
+//   Served from our own DB — no live Stripe call. Any org member may read
+//   it; can_manage reflects whether the caller holds manage_billing.
+export const getPaymentMethod = (orgId) =>
+  get(`/billing/organizations/${orgId}/payment-method`);
+
+// POST /billing/organizations/{orgId}/payment-method/setup-session
+//   -> { url }  — a Stripe Checkout Session (setup mode) hosted-page URL.
+//   No request body: success_url/cancel_url are built server-side only,
+//   from BILLING_WEB_BASE_URL — this client never sends a return URL.
+//   403 if the caller lacks manage_billing; 503 if Stripe isn't enabled.
+export const createPaymentSetupSession = (orgId) =>
+  post(`/billing/organizations/${orgId}/payment-method/setup-session`);
+
+// POST /billing/organizations/{orgId}/portal-session
+//   -> { url }  — a Stripe Billing Portal session URL.
+//   403 if the caller lacks manage_billing; 409 if the org has no Stripe
+//   customer yet; 503 if Stripe isn't enabled.
+export const createBillingPortalSession = (orgId) =>
+  post(`/billing/organizations/${orgId}/portal-session`);
 
 // GET /billing/organizations/{orgId}/subscription
 //   -> { plan_name, billing_interval, currency, status, start_date,
