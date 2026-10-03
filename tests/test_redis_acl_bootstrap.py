@@ -56,8 +56,8 @@ class RedisAclBootstrapTests(unittest.TestCase):
     def boot(self):
         return acl.bootstrap(self.data, POLICY_PATH, self.creds)
 
-    def test_policy_is_27_users_with_default_off_and_exact_rag_target_separate(self):
-        self.assertEqual(len(self.policy["users"]), 27)
+    def test_policy_is_28_users_with_default_off_and_exact_rag_target_separate(self):
+        self.assertEqual(len(self.policy["users"]), 28)
         default = next(u for u in self.policy["users"] if u["name"] == "default")
         self.assertFalse(default["enabled"])
         self.assertIsNone(default["credential"])
@@ -82,7 +82,7 @@ class RedisAclBootstrapTests(unittest.TestCase):
         rendered = acl_path.read_text()
         self.assertNotIn("test-only-", rendered)
         safe = acl.inspect_acl_file(acl_path)
-        self.assertEqual(len(safe), 27)
+        self.assertEqual(len(safe), 28)
         self.assertFalse(next(x for x in safe if x["username"] == "default")["enabled"])
         self.assertTrue(all(x["password_configured"] for x in safe if x["username"] != "default"))
         self.assertNotIn("#", json.dumps(safe))
@@ -355,7 +355,7 @@ class RedisAclBootstrapTests(unittest.TestCase):
             admin_password = self.credentials["redis_admin"]
             runtime_acl = redis_exec("redis_admin", "ACL LIST", admin_password)
             rows = acl.sanitized_acl_metadata(runtime_acl)
-            self.assertEqual(len(rows), 27)
+            self.assertEqual(len(rows), 28)
             self.assertFalse(next(r for r in rows if r["username"] == "default")["enabled"])
             self.assertEqual(redis_exec("redis_admin", "ACL SAVE", admin_password), "OK")
             saved_acl = (self.data / acl.ACL_NAME).read_bytes()

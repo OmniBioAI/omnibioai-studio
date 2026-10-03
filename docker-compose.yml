@@ -380,6 +380,14 @@ services:
       # Redis P1-5 Stage 5: usage worker identity (XREADGROUP/XACK/
       # XPENDING/XAUTOCLAIM on usage:events only).
       USAGE_REDIS_URL: redis://redis_usage_worker:${REDIS_USAGE_WORKER_PASSWORD}@redis:6379
+      # M2 (Public API v1 quota enforcement): a separate, least-
+      # privilege identity from USAGE_REDIS_URL above -- GET/SET on
+      # ~gateway:v1:quota:* only, no access to usage:events or any
+      # other gateway:v1:* key (idempotency/rate-limit state stays the
+      # gateway's own, see redis_api_gateway_v1 above). Periodically
+      # publishes each org's remaining allowance for the gateway's own
+      # atomic reserve-before-work quota check to read.
+      GATEWAY_QUOTA_REDIS_URL: redis://redis_billing_quota_writer:${REDIS_BILLING_QUOTA_WRITER_PASSWORD}@redis:6379
     depends_on:
       mysql:
         condition: service_healthy
