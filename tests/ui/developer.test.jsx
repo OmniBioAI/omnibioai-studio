@@ -111,6 +111,18 @@ describe("Developer page", () => {
     await waitFor(() => expect(screen.getByText("Could not revoke the key")).toBeInTheDocument());
   });
 
+  it("shows a no-org notice instead of the key-management cards when the session has no org context", async () => {
+    const err = new Error("Your session is not in an organization");
+    err.status = 400;
+    api.listMyApiKeys.mockRejectedValueOnce(err);
+
+    render(<Developer currentUser={user} />);
+
+    await waitFor(() => expect(screen.getByText("No organization context")).toBeInTheDocument());
+    expect(screen.queryByText("Create a key")).not.toBeInTheDocument();
+    expect(screen.queryByText("Your session is not in an organization")).not.toBeInTheDocument();
+  });
+
   it("falls back to generic messages", async () => {
     api.listMyApiKeys.mockRejectedValueOnce({});
     render(<Developer currentUser={user} />);

@@ -35,6 +35,7 @@ export default function Developer({ currentUser }) {
 function ApiKeys() {
   const [keys, setKeys] = useState(null);
   const [error, setError] = useState("");
+  const [noOrgContext, setNoOrgContext] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(null);
@@ -46,11 +47,43 @@ function ApiKeys() {
       setKeys(await apiKeysApi.listMyApiKeys());
     } catch (err) {
       setKeys([]);
-      setError(err?.message || "Failed to load API keys");
+      // omnibioai-auth's _self_service_membership dependency (shared by
+      // every /me/api-keys route) returns exactly this 400 for one reason
+      // only: the caller's session has no org_id claim at all -- a
+      // platform admin with no personal org membership, same root cause
+      // as Billing.jsx's old "No organization context" state, not a
+      // transient failure worth retrying or a generic error. A personal
+      // API key is scoped to an org the caller actually belongs to, so
+      // unlike Billing there's no "pick any org" admin capability that
+      // would make sense here -- org-scoped key administration already
+      // has its own surface (see this file's own header comment).
+      if (err?.status === 400) {
+        setNoOrgContext(true);
+      } else {
+        setError(err?.message || "Failed to load API keys");
+      }
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  if (noOrgContext) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "60px 16px 0" }}>
+        <div style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
+          <Card elevated>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🏢</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>No organization context</div>
+            <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+              Personal API keys belong to an organization your account is a
+              member of. Your session isn’t associated with one, so there’s
+              nothing to create a key in.
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   async function create() {
     setBusy(true);
