@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { isElectron } from "../lib/session";
-import RequirePermission from "../components/RequirePermission";
-
-const MANAGE_CONFIG = "manage_config";
+import Login from "../components/Login";
 
 function JupyterIcon() {
   return (
@@ -270,15 +268,26 @@ function IdeCard({ svc, status, onOpen }) {
 }
 
 export default function IdeServices({ currentUser }) {
-  return (
-    <RequirePermission
-      currentUser={currentUser}
-      permission={MANAGE_CONFIG}
-      description="IDE Services requires an authenticated OmniBioAI account."
-    >
-      <IdeServicesConsole />
-    </RequirePermission>
-  );
+  // Launching your own personal IDE workspace is a self-service action,
+  // not platform configuration -- unlike LLM/Cloud/HPC (genuinely
+  // admin-only config pages that share RequirePermission's manage_config
+  // gate), this page only requires being signed in. The launcher
+  // backend's own workspace.launch/platform.manage_infra permission
+  // check (server.js) is the real enforcement boundary for the actual
+  // start/stop/create actions -- this page-level gate was never that
+  // boundary, just an accidentally-too-strict reuse of manage_config.
+  //
+  // Electron bypasses this entirely, same reasoning as
+  // RequirePermission's own carve-out: there's no JWT/RBAC session in
+  // the desktop build (LicenseGate is its only gate), so currentUser is
+  // always null there.
+  if (isElectron()) {
+    return <IdeServicesConsole />;
+  }
+  if (!currentUser) {
+    return <Login title="Sign in required" description="IDE Services requires an authenticated OmniBioAI account." />;
+  }
+  return <IdeServicesConsole />;
 }
 
 function IdeServicesConsole() {
