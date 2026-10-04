@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
-import { isElectron } from "../lib/session";
+import { getToken, isElectron } from "../lib/session";
 import RequirePermission from "../components/RequirePermission";
 
 const MANAGE_CONFIG = "manage_config";
@@ -179,9 +179,13 @@ function ServicesConsole({ config }) {
 
   const fetchIdeStatus = useCallback(async (key, tool) => {
     try {
+      const token = getToken();
       const res = await fetch(
         launcherUrl(`/api/launcher/status/${tool}/`),
-        { signal: AbortSignal.timeout(2000) }
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          signal: AbortSignal.timeout(2000),
+        }
       );
       if (!res.ok) { setStatuses(s => ({ ...s, [key]: "down" })); return; }
       const data = await res.json();

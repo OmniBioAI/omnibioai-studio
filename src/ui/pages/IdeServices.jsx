@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { isElectron } from "../lib/session";
+import { getToken, isElectron } from "../lib/session";
 import Login from "../components/Login";
 
 function JupyterIcon() {
@@ -297,7 +297,9 @@ function IdeServicesConsole() {
 
   const fetchStatus = useCallback(async (tool) => {
     try {
+      const token = getToken();
       const res = await fetch(launcherUrl(`/api/launcher/status/${tool}/`), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         signal: AbortSignal.timeout(3000),
       });
       if (!res.ok) { setStatuses(s => ({ ...s, [tool]: "stopped" })); return; }
