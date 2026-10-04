@@ -22,6 +22,21 @@ function mockFetch(overrides = {}) {
 beforeEach(() => { delete window.api; delete window.electronAPI; });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); delete window.api; delete window.electronAPI; });
 
+describe("IdeServices page gating", () => {
+  it("requires sign-in when there is no current user", () => {
+    render(<IdeServices currentUser={null} />);
+    expect(screen.getByText("Sign in required")).toBeInTheDocument();
+  });
+
+  it("shows the console for a signed-in user without manage_config -- this is a self-service page, not platform configuration", async () => {
+    vi.stubGlobal("fetch", mockFetch());
+    const scientist = { email: "s@test", permissions: ["workspace.launch", "dataset.read"] };
+    render(<IdeServices currentUser={scientist} />);
+    await waitFor(() => expect(screen.queryByText("Access denied")).not.toBeInTheDocument());
+    expect(screen.getByText("Jupyter")).toBeInTheDocument();
+  });
+});
+
 describe("IdeServices page", () => {
   it("maps running, starting, and a non-ok status response to their badges", async () => {
     vi.stubGlobal("fetch", mockFetch({
