@@ -15,9 +15,15 @@ const billingApi = vi.hoisted(() => ({
 }));
 vi.mock("../../src/ui/lib/billingApi", () => billingApi);
 
+const platformAdminApi = vi.hoisted(() => ({
+  listAllOrganizations: vi.fn(),
+}));
+vi.mock("../../src/ui/lib/platformAdminApi", () => platformAdminApi);
+
 import Billing, { isStripeHostedUrl } from "../../src/ui/pages/Billing";
 
 const member = { email: "u@test", permissions: [], orgId: "42" };
+const platformAdmin = { email: "admin@test", permissions: ["manage_all_orgs"], orgId: null };
 
 function notFound() {
   const e = new Error("Not found");
@@ -40,6 +46,8 @@ beforeEach(() => {
   // (a 404, same as subscription/limits elsewhere in this file) so none of
   // those tests have to be touched just to keep this card from throwing.
   billingApi.getPaymentMethod.mockImplementation(notFound);
+  platformAdminApi.listAllOrganizations.mockReset();
+  platformAdminApi.listAllOrganizations.mockResolvedValue({ items: [], total: 0, page: 1, page_size: 100, total_pages: 0 });
   window.history.replaceState({}, "", "/");
   delete window.electronAPI;
   delete window.api;
@@ -52,9 +60,84 @@ describe("Billing page gating", () => {
     expect(screen.getByText("Sign in required")).toBeInTheDocument();
   });
 
-  it("shows a no-org notice when the session has no orgId", () => {
+  it("shows a no-org notice when the session has no orgId and the caller isn't a platform admin", () => {
     render(<Billing currentUser={{ email: "u@test", permissions: [], orgId: null }} />);
     expect(screen.getByText("No organization context")).toBeInTheDocument();
+  });
+});
+
+describe("Billing page platform-admin org picker", () => {
+  it("shows an org picker instead of the no-org notice for a platform admin with no org of their own", async () => {
+    render(<Billing currentUser={platformAdmin} />);
+    await waitFor(() => expect(platformAdminApi.listAllOrganizations).toHaveBeenCalled());
+    expect(screen.getByText("Select an organization")).toBeInTheDocument();
+    expect(screen.queryByText("No organization context")).not.toBeInTheDocument();
+  });
+
+  it("lists every organization returned by the platform-admin API", async () => {
+    platformAdminApi.listAllOrganizations.mockResolvedValue({
+      items: [
+        { id: 1, name: "Acme Labs", status: "active", owner_email: "owner@acme.test" },
+        { id: 2, name: "Beta Org", status: "suspended", owner_email: null },
+      ],
+      total: 2, page: 1, page_size: 100, total_pages: 1,
+    });
+
+    render(<Billing currentUser={platformAdmin} />);
+
+    await waitFor(() => expect(screen.getByText("Acme Labs")).toBeInTheDocument());
+    expect(screen.getByText("owner@acme.test")).toBeInTheDocument();
+    expect(screen.getByText("Beta Org")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument(); // Beta Org's null owner_email
+  });
+
+  it("selecting an organization shows its billing and a way back to the list", async () => {
+    platformAdminApi.listAllOrganizations.mockResolvedValue({
+      items: [{ id: 7, name: "Acme Labs", status: "active", owner_email: "owner@acme.test" }],
+      total: 1, page: 1, page_size: 100, total_pages: 1,
+    });
+    billingApi.getSubscription.mockResolvedValue({ plan_name: "Research", features: [] });
+    billingApi.getUsageLimits.mockResolvedValue({ limits: [] });
+    billingApi.getBillingSummary.mockResolvedValue({
+      current_period: null, current_usage_cost: "0", currency: "usd", invoice_count: 0, outstanding_amount: "0",
+    });
+
+    render(<Billing currentUser={platformAdmin} />);
+    await waitFor(() => expect(screen.getByText("Acme Labs")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText("View billing"));
+
+    await waitFor(() => expect(screen.getByText("Research")).toBeInTheDocument());
+    expect(billingApi.getSubscription).toHaveBeenCalledWith(7);
+    expect(screen.getByText(/Viewing/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("← All organizations"));
+
+    expect(screen.getByText("Select an organization")).toBeInTheDocument();
+    expect(screen.queryByText("Research")).not.toBeInTheDocument();
+  });
+
+  it("re-queries with the search term typed into the search box", async () => {
+    render(<Billing currentUser={platformAdmin} />);
+    await waitFor(() => expect(platformAdminApi.listAllOrganizations).toHaveBeenCalledWith({ search: "" }));
+
+    fireEvent.change(screen.getByPlaceholderText("Search organizations by name…"), { target: { value: "acme" } });
+
+    await waitFor(() => expect(platformAdminApi.listAllOrganizations).toHaveBeenCalledWith({ search: "acme" }));
+  });
+
+  it("shows an error when loading the organization list fails", async () => {
+    platformAdminApi.listAllOrganizations.mockRejectedValue(new Error("platform directory unreachable"));
+
+    render(<Billing currentUser={platformAdmin} />);
+
+    await waitFor(() => expect(screen.getByText("platform directory unreachable")).toBeInTheDocument());
+  });
+
+  it("shows an empty-platform message when no organizations exist yet", async () => {
+    render(<Billing currentUser={platformAdmin} />);
+
+    await waitFor(() => expect(screen.getByText("No organizations exist on this platform yet.")).toBeInTheDocument());
   });
 });
 
