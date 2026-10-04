@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Badge, Card, Button, ProgressBar, Spinner, Tabs, Table } from "@omnibioai/ui";
+import { Badge, Card, Button, Input, ProgressBar, Spinner, Tabs, Table } from "@omnibioai/ui";
 import Login from "../components/Login";
 import * as billingApi from "../lib/billingApi";
+import * as platformAdminApi from "../lib/platformAdminApi";
+
+const MANAGE_ALL_ORGS = "manage_all_orgs";
 
 // Organization-scoped billing view, backed by omnibioai-billing
 // (billing-service:8005, proxied via nginx-router.conf's auth_request-gated
@@ -254,6 +257,17 @@ export default function Billing({ currentUser }) {
     return <Login title="Sign in required" description="Billing information requires an authenticated OmniBioAI account." />;
   }
   if (currentUser.orgId == null) {
+    // A platform admin has no personal org membership (org_id is
+    // deliberately not where platform-admin-ness lives, see
+    // omnibioai-auth's resolve_primary_membership/build_user_claims) but
+    // still needs to view any organization's billing state -- the
+    // manage_all_orgs bypass already implemented server-side in
+    // omnibioai-billing/app/core/iam.py authorizes exactly this, for any
+    // org_id, independent of the caller's own org_id claim. Only the
+    // org-picker UI to drive it was missing.
+    if (currentUser.permissions?.includes(MANAGE_ALL_ORGS)) {
+      return <PlatformOrgPicker />;
+    }
     return (
       <div style={{ display: "flex", justifyContent: "center", padding: "60px 16px 0" }}>
         <div style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
@@ -271,6 +285,90 @@ export default function Billing({ currentUser }) {
     );
   }
   return <BillingSummary orgId={currentUser.orgId} />;
+}
+
+// Platform admins (manage_all_orgs) have no personal org membership to
+// derive a billing org from, so they pick one explicitly from every
+// organization on the platform (GET /platform/orgs, omnibioai-auth) instead
+// of the caller's own JWT org_id claim. The chosen org_id flows into the
+// exact same BillingSummary/billingApi calls an ordinary org member's page
+// already uses -- authorized server-side via the manage_all_orgs bypass in
+// omnibioai-billing/app/core/iam.py, not by anything special here.
+function PlatformOrgPicker() {
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedOrg, setSelectedOrg] = useState(null); // { id, name } | null
+
+  useEffect(() => {
+    if (selectedOrg) return; // no need to keep listing while viewing one org
+    let active = true;
+    setLoading(true);
+    setError("");
+    platformAdminApi
+      .listAllOrganizations({ search })
+      .then((data) => { if (active) setOrgs(data.items || []); })
+      .catch((err) => { if (active) setError(err.message || "Failed to load organizations"); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [search, selectedOrg]);
+
+  if (selectedOrg) {
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <Button variant="secondary" onClick={() => setSelectedOrg(null)}>&larr; All organizations</Button>
+          <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-sm)" }}>
+            Viewing <strong style={{ color: "#fff" }}>{selectedOrg.name}</strong>’s billing as a platform admin
+          </div>
+        </div>
+        <BillingSummary orgId={selectedOrg.id} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "16px 0" }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Select an organization</div>
+        <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+          Your account isn’t a member of any organization, but as a platform
+          admin you can view billing for any of them.
+        </div>
+      </div>
+      <Input
+        placeholder="Search organizations by name…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ marginBottom: 12, maxWidth: 360 }}
+      />
+      {error && <Badge variant="danger">{error}</Badge>}
+      <Card elevated>
+        {loading ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 24, color: "var(--color-text-muted)" }}>
+            <Spinner size="sm" /> Loading organizations…
+          </div>
+        ) : (
+          <Table
+            columns={[
+              { key: "name", label: "Organization", sortable: true },
+              { key: "owner_email", label: "Owner", sortable: true, render: (v) => v || "—" },
+              { key: "status", label: "Status", sortable: true, render: (v) => <Badge variant={v === "active" ? "success" : "warning"}>{v}</Badge> },
+              {
+                key: "actions", label: "", align: "right",
+                render: (_v, row) => (
+                  <Button size="sm" onClick={() => setSelectedOrg({ id: row.id, name: row.name })}>View billing</Button>
+                ),
+              },
+            ]}
+            data={orgs}
+            emptyMessage={search ? "No organizations match that search." : "No organizations exist on this platform yet."}
+          />
+        )}
+      </Card>
+    </div>
+  );
 }
 
 function BillingSummary({ orgId }) {
