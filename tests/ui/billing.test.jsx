@@ -51,8 +51,10 @@ beforeEach(() => {
   window.history.replaceState({}, "", "/");
   delete window.electronAPI;
   delete window.api;
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  vi.spyOn(window, "open").mockReturnValue({ opener: null, closed: false, close: vi.fn(), document: document.implementation.createHTMLDocument() });
 });
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("Billing page gating", () => {
   it("requires sign-in when there is no current user", () => {
@@ -549,7 +551,7 @@ describe("Billing page Payment method card", () => {
     await waitFor(() => expect(window.api.openExternal).toHaveBeenCalledWith("https://billing.stripe.com/session/xyz"));
   });
 
-  it("falls back to window.location.assign on the web (neither Electron API present)", async () => {
+  it("opens setup in a separate tab on the web and preserves the current page", async () => {
     billingApi.getPaymentMethod.mockResolvedValue({
       stripe_enabled: true, can_manage: true, has_payment_method: false, card: null,
     });
@@ -568,7 +570,13 @@ describe("Billing page Payment method card", () => {
 
       fireEvent.click(screen.getByText("Add card"));
 
-      await waitFor(() => expect(assignMock).toHaveBeenCalledWith("https://checkout.stripe.com/pay/cs_2"));
+      await waitFor(() => expect(window.open.mock.results[0].value.document.querySelector("a")).not.toBeNull());
+      expect(assignMock).not.toHaveBeenCalled();
+      expect(window.open).toHaveBeenCalledWith("about:blank", "_blank");
+      const tab = window.open.mock.results[0].value;
+      expect(tab.opener).toBeNull();
+      expect(tab.document.querySelector("a").href).toBe("https://checkout.stripe.com/pay/cs_2");
+      expect(tab.document.querySelector("a").rel).toBe("noopener noreferrer");
     } finally {
       Object.defineProperty(window, "location", { value: originalLocation, writable: true, configurable: true });
     }
@@ -622,5 +630,153 @@ describe("Billing page Payment method card", () => {
 
     await waitFor(() => expect(screen.getByText("Card setup was cancelled.")).toBeInTheDocument());
     expect(window.location.search).toBe("");
+  });
+});
+
+describe("Billing Add card new-tab lifecycle", () => {
+  const hostedUrl = "https://checkout.stripe.com/test-only/new-tab";
+
+  async function ready() {
+    billingApi.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: true, has_payment_method: false, card: null });
+    billingApi.getSubscription.mockResolvedValue({ plan_name: "Free", features: [] });
+    billingApi.getUsageLimits.mockResolvedValue({ limits: [] });
+    billingApi.getBillingSummary.mockResolvedValue({ currency: "usd" });
+    const view = render(<Billing currentUser={member} />);
+    await screen.findByRole("button", { name: "Add card" });
+    return view;
+  }
+
+  it("reserves a secure tab before requesting the session, then navigates it without replacing Studio", async () => {
+    let resolve;
+    billingApi.createPaymentSetupSession.mockImplementation(() => {
+      expect(window.open).toHaveBeenCalledTimes(1);
+      expect(window.open.mock.results[0].value.opener).toBeNull();
+      return new Promise(r => { resolve = r; });
+    });
+    await ready();
+    const originalUrl = window.location.href;
+    const tab = window.open.getMockImplementation()();
+    tab.opener = window;
+    window.open.mockReturnValue(tab);
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    expect(tab.document.querySelector("a")).toBeNull();
+    expect(screen.getByRole("button", { name: "Add card" })).toBeDisabled();
+    resolve({ url: hostedUrl });
+    await waitFor(() => expect(tab.document.querySelector("a")).not.toBeNull());
+    const link = tab.document.querySelector("a");
+    expect(link.href).toBe(hostedUrl);
+    expect(link.rel).toBe("noopener noreferrer");
+    expect(link.target).toBe("_self");
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1);
+    expect(window.location.href).toBe(originalUrl);
+    expect(billingApi.createPaymentSetupSession).toHaveBeenCalledExactlyOnceWith("42");
+    expect(tab.close).not.toHaveBeenCalled();
+  });
+
+  it("closes the reserved tab on session failure and preserves Studio", async () => {
+    billingApi.createPaymentSetupSession.mockRejectedValue(new Error("Session unavailable"));
+    await ready();
+    const originalUrl = window.location.href;
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    await screen.findByText("Session unavailable");
+    expect(window.open.mock.results[0].value.close).toHaveBeenCalledOnce();
+    expect(window.location.href).toBe(originalUrl);
+    expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
+  });
+
+  it("handles popup blocking before creating any Stripe session", async () => {
+    await ready();
+    window.open.mockReturnValue(null);
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    await screen.findByText("Please allow pop-ups for Studio, then try adding your card again.");
+    expect(billingApi.createPaymentSetupSession).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Add card" })).toBeEnabled();
+  });
+
+  it("closes the reserved tab when the response URL is not Stripe-hosted", async () => {
+    billingApi.createPaymentSetupSession.mockResolvedValue({ url: "https://invalid.example/" });
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    await screen.findByText("Refused to open a non-Stripe-hosted URL");
+    expect(window.open.mock.results[0].value.close).toHaveBeenCalledOnce();
+    expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
+  });
+
+  it("handles a reserved tab closed before the API response", async () => {
+    await ready();
+    window.open.mockReturnValue({ closed: true, opener: window, close: vi.fn() });
+    billingApi.createPaymentSetupSession.mockResolvedValue({ url: hostedUrl });
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    await screen.findByText("The Stripe tab was closed. Please try again.");
+    expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
+  });
+
+  it("does not create duplicate sessions while the first request is pending", async () => {
+    let resolve;
+    billingApi.createPaymentSetupSession.mockImplementation(() => new Promise(r => { resolve = r; }));
+    await ready();
+    const button = screen.getByRole("button", { name: "Add card" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(billingApi.createPaymentSetupSession).toHaveBeenCalledOnce();
+    expect(window.open).toHaveBeenCalledOnce();
+    resolve({ url: hostedUrl });
+    await waitFor(() => expect(button).toBeEnabled());
+  });
+
+  it("refetches authoritative payment state once on return and never infers success", async () => {
+    billingApi.createPaymentSetupSession.mockResolvedValue({ url: hostedUrl });
+    await ready();
+    fireEvent(window, new Event("focus"));
+    expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    await waitFor(() => expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce());
+    fireEvent(window, new Event("focus"));
+    await waitFor(() => expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(2));
+    await screen.findByText("No card on file for this organization.");
+    fireEvent(window, new Event("focus"));
+    expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("Payment method saved.")).not.toBeInTheDocument();
+  });
+
+  it("refreshes on a hidden-to-visible transition without duplicating the focus refresh", async () => {
+    let visibility = "visible";
+    vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibility);
+    billingApi.createPaymentSetupSession.mockResolvedValue({ url: hostedUrl });
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    await waitFor(() => expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce());
+    visibility = "hidden";
+    fireEvent(document, new Event("visibilitychange"));
+    fireEvent(window, new Event("focus"));
+    expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(1);
+    visibility = "visible";
+    fireEvent(document, new Event("visibilitychange"));
+    fireEvent(window, new Event("focus"));
+    await waitFor(() => expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not refresh on focus after setup failed", async () => {
+    billingApi.createPaymentSetupSession.mockRejectedValue(new Error("Session unavailable"));
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    await screen.findByText("Session unavailable");
+    fireEvent(window, new Event("focus"));
+    expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(1);
+  });
+
+  it("removes its return listeners on unmount", async () => {
+    const addWindow = vi.spyOn(window, "addEventListener");
+    const removeWindow = vi.spyOn(window, "removeEventListener");
+    const addDocument = vi.spyOn(document, "addEventListener");
+    const removeDocument = vi.spyOn(document, "removeEventListener");
+    const view = await ready();
+    const focus = addWindow.mock.calls.find(([type]) => type === "focus");
+    const visibility = addDocument.mock.calls.find(([type]) => type === "visibilitychange");
+    view.unmount();
+    expect(removeWindow).toHaveBeenCalledWith(...focus);
+    expect(removeDocument).toHaveBeenCalledWith(...visibility);
+    fireEvent(window, new Event("focus"));
+    expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(1);
   });
 });

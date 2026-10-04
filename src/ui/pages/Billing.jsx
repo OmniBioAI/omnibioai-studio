@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Card, Button, Input, ProgressBar, Spinner, Tabs, Table } from "@omnibioai/ui";
 import Login from "../components/Login";
 import * as billingApi from "../lib/billingApi";
@@ -117,11 +117,21 @@ export function isStripeHostedUrl(url) {
 // ourselves. Guarded by isStripeHostedUrl so a compromised or misbehaving
 // billing-service can't redirect the user (and their Electron app's
 // shell.openExternal privilege) somewhere arbitrary.
-function openStripeUrl(url) {
+function openStripeUrl(url, stripeTab) {
   if (!isStripeHostedUrl(url)) {
     throw new Error("Refused to open a non-Stripe-hosted URL");
   }
-  if (window.electronAPI?.openExternal) {
+  if (stripeTab) {
+    if (stripeTab.closed) throw new Error("The Stripe tab was closed. Please try again.");
+    // Navigate from the reserved tab without sending Studio's referrer.
+    // Its opener was already severed synchronously before the API request.
+    const link = stripeTab.document.createElement("a");
+    link.href = url;
+    link.rel = "noopener noreferrer";
+    link.target = "_self";
+    stripeTab.document.body.appendChild(link);
+    link.click();
+  } else if (window.electronAPI?.openExternal) {
     window.electronAPI.openExternal(url);
   } else if (window.api?.openExternal) {
     window.api.openExternal(url);
@@ -153,6 +163,8 @@ function PaymentMethodCard({ orgId }) {
   const [actionBusy, setActionBusy] = useState(null); // "setup" | "portal" | null
   const [actionError, setActionError] = useState("");
   const notice = usePaymentNotice();
+  const actionInFlight = useRef(false);
+  const refreshOnReturn = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -169,15 +181,50 @@ function PaymentMethodCard({ orgId }) {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    let wasHidden = document.visibilityState === "hidden";
+    const refresh = () => {
+      if (document.visibilityState !== "visible" || actionInFlight.current || !refreshOnReturn.current) return;
+      refreshOnReturn.current = false;
+      load();
+    };
+    const onVisibilityChange = () => {
+      const hidden = document.visibilityState === "hidden";
+      if (wasHidden && !hidden) refresh();
+      wasHidden = hidden;
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [load]);
+
   async function runAction(kind, call) {
+    if (actionInFlight.current) return;
+    actionInFlight.current = true;
+    refreshOnReturn.current = false;
     setActionError("");
     setActionBusy(kind);
+    let stripeTab;
     try {
+      if (kind === "setup" && !window.electronAPI?.openExternal && !window.api?.openExternal) {
+        // Reserve the tab in the click handler, before awaiting the session.
+        // noopener in window.open would return null even when it succeeds,
+        // so keep the handle for navigation/cleanup and sever opener now.
+        stripeTab = window.open("about:blank", "_blank");
+        if (!stripeTab) throw new Error("Please allow pop-ups for Studio, then try adding your card again.");
+        stripeTab.opener = null;
+      }
       const { url } = await call();
-      openStripeUrl(url);
+      openStripeUrl(url, stripeTab);
+      if (kind === "setup") refreshOnReturn.current = true;
     } catch (err) {
+      stripeTab?.close();
       setActionError(err.message || "That action failed. Please try again.");
     } finally {
+      actionInFlight.current = false;
       setActionBusy(null);
     }
   }
@@ -226,6 +273,7 @@ function PaymentMethodCard({ orgId }) {
                 variant="secondary"
                 size="sm"
                 loading={actionBusy === "setup"}
+                disabled={actionBusy != null}
                 onClick={() => runAction("setup", () => billingApi.createPaymentSetupSession(orgId))}
               >
                 {data.has_payment_method ? "Replace card" : "Add card"}
@@ -235,6 +283,7 @@ function PaymentMethodCard({ orgId }) {
                   variant="secondary"
                   size="sm"
                   loading={actionBusy === "portal"}
+                  disabled={actionBusy != null}
                   onClick={() => runAction("portal", () => billingApi.createBillingPortalSession(orgId))}
                 >
                   Manage billing
