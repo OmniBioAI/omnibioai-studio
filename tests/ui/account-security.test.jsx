@@ -10,6 +10,9 @@ const apiKeysApi = vi.hoisted(() => ({
 }));
 vi.mock("../../src/ui/lib/securityApi", () => securityApi);
 vi.mock("../../src/ui/lib/apiKeysApi", () => apiKeysApi);
+vi.mock("../../src/ui/lib/session", () => ({
+  getToken: () => "test-token", getSessionVersion: () => 0, onSessionChange: () => () => {},
+}));
 
 import AccountSecurity from "../../src/ui/pages/AccountSecurity";
 
@@ -47,7 +50,8 @@ describe("Account Security", () => {
     render(<AccountSecurity currentUser={userA} />);
     expect(await screen.findByText("1 verified device")).toBeInTheDocument();
     expect(screen.getByText("Authenticator")).toBeInTheDocument();
-    expect(screen.queryByText("Pending")).not.toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText(/Awaiting verification/)).toBeInTheDocument();
     expect(screen.getAllByText("Enabled").length).toBeGreaterThan(0);
   });
 

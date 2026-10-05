@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Badge, Button, Card, Spinner } from "@omnibioai/ui";
 import * as securityApi from "../lib/securityApi";
 import * as apiKeysApi from "../lib/apiKeysApi";
+import MfaManagement from "../components/security/MfaManagement";
 
 const loadingState = () => ({ status: "loading", data: null, error: "" });
 
@@ -190,14 +191,9 @@ export default function AccountSecurity({ currentUser }) {
                 </Badge>
                 <span>{verifiedDevices.length} verified {verifiedDevices.length === 1 ? "device" : "devices"}</span>
               </div>
-              {verifiedDevices.map(device => (
-                <div className="security-row" key={device.id}>
-                  <div><strong>{device.label || device.device_type}</strong><span>Added {formatDate(device.created_at)}</span></div>
-                  <span>Last used {formatDate(device.last_used_at)}</span>
-                </div>
-              ))}
             </>
           )}
+          <MfaManagement currentUser={currentUser} devices={mfa.status === "success" ? mfa.data : null} onChanged={loadMfa} />
         </section>
       </Card>
 

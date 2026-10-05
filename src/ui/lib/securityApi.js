@@ -9,6 +9,7 @@ async function request(path, options = {}) {
     ...options,
     headers: {
       Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
@@ -24,6 +25,21 @@ async function request(path, options = {}) {
   if (!res.ok) {
     const error = new Error("Personal security service unavailable. Please try again.");
     error.status = res.status;
+    // Only these enrollment errors are safe, fixed IAM contract strings.
+    // Never propagate response bodies, validation inputs, or backend traces.
+    if (path === "/users/me/mfa/totp/verify" && res.status === 400) {
+      const body = await res.json().catch(() => null);
+      if (version !== getSessionVersion() || token !== getToken()) return null;
+      const messages = {
+        "Invalid verification code": "Invalid verification code. Try a new code from your authenticator.",
+        "This enrollment is no longer active -- start a new one": "This enrollment is no longer active. Start again.",
+        "This device is already verified": "This authenticator is already verified. Close setup and refresh the device list.",
+      };
+      if (Object.hasOwn(messages, body?.detail)) {
+        error.mfaMessage = messages[body.detail];
+        error.mfaTerminal = body.detail !== "Invalid verification code";
+      }
+    }
     throw error;
   }
   if (res.status === 204) return null;
@@ -40,3 +56,12 @@ export const listSessions = ({ signal } = {}) =>
 
 export const revokeSession = (sessionId, { signal } = {}) =>
   request(`/sessions/${encodeURIComponent(sessionId)}/revoke`, { method: "POST", signal });
+
+export const startMfaEnrollment = () => request("/users/me/mfa/totp/enroll", { method: "POST" });
+export const verifyMfaEnrollment = (deviceId, code) => request("/users/me/mfa/totp/verify", {
+  method: "POST", body: JSON.stringify({ device_id: deviceId, code }),
+});
+export const removeMfaDevice = deviceId => request(`/users/me/mfa/devices/${encodeURIComponent(deviceId)}`, { method: "DELETE" });
+export const getRecoveryCodeStatus = () => request("/users/me/mfa/recovery-codes");
+export const generateRecoveryCodes = () => request("/users/me/mfa/recovery-codes", { method: "POST" });
+export const regenerateRecoveryCodes = () => request("/users/me/mfa/recovery-codes/regenerate", { method: "POST" });
