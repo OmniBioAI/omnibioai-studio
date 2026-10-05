@@ -10,7 +10,7 @@ const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams } = vi.hoist
 
 vi.mock("../../src/ui/lib/session", () => ({
   getCurrentUser, onSessionChange, consumeOAuthRedirectParams,
-  isElectron: () => false, refresh: vi.fn(), getRefreshToken: () => null,
+  isElectron: () => false, refresh: vi.fn(), getRefreshToken: () => null, logout: vi.fn(),
 }));
 
 vi.mock("../../src/ui/components/LicenseGate", () => ({ default: ({ children }) => <>{children}</> }));

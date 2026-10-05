@@ -2,16 +2,17 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } = vi.hoisted(() => ({
+const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken, logout } = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   onSessionChange: vi.fn(() => vi.fn()),
   consumeOAuthRedirectParams: vi.fn(() => null),
   isElectron: vi.fn(() => true),
   refresh: vi.fn(),
   getRefreshToken: vi.fn(() => null),
+  logout: vi.fn(),
 }));
 vi.mock("../../src/ui/lib/session", () => ({
-  getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken,
+  getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken, logout,
 }));
 
 vi.mock("../../src/ui/components/LicenseGate", () => ({ default: ({ children }) => <>{children}</> }));
@@ -67,6 +68,8 @@ describe("App shell — Studio landing", () => {
     expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
     expect(sections[2].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Jobs.*Billing.*Developer/);
     expect(sections[2].textContent).not.toContain("Studio");
+    expect(document.querySelector("[data-nav-item='Profile']")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-nav-item='Storage']")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Mode", { selector: "div" }));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
   });
@@ -93,8 +96,13 @@ describe("App shell — Studio landing", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Profile/ }));
     expect(await screen.findByText("Profile page")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Account" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Profile" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("account")).toBeInTheDocument();
+    expect(document.querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/studio/profile");
     fireEvent.click(screen.getByTitle("Back to Studio"));
     expect(await screen.findByText("Studio page")).toBeInTheDocument();

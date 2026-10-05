@@ -43,7 +43,8 @@ describe("Sidebar", () => {
   it("shows the signed-in user and signs out on click", () => {
     render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="idle" currentUser={user} />);
     expect(screen.getByText("u@test")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Sign out"));
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
     expect(logout).toHaveBeenCalled();
   });
 
@@ -51,7 +52,8 @@ describe("Sidebar", () => {
     const onProfileClick = vi.fn();
     render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="idle"
       currentUser={user} onProfileClick={onProfileClick} isProfileActive />);
-    const profile = screen.getByRole("button", { name: "Profile" });
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const profile = screen.getByRole("menuitem", { name: /Profile/ });
     expect(profile).toHaveAttribute("aria-current", "page");
     fireEvent.click(profile);
     expect(onProfileClick).toHaveBeenCalledOnce();
@@ -71,7 +73,8 @@ describe("MobileNav", () => {
     fireEvent.click(container.querySelector('[aria-hidden="true"]'));
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByText("Sign out"));
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
     expect(logout).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(2);
   });
@@ -81,7 +84,8 @@ describe("MobileNav", () => {
     const onProfileClick = vi.fn();
     render(<MobileNav nav={nav} step={4} setStep={vi.fn()} currentUser={user} open
       onClose={onClose} onProfileClick={onProfileClick} isProfileActive />);
-    const profile = screen.getByRole("button", { name: "Profile" });
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const profile = screen.getByRole("menuitem", { name: /Profile/ });
     expect(profile).toHaveAttribute("aria-current", "page");
     fireEvent.click(profile);
     expect(onProfileClick).toHaveBeenCalledOnce();
@@ -105,8 +109,9 @@ describe("MobileNav", () => {
   });
 
   it("ignores other keys and renders closed with no drawer effects", () => {
-    const { container } = render(<MobileNav nav={nav} step={0} setStep={vi.fn()} currentUser={null} open={false} onClose={vi.fn()} />);
+    const { container } = render(<MobileNav nav={nav} step={0} setStep={vi.fn()} currentUser={user} open={false} onClose={vi.fn()} />);
     expect(container.querySelector('[role="dialog"]')).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
   });
 });
 

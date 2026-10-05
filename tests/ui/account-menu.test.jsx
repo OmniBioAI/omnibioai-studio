@@ -1,0 +1,95 @@
+import React from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const { logout } = vi.hoisted(() => ({ logout: vi.fn() }));
+vi.mock("../../src/ui/lib/session", () => ({ logout }));
+
+import AccountMenu from "../../src/ui/components/AccountMenu";
+
+const user = { userId: 7, email: "manish.kumar@omnibioai.org" };
+
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
+
+describe("AccountMenu", () => {
+  it("shows canonical session identity and opens an accessible menu", () => {
+    render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} />);
+    const trigger = screen.getByRole("button", { name: "Account menu" });
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("MA")).toBeInTheDocument();
+    expect(screen.getByText(user.email)).toBeInTheDocument();
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("menu", { name: "Account" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Profile/ })).toHaveFocus();
+    expect(screen.queryByText(/Storage|Usage|Connections|Notifications|Preferences/)).not.toBeInTheDocument();
+  });
+
+  it("opens from the keyboard through its semantic trigger", async () => {
+    const userInput = userEvent.setup();
+    render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} />);
+    await userInput.tab();
+    expect(screen.getByRole("button", { name: "Account menu" })).toHaveFocus();
+    await userInput.keyboard("{Enter}");
+    expect(screen.getByRole("menu", { name: "Account" })).toBeInTheDocument();
+  });
+
+  it("navigates to the active Profile section and closes", () => {
+    const onProfileClick = vi.fn();
+    render(<AccountMenu currentUser={user} onProfileClick={onProfileClick} isProfileActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const profile = screen.getByRole("menuitem", { name: /Profile/ });
+    expect(profile).toHaveAttribute("aria-current", "page");
+    fireEvent.click(profile);
+    expect(onProfileClick).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("closes on Escape and restores trigger focus", () => {
+    render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} />);
+    const trigger = screen.getByRole("button", { name: "Account menu" });
+    fireEvent.click(trigger);
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("ignores inside pointer events and closes on outside pointer events", () => {
+    render(<div><AccountMenu currentUser={user} onProfileClick={vi.fn()} /><button>Outside</button></div>);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.pointerDown(screen.getByRole("menu"));
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Outside" }));
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("signs out through the existing session function and closes its mobile host", () => {
+    const onAfterAction = vi.fn();
+    render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} onAfterAction={onAfterAction} />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    expect(logout).toHaveBeenCalledOnce();
+    expect(onAfterAction).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("closes and replaces identity immediately on account switch", () => {
+    const { rerender } = render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    rerender(<AccountMenu currentUser={{ userId: 8, email: "b@example.org" }} onProfileClick={vi.fn()} />);
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(screen.queryByText(user.email)).not.toBeInTheDocument();
+    expect(screen.getByText("b@example.org")).toBeInTheDocument();
+  });
+
+  it("renders nothing after logout and safely derives fallback initials", () => {
+    const { rerender } = render(<AccountMenu currentUser={{ email: "..@example.org" }} onProfileClick={vi.fn()} />);
+    expect(screen.getByText("..")).toBeInTheDocument();
+    rerender(<AccountMenu currentUser={null} onProfileClick={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
+  });
+});

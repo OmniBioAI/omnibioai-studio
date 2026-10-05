@@ -1,5 +1,5 @@
 import React from "react";
-import { logout } from "../lib/session";
+import AccountMenu from "./AccountMenu";
 
 const statusColor = {
   idle:     "var(--color-text-muted)",
@@ -108,30 +108,10 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
         ))}
       </nav>
 
-      {/* Signed-in user + sign-out — App.jsx's onSessionChange subscription
-          picks up logout()'s clearSession() automatically, no callback prop
-          needed here. */}
+      {/* Personal account control plane entry point. */}
       {currentUser && (
-        <div style={{
-          padding:"10px 16px", borderTop:"1px solid var(--border)",
-          display:"flex", alignItems:"center", justifyContent:"space-between", gap:8,
-        }}>
-          <button type="button" className="studio-profile-link"
-              aria-label="Profile" aria-current={isProfileActive ? "page" : undefined}
-              onClick={onProfileClick} title={currentUser.email}>
-              <span>Profile</span>
-              <span className="studio-profile-email">{currentUser.email}</span>
-            </button>
-          <div
-            onClick={() => logout()}
-            style={{
-              fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", fontWeight:600,
-              color:"var(--color-text-muted)", cursor:"pointer", flexShrink:0,
-            }}
-            title="Sign out"
-          >
-            Sign out
-          </div>
+        <div className="studio-account-footer">
+          <AccountMenu currentUser={currentUser} onProfileClick={onProfileClick} isProfileActive={isProfileActive} />
         </div>
       )}
 

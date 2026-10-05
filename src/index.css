@@ -4,10 +4,36 @@
 @tailwind components;
 @tailwind utilities;
 
-.studio-profile-link { min-width: 0; min-height: 44px; padding: 4px 0; border: 0; background: transparent; color: var(--text); cursor: pointer; text-align: left; display: grid; gap: 4px; font-size: var(--font-size-xs); }
-.studio-profile-link:hover, .studio-profile-link[aria-current="page"] { color: var(--accent); }
-.studio-profile-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: var(--radius-sm); }
-.studio-profile-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-family: var(--mono); }
+.studio-account-footer { position: relative; padding: 10px 8px; border-top: 1px solid var(--border); }
+.studio-account-footer--mobile { padding: 12px 8px; flex-shrink: 0; }
+.account-menu { position: relative; min-width: 0; }
+.account-menu-trigger { width: 100%; min-height: 52px; padding: 6px; display: flex; align-items: center; gap: 9px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text); cursor: pointer; text-align: left; }
+.account-menu-trigger:hover, .account-menu-trigger[aria-expanded="true"] { background: rgba(255,255,255,.04); border-color: var(--border); }
+.account-avatar { width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(0,229,160,.3); background: rgba(0,229,160,.1); color: var(--accent); font-size: var(--font-size-xs); font-weight: 700; letter-spacing: .04em; }
+.account-avatar--small { width: 28px; height: 28px; flex-basis: 28px; }
+.account-trigger-copy { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.account-trigger-label { font-size: var(--font-size-sm); font-weight: 600; }
+.account-trigger-email, .account-menu-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); font-family: var(--mono); font-size: var(--font-size-xs); }
+.account-trigger-chevron { color: var(--color-text-muted); font-size: var(--font-size-md); }
+.account-menu-popover { position: absolute; z-index: 1200; left: 0; bottom: calc(100% + 8px); width: 100%; padding: 6px; border: 1px solid var(--border2); border-radius: var(--radius-lg); background: var(--bg3); box-shadow: 0 14px 38px rgba(0,0,0,.45); }
+.account-menu-identity { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 7px 8px; }
+.account-menu-email { color: var(--text); }
+.account-menu-separator { height: 1px; margin: 5px 0; background: var(--border); }
+.account-menu-popover button { width: 100%; min-height: 40px; padding: 8px 9px; display: flex; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; font-size: var(--font-size-sm); cursor: pointer; text-align: left; }
+.account-menu-popover button:hover, .account-menu-popover button[aria-current="page"] { border-color: rgba(0,229,160,.15); background: rgba(0,229,160,.08); color: var(--accent); }
+.account-menu-popover .account-menu-signout { color: var(--danger); }
+.account-shell { width: 100%; min-width: 0; max-width: 1120px; margin: 0 auto; display: grid; gap: 20px; }
+.account-shell-header { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.account-shell-header h1 { margin: 0; font-size: var(--font-size-2xl); }
+.account-shell-header p { margin: 8px 0 0; color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: 1.5; }
+.account-shell-grid { min-width: 0; display: grid; grid-template-columns: 190px minmax(0, 1fr); align-items: start; gap: 20px; }
+.account-local-panel { min-width: 0; padding: 14px 10px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); }
+.account-local-panel h2 { margin: 0 8px 10px; color: var(--color-text-muted); font-family: var(--mono); font-size: var(--font-size-xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.account-local-panel nav { display: grid; gap: 3px; }
+.account-local-panel button { position: relative; width: 100%; min-height: 40px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm); cursor: pointer; text-align: left; }
+.account-local-panel button[aria-current="page"] { border-color: rgba(0,229,160,.15); background: rgba(0,229,160,.08); color: var(--accent); }
+.account-local-active { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.account-content { min-width: 0; }
 .profile-page { display: grid; gap: 20px; max-width: 800px; width: 100%; margin: 0 auto; }
 .profile-page h1 { font-size: var(--font-size-xl); font-weight: 700; margin: 0 0 6px; }
 .profile-page h2 { font-size: var(--font-size-lg); font-weight: 600; margin: 0 0 12px; overflow-wrap: anywhere; }
@@ -28,7 +54,18 @@
 .profile-organizations li + li { border-top: 1px solid var(--border); padding-top: 20px; }
 .profile-plan { display: grid; gap: 12px; border-top: 1px solid var(--border); margin-top: 24px; padding-top: 20px; }
 .profile-org-select { display: grid; gap: 8px; font-size: var(--font-size-sm); }
-@media (max-width: 480px) { .profile-identity { align-items: flex-start; flex-direction: column; gap: 16px; } }
+@media (max-width: 767px) {
+  .account-shell-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .account-local-panel { padding: 8px; }
+  .account-local-panel h2 { margin-bottom: 6px; }
+  .account-local-panel nav { display: flex; overflow-x: auto; }
+  .account-local-panel button { width: auto; min-width: 110px; min-height: 44px; }
+}
+@media (max-width: 480px) {
+  .profile-identity { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .account-shell { gap: 16px; }
+  .account-shell-header { padding-bottom: 14px; }
+}
 
 :root {
   --bg: #0a0c10;

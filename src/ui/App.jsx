@@ -23,6 +23,7 @@ import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
 import Developer from "./pages/Developer";
 import Profile from "./pages/Profile";
+import AccountLayout from "./components/AccountLayout";
 import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
@@ -276,7 +277,9 @@ export default function App() {
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={(url, label, plugin) => setService({ url, label, source: "workbench", pluginSlug: plugin?.slug || null })} />,
     <Developer currentUser={currentUser} />,
-    <Profile currentUser={currentUser} />,
+    <AccountLayout activeSection="profile" onNavigate={() => handleNavClick(PROFILE_PAGE)}>
+      <Profile currentUser={currentUser} />
+    </AccountLayout>,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -412,6 +415,7 @@ export default function App() {
               title="Back to Studio"
             >studio</span>
             {" / "}
+            {step === PROFILE_PAGE && !service ? <><span>account</span>{" / "}</> : null}
             <span style={{ color:"var(--text)" }}>{currentName}</span>
           </div>
 
@@ -504,7 +508,7 @@ export default function App() {
                       onBack={() => setService(null)} />
             : (
               <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
-                {step === 7 ? null : (
+                {step === 7 || step === PROFILE_PAGE ? null : (
                   <WorkbenchModuleHeader
                     title={PAGE_LABELS[step] || currentName}
                     onBack={handleModuleBack}
