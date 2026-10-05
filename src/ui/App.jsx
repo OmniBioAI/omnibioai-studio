@@ -22,6 +22,7 @@ import IdeServices   from "./pages/IdeServices";
 import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
 import Developer from "./pages/Developer";
+import Profile from "./pages/Profile";
 import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
@@ -69,15 +70,17 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench","developer"
+  "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench","developer","profile"
 ];
 
 const PAGE_LABELS = [
   "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
-  "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench", "Developer",
+  "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench", "Developer", "Profile",
 ];
 
 const STUDIO_PATH = "/studio";
+const PROFILE_PATH = "/studio/profile";
+const PROFILE_PAGE = 15;
 const VIDEO_STUDIO_PATH = "/studio/videos";
 const LEGACY_PORTAL_PATH = "/workbench";
 
@@ -108,7 +111,7 @@ function getSafeReturnTo() {
 }
 
 export default function App() {
-  const [step,         setStep]         = useState(7);
+  const [step,         setStep]         = useState(() => window.location.pathname === PROFILE_PATH ? PROFILE_PAGE : 7);
   const [systemStatus, setSystemStatus] = useState("idle");
   const [ready,        setReady]        = useState(false);
   const [config,       setConfig]       = useState({
@@ -189,9 +192,12 @@ export default function App() {
   // ─── Track the signed-in user (drives the Roles nav item + page gate) ──
   useEffect(() => {
     let mounted = true;
+    let requestId = 0;
     const refreshUser = async () => {
+      const id = ++requestId;
+      setCurrentUser(null);
       const user = await getCurrentUser();
-      if (mounted) { setCurrentUser(user); setAuthChecked(true); }
+      if (mounted && id === requestId) { setCurrentUser(user); setAuthChecked(true); }
     };
     refreshUser();
     const unsubscribe = onSessionChange(refreshUser);
@@ -270,12 +276,16 @@ export default function App() {
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={(url, label, plugin) => setService({ url, label, source: "workbench", pluginSlug: plugin?.slug || null })} />,
     <Developer currentUser={currentUser} />,
+    <Profile currentUser={currentUser} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
   const isWizardPage = !service && step <= WIZARD_MAX;
 
   function handleStudioClick() {
+    const url = new URL(window.location.href);
+    url.pathname = STUDIO_PATH;
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     setService(null);
     setStep(7); // return to Studio
   }
@@ -289,11 +299,11 @@ export default function App() {
   }
 
   function handleNavClick(idx) {
-    if (service?.source === "workbench") setService(null);
+    if (idx === PROFILE_PAGE || service?.source === "workbench") setService(null);
     setStep(idx);
-    if (idx === 7) {
+    if (idx === 7 || idx === PROFILE_PAGE || window.location.pathname === PROFILE_PATH) {
       const url = new URL(window.location.href);
-      url.pathname = STUDIO_PATH;
+      url.pathname = idx === PROFILE_PAGE ? PROFILE_PATH : STUDIO_PATH;
       window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     }
   }
@@ -366,7 +376,8 @@ export default function App() {
         <Sidebar
           nav={nav} step={step} setStep={handleNavClick} systemStatus={systemStatus}
           isServiceView={!!service} onStudioClick={handleStudioClick}
-          currentUser={currentUser}
+          currentUser={currentUser} onProfileClick={() => handleNavClick(PROFILE_PAGE)}
+          isProfileActive={!service && step === PROFILE_PAGE}
         />
       </div>
 
@@ -571,6 +582,7 @@ export default function App() {
           since the hamburger that opens it is display:none there). */}
       <MobileNav
         nav={nav} step={step} setStep={handleNavClick} currentUser={currentUser}
+        onProfileClick={() => handleNavClick(PROFILE_PAGE)} isProfileActive={!service && step === PROFILE_PAGE}
         open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}
       />
     </div>

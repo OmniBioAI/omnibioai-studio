@@ -40,6 +40,7 @@ vi.mock("../../src/ui/pages/Developer", () => ({ default: () => <div>Developer p
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ url, label, onBack }) => <div>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
 vi.mock("../../src/ui/pages/PluginPage", () => ({ default: ({ url, label, onBack, backLabel }) => <div data-testid="plugin-page-viewer" data-back-label={backLabel || ""}>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: ({ onBack }) => <div>Videos page<button onClick={onBack}>vback</button></div> }));
+vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
 
 import App from "../../src/ui/App";
 
@@ -86,6 +87,25 @@ describe("App shell — Studio landing", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     expect(window.location.pathname).toBe("/studio");
+  });
+
+  it("opens Profile from the desktop account area and preserves its direct URL", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+    expect(await screen.findByText("Profile page")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/studio/profile");
+    fireEvent.click(screen.getByTitle("Back to Studio"));
+    expect(await screen.findByText("Studio page")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/studio");
+  });
+
+  it("loads the Profile page directly", async () => {
+    window.history.replaceState({}, "", "/studio/profile");
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    expect(await screen.findByText("Profile page")).toBeInTheDocument();
   });
 
   it("opens the Videos viewer when visiting /studio/videos directly", async () => {

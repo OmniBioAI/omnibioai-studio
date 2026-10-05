@@ -6,7 +6,7 @@ import { logout } from "../lib/session";
 // <Sidebar> — permission filtering (manage_roles) and active-route logic
 // stay in perfect sync with desktop because nothing nav-related is
 // duplicated here, only re-rendered as a drawer instead of a fixed rail.
-export default function MobileNav({ nav, step, setStep, currentUser, open, onClose }) {
+export default function MobileNav({ nav, step, setStep, currentUser, open, onClose, onProfileClick, isProfileActive }) {
   const closeBtnRef = useRef(null);
   const stepRef = useRef(step);
 
@@ -149,13 +149,12 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
             padding: "12px 16px", borderTop: "1px solid var(--border)", flexShrink: 0,
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
           }}>
-            <div style={{
-              fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",
-              color: "var(--color-text-muted)", overflow: "hidden",
-              textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }} title={currentUser.email}>
-              {currentUser.email}
-            </div>
+            <button type="button" className="studio-profile-link"
+              aria-label="Profile" aria-current={isProfileActive ? "page" : undefined}
+              onClick={() => { onProfileClick(); onClose(); }} title={currentUser.email}>
+              <span>Profile</span>
+              <span className="studio-profile-email">{currentUser.email}</span>
+            </button>
             <div
               onClick={() => { logout(); onClose(); }}
               style={{

@@ -12,10 +12,11 @@
 // "../lib/session" (not "./session") on purpose — see rolesApi.js's import
 // comment for why that exact spelling is what vite.config.js's web-build
 // alias matches.
-import { getToken, clearSession } from "../lib/session";
+import { getToken, getSessionVersion, clearSession } from "../lib/session";
 
 async function request(path, method = "GET") {
   const token = getToken();
+  const version = getSessionVersion();
   const res = await fetch(path, {
     method,
     headers: {
@@ -24,9 +25,9 @@ async function request(path, method = "GET") {
     },
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 && token === getToken() && version === getSessionVersion()) {
     // Same posture as rolesApi.request: a hard 401 means the session is
-    // no longer usable, so clear it and let the app fall back to Login.
+    // no longer usable. An older request must never invalidate a new login.
     clearSession();
   }
 

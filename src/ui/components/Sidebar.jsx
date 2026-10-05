@@ -15,7 +15,7 @@ const statusLabel = {
   error:    "ERROR",
 };
 
-export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser }) {
+export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, isProfileActive }) {
   return (
     <div style={{
       width:200, background:"var(--bg2)",
@@ -116,13 +116,12 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
           padding:"10px 16px", borderTop:"1px solid var(--border)",
           display:"flex", alignItems:"center", justifyContent:"space-between", gap:8,
         }}>
-          <div style={{
-            fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
-            color:"var(--color-text-muted)", overflow:"hidden",
-            textOverflow:"ellipsis", whiteSpace:"nowrap",
-          }} title={currentUser.email}>
-            {currentUser.email}
-          </div>
+          <button type="button" className="studio-profile-link"
+              aria-label="Profile" aria-current={isProfileActive ? "page" : undefined}
+              onClick={onProfileClick} title={currentUser.email}>
+              <span>Profile</span>
+              <span className="studio-profile-email">{currentUser.email}</span>
+            </button>
           <div
             onClick={() => logout()}
             style={{

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const session = vi.hoisted(() => ({
   getToken: vi.fn(() => "token-123"),
   clearSession: vi.fn(),
+  getSessionVersion: vi.fn(() => 0),
 }));
 
 vi.mock("../../src/ui/lib/session", () => session);
@@ -22,6 +23,7 @@ import {
 beforeEach(() => {
   session.getToken.mockReturnValue("token-123");
   session.clearSession.mockReset();
+  session.getSessionVersion.mockReturnValue(0);
 });
 
 afterEach(() => vi.unstubAllGlobals());

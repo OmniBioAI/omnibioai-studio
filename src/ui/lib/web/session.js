@@ -21,6 +21,22 @@ export function authUrl(path) {
 }
 
 let cachedUser = null;
+let cachedUserToken = null;
+let sessionVersion = 0;
+
+// A generation distinguishes even A -> B -> A token changes. React consumes
+// this external-store snapshot so a session change hides old profile data.
+export function getSessionVersion() {
+  return sessionVersion;
+}
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== TOKEN_KEY && event.key !== null) return;
+  const token = getToken();
+  if (token) setTokenCookie(token);
+  else clearTokenCookie();
+  notify();
+});
 
 // Reads a fetch Response body as JSON without ever throwing. A backend
 // error response isn't guaranteed to be JSON — an nginx 502/504 page, the
@@ -42,6 +58,9 @@ async function readJson(res) {
 }
 
 function notify() {
+  cachedUser = null;
+  cachedUserToken = null;
+  sessionVersion += 1;
   window.dispatchEvent(new CustomEvent(SESSION_EVENT));
 }
 
@@ -72,8 +91,8 @@ function clearTokenCookie() {
 export function setSession(accessToken, refreshToken) {
   localStorage.setItem(TOKEN_KEY, accessToken);
   if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  else localStorage.removeItem(REFRESH_TOKEN_KEY);
   setTokenCookie(accessToken);
-  cachedUser = null;
   notify();
 }
 
@@ -81,7 +100,6 @@ export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   clearTokenCookie();
-  cachedUser = null;
   notify();
 }
 
@@ -94,6 +112,8 @@ export function clearSession() {
 export async function logout() {
   const refreshToken = getRefreshToken();
   const accessToken = getToken();
+  // Clear immediately; a slow revocation request must not retain identity.
+  clearSession();
   if (refreshToken) {
     try {
       await fetch(authUrl("/auth/logout"), {
@@ -102,10 +122,9 @@ export async function logout() {
         body: JSON.stringify({ refresh_token: refreshToken, access_token: accessToken }),
       });
     } catch (_) {
-      // fail open — clearSession() below still runs
+      // Local state was already cleared before revocation.
     }
   }
-  clearSession();
 }
 
 // POSTs to /auth/refresh; on success, re-runs setSession with the new
@@ -114,6 +133,8 @@ export async function logout() {
 // or null (and clears the session) if the refresh token is invalid/expired.
 export async function refresh() {
   const refreshToken = getRefreshToken();
+  const version = sessionVersion;
+  const token = getToken();
   if (!refreshToken) return null;
   try {
     const res = await fetch(authUrl("/auth/refresh"), {
@@ -121,11 +142,13 @@ export async function refresh() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
+    if (version !== sessionVersion || token !== getToken()) return null;
     if (!res.ok) {
       clearSession();
       return null;
     }
     const data = await res.json();
+    if (version !== sessionVersion || token !== getToken()) return null;
     setSession(data.access_token, data.refresh_token);
     return data.access_token;
   } catch (_) {
@@ -181,6 +204,7 @@ export async function loginWithLicenseKey(key, email, platform = "web") {
 
 export async function getCurrentUser({ force = false } = {}) {
   const token = getToken();
+  const version = sessionVersion;
   if (!token) return null;
   // Re-assert the cookie on every session restore (app mount), not just at
   // login — localStorage survives a browser restart but a session cookie
@@ -188,7 +212,7 @@ export async function getCurrentUser({ force = false } = {}) {
   // would only surface as Control Center's iframe specifically 401ing
   // while the rest of the already-logged-in app kept working fine.
   setTokenCookie(token);
-  if (cachedUser && !force) return cachedUser;
+  if (cachedUser && cachedUserToken === token && !force) return cachedUser;
 
   try {
     const res = await fetch(authUrl("/auth/validate"), {
@@ -201,10 +225,12 @@ export async function getCurrentUser({ force = false } = {}) {
     // throwing past clearSession() into the outer catch, which used to
     // leave a dead token in localStorage instead of actually clearing it.
     const data = await readJson(res);
+    if (version !== sessionVersion || token !== getToken()) return null;
     if (!data?.valid) {
       clearSession();
       return null;
     }
+    cachedUserToken = token;
     cachedUser = {
       userId: data.user_id,
       email: data.email,
@@ -221,6 +247,33 @@ export async function getCurrentUser({ force = false } = {}) {
   } catch (_) {
     return null;
   }
+}
+
+// Canonical identity belongs to IAM, separate from the compact /auth/validate
+// session projection. Never persist profile data or return an older session's
+// response. Abort helps navigation; generation checks also cover ignored aborts.
+export async function getIdentity({ signal } = {}) {
+  const token = getToken();
+  const version = sessionVersion;
+  if (!token) return null;
+  const res = await fetch(authUrl("/me"), {
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    credentials: "omit",
+    cache: "no-store",
+    signal,
+  });
+  if (version !== sessionVersion || token !== getToken()) return null;
+  if (res.status === 401) {
+    clearSession();
+    return null;
+  }
+  if (!res.ok) throw new Error("Identity service unavailable. Please try again.");
+  const identity = await res.json();
+  if (version !== sessionVersion || token !== getToken()) return null;
+  if (!identity?.user || typeof identity.user.email !== "string" || identity.user.id == null) {
+    throw new Error("Identity service returned an invalid profile.");
+  }
+  return identity;
 }
 
 export function getCurrentUserSync() {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   authUrl, clearSession, confirmOAuthLink, consumeOAuthRedirectParams,
-  getCurrentUser, getCurrentUserSync, getOAuthLoginUrl, getRefreshToken, getToken,
+  getCurrentUser, getCurrentUserSync, getIdentity, getOAuthLoginUrl, getRefreshToken, getSessionVersion, getToken,
   hasPermission, isElectron, loginWithLicenseKey, loginWithPassword, logout,
   oauthProviders, onSessionChange, refresh, setSession,
 } from "../../src/ui/lib/web/session";
@@ -31,6 +31,75 @@ describe("web session boundary", () => {
     off();
     setSession("b");
     expect(cb).toHaveBeenCalledTimes(1);
+    clearSession();
+  });
+
+  it("reacts to cross-tab token changes and advances the session generation", () => {
+    const before = getSessionVersion();
+    localStorage.setItem("omnibioai_access_token", "other-tab-token");
+    window.dispatchEvent(new StorageEvent("storage", { key: "unrelated" }));
+    expect(getSessionVersion()).toBe(before);
+    window.dispatchEvent(new StorageEvent("storage", { key: "omnibioai_access_token" }));
+    expect(getSessionVersion()).toBe(before + 1);
+    expect(document.cookie).toContain("omnibioai_access_token=other-tab-token");
+    localStorage.removeItem("omnibioai_access_token");
+    window.dispatchEvent(new StorageEvent("storage", { key: null }));
+    expect(getSessionVersion()).toBe(before + 2);
+  });
+
+  it("fetches canonical IAM identity with the active bearer token", async () => {
+    expect(await getIdentity()).toBeNull();
+    setSession("identity-token");
+    const identity = { user: { id: 4, email: "identity@test" }, organizations: [], global_roles: [] };
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify(identity), { status: 200 }));
+    await expect(getIdentity()).resolves.toEqual(identity);
+    expect(fetchMock).toHaveBeenCalledWith("/me", expect.objectContaining({
+      cache: "no-store",
+      credentials: "omit",
+      headers: { Accept: "application/json", Authorization: "Bearer identity-token" },
+    }));
+    clearSession();
+  });
+
+  it("clears only the current session on an IAM 401 and surfaces other IAM failures", async () => {
+    setSession("expired");
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("", { status: 401 }));
+    await expect(getIdentity()).resolves.toBeNull();
+    expect(getToken()).toBeNull();
+
+    setSession("active");
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("", { status: 503 }));
+    await expect(getIdentity()).rejects.toThrow("Identity service unavailable");
+
+    for (const invalid of [{}, { user: {} }, { user: { id: 2 } }, { user: { id: null, email: "a@test" } }]) {
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(JSON.stringify(invalid), { status: 200 }));
+      await expect(getIdentity()).rejects.toThrow("invalid profile");
+    }
+    clearSession();
+  });
+
+  it("discards IAM responses and parsed identities from an older session", async () => {
+    let resolveResponse;
+    const responsePending = new Promise(resolve => { resolveResponse = resolve; });
+    setSession("user-a");
+    vi.spyOn(globalThis, "fetch").mockReturnValueOnce(responsePending);
+    const oldRequest = getIdentity();
+    setSession("user-b");
+    resolveResponse(new Response(JSON.stringify({ user: { id: 1, email: "a@test" } }), { status: 200 }));
+    await expect(oldRequest).resolves.toBeNull();
+
+    let resolveJson;
+    const jsonPending = new Promise(resolve => { resolveJson = resolve; });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true, status: 200, json: () => jsonPending,
+    });
+    const parsedRequest = getIdentity();
+    await Promise.resolve();
+    setSession("user-c");
+    resolveJson({ user: { id: 2, email: "b@test" } });
+    await expect(parsedRequest).resolves.toBeNull();
     clearSession();
   });
 

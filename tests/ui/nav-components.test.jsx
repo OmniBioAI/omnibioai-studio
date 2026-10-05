@@ -47,6 +47,16 @@ describe("Sidebar", () => {
     expect(logout).toHaveBeenCalled();
   });
 
+  it("opens Profile from the signed-in desktop account area", () => {
+    const onProfileClick = vi.fn();
+    render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="idle"
+      currentUser={user} onProfileClick={onProfileClick} isProfileActive />);
+    const profile = screen.getByRole("button", { name: "Profile" });
+    expect(profile).toHaveAttribute("aria-current", "page");
+    fireEvent.click(profile);
+    expect(onProfileClick).toHaveBeenCalledOnce();
+  });
+
   it("hides the signed-in block when signed out, and falls back to IDLE for an unknown status", () => {
     render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="bogus" currentUser={null} />);
     expect(screen.queryByText("Sign out")).not.toBeInTheDocument();
@@ -64,6 +74,18 @@ describe("MobileNav", () => {
     fireEvent.click(screen.getByText("Sign out"));
     expect(logout).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens Profile from the signed-in mobile account area and closes the drawer", () => {
+    const onClose = vi.fn();
+    const onProfileClick = vi.fn();
+    render(<MobileNav nav={nav} step={4} setStep={vi.fn()} currentUser={user} open
+      onClose={onClose} onProfileClick={onProfileClick} isProfileActive />);
+    const profile = screen.getByRole("button", { name: "Profile" });
+    expect(profile).toHaveAttribute("aria-current", "page");
+    fireEvent.click(profile);
+    expect(onProfileClick).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("navigates via the Space key", () => {
