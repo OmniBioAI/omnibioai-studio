@@ -7,7 +7,7 @@ function initialsFor(email = "") {
   return (letters || email).slice(0, 2).toUpperCase();
 }
 
-export default function AccountMenu({ currentUser, onProfileClick, onAfterAction, isProfileActive = false }) {
+export default function AccountMenu({ currentUser, onProfileClick, onSecurityClick, onAfterAction, isProfileActive = false, isSecurityActive = false }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
@@ -46,6 +46,12 @@ export default function AccountMenu({ currentUser, onProfileClick, onAfterAction
     onAfterAction?.();
   };
 
+  const chooseSecurity = () => {
+    setOpen(false);
+    onSecurityClick();
+    onAfterAction?.();
+  };
+
   const signOut = () => {
     setOpen(false);
     onAfterAction?.();
@@ -64,6 +70,10 @@ export default function AccountMenu({ currentUser, onProfileClick, onAfterAction
           <button ref={firstItemRef} type="button" role="menuitem"
             aria-current={isProfileActive ? "page" : undefined} onClick={chooseProfile}>
             <span>Profile</span><span aria-hidden="true">›</span>
+          </button>
+          <button type="button" role="menuitem"
+            aria-current={isSecurityActive ? "page" : undefined} onClick={chooseSecurity}>
+            <span>Security</span><span aria-hidden="true">›</span>
           </button>
           <div className="account-menu-separator" />
           <button type="button" role="menuitem" className="account-menu-signout" onClick={signOut}>Sign out</button>

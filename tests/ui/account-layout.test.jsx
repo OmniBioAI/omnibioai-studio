@@ -6,13 +6,14 @@ import AccountLayout from "../../src/ui/components/AccountLayout";
 afterEach(cleanup);
 
 describe("AccountLayout", () => {
-  it("renders Profile as the only truthful section with semantic active state", () => {
+  it("renders implemented account sections with semantic active state", () => {
     render(<AccountLayout activeSection="profile" onNavigate={vi.fn()}><div>Canonical profile</div></AccountLayout>);
     expect(screen.getByRole("heading", { name: "Account" })).toBeInTheDocument();
     expect(screen.getByText("Canonical profile")).toBeInTheDocument();
     const profile = screen.getByRole("button", { name: "Profile" });
     expect(profile).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByText(/Storage|Usage|Security|Connections|Notifications|Preferences/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Security" })).not.toHaveAttribute("aria-current");
+    expect(screen.queryByText(/Storage|Usage|Connections|Notifications|Preferences/)).not.toBeInTheDocument();
   });
 
   it("delegates local navigation and supports future available sections without owning their data", () => {

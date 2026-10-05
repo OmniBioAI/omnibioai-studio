@@ -59,6 +59,17 @@ describe("Sidebar", () => {
     expect(onProfileClick).toHaveBeenCalledOnce();
   });
 
+  it("opens Security from the signed-in desktop account area", () => {
+    const onSecurityClick = vi.fn();
+    render(<Sidebar nav={nav} step={16} setStep={vi.fn()} systemStatus="idle" currentUser={user}
+      onProfileClick={vi.fn()} onSecurityClick={onSecurityClick} isSecurityActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const security = screen.getByRole("menuitem", { name: /Security/ });
+    expect(security).toHaveAttribute("aria-current", "page");
+    fireEvent.click(security);
+    expect(onSecurityClick).toHaveBeenCalledOnce();
+  });
+
   it("hides the signed-in block when signed out, and falls back to IDLE for an unknown status", () => {
     render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="bogus" currentUser={null} />);
     expect(screen.queryByText("Sign out")).not.toBeInTheDocument();
@@ -89,6 +100,17 @@ describe("MobileNav", () => {
     expect(profile).toHaveAttribute("aria-current", "page");
     fireEvent.click(profile);
     expect(onProfileClick).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("opens Security from the signed-in mobile account area and closes the drawer", () => {
+    const onClose = vi.fn();
+    const onSecurityClick = vi.fn();
+    render(<MobileNav nav={nav} step={16} setStep={vi.fn()} currentUser={user} open
+      onClose={onClose} onProfileClick={vi.fn()} onSecurityClick={onSecurityClick} isSecurityActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Security/ }));
+    expect(onSecurityClick).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
   });
 

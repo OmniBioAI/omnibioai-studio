@@ -15,7 +15,7 @@ const statusLabel = {
   error:    "ERROR",
 };
 
-export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, isProfileActive }) {
+export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, isProfileActive, isSecurityActive }) {
   return (
     <div style={{
       width:200, background:"var(--bg2)",
@@ -111,7 +111,8 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
       {/* Personal account control plane entry point. */}
       {currentUser && (
         <div className="studio-account-footer">
-          <AccountMenu currentUser={currentUser} onProfileClick={onProfileClick} isProfileActive={isProfileActive} />
+          <AccountMenu currentUser={currentUser} onProfileClick={onProfileClick} onSecurityClick={onSecurityClick}
+            isProfileActive={isProfileActive} isSecurityActive={isSecurityActive} />
         </div>
       )}
 

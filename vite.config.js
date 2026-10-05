@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
               // e.g. an OAuth redirect's "/?status=...", still match "/").
               // `/studio` is the canonical portal path and `/workbench` is a
               // legacy alias. Service paths remain network-only.
-              navigateFallbackAllowlist: [/^\/(?:studio(?:\/profile)?|workbench)?$/],
+              navigateFallbackAllowlist: [/^\/(?:studio(?:\/(?:profile|security))?|workbench)?$/],
             },
             manifest: {
               name: "OmniBioAI Studio",
@@ -136,6 +136,8 @@ export default defineConfig(({ mode }) => {
       // `npm run web` works against a real backend during local dev.
       ...(isWeb ? { "/auth": { target: `https://webstudio.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
       ...(isWeb ? { "/me": { target: `https://webstudio.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
+      ...(isWeb ? { "/users": { target: `https://webstudio.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
+      ...(isWeb ? { "/sessions": { target: `https://webstudio.omnibioai.org`, changeOrigin: true, secure: true } } : {}),
       // Web-mode-only: billingApi.js hits relative /billing/* paths; mirror
       // nginx-router.conf's auth_request-gated `location ^~ /billing` so
       // `npm run web` reaches billing-service against a real backend.

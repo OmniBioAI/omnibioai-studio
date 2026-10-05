@@ -42,6 +42,7 @@ vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ url, label, onB
 vi.mock("../../src/ui/pages/PluginPage", () => ({ default: ({ url, label, onBack, backLabel }) => <div data-testid="plugin-page-viewer" data-back-label={backLabel || ""}>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: ({ onBack }) => <div>Videos page<button onClick={onBack}>vback</button></div> }));
 vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
+vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Account Security page</div> }));
 
 import App from "../../src/ui/App";
 
@@ -114,6 +115,24 @@ describe("App shell — Studio landing", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     expect(await screen.findByText("Profile page")).toBeInTheDocument();
+  });
+
+  it("opens Security from Account", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Security/ }));
+    expect(await screen.findByText("Account Security page")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Security" })).toHaveAttribute("aria-current", "page");
+    expect(window.location.pathname).toBe("/studio/security");
+  });
+
+  it("loads Security directly", async () => {
+    window.history.replaceState({}, "", "/studio/security");
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Account Security page")).toBeInTheDocument());
   });
 
   it("opens the Videos viewer when visiting /studio/videos directly", async () => {

@@ -5,10 +5,11 @@
 //
 // "../lib/session" (not "./session") on purpose -- see rolesApi.js's import
 // comment: vite.config.js's web-build alias only matches that spelling.
-import { authUrl, getToken, clearSession } from "../lib/session";
+import { authUrl, getToken, clearSession, getSessionVersion } from "../lib/session";
 
 async function request(path, options = {}) {
   const token = getToken();
+  const version = getSessionVersion();
   const res = await fetch(authUrl(path), {
     ...options,
     headers: {
@@ -18,8 +19,11 @@ async function request(path, options = {}) {
     },
   });
 
+  if (version !== getSessionVersion() || token !== getToken()) return null;
+
   if (res.status === 401) {
     clearSession();
+    return null;
   }
 
   if (!res.ok) {
@@ -36,14 +40,17 @@ async function request(path, options = {}) {
   }
 
   if (res.status === 204) return null;
-  return res.json();
+  const data = await res.json();
+  if (version !== getSessionVersion() || token !== getToken()) return null;
+  return data;
 }
 
 // GET -> [{ id, name, key_prefix, scopes, status, created_at, expires_at, last_used_at }]
-export const listMyApiKeys = () => request("/me/api-keys");
+export const listMyApiKeys = ({ signal } = {}) => request("/me/api-keys", { signal });
 
 // POST -> { id, name, key_prefix, scopes, key }  (key is shown exactly once)
-export const createMyApiKey = (name) =>
-  request("/me/api-keys", { method: "POST", body: JSON.stringify({ name }) });
+export const createMyApiKey = (name, { signal } = {}) =>
+  request("/me/api-keys", { method: "POST", body: JSON.stringify({ name }), signal });
 
-export const revokeMyApiKey = (keyId) => request(`/me/api-keys/${keyId}`, { method: "DELETE" });
+export const revokeMyApiKey = (keyId, { signal } = {}) =>
+  request(`/me/api-keys/${keyId}`, { method: "DELETE", signal });

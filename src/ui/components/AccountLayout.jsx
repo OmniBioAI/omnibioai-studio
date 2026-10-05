@@ -1,8 +1,11 @@
 import React from "react";
 
-const PROFILE_SECTION = [{ id: "profile", label: "Profile" }];
+const IMPLEMENTED_SECTIONS = [
+  { id: "profile", label: "Profile" },
+  { id: "security", label: "Security" },
+];
 
-export default function AccountLayout({ activeSection, onNavigate, sections = PROFILE_SECTION, children }) {
+export default function AccountLayout({ activeSection, onNavigate, sections = IMPLEMENTED_SECTIONS, children }) {
   return (
     <section className="account-shell" aria-labelledby="account-heading">
       <header className="account-shell-header">

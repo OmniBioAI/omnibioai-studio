@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const session = vi.hoisted(() => ({
   authUrl: vi.fn((p) => `http://auth${p}`),
   getToken: vi.fn(() => "tok"),
+  getSessionVersion: vi.fn(() => 1),
   clearSession: vi.fn(),
 }));
 vi.mock("../../src/ui/lib/session", () => session);
@@ -12,7 +13,7 @@ import { createMyApiKey, listMyApiKeys, revokeMyApiKey } from "../../src/ui/lib/
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
-beforeEach(() => { session.getToken.mockReturnValue("tok"); session.clearSession.mockReset(); });
+beforeEach(() => { session.getToken.mockReturnValue("tok"); session.getSessionVersion.mockReturnValue(1); session.clearSession.mockReset(); });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("API keys client", () => {
@@ -44,7 +45,15 @@ describe("API keys client", () => {
     await expect(listMyApiKeys()).rejects.toMatchObject({ message: "Not an active member", status: 403 });
     expect(fetch.mock.calls[0][1].headers.Authorization).toBeUndefined();
     await expect(listMyApiKeys()).rejects.toMatchObject({ message: "Server Error", status: 500 });
-    await expect(listMyApiKeys()).rejects.toMatchObject({ status: 401 });
+    await expect(listMyApiKeys()).resolves.toBeNull();
     expect(session.clearSession).toHaveBeenCalledOnce();
+  });
+
+  it("forwards abort signals and rejects stale account responses", async () => {
+    const signal = new AbortController().signal;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json([{ id: 1 }])));
+    session.getSessionVersion.mockReturnValueOnce(1).mockReturnValueOnce(2);
+    expect(await listMyApiKeys({ signal })).toBeNull();
+    expect(fetch.mock.calls[0][1].signal).toBe(signal);
   });
 });

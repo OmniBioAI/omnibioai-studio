@@ -14,7 +14,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("AccountMenu", () => {
   it("shows canonical session identity and opens an accessible menu", () => {
-    render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} />);
+    render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} onSecurityClick={vi.fn()} />);
     const trigger = screen.getByRole("button", { name: "Account menu" });
     expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -24,6 +24,7 @@ describe("AccountMenu", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("menu", { name: "Account" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Profile/ })).toHaveFocus();
+    expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
     expect(screen.queryByText(/Storage|Usage|Connections|Notifications|Preferences/)).not.toBeInTheDocument();
   });
 
@@ -44,6 +45,17 @@ describe("AccountMenu", () => {
     expect(profile).toHaveAttribute("aria-current", "page");
     fireEvent.click(profile);
     expect(onProfileClick).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("navigates to the active Security section and closes", () => {
+    const onSecurityClick = vi.fn();
+    render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} onSecurityClick={onSecurityClick} isSecurityActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const security = screen.getByRole("menuitem", { name: /Security/ });
+    expect(security).toHaveAttribute("aria-current", "page");
+    fireEvent.click(security);
+    expect(onSecurityClick).toHaveBeenCalledOnce();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 

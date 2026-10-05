@@ -35,6 +35,8 @@ vi.mock("../../src/ui/pages/IdeServices", () => ({ default: () => <div>IDE page<
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: () => <div>Service page</div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: () => <div>Videos page</div> }));
+vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
+vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Security page</div> }));
 
 import App from "../../src/ui/App";
 
