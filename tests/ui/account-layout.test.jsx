@@ -13,7 +13,8 @@ describe("AccountLayout", () => {
     const profile = screen.getByRole("button", { name: "Profile" });
     expect(profile).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "Security" })).not.toHaveAttribute("aria-current");
-    expect(screen.queryByText(/Storage|Usage|Connections|Notifications|Preferences/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Preferences" })).not.toHaveAttribute("aria-current");
+    expect(screen.queryByText(/Storage|Usage|Connections|Notifications/)).not.toBeInTheDocument();
   });
 
   it("delegates local navigation and supports future available sections without owning their data", () => {

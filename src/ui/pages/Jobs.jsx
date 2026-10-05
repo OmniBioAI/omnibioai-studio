@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { isElectron, getToken } from "../lib/session";
+import { useAccountDateTime } from "../components/PreferencesProvider";
 
 function getHost() {
   return (
@@ -64,12 +65,9 @@ function Badge({ state }) {
   );
 }
 
-function ts(epoch) {
-  if (!epoch) return "—";
-  return new Date(epoch * 1000).toLocaleTimeString();
-}
-
 export default function Jobs() {
+  const formatDate = useAccountDateTime();
+  const ts = epoch => epoch ? formatDate(epoch * 1000, true) : "—";
   const [runs,     setRuns]     = useState([]);
   const [tools,    setTools]    = useState([]);
   const [servers,  setServers]  = useState([]);

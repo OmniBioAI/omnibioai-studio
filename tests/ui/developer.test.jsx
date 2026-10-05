@@ -34,7 +34,7 @@ describe("Developer page", () => {
     render(<Developer currentUser={user} />);
     await waitFor(() => expect(screen.getByText("notebook")).toBeInTheDocument());
     expect(screen.getByText("omni_sk_abcd…")).toBeInTheDocument();
-    expect(screen.getAllByText("2026-10-01 10:00")).toHaveLength(2);
+    expect(screen.getAllByText(new Date("2026-10-01T10:00:00Z").toLocaleString(undefined, { timeZoneName: "short" }))).toHaveLength(2);
     expect(screen.getAllByText("Revoke")).toHaveLength(1);
     expect(screen.getByText("revoked")).toBeInTheDocument();
     expect(screen.getAllByText(apiBaseUrl(), { exact: false }).length).toBeGreaterThan(0);

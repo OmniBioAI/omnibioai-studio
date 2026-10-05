@@ -3,6 +3,7 @@ import React from "react";
 const IMPLEMENTED_SECTIONS = [
   { id: "profile", label: "Profile" },
   { id: "security", label: "Security" },
+  { id: "preferences", label: "Preferences" },
 ];
 
 export default function AccountLayout({ activeSection, onNavigate, sections = IMPLEMENTED_SECTIONS, children }) {

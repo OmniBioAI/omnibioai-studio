@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, Input, Spinner, Table } from "@omnibioai/ui";
 import Login from "../components/Login";
 import * as apiKeysApi from "../lib/apiKeysApi";
+import { useAccountDateTime } from "../components/PreferencesProvider";
 
 // Self-service API keys for the public Literature AI API. A key is shown in
 // full exactly once, right after creation; afterwards only its prefix is
@@ -12,10 +13,6 @@ import * as apiKeysApi from "../lib/apiKeysApi";
 // /_svc/gateway on the same origin as the web app.
 export function apiBaseUrl() {
   return `${window.location.origin}/_svc/gateway`;
-}
-
-function formatDate(iso) {
-  return iso ? String(iso).replace("T", " ").slice(0, 16) : "—";
 }
 
 const sectionTitleStyle = { fontSize: "var(--font-size-sm)", fontWeight: 700, color: "#fff", marginBottom: 10 };
@@ -33,6 +30,7 @@ export default function Developer({ currentUser }) {
 }
 
 function ApiKeys() {
+  const formatDate = useAccountDateTime();
   const [keys, setKeys] = useState(null);
   const [error, setError] = useState("");
   const [noOrgContext, setNoOrgContext] = useState(false);

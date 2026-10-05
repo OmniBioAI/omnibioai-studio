@@ -3,14 +3,9 @@ import { Badge, Button, Card, Spinner } from "@omnibioai/ui";
 import * as securityApi from "../lib/securityApi";
 import * as apiKeysApi from "../lib/apiKeysApi";
 import MfaManagement from "../components/security/MfaManagement";
+import { useAccountDateTime } from "../components/PreferencesProvider";
 
 const loadingState = () => ({ status: "loading", data: null, error: "" });
-
-function formatDate(value) {
-  if (!value) return "Unavailable";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "Unavailable" : date.toLocaleString();
-}
 
 function SectionState({ state, label, onRetry }) {
   if (state.status === "loading") {
@@ -32,6 +27,7 @@ function StatusRow({ label, children }) {
 }
 
 export default function AccountSecurity({ currentUser }) {
+  const formatDate = useAccountDateTime();
   const ownerKey = `${currentUser?.userId ?? ""}:${currentUser?.email ?? ""}`;
   const generation = useRef(0);
   const [mfa, setMfa] = useState(loadingState);

@@ -1,4 +1,6 @@
 import React from "react";
+vi.mock("../../src/ui/components/PreferencesProvider", () => ({ default: ({ children }) => <>{children}</> }));
+vi.mock("../../src/ui/pages/AccountPreferences", () => ({ default: () => <div>Account Preferences page</div> }));
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -57,6 +59,20 @@ beforeEach(() => {
 });
 
 describe("App shell — Studio landing", () => {
+  it("opens Preferences directly with account breadcrumb and navigates between all account sections", async () => {
+    getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/preferences");
+    render(<App />); await screen.findByText("Account Preferences page");
+    expect(screen.getByText("account", { selector: "span" })).toBeInTheDocument();
+    const accountNav = document.querySelector('[aria-label="Account settings"]');
+    expect(accountNav.querySelector('[aria-current="page"]')).toHaveTextContent("Preferences");
+    fireEvent.click([...accountNav.querySelectorAll("button")].find(button => button.textContent === "Profile"));
+    await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
+    fireEvent.click(screen.getByRole("button", { name: "Preferences", exact: true }));
+    await screen.findByText("Account Preferences page"); expect(location.pathname).toBe("/studio/preferences");
+    fireEvent.click(screen.getByRole("button", { name: "Security", exact: true })); await screen.findByText("Account Security page");
+    fireEvent.click(screen.getByRole("button", { name: "Preferences", exact: true })); await screen.findByText("Account Preferences page");
+    expect(document.querySelector('[data-nav-item="Preferences"]')).toBeNull();
+  });
   it("lands authenticated users on Studio and keeps Mode accessible", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);

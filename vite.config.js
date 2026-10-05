@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
               // e.g. an OAuth redirect's "/?status=...", still match "/").
               // `/studio` is the canonical portal path and `/workbench` is a
               // legacy alias. Service paths remain network-only.
-              navigateFallbackAllowlist: [/^\/(?:studio(?:\/(?:profile|security))?|workbench)?$/],
+              navigateFallbackAllowlist: [/^\/(?:studio(?:\/(?:profile|security|preferences))?|workbench)?$/],
             },
             manifest: {
               name: "OmniBioAI Studio",

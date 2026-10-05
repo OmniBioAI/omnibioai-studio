@@ -6,7 +6,7 @@ import AccountMenu from "./AccountMenu";
 // <Sidebar> — permission filtering (manage_roles) and active-route logic
 // stay in perfect sync with desktop because nothing nav-related is
 // duplicated here, only re-rendered as a drawer instead of a fixed rail.
-export default function MobileNav({ nav, step, setStep, currentUser, open, onClose, onProfileClick, onSecurityClick, isProfileActive, isSecurityActive }) {
+export default function MobileNav({ nav, step, setStep, currentUser, open, onClose, onProfileClick, onSecurityClick, onPreferencesClick, isProfileActive, isSecurityActive, isPreferencesActive }) {
   const closeBtnRef = useRef(null);
   const stepRef = useRef(step);
 
@@ -148,6 +148,7 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
           <div className="studio-account-footer studio-account-footer--mobile">
             <AccountMenu currentUser={currentUser} onProfileClick={onProfileClick}
               onSecurityClick={onSecurityClick} onAfterAction={onClose}
+              onPreferencesClick={onPreferencesClick} isPreferencesActive={isPreferencesActive}
               isProfileActive={isProfileActive} isSecurityActive={isSecurityActive} />
           </div>
         )}

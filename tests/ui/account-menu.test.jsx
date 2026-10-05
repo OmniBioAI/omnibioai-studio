@@ -13,6 +13,15 @@ const user = { userId: 7, email: "manish.kumar@omnibioai.org" };
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("AccountMenu", () => {
+  it.each([true, false])("navigates to Preferences and closes; mobile=%s", mobile => {
+    const navigate = vi.fn(), close = vi.fn();
+    render(<AccountMenu currentUser={user} onPreferencesClick={navigate} onAfterAction={mobile ? close : undefined} isPreferencesActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const item = screen.getByRole("menuitem", { name: /Preferences/ });
+    expect(item).toHaveAttribute("aria-current", "page"); fireEvent.click(item);
+    expect(navigate).toHaveBeenCalledOnce(); expect(close).toHaveBeenCalledTimes(mobile ? 1 : 0);
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
   it("shows canonical session identity and opens an accessible menu", () => {
     render(<AccountMenu currentUser={user} onProfileClick={vi.fn()} onSecurityClick={vi.fn()} />);
     const trigger = screen.getByRole("button", { name: "Account menu" });
@@ -25,7 +34,8 @@ describe("AccountMenu", () => {
     expect(screen.getByRole("menu", { name: "Account" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Profile/ })).toHaveFocus();
     expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
-    expect(screen.queryByText(/Storage|Usage|Connections|Notifications|Preferences/)).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Storage|Usage|Connections|Notifications/)).not.toBeInTheDocument();
   });
 
   it("opens from the keyboard through its semantic trigger", async () => {

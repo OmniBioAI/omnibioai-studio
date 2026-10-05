@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/ui/lib/session", () => ({
+  getSessionVersion: () => 0,
   isElectron: () => true,
   getToken: () => "test-token",
   getRefreshToken: () => null,
@@ -19,6 +20,7 @@ vi.mock("../../src/ui/lib/session", () => ({
   refresh: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock("../../src/ui/lib/preferencesApi", () => ({ getPreferences: vi.fn().mockResolvedValue({ timezone: null }) }));
 vi.mock("../../src/ui/lib/rolesApi", () => ({
   listRoles: vi.fn().mockResolvedValue([]),
   createRole: vi.fn().mockResolvedValue({ id: "new", name: "new", permissions: [] }),

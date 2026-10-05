@@ -7,7 +7,7 @@ function initialsFor(email = "") {
   return (letters || email).slice(0, 2).toUpperCase();
 }
 
-export default function AccountMenu({ currentUser, onProfileClick, onSecurityClick, onAfterAction, isProfileActive = false, isSecurityActive = false }) {
+export default function AccountMenu({ currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onAfterAction, isProfileActive = false, isSecurityActive = false, isPreferencesActive = false }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
@@ -75,6 +75,8 @@ export default function AccountMenu({ currentUser, onProfileClick, onSecurityCli
             aria-current={isSecurityActive ? "page" : undefined} onClick={chooseSecurity}>
             <span>Security</span><span aria-hidden="true">›</span>
           </button>
+          <button type="button" role="menuitem" aria-current={isPreferencesActive ? "page" : undefined}
+            onClick={() => { setOpen(false); onPreferencesClick(); onAfterAction?.(); }}>Preferences<span aria-hidden="true"> ›</span></button>
           <div className="account-menu-separator" />
           <button type="button" role="menuitem" className="account-menu-signout" onClick={signOut}>Sign out</button>
         </div>

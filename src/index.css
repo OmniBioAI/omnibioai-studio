@@ -82,6 +82,11 @@
 .security-created-key code { padding: 9px; border: 1px solid var(--border); background: var(--bg); overflow-wrap: anywhere; }
 .security-created-key > div { display: flex; gap: 8px; }
 .mfa-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.account-preferences-description { color: var(--color-text-muted); }
+.account-preferences-form { display: grid; gap: 12px; min-width: 0; }
+.account-preferences-form input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; }
+.account-preferences-form p { margin: 0; overflow-wrap: anywhere; }
+.account-preferences-form button { justify-self: start; min-height: 44px; }
 .mfa-dialog { width: min(480px, calc(100vw - 40px)); max-height: calc(100dvh - 40px); box-sizing: border-box; overflow-y: auto; padding: 20px; border: 1px solid var(--border2); border-radius: var(--radius-lg); background: var(--bg3); color: var(--text); }
 .mfa-dialog::backdrop { background: rgba(0,0,0,.65); }
 .mfa-dialog h3 { margin-top: 0; }
