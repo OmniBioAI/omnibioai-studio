@@ -387,7 +387,8 @@ services:
       # gateway's own, see redis_api_gateway_v1 above). Periodically
       # publishes each org's remaining allowance for the gateway's own
       # atomic reserve-before-work quota check to read.
-      GATEWAY_QUOTA_REDIS_URL: redis://redis_billing_quota_writer:${REDIS_BILLING_QUOTA_WRITER_PASSWORD}@redis:6379
+      GATEWAY_QUOTA_REDIS_URL: redis://redis_billing_quota_writer@redis:6379
+      GATEWAY_QUOTA_REDIS_PASSWORD: ${REDIS_BILLING_QUOTA_WRITER_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
@@ -1676,11 +1677,11 @@ services:
       - "${HOST_IP:-0.0.0.0}:8003:8003"
     environment:
       PYTHONUNBUFFERED: "1"
-      DB_HOST: mysql
-      DB_PORT: "3306"
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
-      DB_NAME: ${MYSQL_DEFAULT_DB:-omnibioai}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      MYSQL_DB: ${MYSQL_DEFAULT_DB:-omnibioai}
     depends_on:
       mysql:
         condition: service_healthy

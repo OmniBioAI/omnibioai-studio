@@ -75,6 +75,14 @@ class RedisAclBootstrapTests(unittest.TestCase):
         self.assertEqual(rag_target["commands"], ["PING", "GET", "SETEX", "DEL", "ZADD", "ZRANGE", "ZRANGEBYLEX", "ZREM", "ZCARD", "MULTI", "EXEC"])
         self.assertEqual(rag_target["key_patterns"], ["~rag:query:*", "~rag:studies_list"])
 
+    def test_quota_writer_can_clear_stale_overrides_only_in_quota_namespace(self):
+        writer = next(u for u in self.policy["users"] if u["name"] == "redis_billing_quota_writer")
+        self.assertEqual(writer["key_patterns"], ["~gateway:v1:quota:*"])
+        self.assertEqual(set(writer["command_rules"]), {
+            "-@all", "+ping", "+select", "+client|setinfo", "+get", "+set", "+del",
+        })
+        self.assertEqual(writer["selectors"], [])
+
     def test_empty_volume_bootstraps_acl_and_secret_safe_inspection(self):
         self.assertEqual(self.boot(), "initialized")
         acl_path = self.data / acl.ACL_NAME
