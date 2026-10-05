@@ -1,9 +1,14 @@
+# OmniBioAI — Docker Socket Proxy
+# Purpose: Run the policy-enforcing proxy for the host Docker socket.
+# Author: Manish Kumar <manish@omnibioai.org>
+
 # #265: minimal, dependency-free (stdlib asyncio only) policy-enforcing
 # proxy sitting between the workbench container and the real host
 # docker.sock. See policy.py's module docstring for the threat model.
 FROM python:3.12-slim
 
 WORKDIR /app
+# Application source
 COPY proxy.py policy.py ./
 
 # Runs as root: it needs to connect to the real docker.sock, which is

@@ -1,7 +1,12 @@
+# OmniBioAI — Studio License Service
+# Purpose: Build the FastAPI license service container.
+# Author: Manish Kumar <manish@omnibioai.org>
+
 FROM python:3.11-slim
 
 WORKDIR /app
 
+# Python dependencies
 RUN pip install fastapi uvicorn pymysql sqlalchemy requests --no-cache-dir
 
 COPY license_server.py .
