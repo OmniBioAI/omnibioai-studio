@@ -82,6 +82,28 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Sign out")).not.toBeInTheDocument();
     expect(screen.getByText("IDLE")).toBeInTheDocument();
   });
+
+  it("renders a disabled nav item as genuinely inert: no onClick fires, aria-disabled is set, and it is never 'active'", () => {
+    const askNav = [{ section: "AI", items: [{ name: "Ask OmniBioAI", idx: -1, disabled: true }] }];
+    const setStep = vi.fn();
+    render(<Sidebar nav={askNav} step={-1} setStep={setStep} systemStatus="idle" currentUser={null} />);
+    const ask = screen.getByText("Ask OmniBioAI", { selector: "div" });
+    expect(ask).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(ask);
+    expect(setStep).not.toHaveBeenCalled();
+  });
+
+  it("renders Code and Workflows nav entries generically and forwards their idx on click, with no component changes required", () => {
+    const codeWorkflowsNav = [{ section: "Runtime", items: [
+      { name: "Jobs", idx: 9 }, { name: "Code", idx: 18 }, { name: "Workflows", idx: 19 },
+    ] }];
+    const setStep = vi.fn();
+    render(<Sidebar nav={codeWorkflowsNav} step={9} setStep={setStep} systemStatus="idle" currentUser={null} />);
+    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    expect(setStep).toHaveBeenCalledWith(18);
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(setStep).toHaveBeenCalledWith(19);
+  });
 });
 
 describe("MobileNav", () => {
@@ -128,6 +150,24 @@ describe("MobileNav", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("navigates via the Enter key", () => {
+    const setStep = vi.fn();
+    const onClose = vi.fn();
+    render(<MobileNav nav={nav} step={0} setStep={setStep} currentUser={null} open onClose={onClose} />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Launch" }), { key: "Enter" });
+    expect(setStep).toHaveBeenCalledWith(4);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("ignores keys other than Enter/Space on a nav item", () => {
+    const setStep = vi.fn();
+    const onClose = vi.fn();
+    render(<MobileNav nav={nav} step={0} setStep={setStep} currentUser={null} open onClose={onClose} />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Launch" }), { key: "Tab" });
+    expect(setStep).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("navigates via the Space key", () => {
     const setStep = vi.fn();
     const onClose = vi.fn();
@@ -148,6 +188,33 @@ describe("MobileNav", () => {
     const { container } = render(<MobileNav nav={nav} step={0} setStep={vi.fn()} currentUser={user} open={false} onClose={vi.fn()} />);
     expect(container.querySelector('[role="dialog"]')).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
+  });
+
+  it("renders a disabled nav item as genuinely inert: no onClick fires, not keyboard-activatable (tabIndex=-1, no keydown handler), aria-disabled is set", () => {
+    const askNav = [{ section: "AI", items: [{ name: "Ask OmniBioAI", idx: -1, disabled: true }] }];
+    const setStep = vi.fn();
+    render(<MobileNav nav={askNav} step={-1} setStep={setStep} currentUser={null} open onClose={vi.fn()} />);
+    const ask = screen.getByText("Ask OmniBioAI", { selector: "div" });
+    expect(ask).toHaveAttribute("aria-disabled", "true");
+    expect(ask).toHaveAttribute("tabIndex", "-1");
+    fireEvent.click(ask);
+    expect(setStep).not.toHaveBeenCalled();
+    fireEvent.keyDown(ask, { key: "Enter" });
+    expect(setStep).not.toHaveBeenCalled();
+  });
+
+  it("renders Code and Workflows nav entries generically and forwards their idx on click, closing the drawer", () => {
+    const codeWorkflowsNav = [{ section: "Runtime", items: [
+      { name: "Jobs", idx: 9 }, { name: "Code", idx: 18 }, { name: "Workflows", idx: 19 },
+    ] }];
+    const setStep = vi.fn();
+    const onClose = vi.fn();
+    render(<MobileNav nav={codeWorkflowsNav} step={9} setStep={setStep} currentUser={null} open onClose={onClose} />);
+    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    expect(setStep).toHaveBeenCalledWith(18);
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(setStep).toHaveBeenCalledWith(19);
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 });
 

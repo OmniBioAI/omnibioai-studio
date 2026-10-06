@@ -15,7 +15,7 @@ const statusLabel = {
   error:    "ERROR",
 };
 
-export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, isProfileActive, isSecurityActive, isPreferencesActive }) {
+export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onNotificationsClick, isNotificationsActive, isProfileActive, isSecurityActive, isPreferencesActive }) {
   return (
     <div style={{
       width:200, background:"var(--bg2)",
@@ -72,18 +72,19 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
             }}>
               {section}
             </div>}
-            {items.map(({ name, idx }) => {
-              const isActive = step === idx;
+            {items.map(({ name, idx, disabled }) => {
+              const isActive = !disabled && step === idx;
               return (
                 <div
                   key={name}
                   data-nav-item={name}
-                  onClick={() => setStep(idx)}
+                  onClick={disabled ? undefined : () => setStep(idx)}
+                  aria-disabled={disabled || undefined}
                   style={{
                     display:"flex", alignItems:"center", gap:8,
-                    padding:"7px 8px", borderRadius:'var(--radius-sm)', cursor:"pointer",
+                    padding:"7px 8px", borderRadius:'var(--radius-sm)', cursor: disabled ? "default" : "pointer",
                     fontSize:'var(--font-size-sm)', marginBottom:1, position:"relative",
-                    transition:"all 0.15s",
+                    transition:"all 0.15s", opacity: disabled ? 0.5 : 1,
                     color:      isActive ? "var(--accent)" : "var(--color-text-muted)",
                     background: isActive ? "rgba(0,229,160,0.08)" : "transparent",
                     border:     isActive ? "1px solid rgba(0,229,160,0.15)" : "1px solid transparent",
@@ -101,6 +102,14 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
                     background:"currentColor", opacity: isActive ? 1 : 0.4, flexShrink:0,
                   }} />
                   {name}
+                  {disabled && (
+                    <span style={{
+                      marginLeft:"auto", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+                      color:"var(--color-text-muted)", letterSpacing:"0.04em",
+                    }}>
+                      Coming soon
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -113,6 +122,7 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
         <div className="studio-account-footer">
           <AccountMenu currentUser={currentUser} onProfileClick={onProfileClick} onSecurityClick={onSecurityClick}
             onPreferencesClick={onPreferencesClick} isPreferencesActive={isPreferencesActive}
+              onNotificationsClick={onNotificationsClick} isNotificationsActive={isNotificationsActive}
             isProfileActive={isProfileActive} isSecurityActive={isSecurityActive} />
         </div>
       )}

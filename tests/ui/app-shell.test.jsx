@@ -46,6 +46,8 @@ vi.mock("../../src/ui/pages/Videos", () => ({ default: ({ onBack }) => <div>Vide
 vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
 vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Account Security page</div> }));
 
+vi.mock("../../src/ui/pages/AccountNotifications", () => ({ default: () => <div>Account Notifications page</div> }));
+
 import App from "../../src/ui/App";
 
 beforeEach(() => {
@@ -80,11 +82,12 @@ describe("App shell — Studio landing", () => {
     expect(screen.getByText("Studio", { selector: "div" })).toBeInTheDocument();
     const sections = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
     expect(sections.map((section) => section.getAttribute("data-nav-section"))).toEqual([
-      "", "Setup", "Runtime", "Security", "System",
+      "", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "System",
     ]);
     expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
-    expect(sections[2].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Jobs.*Billing.*Developer/);
-    expect(sections[2].textContent).not.toContain("Studio");
+    expect(sections[5].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Billing.*Developer/);
+    expect(sections[5].textContent).not.toContain("Studio");
+    expect(sections[5].textContent).not.toContain("Jobs");
     expect(document.querySelector("[data-nav-item='Profile']")).not.toBeInTheDocument();
     expect(document.querySelector("[data-nav-item='Storage']")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Mode", { selector: "div" }));
@@ -339,6 +342,166 @@ describe("App shell — navigation and roles nav", () => {
   });
 });
 
+describe("App shell — Code and Workflows navigation (Phase A)", () => {
+  it("opens the existing Launcher service when Code is selected, using the canonical Electron webview path", async () => {
+    getCurrentUser.mockResolvedValue(admin); // isElectron() is true by default in this file's beforeEach
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    expect(await screen.findByText("ServiceViewer:Code:http://localhost:5174/_svc/sdk")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("svback"));
+    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
+  });
+
+  it("opens the existing Workflow Registry service when Workflows is selected, using the canonical Electron webview path", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(await screen.findByText("ServiceViewer:Workflows:http://localhost:5174/_svc/workflows")).toBeInTheDocument();
+  });
+
+  it("still opens Code and Workflows as the canonical same-origin service in the browser (non-Electron) path", async () => {
+    // Doesn't assert an exact origin here: App.jsx's pre-existing resolveServiceUrl
+    // also rewrites any /_svc/* URL whenever Vite's own DEV flag is on, independent
+    // of isElectron() -- the same already-shared behavior every dashboard-tile
+    // service goes through. What matters for Phase A is that Code/Workflows reuse
+    // that exact mechanism rather than bypassing it.
+    isElectron.mockReturnValue(false);
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    expect(await screen.findByText(/^ServiceViewer:Code:.*\/_svc\/sdk$/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("svback"));
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(await screen.findByText(/^ServiceViewer:Workflows:.*\/_svc\/workflows$/)).toBeInTheDocument();
+  });
+
+  it("leaves Jobs' own behavior and the Account menu unchanged", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    expect(screen.getByRole("menuitem", { name: /Profile/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Notifications/ })).toBeInTheDocument();
+  });
+});
+
+describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
+  it("renders Studio, AI, Work, Discover, Setup, Runtime, Security and System exactly once each, in order, with the exact Work order and no duplicate items", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+
+    const sectionEls = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
+    const sectionNames = sectionEls.map(el => el.getAttribute("data-nav-section"));
+    expect(sectionNames).toEqual(["", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "System"]);
+
+    const aiSection = sectionEls[sectionNames.indexOf("AI")];
+    expect([...aiSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual(["Ask OmniBioAI"]);
+
+    const workSection = sectionEls[sectionNames.indexOf("Work")];
+    expect([...workSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual([
+      "Projects", "Code", "Workflows", "Jobs", "Artifacts",
+    ]);
+
+    const discoverSection = sectionEls[sectionNames.indexOf("Discover")];
+    expect([...discoverSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual(["Explore"]);
+
+    const allItems = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-item]")].map(el => el.getAttribute("data-nav-item"));
+    for (const name of ["Code", "Workflows", "Jobs", "Projects", "Artifacts", "Explore", "Ask OmniBioAI"]) {
+      expect(allItems.filter(n => n === name)).toHaveLength(1);
+    }
+  });
+
+  it("no longer lists Code, Workflows or Jobs under Runtime", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    const sectionEls = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
+    const runtime = sectionEls.find(el => el.getAttribute("data-nav-section") === "Runtime");
+    const runtimeItems = [...runtime.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"));
+    expect(runtimeItems).toEqual(["Launch", "Services", "IDE Services", "Logs", "Billing", "Developer"]);
+  });
+
+  it("Ask OmniBioAI is visible but disabled: not clickable, no navigation, no local page, no Dev Hub fallback", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    const ask = screen.getByText("Ask OmniBioAI", { selector: "div" });
+    expect(ask).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(ask);
+    // No navigation of any kind happened: still on Studio, no service opened, no "ask" page rendered.
+    expect(screen.getByText("Studio page")).toBeInTheDocument();
+    expect(screen.queryByText(/ServiceViewer:/)).not.toBeInTheDocument();
+    expect(window.location.pathname).toBe("/studio");
+  });
+
+  it("Projects, Artifacts and Explore are local native shells that render with no backend call and no fake data", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+
+    for (const [label, heading, disabledCreate] of [
+      ["Projects", "Projects", true],
+      ["Artifacts", "Artifacts", false],
+      ["Explore", "Explore", false],
+    ]) {
+      fetchSpy.mockClear();
+      fireEvent.click(screen.getByText(label, { selector: "div" }));
+      expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
+      // Local shell: no network call made to render it.
+      expect(fetchSpy).not.toHaveBeenCalled();
+      // No fake platform data of any kind.
+      const body = document.body.textContent;
+      for (const fakeMarker of [
+        /\b\d+\s*(projects?|artifacts?|collaborators?|runs?|workflows? run)\b/i,
+        /storage used/i, /recent activity/i, /GB\b/, /MB\b/,
+      ]) {
+        expect(body).not.toMatch(fakeMarker);
+      }
+      fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
+      await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    }
+    vi.unstubAllGlobals();
+  });
+
+  it("Projects' Create project action is a genuinely disabled control, not a CSS-only fake", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Projects", { selector: "div" }));
+    const createButton = await screen.findByRole("button", { name: "Create project" });
+    expect(createButton).toBeDisabled();
+  });
+
+  it("supports direct deep links to /studio/projects, /studio/artifacts and /studio/explore", async () => {
+    for (const [path, heading] of [
+      ["/studio/projects", "Projects"],
+      ["/studio/artifacts", "Artifacts"],
+      ["/studio/explore", "Explore"],
+    ]) {
+      window.history.replaceState({}, "", path);
+      getCurrentUser.mockResolvedValue(admin);
+      const { unmount } = render(<App />);
+      expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
+      unmount();
+    }
+  });
+});
+
 describe("App shell — OAuth redirect notices", () => {
   it("shows the link-confirmation dialog and clears it on done/cancel", async () => {
     consumeOAuthRedirectParams.mockReturnValue({ type: "link_required", linkToken: "lt", provider: "google", email: "a@b.test" });
@@ -463,4 +626,16 @@ describe("App shell — native Workbench catalog", () => {
     expect(window.location.pathname).toBe("/studio");
     vi.unstubAllGlobals();
   });
+});
+
+
+it("opens the Notifications Account route without adding primary navigation", async () => {
+  getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/notifications");
+  render(<App />); await screen.findByText("Account Notifications page");
+  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent("Notifications");
+  expect(document.querySelector('[data-nav-item="Notifications"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
+  await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
+  fireEvent.click(screen.getByRole("button", { name: "Notifications", exact: true }));
+  await screen.findByText("Account Notifications page"); expect(location.pathname).toBe("/studio/notifications");
 });

@@ -25,6 +25,10 @@ import Developer from "./pages/Developer";
 import Profile from "./pages/Profile";
 import AccountSecurity from "./pages/AccountSecurity";
 import AccountPreferences from "./pages/AccountPreferences";
+import AccountNotifications from "./pages/AccountNotifications";
+import Projects from "./pages/Projects";
+import Artifacts from "./pages/Artifacts";
+import Explore from "./pages/Explore";
 import PreferencesProvider from "./components/PreferencesProvider";
 import AccountLayout from "./components/AccountLayout";
 import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
@@ -34,8 +38,35 @@ import { GrafanaViewer } from "./components/GrafanaViewer";
 import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } from "./lib/session";
 import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 
+// idx values: 0-17 are real `step` pages (see `pages` below); 18/19 are the
+// Code/Workflows service aliases (never a real step -- see
+// EXTERNAL_NAV_SERVICES); 20-22 are the new native Projects/Artifacts/Explore
+// shells; -1 is Ask OmniBioAI's placeholder, which never navigates at all
+// (see the `disabled` nav-item contract below).
+const ASK_NAV_IDX = -1;
+const PROJECTS_PAGE = 20;
+const ARTIFACTS_PAGE = 21;
+const EXPLORE_PAGE = 22;
+
 const BASE_NAV = [
-  { section: null,     items: [{ name:"Studio", idx:7 }] },
+  { section: null, items: [{ name:"Studio", idx:7 }] },
+  // Ask OmniBioAI is intentionally unwired -- the real implementation lives in
+  // the sibling Dev Hub app and Studio has no verified stable deep link to its
+  // Ask page yet, so this item is visible but not an operational destination
+  // (see the Sidebar/MobileNav `disabled` handling).
+  { section: "AI", items: [
+    { name:"Ask OmniBioAI", idx: ASK_NAV_IDX, disabled: true },
+  ]},
+  { section: "Work", items: [
+    { name:"Projects",  idx: PROJECTS_PAGE },
+    { name:"Code",      idx: 18 },
+    { name:"Workflows", idx: 19 },
+    { name:"Jobs",      idx: 9  },
+    { name:"Artifacts", idx: ARTIFACTS_PAGE },
+  ]},
+  { section: "Discover", items: [
+    { name:"Explore", idx: EXPLORE_PAGE },
+  ]},
   { section: "Setup",   items: [
     { name:"Mode",      idx:0 },
     { name:"LLM",       idx:1 },
@@ -47,7 +78,6 @@ const BASE_NAV = [
     { name:"Services",     idx:5  },
     { name:"IDE Services", idx:10 },
     { name:"Logs",         idx:6  },
-    { name:"Jobs",         idx:9  },
     { name:"Billing",      idx:12 },
     { name:"Developer",    idx:14 },
   ]},
@@ -57,15 +87,16 @@ const BASE_NAV = [
 ];
 
 // "Roles" nav item is inserted only for users holding manage_roles — non-admins
-// never see it, per the Role Management definition of done.
+// never see it, per the Role Management definition of done. Spliced in right
+// after "Runtime" by section name (rather than a fixed array index) so this
+// keeps working regardless of how many groups precede Runtime.
 function buildNav(canManageRoles) {
   if (!canManageRoles) return BASE_NAV;
+  const afterRuntime = BASE_NAV.findIndex(group => group.section === "Runtime") + 1;
   return [
-    BASE_NAV[0],
-    BASE_NAV[1],
-    BASE_NAV[2],
+    ...BASE_NAV.slice(0, afterRuntime),
     { section: "Security", items: [{ name: "Roles", idx: 11 }] },
-    BASE_NAV[3],
+    ...BASE_NAV.slice(afterRuntime),
   ];
 }
 
@@ -74,12 +105,16 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench","developer","profile","security","preferences"
+  "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench","developer","profile","security","preferences",
+  "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
+  "projects","artifacts","explore","notifications",
 ];
 
 const PAGE_LABELS = [
   "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
   "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench", "Developer", "Profile", "Security", "Preferences",
+  "Code", "Workflows",
+  "Projects", "Artifacts", "Explore", "Notifications",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -89,9 +124,41 @@ const SECURITY_PATH = "/studio/security";
 const SECURITY_PAGE = 16;
 const PREFERENCES_PATH = "/studio/preferences";
 const PREFERENCES_PAGE = 17;
-const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE };
+const NOTIFICATIONS_PATH = "/studio/notifications";
+const NOTIFICATIONS_PAGE = 23;
+const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, notifications: NOTIFICATIONS_PAGE };
+const PROJECTS_PATH = "/studio/projects";
+const ARTIFACTS_PATH = "/studio/artifacts";
+const EXPLORE_PATH = "/studio/explore";
 const VIDEO_STUDIO_PATH = "/studio/videos";
 const LEGACY_PORTAL_PATH = "/workbench";
+
+// Every native page with its own bookmarkable URL, in both directions --
+// extends the exact mechanism the three Account pages already use (manual
+// history.replaceState, no router) to the three new native shells.
+const PATH_TO_PAGE = {
+  [PROFILE_PATH]:     PROFILE_PAGE,
+  [SECURITY_PATH]:    SECURITY_PAGE,
+  [PREFERENCES_PATH]: PREFERENCES_PAGE,
+  [NOTIFICATIONS_PATH]: NOTIFICATIONS_PAGE,
+  [PROJECTS_PATH]:    PROJECTS_PAGE,
+  [ARTIFACTS_PATH]:   ARTIFACTS_PAGE,
+  [EXPLORE_PATH]:     EXPLORE_PAGE,
+};
+const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([path, page]) => [page, path]));
+const KNOWN_PAGE_PATHS = Object.keys(PATH_TO_PAGE);
+
+// "Code" and "Workflows" are nav-only aliases onto the existing Launcher and
+// Workflow Registry services already reachable from Studio's dashboard tiles
+// -- idx 18/19 never become the `step` (handleNavClick intercepts them below
+// and opens the same `service` state every dashboard tile already opens),
+// so `pages[18]`/`pages[19]` are unused placeholders (see `pages` below).
+const CODE_NAV_IDX = 18;
+const WORKFLOWS_NAV_IDX = 19;
+const EXTERNAL_NAV_SERVICES = {
+  [CODE_NAV_IDX]:      { url: "/_svc/sdk",       label: "Code" },
+  [WORKFLOWS_NAV_IDX]: { url: "/_svc/workflows", label: "Workflows" },
+};
 
 function getInitialService() {
   if (typeof window !== "undefined" && window.location.pathname === VIDEO_STUDIO_PATH) {
@@ -120,9 +187,7 @@ function getSafeReturnTo() {
 }
 
 export default function App() {
-  const [step,         setStep]         = useState(() => window.location.pathname === PROFILE_PATH
-    ? PROFILE_PAGE
-    : window.location.pathname === SECURITY_PATH ? SECURITY_PAGE : window.location.pathname === PREFERENCES_PATH ? PREFERENCES_PAGE : 7);
+  const [step,         setStep]         = useState(() => PATH_TO_PAGE[window.location.pathname] ?? 7);
   const [systemStatus, setSystemStatus] = useState("idle");
   const [ready,        setReady]        = useState(false);
   const [config,       setConfig]       = useState({
@@ -296,6 +361,14 @@ export default function App() {
     <AccountLayout activeSection="preferences" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountPreferences />
     </AccountLayout>,
+    null, // 18 — "Code" opens an external service directly (handleNavClick); never rendered as a page
+    null, // 19 — "Workflows" opens an external service directly (handleNavClick); never rendered as a page
+    <Projects />,
+    <Artifacts />,
+    <Explore />,
+    <AccountLayout activeSection="notifications" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      <AccountNotifications currentUser={currentUser} />
+    </AccountLayout>,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -318,11 +391,25 @@ export default function App() {
   }
 
   function handleNavClick(idx) {
+    const externalService = EXTERNAL_NAV_SERVICES[idx];
+    if (externalService) {
+      // Same Electron-vs-browser absolute URL resolution Studio.jsx's own
+      // dashboard tiles already use for this exact pair of services --
+      // Electron's <webview> needs a fully-qualified src, a browser tab
+      // must stay same-origin relative so nginx-router still proxies it.
+      let url = externalService.url;
+      if (url.startsWith("/") && isElectron()) {
+        const devHost = url.startsWith("/_svc/") && import.meta.env.DEV ? "http://localhost:5174" : "http://localhost";
+        url = `${devHost}${url}`;
+      }
+      setService({ url, label: externalService.label });
+      return;
+    }
     if (Object.values(ACCOUNT_PAGES).includes(idx) || service?.source === "workbench") setService(null);
     setStep(idx);
-    if (idx === 7 || Object.values(ACCOUNT_PAGES).includes(idx) || [PROFILE_PATH, SECURITY_PATH, PREFERENCES_PATH].includes(window.location.pathname)) {
+    if (idx === 7 || PAGE_TO_PATH[idx] !== undefined || KNOWN_PAGE_PATHS.includes(window.location.pathname)) {
       const url = new URL(window.location.href);
-      url.pathname = idx === PROFILE_PAGE ? PROFILE_PATH : idx === SECURITY_PAGE ? SECURITY_PATH : idx === PREFERENCES_PAGE ? PREFERENCES_PATH : STUDIO_PATH;
+      url.pathname = PAGE_TO_PATH[idx] || STUDIO_PATH;
       window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     }
   }
@@ -399,6 +486,7 @@ export default function App() {
           currentUser={currentUser} onProfileClick={() => handleNavClick(PROFILE_PAGE)}
           onSecurityClick={() => handleNavClick(SECURITY_PAGE)}
           onPreferencesClick={() => handleNavClick(PREFERENCES_PAGE)} isPreferencesActive={!service && step === PREFERENCES_PAGE}
+          onNotificationsClick={() => handleNavClick(NOTIFICATIONS_PAGE)} isNotificationsActive={!service && step === NOTIFICATIONS_PAGE}
           isProfileActive={!service && step === PROFILE_PAGE} isSecurityActive={!service && step === SECURITY_PAGE}
         />
       </div>
@@ -607,6 +695,7 @@ export default function App() {
         nav={nav} step={step} setStep={handleNavClick} currentUser={currentUser}
         onProfileClick={() => handleNavClick(PROFILE_PAGE)} onSecurityClick={() => handleNavClick(SECURITY_PAGE)}
         onPreferencesClick={() => handleNavClick(PREFERENCES_PAGE)} isPreferencesActive={!service && step === PREFERENCES_PAGE}
+        onNotificationsClick={() => handleNavClick(NOTIFICATIONS_PAGE)} isNotificationsActive={!service && step === NOTIFICATIONS_PAGE}
         isProfileActive={!service && step === PROFILE_PAGE} isSecurityActive={!service && step === SECURITY_PAGE}
         open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}
       />
