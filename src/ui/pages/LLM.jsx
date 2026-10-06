@@ -36,6 +36,7 @@ function LLMConsole({ config, setConfig }) {
         </div>
       </div>
 
+      <p role="note">Provider credentials are managed by your organization in Auth. Studio does not store provider keys.</p>
       <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         {/* Ollama */}
         <Panel>
@@ -85,14 +86,6 @@ function LLMConsole({ config, setConfig }) {
             />
           </PanelHeader>
           <PanelBody>
-            <FormRow label="API Key">
-              <Input
-                type="password"
-                placeholder="sk-ant-••••••••••••"
-                value={llm.claude_api_key || ""}
-                onChange={(e) => set("claude_api_key", e.target.value)}
-              />
-            </FormRow>
             <FormRow label="Model">
               <Input
                 placeholder="claude-sonnet-4-20250514"
@@ -127,14 +120,6 @@ function LLMConsole({ config, setConfig }) {
             />
           </PanelHeader>
           <PanelBody>
-            <FormRow label="API Key">
-              <Input
-                type="password"
-                placeholder="sk-••••••••••••"
-                value={llm.openai_api_key || ""}
-                onChange={(e) => set("openai_api_key", e.target.value)}
-              />
-            </FormRow>
             <FormRow label="Model">
               <Input
                 placeholder="gpt-4o"

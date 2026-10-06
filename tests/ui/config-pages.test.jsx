@@ -58,7 +58,8 @@ describe("Cloud configuration page", () => {
       k8s_aws_secret_name: "secretname", enable_k8s_jobs: true,
     };
     render(<Cloud config={{ cloud }} setConfig={vi.fn()} currentUser={null} />);
-    expect(screen.getByDisplayValue("AKIA")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("AKIA")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("s3cr3t")).not.toBeInTheDocument();
     expect(screen.getByText("Future Providers")).toBeInTheDocument();
     expect(screen.getByText("Databricks Workflows")).toBeInTheDocument();
   });
@@ -104,4 +105,16 @@ describe("HPC configuration page", () => {
     render(<HPC config={{ hpc }} setConfig={vi.fn()} currentUser={null} />);
     expect(screen.getByDisplayValue("hpc.edu")).toBeInTheDocument();
   });
+});
+
+it('keeps retired provider secrets out of forms and browser storage', () => {
+  localStorage.clear(); sessionStorage.clear();
+  const secret = 'SYNTHETIC-PROVIDER-SENTINEL';
+  const { container } = render(<><LLM config={{ llm: { openai_api_key: secret, claude_api_key: secret } }} setConfig={vi.fn()} />
+    <Cloud config={{ cloud: { aws_access_key: secret, aws_secret_key: secret, gcp_service_account_key: secret } }} setConfig={vi.fn()} /></>);
+  expect(container.querySelector('input[type="password"]')).toBeNull();
+  expect(container.innerHTML).not.toContain(secret);
+  expect(container.querySelector('textarea')).toBeNull();
+  expect(JSON.stringify(localStorage)).not.toContain(secret);
+  expect(JSON.stringify(sessionStorage)).not.toContain(secret);
 });

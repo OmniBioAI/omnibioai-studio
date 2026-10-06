@@ -109,6 +109,8 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:8001:8001"
     environment:
+      # Auth/RAG-only operator credential. Missing configuration fails closed.
+      RAG_PROVIDER_KEY_REVEAL_SECRET: ${RAG_PROVIDER_KEY_REVEAL_SECRET:-}
       PYTHONUNBUFFERED: "1"
       DB_HOST: mysql
       DB_PORT: "3306"
@@ -719,6 +721,8 @@ services:
       - "${HOST_IP:-0.0.0.0}:8090:8096"
       - "${HOST_IP:-0.0.0.0}:5175:5175"
     environment:
+      # Auth/RAG-only operator credential. Missing configuration fails closed.
+      RAG_PROVIDER_KEY_REVEAL_SECRET: ${RAG_PROVIDER_KEY_REVEAL_SECRET:-}
       HOST: 0.0.0.0
       PORT: "8096"
       JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
