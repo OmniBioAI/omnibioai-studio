@@ -112,20 +112,22 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
               }}>
                 {section}
               </div>}
-              {items.map(({ name, idx }) => {
-                const isActive = step === idx;
+              {items.map(({ name, idx, disabled }) => {
+                const isActive = !disabled && step === idx;
                 return (
                   <div
                     key={name}
                     data-nav-item={name}
-                    onClick={() => go(idx)}
+                    onClick={disabled ? undefined : () => go(idx)}
                     role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(idx); } }}
+                    aria-disabled={disabled || undefined}
+                    tabIndex={disabled ? -1 : 0}
+                    onKeyDown={disabled ? undefined : (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(idx); } }}
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
                       minHeight: 44, padding: "10px", borderRadius: "var(--radius-sm)",
-                      cursor: "pointer", fontSize: "var(--font-size-md)", marginBottom: 2,
+                      cursor: disabled ? "default" : "pointer", fontSize: "var(--font-size-md)", marginBottom: 2,
+                      opacity: disabled ? 0.5 : 1,
                       color: isActive ? "var(--accent)" : "var(--text)",
                       background: isActive ? "rgba(0,229,160,0.08)" : "transparent",
                       border: isActive ? "1px solid rgba(0,229,160,0.15)" : "1px solid transparent",
@@ -136,6 +138,14 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
                       background: "currentColor", opacity: isActive ? 1 : 0.4, flexShrink: 0,
                     }} />
                     {name}
+                    {disabled && (
+                      <span style={{
+                        marginLeft: "auto", fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",
+                        color: "var(--color-text-muted)", letterSpacing: "0.04em",
+                      }}>
+                        Coming soon
+                      </span>
+                    )}
                   </div>
                 );
               })}
