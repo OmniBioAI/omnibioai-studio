@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const { projectConfig } = require("./providerConfig");
 
 /**
  * Get safe user config directory (macOS / Windows / Linux)
@@ -20,21 +21,22 @@ function writeConfig(config) {
 
     fs.writeFileSync(
       configPath,
-      JSON.stringify(config, null, 2),
-      "utf-8"
+      JSON.stringify(projectConfig(config), null, 2),
+      { encoding: "utf-8", mode: 0o600 }
     );
 
+    fs.chmodSync(configPath, 0o600);
     return {
       success: true,
       path: configPath
     };
 
   } catch (err) {
-    console.error("Failed to write config:", err);
+    console.error("Failed to write configuration");
 
     return {
       success: false,
-      error: err.message
+      error: "Unable to save configuration"
     };
   }
 }
@@ -50,12 +52,14 @@ function readConfig() {
       return null;
     }
 
-    return JSON.parse(
-      fs.readFileSync(configPath, "utf-8")
-    );
+    const safe = projectConfig(JSON.parse(fs.readFileSync(configPath, "utf-8")));
+    // Retire legacy fields before returning anything to the renderer.
+    const result = writeConfig(safe);
+    if (!result.success) safe.provider_credential_retirement_pending = true;
+    return safe;
 
   } catch (err) {
-    console.error("Failed to read config:", err);
+    console.error("Failed to read configuration");
     return null;
   }
 }

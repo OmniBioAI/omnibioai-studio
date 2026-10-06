@@ -523,6 +523,8 @@ services:
     env_file:
       - .secrets/rag_redis.env
     environment:
+      # Auth/RAG-only operator credential. Missing configuration fails closed.
+      RAG_PROVIDER_KEY_REVEAL_SECRET: ${RAG_PROVIDER_KEY_REVEAL_SECRET:-}
       HOST: 0.0.0.0
       PORT: "8096"
       # Redis P1-5 Stage 5: usage_client producer identity, independent
@@ -1548,6 +1550,8 @@ services:
     ports:
       - "${HOST_IP:-0.0.0.0}:8001:8001"
     environment:
+      # Auth/RAG-only operator credential. Missing configuration fails closed.
+      RAG_PROVIDER_KEY_REVEAL_SECRET: ${RAG_PROVIDER_KEY_REVEAL_SECRET:-}
       PYTHONUNBUFFERED: "1"
 
       DB_HOST: mysql
