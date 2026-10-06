@@ -117,6 +117,17 @@ describe("AccountMenu", () => {
 });
 
 
+it.each([false, true])("opens Appearance and closes the account menu (mobile=%s)", mobile => {
+  const navigate = vi.fn(), close = vi.fn();
+  render(<AccountMenu currentUser={{ userId: 1, email: "test@example.org" }} onAppearanceClick={navigate} onAfterAction={mobile ? close : undefined} isAppearanceActive />);
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  const item = screen.getByRole("menuitem", { name: /Appearance/ });
+  expect(item).toHaveAttribute("aria-current", "page");
+  fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  if (mobile) expect(close).toHaveBeenCalledOnce();
+});
+
 it.each([false, true])("opens Notifications and closes the account menu (mobile=%s)", mobile => {
   const navigate = vi.fn(), close = vi.fn();
   render(<AccountMenu currentUser={{ userId: 1, email: "test@example.org" }} onNotificationsClick={navigate} onAfterAction={mobile ? close : undefined} isNotificationsActive />);

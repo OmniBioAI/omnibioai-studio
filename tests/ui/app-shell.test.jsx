@@ -47,6 +47,7 @@ vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page<
 vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Account Security page</div> }));
 
 vi.mock("../../src/ui/pages/AccountNotifications", () => ({ default: () => <div>Account Notifications page</div> }));
+vi.mock("../../src/ui/pages/AccountAppearance", () => ({ default: () => <div>Account Appearance page</div> }));
 
 import App from "../../src/ui/App";
 
@@ -392,6 +393,7 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     expect(screen.getByRole("menuitem", { name: /Profile/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Appearance/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Notifications/ })).toBeInTheDocument();
   });
 });
@@ -638,4 +640,26 @@ it("opens the Notifications Account route without adding primary navigation", as
   await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
   fireEvent.click(screen.getByRole("button", { name: "Notifications", exact: true }));
   await screen.findByText("Account Notifications page"); expect(location.pathname).toBe("/studio/notifications");
+});
+
+it("opens the Appearance Account route without adding primary navigation", async () => {
+  getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/appearance");
+  render(<App />); await screen.findByText("Account Appearance page");
+  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent("Appearance");
+  expect(document.querySelector('[data-nav-item="Appearance"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
+  await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
+  fireEvent.click(screen.getByRole("button", { name: "Appearance", exact: true }));
+  await screen.findByText("Account Appearance page"); expect(location.pathname).toBe("/studio/appearance");
+});
+
+it("opens Appearance from the Account menu and closes the menu", async () => {
+  getCurrentUser.mockResolvedValue(admin);
+  render(<App />);
+  await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: /Appearance/ }));
+  await screen.findByText("Account Appearance page");
+  expect(location.pathname).toBe("/studio/appearance");
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });
