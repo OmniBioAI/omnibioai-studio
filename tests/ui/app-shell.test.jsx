@@ -1,4 +1,5 @@
 import React from "react";
+vi.mock("../../src/ui/pages/AccountPersonalization", () => ({ default: () => <div>Account Personalization page</div> }));
 vi.mock("../../src/ui/components/PreferencesProvider", () => ({ default: ({ children }) => <>{children}</> }));
 vi.mock("../../src/ui/pages/AccountPreferences", () => ({ default: () => <div>Account Preferences page</div> }));
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
@@ -61,6 +62,23 @@ beforeEach(() => {
 });
 
 describe("App shell — Studio landing", () => {
+  it("opens Personalization directly and navigates through canonical Account URLs", async () => {
+    getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/personalization");
+    render(<App />); await screen.findByText("Account Personalization page");
+    expect(screen.getByText("account", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Personalization" })).toHaveAttribute("aria-current", "page");
+    for (const [label, page] of [["Preferences", "Account Preferences page"], ["Security", "Account Security page"], ["Profile", "Profile page"], ["Notifications", "Account Notifications page"]]) {
+      fireEvent.click(screen.getByRole("button", { name: label, exact: true })); await screen.findByText(page);
+      expect(location.pathname).toBe(`/studio/${label.toLowerCase()}`);
+      fireEvent.click(screen.getByRole("button", { name: "Personalization", exact: true })); await screen.findByText("Account Personalization page");
+      expect(location.pathname).toBe("/studio/personalization");
+    }
+    fireEvent.click(screen.getByTitle("Back to Studio")); await screen.findByText("Studio page");
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Personalization/ }));
+    await screen.findByText("Account Personalization page"); expect(location.pathname).toBe("/studio/personalization");
+    expect(document.querySelector('[data-nav-item="Personalization"]')).toBeNull();
+  });
   it("opens Preferences directly with account breadcrumb and navigates between all account sections", async () => {
     getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/preferences");
     render(<App />); await screen.findByText("Account Preferences page");

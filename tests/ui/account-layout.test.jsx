@@ -14,6 +14,7 @@ describe("AccountLayout", () => {
     expect(profile).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "Security" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("button", { name: "Preferences" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "Personalization" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("button", { name: "Notifications" })).toBeInTheDocument();
     expect(screen.queryByText(/Storage|Usage|Connections/)).not.toBeInTheDocument();
   });
