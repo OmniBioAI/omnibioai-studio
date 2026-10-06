@@ -42,7 +42,10 @@ describe("account preferences", () => {
     expect(await screen.findByLabelText("Time zone")).toHaveValue("");
     expect(screen.getByRole("button", { name: "Preferences" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "Save preferences" })).toBeDisabled();
-    expect(screen.queryByText(/Appearance|Language|Default editor|Default workspace/)).not.toBeInTheDocument();
+    // Appearance is dropped from this guard — it's now a real sibling Account section
+    // (see AccountAppearance.jsx), not an unsupported setting; its sidebar nav entry
+    // legitimately appears here. Language/editor/workspace defaults remain unbuilt.
+    expect(screen.queryByText(/Language|Default editor|Default workspace/)).not.toBeInTheDocument();
     expect(api.getPreferences).toHaveBeenCalledOnce();
   });
   it("saves explicitly, consumes the confirmed timezone and reloads durable state", async () => {

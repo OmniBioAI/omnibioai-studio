@@ -26,11 +26,13 @@ import Profile from "./pages/Profile";
 import AccountSecurity from "./pages/AccountSecurity";
 import AccountPreferences from "./pages/AccountPreferences";
 import AccountPersonalization from "./pages/AccountPersonalization";
+import AccountAppearance from "./pages/AccountAppearance";
 import AccountNotifications from "./pages/AccountNotifications";
 import Projects from "./pages/Projects";
 import Artifacts from "./pages/Artifacts";
 import Explore from "./pages/Explore";
 import PreferencesProvider from "./components/PreferencesProvider";
+import AppearanceProvider from "./components/AppearanceProvider";
 import AccountLayout from "./components/AccountLayout";
 import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
@@ -108,14 +110,14 @@ const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
   "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench","developer","profile","security","preferences",
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
-  "projects","artifacts","explore","notifications","personalization",
+  "projects","artifacts","explore","notifications","personalization","appearance",
 ];
 
 const PAGE_LABELS = [
   "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
   "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench", "Developer", "Profile", "Security", "Preferences",
   "Code", "Workflows",
-  "Projects", "Artifacts", "Explore", "Notifications", "Personalization",
+  "Projects", "Artifacts", "Explore", "Notifications", "Personalization", "Appearance",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -129,7 +131,9 @@ const NOTIFICATIONS_PATH = "/studio/notifications";
 const NOTIFICATIONS_PAGE = 23;
 const PERSONALIZATION_PATH = "/studio/personalization";
 const PERSONALIZATION_PAGE = 24;
-const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, notifications: NOTIFICATIONS_PAGE, personalization: PERSONALIZATION_PAGE };
+const APPEARANCE_PATH = "/studio/appearance";
+const APPEARANCE_PAGE = 25;
+const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, notifications: NOTIFICATIONS_PAGE, personalization: PERSONALIZATION_PAGE, appearance: APPEARANCE_PAGE };
 const PROJECTS_PATH = "/studio/projects";
 const ARTIFACTS_PATH = "/studio/artifacts";
 const EXPLORE_PATH = "/studio/explore";
@@ -145,6 +149,7 @@ const PATH_TO_PAGE = {
   [PREFERENCES_PATH]: PREFERENCES_PAGE,
   [NOTIFICATIONS_PATH]: NOTIFICATIONS_PAGE,
   [PERSONALIZATION_PATH]: PERSONALIZATION_PAGE,
+  [APPEARANCE_PATH]: APPEARANCE_PAGE,
   [PROJECTS_PATH]:    PROJECTS_PAGE,
   [ARTIFACTS_PATH]:   ARTIFACTS_PAGE,
   [EXPLORE_PATH]:     EXPLORE_PAGE,
@@ -376,6 +381,9 @@ export default function App() {
     <AccountLayout activeSection="personalization" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountPersonalization />
     </AccountLayout>,
+    <AccountLayout activeSection="appearance" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      <AccountAppearance />
+    </AccountLayout>,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -465,6 +473,7 @@ export default function App() {
   const showLogin = !isElectron() && !currentUser;
 
   return (
+    <AppearanceProvider userId={currentUser?.userId}>
     <LicenseGate>
     <PreferencesProvider currentUser={currentUser}>
     {showLogin ? (
@@ -494,6 +503,7 @@ export default function App() {
           onSecurityClick={() => handleNavClick(SECURITY_PAGE)}
           onPreferencesClick={() => handleNavClick(PREFERENCES_PAGE)} isPreferencesActive={!service && step === PREFERENCES_PAGE}
           onPersonalizationClick={() => handleNavClick(PERSONALIZATION_PAGE)} isPersonalizationActive={!service && step === PERSONALIZATION_PAGE}
+          onAppearanceClick={() => handleNavClick(APPEARANCE_PAGE)} isAppearanceActive={!service && step === APPEARANCE_PAGE}
           onNotificationsClick={() => handleNavClick(NOTIFICATIONS_PAGE)} isNotificationsActive={!service && step === NOTIFICATIONS_PAGE}
           isProfileActive={!service && step === PROFILE_PAGE} isSecurityActive={!service && step === SECURITY_PAGE}
         />
@@ -704,6 +714,7 @@ export default function App() {
         onProfileClick={() => handleNavClick(PROFILE_PAGE)} onSecurityClick={() => handleNavClick(SECURITY_PAGE)}
         onPreferencesClick={() => handleNavClick(PREFERENCES_PAGE)} isPreferencesActive={!service && step === PREFERENCES_PAGE}
         onPersonalizationClick={() => handleNavClick(PERSONALIZATION_PAGE)} isPersonalizationActive={!service && step === PERSONALIZATION_PAGE}
+        onAppearanceClick={() => handleNavClick(APPEARANCE_PAGE)} isAppearanceActive={!service && step === APPEARANCE_PAGE}
         onNotificationsClick={() => handleNavClick(NOTIFICATIONS_PAGE)} isNotificationsActive={!service && step === NOTIFICATIONS_PAGE}
         isProfileActive={!service && step === PROFILE_PAGE} isSecurityActive={!service && step === SECURITY_PAGE}
         open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}
@@ -738,5 +749,6 @@ export default function App() {
       <BugReport />
     </PreferencesProvider>
     </LicenseGate>
+    </AppearanceProvider>
   );
 }
