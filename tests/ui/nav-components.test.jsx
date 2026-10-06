@@ -82,6 +82,18 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Sign out")).not.toBeInTheDocument();
     expect(screen.getByText("IDLE")).toBeInTheDocument();
   });
+
+  it("renders Code and Workflows nav entries generically and forwards their idx on click, with no component changes required", () => {
+    const codeWorkflowsNav = [{ section: "Runtime", items: [
+      { name: "Jobs", idx: 9 }, { name: "Code", idx: 18 }, { name: "Workflows", idx: 19 },
+    ] }];
+    const setStep = vi.fn();
+    render(<Sidebar nav={codeWorkflowsNav} step={9} setStep={setStep} systemStatus="idle" currentUser={null} />);
+    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    expect(setStep).toHaveBeenCalledWith(18);
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(setStep).toHaveBeenCalledWith(19);
+  });
 });
 
 describe("MobileNav", () => {
@@ -148,6 +160,20 @@ describe("MobileNav", () => {
     const { container } = render(<MobileNav nav={nav} step={0} setStep={vi.fn()} currentUser={user} open={false} onClose={vi.fn()} />);
     expect(container.querySelector('[role="dialog"]')).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
+  });
+
+  it("renders Code and Workflows nav entries generically and forwards their idx on click, closing the drawer", () => {
+    const codeWorkflowsNav = [{ section: "Runtime", items: [
+      { name: "Jobs", idx: 9 }, { name: "Code", idx: 18 }, { name: "Workflows", idx: 19 },
+    ] }];
+    const setStep = vi.fn();
+    const onClose = vi.fn();
+    render(<MobileNav nav={codeWorkflowsNav} step={9} setStep={setStep} currentUser={null} open onClose={onClose} />);
+    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    expect(setStep).toHaveBeenCalledWith(18);
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(setStep).toHaveBeenCalledWith(19);
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 });
 

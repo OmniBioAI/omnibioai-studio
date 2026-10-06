@@ -339,6 +339,73 @@ describe("App shell — navigation and roles nav", () => {
   });
 });
 
+describe("App shell — Code and Workflows navigation (Phase A)", () => {
+  it("adds exactly one Code entry and one Workflows entry alongside the existing single Jobs entry, with no Ask/Projects/Artifacts/Explore entries", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    const items = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-item]")].map(el => el.getAttribute("data-nav-item"));
+    expect(items.filter(name => name === "Code")).toHaveLength(1);
+    expect(items.filter(name => name === "Workflows")).toHaveLength(1);
+    expect(items.filter(name => name === "Jobs")).toHaveLength(1);
+    for (const outOfScope of ["Ask OmniBioAI", "Projects", "Artifacts", "Explore"]) {
+      expect(items).not.toContain(outOfScope);
+    }
+  });
+
+  it("opens the existing Launcher service when Code is selected, using the canonical Electron webview path", async () => {
+    getCurrentUser.mockResolvedValue(admin); // isElectron() is true by default in this file's beforeEach
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    expect(await screen.findByText("ServiceViewer:Code:http://localhost:5174/_svc/sdk")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("svback"));
+    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
+  });
+
+  it("opens the existing Workflow Registry service when Workflows is selected, using the canonical Electron webview path", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(await screen.findByText("ServiceViewer:Workflows:http://localhost:5174/_svc/workflows")).toBeInTheDocument();
+  });
+
+  it("still opens Code and Workflows as the canonical same-origin service in the browser (non-Electron) path", async () => {
+    // Doesn't assert an exact origin here: App.jsx's pre-existing resolveServiceUrl
+    // also rewrites any /_svc/* URL whenever Vite's own DEV flag is on, independent
+    // of isElectron() -- the same already-shared behavior every dashboard-tile
+    // service goes through. What matters for Phase A is that Code/Workflows reuse
+    // that exact mechanism rather than bypassing it.
+    isElectron.mockReturnValue(false);
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    expect(await screen.findByText(/^ServiceViewer:Code:.*\/_svc\/sdk$/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("svback"));
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(await screen.findByText(/^ServiceViewer:Workflows:.*\/_svc\/workflows$/)).toBeInTheDocument();
+  });
+
+  it("leaves Jobs' own behavior and the Account menu unchanged", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    expect(screen.getByRole("menuitem", { name: /Profile/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Notifications/ })).not.toBeInTheDocument();
+  });
+});
+
 describe("App shell — OAuth redirect notices", () => {
   it("shows the link-confirmation dialog and clears it on done/cancel", async () => {
     consumeOAuthRedirectParams.mockReturnValue({ type: "link_required", linkToken: "lt", provider: "google", email: "a@b.test" });

@@ -48,6 +48,8 @@ const BASE_NAV = [
     { name:"IDE Services", idx:10 },
     { name:"Logs",         idx:6  },
     { name:"Jobs",         idx:9  },
+    { name:"Code",         idx:18 },
+    { name:"Workflows",    idx:19 },
     { name:"Billing",      idx:12 },
     { name:"Developer",    idx:14 },
   ]},
@@ -92,6 +94,18 @@ const PREFERENCES_PAGE = 17;
 const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE };
 const VIDEO_STUDIO_PATH = "/studio/videos";
 const LEGACY_PORTAL_PATH = "/workbench";
+
+// "Code" and "Workflows" are nav-only aliases onto the existing Launcher and
+// Workflow Registry services already reachable from Studio's dashboard
+// tiles -- idx 18/19 are intentionally outside pages[]'s range (0-17) since
+// these never become the `step`, they just open the same `service` state
+// every dashboard tile already opens (see handleNavClick below).
+const CODE_NAV_IDX = 18;
+const WORKFLOWS_NAV_IDX = 19;
+const EXTERNAL_NAV_SERVICES = {
+  [CODE_NAV_IDX]:      { url: "/_svc/sdk",       label: "Code" },
+  [WORKFLOWS_NAV_IDX]: { url: "/_svc/workflows", label: "Workflows" },
+};
 
 function getInitialService() {
   if (typeof window !== "undefined" && window.location.pathname === VIDEO_STUDIO_PATH) {
@@ -318,6 +332,20 @@ export default function App() {
   }
 
   function handleNavClick(idx) {
+    const externalService = EXTERNAL_NAV_SERVICES[idx];
+    if (externalService) {
+      // Same Electron-vs-browser absolute URL resolution Studio.jsx's own
+      // dashboard tiles already use for this exact pair of services --
+      // Electron's <webview> needs a fully-qualified src, a browser tab
+      // must stay same-origin relative so nginx-router still proxies it.
+      let url = externalService.url;
+      if (url.startsWith("/") && isElectron()) {
+        const devHost = url.startsWith("/_svc/") && import.meta.env.DEV ? "http://localhost:5174" : "http://localhost";
+        url = `${devHost}${url}`;
+      }
+      setService({ url, label: externalService.label });
+      return;
+    }
     if (Object.values(ACCOUNT_PAGES).includes(idx) || service?.source === "workbench") setService(null);
     setStep(idx);
     if (idx === 7 || Object.values(ACCOUNT_PAGES).includes(idx) || [PROFILE_PATH, SECURITY_PATH, PREFERENCES_PATH].includes(window.location.pathname)) {
