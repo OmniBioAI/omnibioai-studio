@@ -35,7 +35,7 @@ describe("AccountMenu", () => {
     expect(screen.getByRole("menuitem", { name: /Profile/ })).toHaveFocus();
     expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
-    expect(screen.queryByText(/Storage|Usage|Connections|Notifications/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Storage|Usage|Connections/)).not.toBeInTheDocument();
   });
 
   it("opens from the keyboard through its semantic trigger", async () => {
@@ -114,4 +114,16 @@ describe("AccountMenu", () => {
     rerender(<AccountMenu currentUser={null} onProfileClick={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
   });
+});
+
+
+it.each([false, true])("opens Notifications and closes the account menu (mobile=%s)", mobile => {
+  const navigate = vi.fn(), close = vi.fn();
+  render(<AccountMenu currentUser={{ userId: 1, email: "test@example.org" }} onNotificationsClick={navigate} onAfterAction={mobile ? close : undefined} isNotificationsActive />);
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  const item = screen.getByRole("menuitem", { name: /Notifications/ });
+  expect(item).toHaveAttribute("aria-current", "page");
+  fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  if (mobile) expect(close).toHaveBeenCalledOnce();
 });

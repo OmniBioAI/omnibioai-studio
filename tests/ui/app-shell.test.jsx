@@ -46,6 +46,8 @@ vi.mock("../../src/ui/pages/Videos", () => ({ default: ({ onBack }) => <div>Vide
 vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
 vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Account Security page</div> }));
 
+vi.mock("../../src/ui/pages/AccountNotifications", () => ({ default: () => <div>Account Notifications page</div> }));
+
 import App from "../../src/ui/App";
 
 beforeEach(() => {
@@ -390,7 +392,7 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     expect(screen.getByRole("menuitem", { name: /Profile/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: /Notifications/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Notifications/ })).toBeInTheDocument();
   });
 });
 
@@ -624,4 +626,16 @@ describe("App shell — native Workbench catalog", () => {
     expect(window.location.pathname).toBe("/studio");
     vi.unstubAllGlobals();
   });
+});
+
+
+it("opens the Notifications Account route without adding primary navigation", async () => {
+  getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/notifications");
+  render(<App />); await screen.findByText("Account Notifications page");
+  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent("Notifications");
+  expect(document.querySelector('[data-nav-item="Notifications"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
+  await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
+  fireEvent.click(screen.getByRole("button", { name: "Notifications", exact: true }));
+  await screen.findByText("Account Notifications page"); expect(location.pathname).toBe("/studio/notifications");
 });
