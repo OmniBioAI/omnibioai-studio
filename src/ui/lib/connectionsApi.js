@@ -1,6 +1,6 @@
 import { authUrl, getSessionVersion, getToken } from "../lib/session";
 
-const PROVIDERS = ["openai", "anthropic"];
+const PROVIDERS = ["openai", "claude"];
 export class ConnectionsError extends Error {
   constructor(code) { super(code); this.code = code; }
 }

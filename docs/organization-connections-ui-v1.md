@@ -9,7 +9,7 @@ Route: `/studio/organization/connections`, available under Organization in deskt
 Source: `fix/connection-credential-boundaries`, commit `ede6e75ee8e5bbfaae7aeaf3ad5d985677d76d17`, `app/api/routes_organization_config.py` and `app/schemas/organization_config.py`.
 
 - `GET /orgs/{org_id}/provider-keys/metadata`: requires live active organization/member context matching the access token. Returns organization scope, configured/provider, and allowed actions. Studio projects only provider, configured, and replace/remove capabilities. Credential version and administrative fields are discarded.
-- `PUT /orgs/{org_id}/provider-keys/{provider}`: body `{ "api_key": "..." }`. Supported providers: `openai`, `anthropic`; one shared `Auth.OrganizationConfig` slot. Replaces the existing provider/key. Requires `manage_org` or canonical platform-admin authorization on the server.
+- `PUT /orgs/{org_id}/provider-keys/{provider}`: body `{ "api_key": "..." }`. Supported providers per `organization_config_service.SUPPORTED_PROVIDERS`: `openai`, `claude` (the wire slug for the Anthropic product, per existing Studio precedent in `LLM.jsx`/`store.js`; displayed to users as "Anthropic"); one shared `Auth.OrganizationConfig` slot. Replaces the existing provider/key. Requires `manage_org` or canonical platform-admin authorization on the server.
 - `DELETE /orgs/{org_id}/provider-keys/{provider}`: same mutation authorization; removes the configured connection.
 - `GET /orgs/{org_id}/provider-keys` is admin metadata, not a secret-read API; this UI does not need it. Studio never calls the internal RAG reveal endpoint.
 

@@ -13,7 +13,7 @@ const response = (body, status = 200) => ({ ok: status < 400, status, json: vi.f
 function setup(provider = null, admin = true) {
   let state = metadata(provider, admin);
   const fetcher = vi.fn(async (_url, options) => {
-    if (options.method === "PUT") state = metadata(_url.endsWith("openai") ? "openai" : "anthropic", admin);
+    if (options.method === "PUT") state = metadata(_url.endsWith("openai") ? "openai" : "claude", admin);
     if (options.method === "DELETE") state = metadata(null, admin);
     return response(state);
   });
@@ -42,7 +42,7 @@ describe("Organization Connections", () => {
     expect(screen.getByText(/One shared AI provider/)).toBeVisible();
     expect(screen.queryByText(/internal-version|Last used|Last updated/)).toBeNull();
   });
-  it.each(["openai", "anthropic"])("shows %s as member-safe read-only metadata", async provider => {
+  it.each(["openai", "claude"])("shows %s as member-safe read-only metadata", async provider => {
     setup(provider, false); render(<OrganizationConnections currentUser={user} />);
     expect(await screen.findByText("Credential stored securely")).toBeVisible();
     expect(screen.getByText("Provided by your organization.")).toBeVisible();
@@ -50,7 +50,7 @@ describe("Organization Connections", () => {
     expect(screen.queryByRole("button")).toBeNull();
     expect(document.body.textContent).not.toContain("internal-version");
   });
-  it.each(["openai", "anthropic"])("connects %s with no persisted or displayed secret", async provider => {
+  it.each(["openai", "claude"])("connects %s with no persisted or displayed secret", async provider => {
     const fetcher = setup(); await open();
     fireEvent.change(screen.getByLabelText("Provider"), { target: { value: provider } }); enter();
     expect(screen.getByLabelText(/API key/)).toHaveAttribute("type", "password");
@@ -62,7 +62,7 @@ describe("Organization Connections", () => {
     expect(JSON.parse(mutation[1].body)).toEqual({ api_key: secret });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
-  it.each([["openai", "openai"], ["openai", "anthropic"], ["anthropic", "openai"]])("confirms replacement %s to %s", async (from, to) => {
+  it.each([["openai", "openai"], ["openai", "claude"], ["claude", "openai"]])("confirms replacement %s to %s", async (from, to) => {
     const fetcher = setup(from); await open(from);
     fireEvent.change(screen.getByLabelText("Provider"), { target: { value: to } }); enter();
     expect(screen.getByRole("button", { name: "Confirm replacement" })).toBeDisabled();
@@ -85,7 +85,7 @@ describe("Organization Connections", () => {
     const save = screen.getByRole("button", { name: "Save connection" });
     save.focus(); fireEvent.keyDown(save, { key: "Tab" }); expect(provider).toHaveFocus();
     fireEvent.keyDown(provider, { key: "Tab", shiftKey: true }); expect(save).toHaveFocus();
-    fireEvent.change(provider, { target: { value: "anthropic" } }); expect(screen.getByLabelText(/API key/)).toHaveValue("");
+    fireEvent.change(provider, { target: { value: "claude" } }); expect(screen.getByLabelText(/API key/)).toHaveValue("");
     enter(); fireEvent.keyDown(provider, { key: "Escape" }); assertSecretAbsent();
     expect(screen.getByRole("button", { name: "Connect provider" })).toHaveFocus();
     fireEvent.click(screen.getByRole("button", { name: "Connect provider" })); expect(screen.getByLabelText(/API key/)).toHaveValue("");
@@ -101,7 +101,7 @@ describe("Organization Connections", () => {
     await screen.findByText("Credential stored securely");
   });
   it("handles deletion failure without claiming removal", async () => {
-    const fetcher = setup("anthropic"); render(<OrganizationConnections currentUser={user} />);
+    const fetcher = setup("claude"); render(<OrganizationConnections currentUser={user} />);
     fireEvent.click(await screen.findByRole("button", { name: "Remove connection" }));
     fetcher.mockRejectedValueOnce(new Error(secret)); fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
     await screen.findByRole("alert"); expect(screen.getByText("Connected")).toBeVisible(); assertSecretAbsent();
@@ -117,7 +117,7 @@ describe("Organization Connections", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Replace credential/ })); enter();
     let finish; fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(screen.getByRole("button", { name: "Confirm replacement" }));
-    fetcher.mockResolvedValue(response(metadata("anthropic", false, 22)));
+    fetcher.mockResolvedValue(response(metadata("claude", false, 22)));
     rerender(<OrganizationConnections currentUser={{ ...user, orgId: 22 }} />);
     expect(screen.queryByText("OpenAI")).toBeNull(); expect(screen.queryByRole("dialog")).toBeNull(); assertSecretAbsent();
     await screen.findByText("Anthropic");

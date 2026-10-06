@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { getSessionVersion, getToken, onSessionChange } from "../lib/session";
 import { getConnection, putConnection, removeConnection } from "../lib/connectionsApi";
 
-const LABELS = { openai: "OpenAI", anthropic: "Anthropic" };
+const LABELS = { openai: "OpenAI", claude: "Anthropic" };
 const ERROR_MESSAGES = {
   denied: "You do not have permission to access or manage this organization connection.",
   validation: "The credential could not be saved. Enter a supported provider key with 1–512 printable, non-space characters.",
@@ -103,7 +103,7 @@ function ConnectionDialog({ orgId, data, kind, onClose, onSaved }) {
         {!removing && <>
           <label htmlFor="connection-provider">Provider</label>
           <select id="connection-provider" value={provider} disabled={busy} onChange={event => { setProvider(event.target.value); setSecret(""); setConfirmed(false); setError(""); }}>
-            <option value="openai">OpenAI</option><option value="anthropic">Anthropic</option>
+            <option value="openai">OpenAI</option><option value="claude">Anthropic</option>
           </select>
           <label htmlFor="connection-secret">{LABELS[provider]} API key</label>
           <input id="connection-secret" data-sentry-mask="true" type="password" value={secret} onChange={event => setSecret(event.target.value)} disabled={busy} required maxLength={512} pattern="[!-~]+" autoComplete="off" spellCheck={false} autoCapitalize="none" />

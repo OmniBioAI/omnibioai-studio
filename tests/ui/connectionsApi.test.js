@@ -24,7 +24,7 @@ it("rejects unknown providers and invalid organization contexts", async () => {
   localStorage.clear(); await expect(getConnection(11)).rejects.toMatchObject({ code: "denied" }); expect(fetch).not.toHaveBeenCalled();
 });
 it("does not read mutation bodies", async () => {
-  const result = response(); fetch.mockResolvedValue(result); await putConnection(11, "anthropic", "sk-safe"); await removeConnection(11, "anthropic"); expect(result.json).not.toHaveBeenCalled();
+  const result = response(); fetch.mockResolvedValue(result); await putConnection(11, "claude", "sk-safe"); await removeConnection(11, "claude"); expect(result.json).not.toHaveBeenCalled();
 });
 it.each([401, 403, 400, 422, 500])("sanitizes HTTP %s", async status => {
   fetch.mockResolvedValue(response({ secret: "sensitive" }, status)); await expect(getConnection(11)).rejects.toMatchObject({ code: [401, 403].includes(status) ? "denied" : [400, 422].includes(status) ? "validation" : "unavailable" });
