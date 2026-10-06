@@ -4,6 +4,7 @@ const IMPLEMENTED_SECTIONS = [
   { id: "profile", label: "Profile" },
   { id: "security", label: "Security" },
   { id: "preferences", label: "Preferences" },
+  { id: "personalization", label: "Personalization" },
   { id: "notifications", label: "Notifications" },
 ];
 

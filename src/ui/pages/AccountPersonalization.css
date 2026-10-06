@@ -1,0 +1,14 @@
+.personalization-page { display: grid; gap: 12px; }
+.personalization-page > h2, .personalization-page > p { margin: 0; }
+.personalization-form { gap: 24px; }
+.personalization-field { display: grid; gap: 8px; min-width: 0; }
+.personalization-field label { font-weight: 600; }
+.personalization-field select, .personalization-field textarea {
+  width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px;
+  padding: 10px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  background: var(--bg2); color: var(--text); color-scheme: dark; font: inherit;
+}
+.personalization-field textarea { resize: vertical; }
+.personalization-field p { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.personalization-form [role="alert"] { color: var(--danger); }
+.personalization-form :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
