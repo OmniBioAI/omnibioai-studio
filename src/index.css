@@ -597,3 +597,35 @@ a:focus:not(:focus-visible) {
   .appearance-preview-frame { height: 210px; }
   .appearance-preview-sidebar { width: 76px; }
 }
+
+/* Organization connections use the same appearance tokens as the Studio shell. */
+.connections-page { max-width: 860px; margin: 0 auto; padding: clamp(16px, 4vw, 40px); color: var(--text); }
+.connections-page header { margin-bottom: 28px; }
+.connections-page h1 { font-size: 28px; margin: 6px 0 12px; }
+.connections-page h2, .connections-dialog h2 { font-size: 20px; margin: 0; }
+.connections-page h3 { font-size: 18px; margin: 24px 0 8px; }
+.connections-page p, .connections-dialog p { line-height: 1.6; }
+.connections-eyebrow, .connections-note { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.connections-eyebrow { text-transform: uppercase; letter-spacing: .1em; }
+.connections-card, .connections-dialog { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: clamp(16px, 3vw, 28px); box-shadow: var(--shadow-card); }
+.connections-card-heading, .connections-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.connections-card-heading { justify-content: space-between; }
+.connections-status { color: var(--accent); font-size: var(--font-size-sm); }
+.connections-page dl { margin: 24px 0; }
+.connections-page dl > div { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.connections-page dt { width: 120px; color: var(--color-text-muted); }
+.connections-page dd { margin: 0; overflow-wrap: anywhere; }
+.connections-actions { margin-top: 24px; }
+.connections-page button, .connections-dialog button, .connections-dialog select, .connections-dialog input[type="password"] { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 14px; min-height: 44px; }
+.connections-page button { cursor: pointer; }
+.connections-page button:disabled { opacity: .55; cursor: not-allowed; }
+.connections-page .connections-primary { border-color: var(--accent); }
+.connections-page :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.connections-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.connections-dialog { width: 100%; max-width: 520px; max-height: calc(100dvh - 32px); overflow-y: auto; box-sizing: border-box; }
+.connections-dialog label { display: block; margin: 18px 0 8px; }
+.connections-dialog select, .connections-dialog input[type="password"] { width: 100%; box-sizing: border-box; }
+.connections-dialog .connections-confirm { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
+.connections-confirm input { margin-top: 5px; accent-color: var(--accent); }
+.connections-page [role="alert"] { color: var(--text); border-left: 3px solid var(--danger); padding-left: 12px; }
+@media (max-width: 480px) { .connections-actions { align-items: stretch; flex-direction: column; } .connections-actions button { width: 100%; } }

@@ -26,6 +26,7 @@ import Profile from "./pages/Profile";
 import AccountSecurity from "./pages/AccountSecurity";
 import AccountPreferences from "./pages/AccountPreferences";
 import AccountPersonalization from "./pages/AccountPersonalization";
+import OrganizationConnections from "./pages/OrganizationConnections";
 import AccountAppearance from "./pages/AccountAppearance";
 import AccountNotifications from "./pages/AccountNotifications";
 import Projects from "./pages/Projects";
@@ -84,6 +85,7 @@ const BASE_NAV = [
     { name:"Billing",      idx:12 },
     { name:"Developer",    idx:14 },
   ]},
+  { section: "Organization", items: [{ name: "Connections", idx: 26 }] },
   { section: "System",  items: [
     { name:"Settings",  idx:8 },
   ]},
@@ -110,14 +112,14 @@ const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
   "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench","developer","profile","security","preferences",
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
-  "projects","artifacts","explore","notifications","personalization","appearance",
+  "projects","artifacts","explore","notifications","personalization","appearance","organization-connections",
 ];
 
 const PAGE_LABELS = [
   "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
   "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench", "Developer", "Profile", "Security", "Preferences",
   "Code", "Workflows",
-  "Projects", "Artifacts", "Explore", "Notifications", "Personalization", "Appearance",
+  "Projects", "Artifacts", "Explore", "Notifications", "Personalization", "Appearance", "Connections",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -133,6 +135,7 @@ const PERSONALIZATION_PATH = "/studio/personalization";
 const PERSONALIZATION_PAGE = 24;
 const APPEARANCE_PATH = "/studio/appearance";
 const APPEARANCE_PAGE = 25;
+const CONNECTIONS_PAGE = 26;
 const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, notifications: NOTIFICATIONS_PAGE, personalization: PERSONALIZATION_PAGE, appearance: APPEARANCE_PAGE };
 const PROJECTS_PATH = "/studio/projects";
 const ARTIFACTS_PATH = "/studio/artifacts";
@@ -144,6 +147,7 @@ const LEGACY_PORTAL_PATH = "/workbench";
 // extends the exact mechanism the three Account pages already use (manual
 // history.replaceState, no router) to the three new native shells.
 const PATH_TO_PAGE = {
+  "/studio/organization/connections": CONNECTIONS_PAGE,
   [PROFILE_PATH]:     PROFILE_PAGE,
   [SECURITY_PATH]:    SECURITY_PAGE,
   [PREFERENCES_PATH]: PREFERENCES_PAGE,
@@ -384,6 +388,7 @@ export default function App() {
     <AccountLayout activeSection="appearance" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountAppearance />
     </AccountLayout>,
+    <OrganizationConnections currentUser={currentUser} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -420,7 +425,7 @@ export default function App() {
       setService({ url, label: externalService.label });
       return;
     }
-    if (Object.values(ACCOUNT_PAGES).includes(idx) || service?.source === "workbench") setService(null);
+    if (idx === CONNECTIONS_PAGE || Object.values(ACCOUNT_PAGES).includes(idx) || service?.source === "workbench") setService(null);
     setStep(idx);
     if (idx === 7 || PAGE_TO_PATH[idx] !== undefined || KNOWN_PAGE_PATHS.includes(window.location.pathname)) {
       const url = new URL(window.location.href);
@@ -541,7 +546,8 @@ export default function App() {
             >studio</span>
             {" / "}
             {Object.values(ACCOUNT_PAGES).includes(step) && !service ? <><span>account</span>{" / "}</> : null}
-            <span style={{ color:"var(--text)" }}>{currentName}</span>
+            {step === CONNECTIONS_PAGE && !service ? <><span>organization</span>{" / "}</> : null}
+            <span style={{ color:"var(--text)" }}>{step === CONNECTIONS_PAGE && !service ? "connections" : currentName}</span>
           </div>
 
           {/* First run warning — data_dir is an Electron-only concept (the

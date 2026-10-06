@@ -78,6 +78,12 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
                 <div
                   key={name}
                   data-nav-item={name}
+                  role={name === "Connections" ? "button" : undefined}
+                  tabIndex={name === "Connections" ? 0 : undefined}
+                  aria-current={name === "Connections" && isActive ? "page" : undefined}
+                  onKeyDown={name === "Connections" ? event => {
+                    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setStep(idx); }
+                  } : undefined}
                   onClick={disabled ? undefined : () => setStep(idx)}
                   aria-disabled={disabled || undefined}
                   style={{

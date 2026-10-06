@@ -50,6 +50,8 @@ vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Accou
 vi.mock("../../src/ui/pages/AccountNotifications", () => ({ default: () => <div>Account Notifications page</div> }));
 vi.mock("../../src/ui/pages/AccountAppearance", () => ({ default: () => <div>Account Appearance page</div> }));
 
+vi.mock("../../src/ui/pages/OrganizationConnections", () => ({ default: () => <div>Organization Connections page</div> }));
+
 import App from "../../src/ui/App";
 
 beforeEach(() => {
@@ -101,7 +103,7 @@ describe("App shell — Studio landing", () => {
     expect(screen.getByText("Studio", { selector: "div" })).toBeInTheDocument();
     const sections = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
     expect(sections.map((section) => section.getAttribute("data-nav-section"))).toEqual([
-      "", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "System",
+      "", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "Organization", "System",
     ]);
     expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
     expect(sections[5].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Billing.*Developer/);
@@ -417,14 +419,14 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
 });
 
 describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
-  it("renders Studio, AI, Work, Discover, Setup, Runtime, Security and System exactly once each, in order, with the exact Work order and no duplicate items", async () => {
+  it("renders Studio, AI, Work, Discover, Setup, Runtime, Security, Organization and System exactly once each, in order, with the exact Work order and no duplicate items", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
     const sectionEls = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
     const sectionNames = sectionEls.map(el => el.getAttribute("data-nav-section"));
-    expect(sectionNames).toEqual(["", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "System"]);
+    expect(sectionNames).toEqual(["", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "Organization", "System"]);
 
     const aiSection = sectionEls[sectionNames.indexOf("AI")];
     expect([...aiSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual(["Ask OmniBioAI"]);
@@ -680,4 +682,18 @@ it("opens Appearance from the Account menu and closes the menu", async () => {
   await screen.findByText("Account Appearance page");
   expect(location.pathname).toBe("/studio/appearance");
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+});
+
+
+it("opens Organization Connections directly and from navigation outside Account", async () => {
+  getCurrentUser.mockResolvedValue(admin);
+  window.history.replaceState({}, "", "/studio/organization/connections");
+  render(<App />);
+  await screen.findByText("Organization Connections page");
+  expect(screen.queryByRole("button", { name: "Personalization", exact: true })).toBeNull();
+  fireEvent.click(screen.getByTitle("Back to Studio"));
+  await screen.findByText("Studio page");
+  fireEvent.keyDown(screen.getByRole("button", { name: "Connections", exact: true }), { key: "Enter" });
+  await screen.findByText("Organization Connections page");
+  expect(location.pathname).toBe("/studio/organization/connections");
 });
