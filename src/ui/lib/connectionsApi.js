@@ -10,7 +10,7 @@ async function request(orgId, method, provider, apiKey, signal) {
   if (!token || !/^\d+$/.test(String(orgId))) throw new ConnectionsError("denied");
   if (method !== "GET" && !PROVIDERS.includes(provider)) throw new ConnectionsError("validation");
   if (method === "PUT" && (typeof apiKey !== "string" || !/^[!-~]{1,512}$/.test(apiKey))) throw new ConnectionsError("validation");
-  const path = `/orgs/${encodeURIComponent(orgId)}/provider-keys/${method === "GET" ? "metadata" : provider}`;
+  const path = `/orgs/${encodeURIComponent(orgId)}/provider-keys${method === "GET" ? "" : `/${provider}`}`;
   try {
     const response = await fetch(authUrl(path), {
       method, signal, cache: "no-store", credentials: "omit",
@@ -25,12 +25,15 @@ async function request(orgId, method, provider, apiKey, signal) {
     if (method !== "GET") return;
     const data = await response.json();
     if (token !== getToken() || version !== getSessionVersion()) throw new ConnectionsError("stale");
-    if (!data || String(data.organization_id) !== String(orgId) || data.owner_scope !== "ORGANIZATION" ||
-        typeof data.configured !== "boolean" || (data.configured && !PROVIDERS.includes(data.provider)) ||
-        !Array.isArray(data.allowed_actions)) throw new ConnectionsError("unavailable");
-    // Never retain credential versions, admin identifiers, or arbitrary API fields.
-    return { configured: data.configured, provider: data.configured ? data.provider : null,
-      canReplace: data.allowed_actions.includes("replace"), canRemove: data.allowed_actions.includes("remove") };
+    if (!data || typeof data.has_key !== "boolean" ||
+        !(data.provider === null || PROVIDERS.includes(data.provider)) ||
+        (data.has_key && data.provider === null)) throw new ConnectionsError("unavailable");
+    // Auth's ProviderKeyOut is metadata-only; organization scope comes from
+    // the request path. GET, PUT and DELETE all enforce manage_org server-side.
+    // A successful GET therefore permits showing management controls; Auth
+    // checks permissions again on every mutation. Never retain arbitrary fields.
+    return { configured: data.has_key, provider: data.has_key ? data.provider : null,
+      canReplace: true, canRemove: true };
   } catch (error) {
     if (error instanceof ConnectionsError) throw error;
     throw new ConnectionsError("unavailable");

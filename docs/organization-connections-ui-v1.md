@@ -1,5 +1,48 @@
 # Organization Connections V1
 
+## Runtime recovery — 2026-10-06
+
+This section supersedes the historical campaign's Auth contract below. The
+primary Auth checkout (`2c7eed5befe9ec9d451b0a02bc8e1199a22c47d0`) and the
+running server's OpenAPI both register `GET /orgs/{org_id}/provider-keys`,
+not `GET /orgs/{org_id}/provider-keys/metadata`. The latter matched the
+provider mutation path and returned 405 with `{"detail":"Method Not Allowed"}`.
+The existing authenticated Chrome session and Auth logs confirmed this failure.
+
+The canonical `ProviderKeyOut` contains `provider`, `has_key`, `updated_at`,
+and `updated_by_email`, with nullable metadata. Studio now projects only
+`has_key` and the supported provider into its display state. GET, PUT, and
+DELETE all enforce `require_org_permission_or_platform_admin("manage_org")`.
+A successful GET permits showing management controls; every mutation is
+independently authorized by Auth. The current canonical API does not provide
+a member-only metadata read or `allowed_actions`. No email-based authorization
+or frontend permission grant is used.
+
+The web request is same-origin, carries the existing Bearer token and the
+organization ID in the path, and uses `cache: no-store`, `credentials: omit`.
+The existing nginx `location ^~ /orgs` forwards the unchanged method, path and
+Authorization header to `auth-service:8001`. The gateway is not on this path.
+No proxy or Auth changes were required; the Auth image was not stale.
+
+The live browser session has organization ID/role context and the required
+permission; the canonical API returned 200 with `provider: null` and
+`has_key: false`. Only safe metadata was returned. Internal reveal requests
+remain inaccessible through the public router (prefixed POST: 404; bare POST:
+405 from the web fallback), and Studio never requests them.
+
+Validation: focused Connections tests 56/56; complete Studio UI suite 839/839
+across 71 files, including Account and Explore; web build and `git diff --check`
+pass. Only `web-ui` was rebuilt/recreated locally. In the real browser, Retry
+recovered from a transient nginx rate-limit 503 to a canonical 200 and the
+empty state, with the error banner absent. A final fresh page load also returned
+200 and rendered the empty state without errors or internal reveal requests.
+The existing service worker needed
+an update check and reload to load the new bundle. No provider credentials
+were written or fabricated. Auth's pre-existing changes and Explore were
+preserved. No push or external deployment was performed.
+
+## Historical UI campaign
+
 Foundation: `integration/account-appearance-v1` at `5c27e583bb60c927200af3e1c4e805d83e38e877`. Verified ancestors: Wave-3 `abc4bd9c8514a9ab9719fd10419fb03f9d9613f5`, Studio credential hardening `5ce649d429ae51e456a64d687600acc67ff68cc3`, Appearance `b52849845b083197ce59e1495beed71fee91a051`.
 
 Route: `/studio/organization/connections`, available under Organization in desktop and mobile navigation. Personal Account pages remain separate. No organization picker is invented; the page uses `currentUser.orgId` from canonical session validation, never a first/default organization.

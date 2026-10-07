@@ -8,13 +8,13 @@ import { setSession } from "../../src/ui/lib/session";
 
 const user = { userId: 7, orgId: 11 };
 const secret = "sk-test-NEVER-PERSIST";
-const metadata = (provider = null, admin = true, org = 11) => ({ organization_id: org, owner_scope: "ORGANIZATION", configured: !!provider, provider, credential_version: "internal-version", allowed_actions: admin ? ["use", "replace", "remove"] : ["use"] });
+const metadata = (provider = null) => ({ provider, has_key: !!provider, updated_at: null, updated_by_email: null });
 const response = (body, status = 200) => ({ ok: status < 400, status, json: vi.fn().mockResolvedValue(body) });
-function setup(provider = null, admin = true) {
-  let state = metadata(provider, admin);
+function setup(provider = null) {
+  let state = metadata(provider);
   const fetcher = vi.fn(async (_url, options) => {
-    if (options.method === "PUT") state = metadata(_url.endsWith("openai") ? "openai" : "claude", admin);
-    if (options.method === "DELETE") state = metadata(null, admin);
+    if (options.method === "PUT") state = metadata(_url.endsWith("openai") ? "openai" : "claude");
+    if (options.method === "DELETE") state = metadata(null);
     return response(state);
   });
   vi.stubGlobal("fetch", fetcher);
@@ -36,18 +36,22 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("Organization Connections", () => {
   it("loads the disconnected shared slot without fabricated metadata", async () => {
-    setup(); render(<OrganizationConnections currentUser={user} />);
+    const fetcher = setup(); render(<OrganizationConnections currentUser={user} />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading");
     expect(await screen.findByText("No organization AI provider connected.")).toBeVisible();
     expect(screen.getByText(/One shared AI provider/)).toBeVisible();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith(expect.stringMatching(/\/orgs\/11\/provider-keys$/), expect.objectContaining({
+      method: "GET", headers: { Accept: "application/json", Authorization: "Bearer test-token" },
+    }));
     expect(screen.queryByText(/internal-version|Last used|Last updated/)).toBeNull();
   });
-  it.each(["openai", "claude"])("shows %s as member-safe read-only metadata", async provider => {
-    setup(provider, false); render(<OrganizationConnections currentUser={user} />);
+  it.each(["openai", "claude"])("shows %s from canonical safe metadata after server authorization", async provider => {
+    setup(provider); render(<OrganizationConnections currentUser={user} />);
     expect(await screen.findByText("Credential stored securely")).toBeVisible();
     expect(screen.getByText("Provided by your organization.")).toBeVisible();
     expect(screen.getByText("Connected")).toBeVisible();
-    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByRole("button", { name: "Replace credential or switch provider" })).toBeVisible();
     expect(document.body.textContent).not.toContain("internal-version");
   });
   it.each(["openai", "claude"])("connects %s with no persisted or displayed secret", async provider => {
@@ -106,18 +110,23 @@ describe("Organization Connections", () => {
     fetcher.mockRejectedValueOnce(new Error(secret)); fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
     await screen.findByRole("alert"); expect(screen.getByText("Connected")).toBeVisible(); assertSecretAbsent();
   });
-  it.each([403, 503, "network"])("handles loading failure %s and retries", async status => {
+  it.each([401, 403, 405, 503, "network"])("handles loading failure %s and retries", async status => {
     const fetcher = setup();
     if (status === "network") fetcher.mockRejectedValueOnce(new Error(secret)); else fetcher.mockResolvedValueOnce(response({ detail: secret }, status));
-    render(<OrganizationConnections currentUser={user} />); await screen.findByRole("alert"); assertSecretAbsent();
+    render(<OrganizationConnections currentUser={user} />); const alert = await screen.findByRole("alert"); assertSecretAbsent();
+    expect(alert).toHaveTextContent([401, 403].includes(status) ? "You do not have permission" : "Connections are unavailable");
+    expect(screen.queryByRole("button", { name: "Connect provider" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Retry connection" })); await screen.findByText("No organization AI provider connected.");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls[1][0]).toBe(fetcher.mock.calls[0][0]);
+    expect(fetcher.mock.calls[1][1].headers.Authorization).toBe("Bearer test-token");
   });
   it("immediately clears dialog and org A metadata on organization switch, ignoring late responses", async () => {
     const fetcher = setup("openai"); const { rerender } = render(<OrganizationConnections currentUser={user} />);
     fireEvent.click(await screen.findByRole("button", { name: /Replace credential/ })); enter();
     let finish; fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(screen.getByRole("button", { name: "Confirm replacement" }));
-    fetcher.mockResolvedValue(response(metadata("claude", false, 22)));
+    fetcher.mockResolvedValue(response(metadata("claude")));
     rerender(<OrganizationConnections currentUser={{ ...user, orgId: 22 }} />);
     expect(screen.queryByText("OpenAI")).toBeNull(); expect(screen.queryByRole("dialog")).toBeNull(); assertSecretAbsent();
     await screen.findByText("Anthropic");
@@ -127,7 +136,7 @@ describe("Organization Connections", () => {
   it("ignores stale metadata and clears secret on session and user changes", async () => {
     let resolveA; const fetcher = setup(); fetcher.mockImplementationOnce(() => new Promise(resolve => { resolveA = resolve; }));
     const { rerender } = render(<OrganizationConnections currentUser={user} />);
-    fetcher.mockResolvedValue(response(metadata(null, true, 22)));
+    fetcher.mockResolvedValue(response(metadata(null)));
     rerender(<OrganizationConnections currentUser={{ userId: 8, orgId: 22 }} />);
     await screen.findByText("No organization AI provider connected.");
     await act(async () => resolveA(response(metadata("openai")))); expect(screen.queryByText("OpenAI")).toBeNull();
@@ -175,4 +184,12 @@ it("does not double submit and ignores aborted read failures", async () => {
   const { unmount } = render(<OrganizationConnections currentUser={user} />); unmount();
   await act(async () => reject(Error(secret)));
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+it("never renders secret or private metadata returned in unexpected fields", async () => {
+  const fetcher = setup("openai");
+  fetcher.mockResolvedValue(response({ ...metadata("openai"), api_key: secret, access_token: secret, refresh_token: secret, password: secret, client_secret: secret, updated_by_email: secret }));
+  render(<OrganizationConnections currentUser={user} />);
+  await screen.findByText("Credential stored securely"); assertSecretAbsent();
+  expect(fetcher.mock.calls.every(([url]) => !/internal|reveal/.test(url))).toBe(true);
 });
