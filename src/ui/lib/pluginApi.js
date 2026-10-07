@@ -1,5 +1,5 @@
 import { isElectron } from "./session";
-import { hasOnlyKeys, isDataPath, isRecord, validBatchField, validColumns, validPaginationDescriptor } from "./pluginUiContracts";
+import { hasOnlyKeys, isDataPath, isRecord, validBatchField, validColumns, validDetailDescriptor, validFilterDescriptor, validPaginationDescriptor } from "./pluginUiContracts";
 
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
@@ -179,7 +179,7 @@ function rejectExecutableMetadata(value, depth = 0) {
 }
 
 function validateBatchQueryDescriptor(data) {
-  if (!hasOnlyKeys(data, ["schema_version", "plugin", "renderer", "native_supported", "inputs", "outputs", "capabilities", "endpoints", "result", "pagination"],
+  if (!hasOnlyKeys(data, ["schema_version", "plugin", "renderer", "native_supported", "inputs", "outputs", "capabilities", "endpoints", "result", "pagination", "detail", "filters"],
     ["schema_version", "plugin", "renderer", "native_supported", "inputs", "outputs", "capabilities", "endpoints", "result"]) ||
     data.renderer !== "query" || data.native_supported !== true ||
     !hasOnlyKeys(data.plugin, ["slug", "name", "version", "description", "category"], ["slug", "name", "version", "description", "category"]) ||
@@ -207,6 +207,12 @@ function validateBatchQueryDescriptor(data) {
   if (data.pagination !== undefined && (!validPaginationDescriptor(data.pagination) ||
     data.inputs.some(input => input.id === "page") ||
     !data.inputs.some(input => input.id === "page_size" && input.component === "number" && input.format === "integer"))) throw new PluginDescriptorError("Invalid pagination descriptor.");
+  if (data.detail !== undefined && (!detail || !validDetailDescriptor(data.detail))) {
+    throw new PluginDescriptorError("Invalid detail presentation descriptor.");
+  }
+  if (data.filters !== undefined && !validFilterDescriptor(data.filters, data.inputs)) {
+    throw new PluginDescriptorError("Invalid filter presentation descriptor.");
+  }
 }
 
 function validateDescriptor(data, slug) {

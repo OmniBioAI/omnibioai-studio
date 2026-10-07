@@ -16,7 +16,13 @@ const proof = (slug = "rcsb_pdb") => ({
     ...(slug === "ensembl" ? {} : { detail_key: "pdb_id" }),
     columns: slug === "ensembl" ? [{ key: "ensembl_id", label: "Ensembl ID" }, { key: "symbol", label: "Gene symbol" }]
       : [{ key: "pdb_id", label: "PDB ID" }, { key: "score", label: "Score" }] },
-  ...(slug === "ensembl" ? {} : { pagination: { component: "pagination", mode: "page" } }),
+  ...(slug === "ensembl" ? {} : {
+    pagination: { component: "pagination", mode: "page" },
+    filters: { component: "filters", title: "Filters", field_ids: ["organism", "max_resolution"] },
+    detail: { component: "detail", title: "Structure detail", fields: [
+      { key: "pdb_id", label: "PDB ID" }, { key: "title", label: "Title" },
+    ] },
+  }),
 });
 const page = (extra = {}) => ({ mode: "page", page: 1, page_size: 20, total_items: 1, has_previous: false, has_next: false, ...extra });
 const response = (payload, ok = true) => ({ ok, status: ok ? 200 : 400, json: async () => payload });
@@ -25,6 +31,13 @@ describe("Batch 1 descriptor boundary", () => {
   it.each(["ensembl", "rcsb_pdb"])("validates the complete %s proof descriptor", slug => {
     const descriptor = proof(slug);
     expect(validatePluginDescriptor(descriptor, slug)).toBe(descriptor);
+  });
+
+  it("preserves the Batch 1 v2 descriptor without optional detail/filter presentation", () => {
+    const descriptor = proof();
+    delete descriptor.detail;
+    delete descriptor.filters;
+    expect(validatePluginDescriptor(descriptor, "rcsb_pdb")).toBe(descriptor);
   });
 
   it.each([0, 3, "2", null, undefined])("rejects unsupported schema version %s", schema_version => {
@@ -60,6 +73,14 @@ describe("Batch 1 descriptor boundary", () => {
     ["offset mode", value => { value.pagination.mode = "offset"; }],
     ["pagination URL", value => { value.pagination.next_url = "/upstream/"; }],
     ["prototype pagination", value => { value.pagination.component = "constructor"; }],
+    ["unknown filter component", value => { value.filters.component = "FilterBuilder"; }],
+    ["unknown filter field", value => { value.filters.field_ids = ["unknown"]; }],
+    ["unsupported textarea filter", value => { value.inputs.find(input => input.id === "organism").component = "textarea"; }],
+    ["duplicate filter field", value => { value.filters.field_ids.push(value.filters.field_ids[0]); }],
+    ["filter expression", value => { value.filters.expression = "score > 1"; }],
+    ["unknown detail component", value => { value.detail.component = "CustomDetail"; }],
+    ["prototype detail field", value => { value.detail.fields[0].key = "constructor"; }],
+    ["detail formatter", value => { value.detail.fields[0].formatter = "javascript"; }],
     ["colliding page parameter", value => { value.inputs.push(number({ id: "page" })); }],
     ["missing page-size field", value => { value.inputs = value.inputs.filter(input => input.id !== "page_size"); }],
     ["text page-size field", value => { value.inputs = value.inputs.map(input => input.id === "page_size" ? text("page_size") : input); }],
@@ -172,5 +193,14 @@ describe("query API adapter", () => {
     for (const id of ["", null, {}, "../secret", "https://evil.test/path"]) await expect(queryDetail(proof(), id)).rejects.toThrow();
     await expect(queryDetail(proof("ensembl"), "ENSG1")).rejects.toThrow("Invalid detail identifier");
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { pdb_id: "4HHB", title: {} },
+    { pdb_id: "4HHB", title: [] },
+    { pdb_id: "4HHB", title: "Safe", raw: { html: "<b>no</b>" } },
+  ])("rejects structured or undeclared detail response data", async payload => {
+    fetch.mockResolvedValue(response(payload));
+    await expect(queryDetail(proof(), "4HHB")).rejects.toThrow("invalid response");
   });
 });

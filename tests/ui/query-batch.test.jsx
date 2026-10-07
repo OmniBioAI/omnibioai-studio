@@ -22,6 +22,10 @@ const descriptor = {
   result: { presentation: "table", rows_path: "results", row_key: "pdb_id", detail_key: "pdb_id",
     columns: [{ key: "pdb_id", label: "PDB ID" }, { key: "score", label: "Score" }] },
   pagination: { component: "pagination", mode: "page" },
+  filters: { component: "filters", title: "Structure filters", field_ids: ["max_resolution"] },
+  detail: { component: "detail", title: "Structure detail", fields: [
+    { key: "title", label: "Title" }, { key: "assembly_count", label: "Assemblies" },
+  ] },
 };
 const page = (current = 1, id = "4HHB", total = 41) => ({
   results: [{ pdb_id: id, score: 0.123456789 }],
@@ -61,11 +65,22 @@ beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Batch 1 query composition", () => {
+  it("resets only declared filters to descriptor defaults without submitting", () => {
+    render(<QueryRenderer descriptor={descriptor} />);
+    fireEvent.change(screen.getByLabelText(/Protein name/), { target: { value: "kinase" } });
+    fireEvent.change(screen.getByLabelText(/Maximum resolution/), { target: { value: "0.05" } });
+    fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
+    expect(screen.getByLabelText(/Protein name/)).toHaveValue("kinase");
+    expect(screen.getByLabelText(/Maximum resolution/)).toHaveValue(null);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("composes shared fields, scalar table and backend pagination, preserving sub-decimal scientific inputs", async () => {
     fetch.mockResolvedValue(response(page()));
     render(<QueryRenderer descriptor={descriptor} />);
     expect(screen.getByLabelText(/Protein name/).tagName).toBe("INPUT");
     expect(screen.getByLabelText(/Page size/)).toHaveValue(20);
+    expect(screen.getByRole("group", { name: "Structure filters" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Maximum resolution/), { target: { value: "0.05" } });
     search();
     expect(await screen.findByRole("table", { name: "Results" })).toBeInTheDocument();
@@ -145,11 +160,11 @@ describe("Batch 1 query composition", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^View/ }));
     expect(screen.getByText("Loading detail…")).toHaveAttribute("role", "status");
     expect(screen.getByRole("button", { name: /^View/ })).toBeDisabled();
-    await act(async () => pending.resolve(response({ title: "<script>alert(1)</script>", assembly_count: 2, nested: { omit: true } })));
+    await act(async () => pending.resolve(response({ title: "<script>alert(1)</script>", assembly_count: 2 })));
     expect(screen.getByText("<script>alert(1)</script>")).toBeInTheDocument();
     expect(container.querySelector("script")).toBeNull();
-    expect(screen.getByText("assembly count")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Detail" })).toHaveFocus();
+    expect(screen.getByText("Assemblies")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Structure detail" })).toHaveFocus();
     expect(fetch.mock.calls[1][0]).toBe("/_svc/workbench/plugins/rcsb_pdb/api/ui-detail/4HHB/");
   });
 
@@ -179,7 +194,7 @@ describe("Batch 1 query composition", () => {
     expect(signal.aborted).toBe(true);
     await act(async () => pending.resolve(response({ title: "Obsolete detail" })));
     expect(screen.queryByText("Obsolete detail")).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Detail" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Structure detail" })).not.toBeInTheDocument();
   });
 
   it("aborts on descriptor change and unmount, ignoring stale query results", async () => {

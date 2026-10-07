@@ -106,14 +106,16 @@ try {
       assert.equal(await pagination.locator('[aria-current="page"]').textContent(), "Page 2");
       await pagination.getByRole("button", { name: "Previous" }).click();
       const query = page.getByTestId("query-review");
+      assert(await query.getByRole("group", { name: "Structure filters" }).isVisible());
       await query.getByRole("textbox", { name: "Protein name", exact: true }).fill("hemoglobin");
       await query.getByRole("spinbutton", { name: "Page size", exact: true }).fill("1");
       await query.getByRole("button", { name: "Search", exact: true }).click();
       await query.getByRole("button", { name: "View details for 4HHB" }).waitFor();
       await query.getByRole("button", { name: "View details for 4HHB" }).focus();
       await page.keyboard.press("Enter");
-      const detail = query.getByRole("heading", { name: "Detail", exact: true });
+      const detail = query.getByRole("heading", { name: "Structure detail", exact: true });
       await detail.waitFor();
+      await page.waitForFunction(element => element === document.activeElement, await detail.elementHandle());
       assert(await detail.evaluate(element => element === document.activeElement));
       await query.screenshot({ path: path.join(artifacts, `${theme}-${width}-query-detail.png`) });
       await query.getByRole("button", { name: "Next" }).click();

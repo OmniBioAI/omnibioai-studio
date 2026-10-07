@@ -36,6 +36,41 @@ export function validColumns(columns) {
       isDataPath(column.key) && typeof column.label === "string" && column.label.trim().length > 0);
 }
 
+export function validScalarFields(fields) {
+  return Array.isArray(fields) && fields.length > 0 &&
+    new Set(fields.map(field => field?.key)).size === fields.length &&
+    fields.every(field => hasOnlyKeys(field, ["key", "label"], ["key", "label"]) &&
+      typeof field.key === "string" && IDENTIFIER.test(field.key) && !FORBIDDEN_NAMES.has(field.key) &&
+      typeof field.label === "string" && field.label.trim().length > 0);
+}
+
+export function validScalarRecord(record, fields, { strict = false } = {}) {
+  if (!isRecord(record) || !validScalarFields(fields)) return false;
+  const allowed = new Set(fields.map(field => field.key));
+  if (strict && Object.keys(record).some(key => !allowed.has(key))) return false;
+  return fields.every(field => {
+    const value = Object.hasOwn(record, field.key) ? record[field.key] : null;
+    return value === null || typeof value === "string" || typeof value === "boolean" ||
+      (typeof value === "number" && Number.isFinite(value));
+  });
+}
+
+export function validDetailDescriptor(value) {
+  return hasOnlyKeys(value, ["component", "title", "fields"], ["component", "title", "fields"]) &&
+    value.component === "detail" && typeof value.title === "string" && value.title.trim().length > 0 &&
+    validScalarFields(value.fields) && value.fields.every(field => !field.key.includes("."));
+}
+
+export function validFilterDescriptor(value, inputs) {
+  if (!hasOnlyKeys(value, ["component", "title", "field_ids"], ["component", "title", "field_ids"]) ||
+      value.component !== "filters" || typeof value.title !== "string" || !value.title.trim() ||
+      !Array.isArray(inputs) || !Array.isArray(value.field_ids) || value.field_ids.length === 0 ||
+      new Set(value.field_ids).size !== value.field_ids.length || value.field_ids.length === inputs.length) return false;
+  const fields = new Map(inputs.map(input => [input.id, input]));
+  return value.field_ids.every(id => typeof id === "string" && IDENTIFIER.test(id) && !FORBIDDEN_NAMES.has(id) &&
+    fields.has(id) && fields.get(id).required === false && ["text", "select", "number"].includes(fields.get(id).component));
+}
+
 export function rowKeys(rows, rowKey) {
   if (!Array.isArray(rows) || rows.some(row => !isRecord(row))) return null;
   if (rowKey === undefined) return rows.map((_, index) => `row-${index}`);

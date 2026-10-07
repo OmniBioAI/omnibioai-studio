@@ -15,11 +15,7 @@
 html[data-theme="light"] .workbench-table-scroll:focus-visible,
 html[data-theme="light"] .workbench-pagination button:focus-visible,
 html[data-theme="light"] .workbench-results button:focus-visible { outline-color: var(--text); }
-.workbench-query-detail dl { display: grid; grid-template-columns: minmax(8ch, 1fr) minmax(0, 3fr); gap: 8px 16px; }
-.workbench-query-detail dt { color: var(--color-text-secondary); }
-.workbench-query-detail dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 767px) {
   .workbench-pagination button, .workbench-results button { min-height: 44px; }
   .workbench-page-summary { flex: 1 1 100%; order: 1; }
-  .workbench-query-detail dl { grid-template-columns: minmax(0, 1fr); }
 }

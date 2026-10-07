@@ -1,5 +1,5 @@
 import { pluginEndpoint } from "./pluginApi";
-import { isDataPath, isRecord, rowKeys, validPagination } from "./pluginUiContracts";
+import { isDataPath, isRecord, rowKeys, validPagination, validScalarRecord } from "./pluginUiContracts";
 
 export function queryRequestUrl(descriptor, values, page) {
   const url = new URL(pluginEndpoint(descriptor.endpoints.query), window.location.origin);
@@ -43,5 +43,9 @@ export async function queryDetail(descriptor, id, { signal } = {}) {
   }
   const path = descriptor.endpoints.detail.replace("{detail_id}", encodeURIComponent(id));
   const response = await fetch(pluginEndpoint(path), { credentials: "same-origin", headers: { Accept: "application/json" }, signal });
-  return readResponse(response, "Detail lookup failed");
+  const payload = await readResponse(response, "Detail lookup failed");
+  if (descriptor.detail && !validScalarRecord(payload, descriptor.detail.fields, { strict: true })) {
+    throw new Error("Detail lookup failed: invalid response.");
+  }
+  return payload;
 }

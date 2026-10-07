@@ -3,8 +3,11 @@ import TextAreaField from "./fields/TextAreaField";
 import NumberField from "./fields/NumberField";
 import ResultsTable from "./results/ResultsTable";
 import PaginationControls from "./results/PaginationControls";
+import KeyValueResult from "./results/KeyValueResult";
+import DetailPanel from "./results/DetailPanel";
+import FilterControls from "./filters/FilterControls";
 
-export { TextField, TextAreaField, NumberField, ResultsTable, PaginationControls };
+export { TextField, TextAreaField, NumberField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls };
 export const TextareaField = TextAreaField;
 
 /**
@@ -54,6 +57,9 @@ export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
   number: NumberField,
   table: ResultsTable,
   pagination: PaginationControls,
+  key_value: KeyValueResult,
+  detail: DetailPanel,
+  filters: FilterControls,
 });
 
 export const WORKBENCH_FIELD_TYPES = Object.freeze(["file", "text", "textarea", "select", "number"]);

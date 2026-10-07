@@ -200,3 +200,84 @@ No root lint or application-JSX typecheck script currently exists. Package
 TypeScript checks do not typecheck the Workbench JSX. Browser verification uses
 real components/styles, fixture responses and blocked external traffic. It does
 not claim a live upstream scientific run or packaged Electron verification.
+
+## Batch 2: declared scalar detail and finite filters
+
+Batch 2 keeps schema v2 and adds optional strict `detail` and `filters` objects.
+Descriptors without them remain valid. RCSB PDB is the production proof;
+Ensembl remains unchanged. IntAct and dbSNP remain legacy because scalar detail
+cannot preserve their nested, multi-section scientific results.
+
+```json
+{
+  "filters": {"component":"filters","title":"Filters","field_ids":["organism","max_resolution"]},
+  "detail": {"component":"detail","title":"Structure detail","fields":[
+    {"key":"pdb_id","label":"PDB ID"},
+    {"key":"resolution_angstrom","label":"Resolution (Å)"}
+  ]}
+}
+```
+
+Filter IDs are unique references to existing optional inputs. They cannot name
+every input, introduce operators, repeat field definitions, or carry query
+expressions. Reset restores only referenced fields to declared defaults and does
+not submit. Detail fields are unique flat keys and labels. The authorized
+response may contain only those keys; values are strings, finite numbers,
+booleans, null, or missing. Arrays, objects, arbitrary paths, formatters, URLs,
+HTML and callbacks fail closed.
+
+### KeyValueResult
+
+- **Purpose / when to use:** ordered labeled scalar identity, measurements,
+  counts, dates, flags and long scientific descriptions.
+- **When not to use:** nested records, arrays, JSON inspection, links or tables.
+- **Descriptor contract:** registry identifier `key_value`; fields come from
+  validated `detail.fields`, not dynamic component metadata.
+- **Required runtime properties:** `fields`, `record`.
+- **Optional runtime properties:** `emptyMessage`.
+- **Allowed values:** string, finite number, boolean, null/missing.
+- **Backend responsibilities:** project declared fields and serialize identifiers
+  exceeding JavaScript precision as strings.
+- **Security boundary:** escaped text only; no recursion, HTML or formatters.
+- **Accessibility:** semantic `dl`/`dt`/`dd`; empty data is a status message.
+- **Error behavior:** malformed fields or structured values render an alert.
+- **Real example / response:** RCSB detail; `{"pdb_id":"4HHB","resolution_angstrom":1.74}`.
+
+### DetailPanel
+
+- **Purpose / when to use:** loading, error, empty and success states for one
+  fixed authorized scalar detail operation; it composes KeyValueResult.
+- **When not to use:** fetching, automatic object inspection, reports or mutations.
+- **Descriptor contract:** required `component: "detail"`, nonempty `title`, and
+  nonempty `fields: [{key,label}]`; no optional descriptor properties.
+- **Runtime contract:** trusted `record`, `loading`, `error`, `headingRef`.
+- **Backend responsibilities:** auth, detail-ID validation, upstream access and projection.
+- **Security boundary:** exact response keys and scalar values; extras fail closed.
+- **Accessibility:** labeled busy region, live status/error and focused heading.
+- **Error behavior:** detail errors do not remove existing result rows.
+- **Real example:** RCSB PDB structure detail.
+
+### FilterControls
+
+- **Purpose / when to use:** group secondary optional `text`, `select`, or
+  `number` criteria already in `inputs`.
+- **When not to use:** query builders, arbitrary operators, expressions, URLs or paths.
+- **Descriptor contract:** required `component: "filters"`, nonempty `title`, and
+  unique nonempty `field_ids`; no optional descriptor properties.
+- **Runtime contract:** trusted field children, disabled state and reset event.
+- **Backend responsibilities:** allowed fields/operators, normalization,
+  scientific validation, query construction and authorization.
+- **Security boundary:** it constructs no request; QueryRenderer retains the fixed adapter.
+- **Accessibility:** native fieldset/legend, disabled semantics and focus-visible reset.
+- **Error behavior:** unknown IDs/components/properties invalidate the descriptor.
+- **Real examples:** RCSB organism/resolution; reuse evidence exists in ClinVar,
+  ArrayExpress, BioStudies and Reactome optional criteria.
+
+### MetadataPanel decision
+
+No MetadataPanel was added. Scalar contextual metadata is already covered by
+DetailPanel plus KeyValueResult. IntAct/dbSNP provenance is nested or
+semantically distinct and must wait for an evidence-backed section/provenance
+contract rather than receive a duplicate scalar panel or automatic JSON view.
+
+See `docs/creating-workbench-plugin-ui.md` for the implemented query workflow.

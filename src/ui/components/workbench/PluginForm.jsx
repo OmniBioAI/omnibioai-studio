@@ -61,6 +61,8 @@ export default function PluginForm({
   readOnly = false,
   submitting = false,
   submitLabel = "Run analysis",
+  filters,
+  FilterComponent,
 }) {
   const [validationErrors, setValidationErrors] = React.useState({});
   let conditionallyValid = true;
@@ -123,24 +125,36 @@ export default function PluginForm({
 
   const displayError = Object.values(validationErrors)[0] || fieldText(error);
   const fields = new Map(inputs.map(input => [input.id, input]));
+  const filterIds = new Set(FilterComponent ? (filters?.field_ids || []) : []);
+  const renderField = input => {
+    const state = fieldState(input, values, fields);
+    if (!state.visible) return null;
+    return <PluginField
+      key={input.id}
+      input={input}
+      required={state.required}
+      value={currentValue(input, values)}
+      files={files[input.id] || []}
+      error={validationErrors[input.id] || fieldErrors[input.id]}
+      disabled={disabled || submitting}
+      readOnly={readOnly}
+      onValueChange={value => { clearValidationError(input.id, { ...values, [input.id]: value }); onValueChange?.(input.id, value); }}
+      onFilesChange={fileList => { clearValidationError(input.id); onFilesChange?.(input.id, fileList); }}
+    />;
+  };
+  function resetFilters() {
+    inputs.filter(input => filterIds.has(input.id)).forEach(input => {
+      const next = input.default ?? "";
+      onValueChange?.(input.id, next);
+    });
+    setValidationErrors(previous => Object.fromEntries(Object.entries(previous).filter(([id]) => !filterIds.has(id))));
+  }
   return (
     <form className="plugin-form" onSubmit={handleSubmit} encType="multipart/form-data" aria-busy={submitting} noValidate>
-      {inputs.map(input => {
-        const state = fieldState(input, values, fields);
-        if (!state.visible) return null;
-        return <PluginField
-          key={input.id}
-          input={input}
-          required={state.required}
-          value={currentValue(input, values)}
-          files={files[input.id] || []}
-          error={validationErrors[input.id] || fieldErrors[input.id]}
-          disabled={disabled || submitting}
-          readOnly={readOnly}
-          onValueChange={value => { clearValidationError(input.id, { ...values, [input.id]: value }); onValueChange?.(input.id, value); }}
-          onFilesChange={fileList => { clearValidationError(input.id); onFilesChange?.(input.id, fileList); }}
-        />;
-      })}
+      {inputs.filter(input => !filterIds.has(input.id)).map(renderField)}
+      {FilterComponent && filters && <FilterComponent title={filters.title} disabled={disabled || readOnly || submitting} onReset={resetFilters}>
+        {inputs.filter(input => filterIds.has(input.id)).map(renderField)}
+      </FilterComponent>}
       {displayError && <p role="alert" className="plugin-error">{displayError}</p>}
       <button type="submit" className="omni-btn omni-btn--primary omni-btn--md" disabled={disabled || readOnly || submitting}>
         {submitting ? "Loading…" : submitLabel}

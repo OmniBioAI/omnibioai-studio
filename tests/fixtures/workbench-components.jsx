@@ -38,6 +38,11 @@ const descriptor = validatePluginDescriptor({
   endpoints: { query: "/plugins/rcsb_pdb/api/ui-query/", detail: "/plugins/rcsb_pdb/api/ui-detail/{detail_id}/" },
   result: { presentation: "table", rows_path: "results", row_key: "pdb_id", detail_key: "pdb_id", columns: [{ key: "pdb_id", label: "PDB ID" }, { key: "score", label: "Score" }] },
   pagination: { component: "pagination", mode: "page" },
+  filters: { component: "filters", title: "Structure filters", field_ids: ["organism", "max_resolution"] },
+  detail: { component: "detail", title: "Structure detail", fields: [
+    { key: "pdb_id", label: "PDB ID" }, { key: "title", label: "Title" },
+    { key: "experimental_method", label: "Experimental method" }, { key: "resolution_angstrom", label: "Resolution (Å)" },
+  ] },
 }, "rcsb_pdb");
 const page = { mode: "page", page: 1, page_size: 10, total_items: 25, has_previous: false, has_next: true };
 

@@ -26,7 +26,7 @@ export default function QueryRenderer({ descriptor }) {
     return () => { queryRequest.current?.abort(); detailRequest.current?.abort(); };
   }, [descriptor]);
 
-  useEffect(() => { if (detail) detailHeading.current?.focus(); }, [detail]);
+  useEffect(() => { if (detail && !detailLoading) detailHeading.current?.focus(); }, [detail, detailLoading]);
 
   async function search(nextValues, page) {
     queryRequest.current?.abort(); detailRequest.current?.abort();
@@ -80,12 +80,19 @@ export default function QueryRenderer({ descriptor }) {
   const detailEnabled = descriptor.capabilities.detail === true;
   const Table = resolveWorkbenchComponent(result.presentation);
   const Pagination = descriptor.pagination ? resolveWorkbenchComponent(descriptor.pagination.component) : null;
-  if (!Table || (descriptor.pagination && !Pagination)) return <p role="alert" className="plugin-error">Unsupported query presentation.</p>;
+  const Filters = descriptor.filters ? resolveWorkbenchComponent(descriptor.filters.component) : null;
+  const Detail = detailEnabled ? resolveWorkbenchComponent(descriptor.detail?.component || "detail") : null;
+  const detailFields = descriptor.detail?.fields ?? (detail ? Object.keys(detail)
+    .filter(key => ["string", "number", "boolean"].includes(typeof detail[key]))
+    .map(key => ({ key, label: key.replaceAll("_", " ") })) : []);
+  if (!Table || (descriptor.pagination && !Pagination) || (descriptor.filters && !Filters) || (detailEnabled && !Detail)) {
+    return <p role="alert" className="plugin-error">Unsupported query presentation.</p>;
+  }
 
   return <div className="native-plugin-page">
     <Panel><PanelHeader title="Query" /><PanelBody>
       <PluginForm inputs={descriptor.inputs} values={values} onValueChange={(id, value) => setValues(previous => ({ ...previous, [id]: value }))}
-        onSubmit={submit} submitting={loading} submitLabel="Search" />
+        onSubmit={submit} submitting={loading} submitLabel="Search" filters={descriptor.filters} FilterComponent={Filters} />
     </PanelBody></Panel>
     {(loading || error || payload) && <Panel><PanelHeader title="Results" /><PanelBody>
       <Table columns={result.columns} rows={rows} rowKey={rowKey} loading={loading} error={error}
@@ -103,12 +110,7 @@ export default function QueryRenderer({ descriptor }) {
       </Table>
       {Pagination && payload && <Pagination pagination={payload.pagination} loading={loading} onNavigate={navigate} />}
     </PanelBody></Panel>}
-    {detailLoading && <p role="status">Loading detail…</p>}
-    {detailError && <p role="alert" className="plugin-error">{detailError}</p>}
-    {detail && <div className="workbench-query-detail"><Panel><PanelBody>
-      <h2 ref={detailHeading} tabIndex={-1}>Detail</h2>
-      <dl>{Object.entries(detail).filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
-        .map(([key, value]) => <React.Fragment key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{scalarText(value)}</dd></React.Fragment>)}</dl>
-    </PanelBody></Panel></div>}
+    {(detailLoading || detailError || detail) && <Detail title={descriptor.detail?.title || "Detail"} fields={detailFields}
+      record={detail} loading={detailLoading} error={detailError} headingRef={detailHeading} />}
   </div>;
 }
