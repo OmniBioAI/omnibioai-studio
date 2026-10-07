@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import LicenseGate  from "./components/LicenseGate";
 import BugReport    from "./components/BugReport";
 import Sidebar      from "./components/Sidebar";
@@ -222,7 +222,13 @@ export default function App() {
   const [config,       setConfig]       = useState({
     mode: "beta", llm: {}, cloud: {}, hpc: {}, settings: {},
   });
-  const [service,      setService]      = useState(getInitialService); // { url, label } when viewing a service
+  const [service, setServiceState] = useState(getInitialService); // { url, label } when viewing a service
+  const serviceOpenId = useRef(0);
+  function setService(next) {
+    // A deliberate open (including the same URL) starts a new document.
+    // Ordinary renders retain the key and the active workspace's state.
+    setServiceState(next ? { ...next, openId: ++serviceOpenId.current } : null);
+  }
   const [workbenchState, setWorkbenchState] = useState({ query: "", category: "__all__", focusSlug: null });
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
@@ -394,7 +400,10 @@ export default function App() {
     null, // 19 — "Workflows" opens an external service directly (handleNavClick); never rendered as a page
     <Projects />,
     <Artifacts />,
-    <Explore />,
+    <Explore onOpen={(destination, resource) => {
+      if (destination?.kind === "navigate") handleNavClick(destination.page);
+      else if (destination?.kind === "service") setService({ url: destination.url, label: destination.label || resource?.name, source: resource?.source });
+    }} />,
     <AccountLayout activeSection="notifications" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountNotifications currentUser={currentUser} />
     </AccountLayout>,
@@ -450,7 +459,7 @@ export default function App() {
       setService({ url, label: externalService.label });
       return;
     }
-    if (idx === CONNECTIONS_PAGE || Object.values(ACCOUNT_PAGES).includes(idx) || service?.source === "workbench") setService(null);
+    setService(null);
     setStep(idx);
     if (idx === 7 || PAGE_TO_PATH[idx] !== undefined || KNOWN_PAGE_PATHS.includes(window.location.pathname)) {
       const url = new URL(window.location.href);
@@ -662,7 +671,7 @@ export default function App() {
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
                 : service.source === "workbench" && service.pluginSlug
                   ? <PluginPage slug={service.pluginSlug} url={service.url} label={service.label} backLabel={service.backLabel} onBack={() => setService(null)} />
-                  : <ServiceViewer url={service.source === "workbench" ? service.url : resolveServiceUrl(service.url)} label={service.label}
+                  : <ServiceViewer key={service.openId} url={service.source === "workbench" ? service.url : resolveServiceUrl(service.url)} label={service.label}
                       backLabel={service.source === "workbench" ? "Back to Workbench" : undefined}
                       onBack={() => setService(null)} />
             : (

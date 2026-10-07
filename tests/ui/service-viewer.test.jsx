@@ -7,6 +7,21 @@ beforeEach(() => { delete window.api; delete window.electronAPI; });
 afterEach(() => { cleanup(); delete window.api; delete window.electronAPI; });
 
 describe("ServiceViewer", () => {
+  it("keeps the canonical Launcher iframe stable until an explicit reopen", () => {
+    const onBack = vi.fn();
+    const { rerender } = render(<ServiceViewer key={1} url="/_svc/sdk" label="Code" onBack={onBack} />);
+    const first = screen.getByTitle("Code");
+    expect(first).toHaveAttribute("src", "/_svc/sdk");
+    rerender(<ServiceViewer key={1} url="/_svc/sdk" label="Code" onBack={onBack} backLabel="Studio" />);
+    expect(screen.getByTitle("Code")).toBe(first);
+    rerender(<ServiceViewer key={2} url="/_svc/sdk" label="Code" onBack={onBack} />);
+    expect(screen.getByTitle("Code")).not.toBe(first);
+    expect(screen.getByTitle("Code")).toHaveAttribute("src", "/_svc/sdk");
+    rerender(<ServiceViewer key={3} url="/_svc/workflows" label="Workflows" onBack={onBack} />);
+    expect(screen.queryByTitle("Code")).toBeNull();
+    expect(screen.getByTitle("Workflows")).toHaveAttribute("src", "/_svc/workflows");
+  });
+
   it("renders an iframe in the web build, titled by label or the URL as a fallback", () => {
     const { unmount } = render(<ServiceViewer url="/service" label="Service" onBack={vi.fn()} />);
     const iframe = document.querySelector("iframe");

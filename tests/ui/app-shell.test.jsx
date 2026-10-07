@@ -379,6 +379,30 @@ describe("App shell — navigation and roles nav", () => {
 });
 
 describe("App shell — Code and Workflows navigation (Phase A)", () => {
+  it("reopens Code with a fresh service view, preserves it during ordinary updates, and exits to native navigation", async () => {
+    isElectron.mockReturnValue(false);
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await screen.findByText("Studio page");
+    const openCode = () => fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    const codeView = () => screen.getByText(/^ServiceViewer:Code:.*\/_svc\/sdk$/);
+    openCode();
+    const first = codeView();
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    expect(codeView()).toBe(first);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    openCode();
+    expect(codeView()).not.toBe(first);
+    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    await screen.findByText("Jobs page");
+    expect(screen.queryByText(/^ServiceViewer:Code:/)).not.toBeInTheDocument();
+    openCode();
+    const reopened = codeView();
+    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    expect(screen.getByText(/^ServiceViewer:Workflows:/)).not.toBe(reopened);
+    expect(reopened).not.toBeInTheDocument();
+  });
+
   it("opens the existing Launcher service when Code is selected, using the canonical Electron webview path", async () => {
     getCurrentUser.mockResolvedValue(admin); // isElectron() is true by default in this file's beforeEach
     render(<App />);
