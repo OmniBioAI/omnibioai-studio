@@ -389,6 +389,8 @@ and Workbench `plugins/shared/tests/test_query_ui.py`.
 | StaticPngResult | — | PRODUCTION | Existing static PNG result |
 | MetadataPanel | — | PLANNED_NOT_AVAILABLE | Not distinct from scalar sections |
 | ScientificReference | `reference` | PRODUCTION | Server-authorized scientific cross-reference navigation |
+| ArtifactList | `artifact_list` | PRODUCTION | Bounded metadata for caller-owned run artifacts |
+| ArtifactDownload | `artifact_download` | PRODUCTION | Fixed same-origin download by opaque artifact ID |
 | Arbitrary hyperlink | — | INTENTIONALLY_UNSUPPORTED | Descriptors/runtime data never carry destinations |
 | Structured recursive JSON viewer | — | PLANNED_NOT_AVAILABLE | Intentionally unsupported |
 
@@ -485,3 +487,94 @@ Unicode slash lookalikes, overlong values, duplicate query parameters and
 destination-like query keys are rejected. The redirect `Location` can only be
 created by a registry policy and is verified again for exact HTTPS host, no
 userinfo and no port. **Do not put URLs in plugin UI descriptors.**
+
+## Batch 5: opaque server-authorized artifacts
+
+### Evidence and component boundary
+
+The shared async family, including DESeq2 and the static-plot population,
+publishes RunStore manifests containing relative paths. Previous Studio code
+rendered those paths and constructed `?path=` downloads. Report-producing
+plugins such as omics QC, ChIP-seq reporting, metabolomics reporting and Scanpy
+QC show the same reusable file/table/plot/report metadata pattern.
+
+Batch 5 adds `ArtifactList` (`artifact_list`) and `ArtifactDownload`
+(`artifact_download`). A list is justified because artifact metadata must
+reflow at narrow widths and compose a semantic download anchor; ResultsTable
+remains scalar-only and receives no arbitrary cell renderer. The download
+primitive owns only presentation of an already validated opaque identity.
+`PluginResults` composes both components. StaticPngResult remains the specialized
+inline PNG viewer and coexists with the downloadable artifact list.
+
+### ArtifactList and ArtifactDownload contract
+
+- **Purpose / when to use:** present a bounded list of completed, caller-owned
+  RunStore outputs and download one through the authenticated Workbench route.
+- **When not to use:** directory browsing, upload, deletion, rename, inline
+  HTML/report execution, object-store navigation, arbitrary paths or URLs.
+- **Artifact identity:** `art_` followed by 43 base64url characters. Django
+  derives the ID with a keyed digest over plugin, run and manifest position.
+  It reveals no path, bucket, object key, tenant directory or storage URL.
+- **Descriptor contract:** exact
+  `{"presentation":"list","max_items":100}` under `artifacts`. The bound is
+  an integer from 1 through 100. The fixed download endpoint is
+  `/plugins/{slug}/api/ui-artifacts/{run_id}/{artifact_id}/download/`.
+- **Runtime contract:** exact `{"artifacts":[...]}`. Each item has
+  `artifact_id`, `display_name`, `label`, `media_type`, `size_bytes`, and
+  `kind`. Kinds are `archive`, `file`, `log`, `plot`, `report`, or `table`.
+  Names are bounded path-free strings, sizes are non-negative safe integers,
+  and media types are server-derived. Unknown properties reject the payload.
+- **Backend authority and ownership:** authenticate, check RunStore
+  `owner_user_id`, resolve the ID against the plugin/run manifest, resolve the
+  path below the run output root, reject symlink escape, derive filename/type/
+  size and return an attachment. Wrong-owner, wrong-run, wrong-plugin, guessed
+  and missing IDs receive the same not-found response. Ownerless runs fail closed.
+- **Containment:** IDs are never interpreted as paths. Server-only manifest
+  paths must resolve below the authoritative run output directory.
+- **Filename/content-type safety:** Django derives the leaf name, strips control
+  characters and separators, delegates Content-Disposition quoting to
+  FileResponse, derives media type from the safe filename and forces every
+  artifact—including HTML—to `attachment` with `nosniff` and `no-store`.
+- **Accessibility:** a semantic list contains full labels, filenames and
+  textual kind/type/size metadata. Downloads are anchors with filename-specific
+  accessible names and visible token-based focus. Empty, loading and error
+  states use status/alert semantics.
+- **Responsive behavior:** meaningful filenames wrap rather than ellipsize;
+  metadata wraps and the download affordance stacks at narrow widths.
+- **Error behavior:** invalid runtime metadata rejects the response; invalid
+  primitive identity becomes an inert “Download unavailable” state.
+- **Real evidence:** DESeq2 is the async proof and volcano plot verifies
+  coexistence with StaticPngResult. Reuse evidence includes omics QC reports,
+  ChIP-seq reports, metabolomics reports, anomaly detection and Scanpy QC.
+- **Tests:** Studio `tests/ui/workbench-artifacts.test.jsx` and
+  `tests/ui/async-analysis-renderer.test.jsx`; Workbench
+  `plugins/shared/tests/test_artifact_ui.py` and `test_plugin_ui_schema.py`.
+
+Example descriptor fragment:
+
+```json
+{
+  "artifacts":{"presentation":"list","max_items":100},
+  "endpoints":{
+    "artifacts":"/plugins/deseq2_analysis/api/artifacts/{run_id}/",
+    "download":"/plugins/deseq2_analysis/api/ui-artifacts/{run_id}/{artifact_id}/download/"
+  }
+}
+```
+
+Example response:
+
+```json
+{"artifacts":[{
+  "artifact_id":"art_NzvP2cW7E0eCG_WoahB1FcWtt0Rdj1N27Z2u2d64FcA",
+  "display_name":"sample_condition_differential_expression_results.tsv",
+  "label":"Differential expression results",
+  "media_type":"text/tab-separated-values",
+  "size_bytes":18422,
+  "kind":"table"
+}]}
+```
+
+**DO NOT PUT FILESYSTEM PATHS OR DOWNLOAD URLS IN UI DESCRIPTORS.** Runtime
+artifact records likewise never contain paths, storage keys, buckets, signed
+URLs, credentials or arbitrary endpoints.

@@ -118,6 +118,58 @@ canonical example: ClinVar/Gene/RefSeq references now fit the library, but its
 complete multi-operation variant workflow still needs a separate authoritative
 projection design.
 
+## Exposing Downloadable Artifacts
+
+Use the async artifact contract only for outputs already registered in the
+caller-owned RunStore run. The browser receives opaque identities and display
+metadata, never storage identity.
+
+Workflow:
+
+1. Create the run with `meta.owner_user_id` derived from the authenticated
+   request, never from submitted data.
+2. Write outputs to that run's authoritative `out` directory and publish a
+   validated RunStore artifact manifest with relative server-side paths.
+3. Declare `{"presentation":"list","max_items":100}` under `artifacts`.
+4. Return the shared artifact listing projection. It derives opaque IDs,
+   filenames, media types and sizes after containment checks.
+5. Let `PluginResults` compose `ArtifactList` and `ArtifactDownload`; do not
+   write plugin-specific JSX or a descriptor cell renderer.
+6. Add parameterized ownership, wrong-plugin/run, guessed-ID, traversal,
+   symlink, filename-header, content-type and runtime-contract tests.
+
+The descriptor endpoint roles are fixed:
+
+```json
+{
+  "artifacts":"/plugins/my_analysis/api/artifacts/{run_id}/",
+  "download":"/plugins/my_analysis/api/ui-artifacts/{run_id}/{artifact_id}/download/"
+}
+```
+
+The browser consumes only safe metadata:
+
+```json
+{"artifacts":[{
+  "artifact_id":"art_NzvP2cW7E0eCG_WoahB1FcWtt0Rdj1N27Z2u2d64FcA",
+  "display_name":"pathway_enrichment_reactome_results.csv",
+  "label":"Reactome enrichment results",
+  "media_type":"text/csv",
+  "size_bytes":9021,
+  "kind":"table"
+}]}
+```
+
+The download route authenticates again, enforces the server-recorded run owner,
+resolves the opaque ID against that plugin/run manifest, proves filesystem
+containment and sends a server-named attachment. React never authorizes or
+resolves storage.
+
+**DO NOT PUT FILESYSTEM PATHS OR DOWNLOAD URLS IN UI DESCRIPTORS.** Do not add
+`path`, `file_url`, `download_url`, `signed_url`, bucket, object key, endpoint
+template, callback or storage credential metadata. Keep a plugin legacy if its
+artifact cannot be tied to authoritative ownership and containment.
+
 ## 5. Add tests
 
 Add the plugin to parameterized backend contracts. Verify schema, auth, method,

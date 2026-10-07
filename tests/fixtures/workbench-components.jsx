@@ -10,6 +10,7 @@ import QueryRenderer from "../../src/ui/components/workbench/QueryRenderer";
 import { validatePluginDescriptor } from "../../src/ui/lib/pluginApi";
 import ResultsTable from "../../src/ui/components/workbench/results/ResultsTable";
 import PaginationControls from "../../src/ui/components/workbench/results/PaginationControls";
+import ArtifactList from "../../src/ui/components/workbench/results/ArtifactList";
 import "./workbench-components.css";
 
 const field = (overrides = {}) => ({ id: "identifier", component: "text", format: "text", label: "Scientific identifier", description: "Use the complete accession or transcript identifier.", required: false, ...overrides });
@@ -54,6 +55,15 @@ const descriptor = validatePluginDescriptor({
   ] },
 }, "rcsb_pdb");
 const page = { mode: "page", page: 1, page_size: 10, total_items: 25, has_previous: false, has_next: true };
+const artifactId = `art_${"A".repeat(43)}`;
+const artifacts = [{
+  artifact_id: artifactId,
+  display_name: "single_cell_cluster_markers_condition_2_vs_21_with_complete_transcript_identifiers.tsv",
+  label: "Single-cell cluster markers for condition 2 versus condition 21",
+  media_type: "text/tab-separated-values",
+  size_bytes: 987654321,
+  kind: "table",
+}];
 
 function Fixture() {
   const [values, setValues] = React.useState({});
@@ -89,6 +99,10 @@ function Fixture() {
       <ResultsTable caption="Failed results" columns={columns} rows={[]} error="The backend could not complete this query. Try again." />
       <PaginationControls pagination={page} loading />
       <PaginationControls pagination={{ ...page, page: 3, has_previous: true, has_next: false }} disabled />
+    </section>
+    <section className="review-panel" aria-labelledby="artifacts-heading" data-testid="artifact-review">
+      <h2 id="artifacts-heading">Downloadable artifacts</h2>
+      <ArtifactList artifacts={artifacts} pluginSlug="deseq2_analysis" runId="run-scientific-1" />
     </section>
     <section className="review-panel" aria-labelledby="query-heading" data-testid="query-review">
       <h2 id="query-heading">Query composition</h2>

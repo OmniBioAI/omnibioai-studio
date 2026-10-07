@@ -3,6 +3,9 @@
 const FORBIDDEN_NAMES = new Set(["__proto__", "prototype", "constructor", "password", "token", "api_key", "secret", "credentials"]);
 const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 const URI_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+export const OPAQUE_ARTIFACT_ID = /^art_[A-Za-z0-9_-]{43}$/;
+const ARTIFACT_KINDS = new Set(["archive", "file", "log", "plot", "report", "table"]);
+const MEDIA_TYPE = /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/i;
 const SCIENTIFIC_REFERENCE_TYPES = Object.freeze({
   doi: { label: "DOI", maximum: 255, pattern: /^10\.\d{4,9}\/[A-Za-z0-9][A-Za-z0-9._;()/:+\-]{0,243}$/ },
   pubmed: { label: "PubMed", maximum: 10, pattern: /^[1-9]\d{0,9}$/ },
@@ -45,6 +48,35 @@ export function isRecord(value) {
 export function hasOnlyKeys(value, allowed, required = []) {
   return isRecord(value) && Object.keys(value).every(key => allowed.includes(key)) &&
     required.every(key => Object.hasOwn(value, key));
+}
+
+export function validArtifactPresentation(value) {
+  return hasOnlyKeys(value, ["presentation", "max_items"], ["presentation", "max_items"]) &&
+    value.presentation === "list" && Number.isInteger(value.max_items) &&
+    value.max_items >= 1 && value.max_items <= 100;
+}
+
+export function validateArtifactPayload(payload, maxItems = 100) {
+  if (!hasOnlyKeys(payload, ["artifacts", "render"], ["artifacts"]) || !Array.isArray(payload.artifacts) ||
+      !Number.isInteger(maxItems) || maxItems < 1 || maxItems > 100 || payload.artifacts.length > maxItems) {
+    throw new Error("Invalid artifact response.");
+  }
+  const ids = new Set();
+  for (const artifact of payload.artifacts) {
+    if (!hasOnlyKeys(artifact, ["artifact_id", "display_name", "label", "media_type", "size_bytes", "kind"],
+      ["artifact_id", "display_name", "label", "media_type", "size_bytes", "kind"]) ||
+      !OPAQUE_ARTIFACT_ID.test(artifact.artifact_id) || ids.has(artifact.artifact_id) ||
+      typeof artifact.display_name !== "string" || !artifact.display_name || artifact.display_name.length > 255 ||
+      /[\x00-\x1f\x7f/\\]/.test(artifact.display_name) ||
+      typeof artifact.label !== "string" || !artifact.label || artifact.label.length > 200 ||
+      typeof artifact.media_type !== "string" || !MEDIA_TYPE.test(artifact.media_type) ||
+      !Number.isSafeInteger(artifact.size_bytes) || artifact.size_bytes < 0 ||
+      !ARTIFACT_KINDS.has(artifact.kind)) {
+      throw new Error("Invalid artifact response.");
+    }
+    ids.add(artifact.artifact_id);
+  }
+  return payload.artifacts;
 }
 
 export function isDataPath(path) {

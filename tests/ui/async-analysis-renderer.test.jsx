@@ -9,7 +9,7 @@ const endpoints = {
   status: "/plugins/pilot/api/status/{run_id}/",
   logs: "/plugins/pilot/api/log/{run_id}/",
   artifacts: "/plugins/pilot/api/artifacts/{run_id}/",
-  download: "/plugins/pilot/api/file/{run_id}/",
+  download: "/plugins/pilot/api/ui-artifacts/{run_id}/{artifact_id}/download/",
 };
 
 const descriptor = {
@@ -21,6 +21,7 @@ const descriptor = {
   outputs: [{ id: "output", label: "Output", description: "artifact", format: "tsv" }],
   capabilities: { submit: true, status: true, logs: true, artifacts: true, downloads: true },
   endpoints,
+  artifacts: { presentation: "list", max_items: 100 },
 };
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
@@ -33,14 +34,14 @@ describe("AsyncAnalysisRenderer", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ run_id: "run-1", status: "RUNNING" }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ state: "COMPLETED", detail: "done" }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ lines: ["finished"] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ outputs: [{ path: "out.tsv", label: "Output", type: "file" }] }) });
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ artifacts: [{ artifact_id: `art_${"A".repeat(43)}`, display_name: "out.tsv", label: "Output", kind: "table", media_type: "text/tab-separated-values", size_bytes: 42 }] }) });
     vi.stubGlobal("fetch", fetchMock);
     render(<AsyncAnalysisRenderer descriptor={descriptor} />);
     await user.upload(screen.getByLabelText(/Input File/), file);
     fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
     expect(await screen.findByRole("status")).toHaveTextContent("COMPLETED");
     expect(await screen.findByText("finished")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Download" })).toHaveAttribute("href", expect.stringContaining("path=out.tsv"));
+    expect(screen.getByRole("link", { name: "Download out.tsv" })).toHaveAttribute("href", expect.stringContaining(`/api/ui-artifacts/run-1/art_${"A".repeat(43)}/download/`));
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "POST", credentials: "same-origin" });
     expect(fetchMock.mock.calls[0][1].headers).toHaveProperty("X-CSRFToken");
     expect(fetchMock.mock.calls[0][1].body).toBeInstanceOf(FormData);

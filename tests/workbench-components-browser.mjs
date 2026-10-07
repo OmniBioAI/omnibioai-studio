@@ -113,6 +113,17 @@ try {
       await page.keyboard.press("Enter");
       assert.equal(await pagination.locator('[aria-current="page"]').textContent(), "Page 2");
       await pagination.getByRole("button", { name: "Previous" }).click();
+      const artifactReview = page.getByTestId("artifact-review");
+      const artifactLink = artifactReview.getByRole("link", { name: /Download single_cell_cluster_markers_condition_2_vs_21/ });
+      assert(await artifactLink.isVisible());
+      assert.equal(await artifactLink.getAttribute("href"), `/_svc/workbench/plugins/deseq2_analysis/api/ui-artifacts/run-scientific-1/art_${"A".repeat(43)}/download/`);
+      assert.equal(await artifactLink.getAttribute("download"), "");
+      await artifactLink.focus();
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Shift+Tab");
+      assert(await artifactLink.evaluate(element => element === document.activeElement));
+      assert.notEqual(await artifactLink.evaluate(element => getComputedStyle(element).outlineStyle), "none");
+      assert(await artifactReview.getByText("942 MiB").isVisible());
       const query = page.getByTestId("query-review");
       assert(await query.getByRole("group", { name: "Structure filters" }).isVisible());
       await query.getByRole("textbox", { name: "Protein name", exact: true }).fill("hemoglobin");

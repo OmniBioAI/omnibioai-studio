@@ -7,8 +7,10 @@ import KeyValueResult from "./results/KeyValueResult";
 import DetailPanel from "./results/DetailPanel";
 import FilterControls from "./filters/FilterControls";
 import ScientificReference from "./results/ScientificReference";
+import ArtifactList from "./results/ArtifactList";
+import ArtifactDownload from "./results/ArtifactDownload";
 
-export { TextField, TextAreaField, NumberField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls, ScientificReference };
+export { TextField, TextAreaField, NumberField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls, ScientificReference, ArtifactList, ArtifactDownload };
 export const TextareaField = TextAreaField;
 
 /**
@@ -62,6 +64,8 @@ export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
   detail: DetailPanel,
   filters: FilterControls,
   reference: ScientificReference,
+  artifact_list: ArtifactList,
+  artifact_download: ArtifactDownload,
 });
 
 export const WORKBENCH_FIELD_TYPES = Object.freeze(["file", "text", "textarea", "select", "number"]);

@@ -21,8 +21,9 @@ const descriptor = {
     status: "/plugins/deseq2_analysis/api/status/{run_id}/",
     logs: "/plugins/deseq2_analysis/api/log/{run_id}/",
     artifacts: "/plugins/deseq2_analysis/api/artifacts/{run_id}/",
-    download: "/plugins/deseq2_analysis/api/file/{run_id}/",
+    download: "/plugins/deseq2_analysis/api/ui-artifacts/{run_id}/{artifact_id}/download/",
   },
+  artifacts: { presentation: "list", max_items: 100 },
 };
 
 const queryDescriptor = {
@@ -61,9 +62,10 @@ const staticPngDescriptor = {
     status: "/plugins/volcano_plot/api/status/{run_id}/",
     logs: "/plugins/volcano_plot/api/log/{run_id}/",
     artifacts: "/plugins/volcano_plot/api/artifacts/{run_id}/",
-    download: "/plugins/volcano_plot/api/file/{run_id}/",
+    download: "/plugins/volcano_plot/api/ui-artifacts/{run_id}/{artifact_id}/download/",
     render: "/plugins/volcano_plot/api/render/{run_id}/",
   },
+  artifacts: { presentation: "list", max_items: 100 },
 };
 
 beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
@@ -129,6 +131,14 @@ describe("plugin descriptor API boundary", () => {
       .toThrow("Invalid plugin endpoint");
     expect(() => validatePluginDescriptor({ ...descriptor, endpoints: { ...descriptor.endpoints, callback: "/plugins/deseq2_analysis/api/run/" } }, "deseq2_analysis"))
       .toThrow("Unsupported plugin endpoint role");
+  });
+
+  it("accepts only the finite artifact presentation and fixed opaque-ID endpoint", () => {
+    expect(validatePluginDescriptor(descriptor, "deseq2_analysis").artifacts).toEqual({ presentation: "list", max_items: 100 });
+    expect(() => validatePluginDescriptor({ ...descriptor, artifacts: { ...descriptor.artifacts, path: "/tmp" } }, "deseq2_analysis"))
+      .toThrow("Invalid artifact presentation schema");
+    expect(() => validatePluginDescriptor({ ...descriptor, endpoints: { ...descriptor.endpoints, download: "/plugins/deseq2_analysis/api/file/{run_id}/" } }, "deseq2_analysis"))
+      .toThrow("Invalid artifact presentation schema");
   });
 
   it("accepts only the finite static PNG result contract", () => {

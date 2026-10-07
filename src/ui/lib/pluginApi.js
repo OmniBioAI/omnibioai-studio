@@ -1,9 +1,10 @@
 import { isElectron } from "./session";
-import { hasOnlyKeys, isDataPath, isRecord, scientificReferenceTypesForPlugin, validBatchField, validColumns, validDetailDescriptor, validFilterDescriptor, validPaginationDescriptor } from "./pluginUiContracts";
+import { hasOnlyKeys, isDataPath, isRecord, OPAQUE_ARTIFACT_ID, scientificReferenceTypesForPlugin, validArtifactPresentation, validBatchField, validColumns, validDetailDescriptor, validFilterDescriptor, validPaginationDescriptor } from "./pluginUiContracts";
 
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
-const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-query|ui-detail|ui-reference)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
+const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-query|ui-detail|ui-reference|ui-artifacts)\/(?:[A-Za-z0-9_.:{}-]+\/){0,3}(?:\?[^#]*)?$/;
+const RUN_ID = /^[A-Za-z0-9_.:-]+$/;
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
 const ASYNC_REQUIRED_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
 const ASYNC_CAPABILITIES = [...ASYNC_REQUIRED_CAPABILITIES, "render"];
@@ -35,6 +36,14 @@ export function endpointUrl(path, options) {
     throw new Error("Invalid plugin endpoint.");
   }
   return serviceUrl(path, options);
+}
+
+export function pluginArtifactDownloadUrl(slug, runId, artifactId, options) {
+  if (typeof slug !== "string" || !SLUG.test(slug) || typeof runId !== "string" || !RUN_ID.test(runId) ||
+      typeof artifactId !== "string" || !OPAQUE_ARTIFACT_ID.test(artifactId)) {
+    throw new Error("Invalid artifact identity.");
+  }
+  return serviceUrl(`/plugins/${slug}/api/ui-artifacts/${runId}/${artifactId}/download/`, options);
 }
 
 function validateField(field) {
@@ -278,6 +287,11 @@ function validateDescriptor(data, slug) {
     validatePluginEndpoint(data.endpoints.render.replace("{run_id}", "placeholder"), slug);
   } else if (data.capabilities.render !== undefined || data.endpoints.render !== undefined) {
     throw new PluginDescriptorError("Invalid static PNG result endpoint schema.");
+  }
+  if (data.artifacts !== undefined &&
+      (!validArtifactPresentation(data.artifacts) ||
+       data.endpoints.download !== `/plugins/${slug}/api/ui-artifacts/{run_id}/{artifact_id}/download/`)) {
+    throw new PluginDescriptorError("Invalid artifact presentation schema.");
   }
   rejectExecutableMetadata(data);
   return data;

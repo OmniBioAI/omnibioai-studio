@@ -6,6 +6,7 @@ import LogViewer from "./LogViewer";
 import RunStatus from "./RunStatus";
 import { descriptorComponent } from "./PluginField";
 import { csrfToken, pluginEndpoint } from "../../lib/pluginApi";
+import { validateArtifactPayload } from "../../lib/pluginUiContracts";
 
 const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR"]);
 
@@ -21,7 +22,7 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
   const [runId, setRunId] = useState("");
   const [status, setStatus] = useState(null);
   const [logs, setLogs] = useState([]);
-  const [outputs, setOutputs] = useState([]);
+  const [artifacts, setArtifacts] = useState([]);
   const [renderedResult, setRenderedResult] = useState(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -51,7 +52,7 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
           if (!artifactResponse.ok) throw new Error("Unable to read run artifacts.");
           const artifactPayload = await artifactResponse.json();
           if (!cancelled) {
-            setOutputs(Array.isArray(artifactPayload.outputs) ? artifactPayload.outputs : []);
+            setArtifacts(validateArtifactPayload(artifactPayload, descriptor.artifacts?.max_items || 100));
             setRenderedResult(artifactPayload.render || null);
           }
         } else if (TERMINAL.has(nextStatus.state)) window.clearInterval(timer);
@@ -93,7 +94,7 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
       else if (values[input.id]) formData.append(inputName(input), values[input.id]);
     });
     setSubmitting(true);
-    setRunId(""); setStatus(null); setLogs([]); setOutputs([]); setRenderedResult(null);
+    setRunId(""); setStatus(null); setLogs([]); setArtifacts([]); setRenderedResult(null);
     try {
       const response = await fetch(pluginEndpoint(descriptor.endpoints.submit), {
         method: "POST", body: formData, credentials: "same-origin",
@@ -142,8 +143,9 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
       )}
       {runId && ["COMPLETED", "COMPLETE"].includes(state) && (
         <PluginResults
-          outputs={outputs}
-          downloadEndpoint={endpoint("download")}
+          artifacts={artifacts}
+          pluginSlug={descriptor.plugin.slug}
+          runId={runId}
           renderEndpoint={descriptor.endpoints.render ? endpoint("render") : ""}
           render={renderedResult}
         />

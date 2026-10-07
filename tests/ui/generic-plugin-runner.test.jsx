@@ -5,9 +5,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import GenericPluginRunner from "../../src/ui/components/GenericPluginRunner";
 
 const descriptor = {
-  plugin: { name: "Pilot", version: "1.0", description: "desc", category: "analysis" },
+  plugin: { slug: "pilot", name: "Pilot", version: "1.0", description: "desc", category: "analysis" },
   inputs: [{ id: "input_file", label: "Input File", description: "TSV", required: true, format: "tsv", widget: "file", multiple: false, accept: ".tsv" }],
-  endpoints: { submit: "/plugins/pilot/api/run/", status: "/plugins/pilot/api/status/{run_id}/", logs: "/plugins/pilot/api/log/{run_id}/", artifacts: "/plugins/pilot/api/artifacts/{run_id}/", download: "/plugins/pilot/api/file/{run_id}/" },
+  endpoints: { submit: "/plugins/pilot/api/run/", status: "/plugins/pilot/api/status/{run_id}/", logs: "/plugins/pilot/api/log/{run_id}/", artifacts: "/plugins/pilot/api/artifacts/{run_id}/", download: "/plugins/pilot/api/ui-artifacts/{run_id}/{artifact_id}/download/" },
+  artifacts: { presentation: "list", max_items: 100 },
 };
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -37,14 +38,14 @@ describe("GenericPluginRunner", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ run_id: "run-1", status: "RUNNING" }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ state: "COMPLETED", detail: "done" }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ lines: ["finished"] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ outputs: [{ path: "out.tsv", label: "Output", type: "file" }] }) });
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ artifacts: [{ artifact_id: `art_${"A".repeat(43)}`, display_name: "out.tsv", label: "Output", kind: "table", media_type: "text/tab-separated-values", size_bytes: 42 }] }) });
     vi.stubGlobal("fetch", status);
     render(<GenericPluginRunner descriptor={descriptor} />);
     await user.upload(screen.getByLabelText(/Input File/), file);
     fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
     expect(await screen.findByRole("status")).toHaveTextContent("COMPLETED");
     expect(await screen.findByText("Output")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Download" })).toHaveAttribute("href", expect.stringContaining("path=out.tsv"));
+    expect(screen.getByRole("link", { name: "Download out.tsv" })).toHaveAttribute("href", expect.stringContaining(`/api/ui-artifacts/run-1/art_${"A".repeat(43)}/download/`));
     expect(status.mock.calls[0][1].body).toBeInstanceOf(FormData);
     expect(screen.getByLabelText(/Input File/)).toHaveAttribute("accept", ".tsv");
   });
