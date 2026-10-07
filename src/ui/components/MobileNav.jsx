@@ -6,7 +6,7 @@ import AccountMenu from "./AccountMenu";
 // <Sidebar> — permission filtering (manage_roles) and active-route logic
 // stay in perfect sync with desktop because nothing nav-related is
 // duplicated here, only re-rendered as a drawer instead of a fixed rail.
-export default function MobileNav({ nav, step, setStep, currentUser, open, onClose, onProfileClick, onSecurityClick, onPreferencesClick, onAppearanceClick, isAppearanceActive = false, onPersonalizationClick, isPersonalizationActive = false, onNotificationsClick, isNotificationsActive, isProfileActive, isSecurityActive, isPreferencesActive }) {
+export default function MobileNav({ nav, step, setStep, currentUser, open, onClose, onProfileClick, onSecurityClick, onPreferencesClick, onAppearanceClick, isAppearanceActive = false, onPersonalizationClick, isPersonalizationActive = false, onNotificationsClick, isNotificationsActive, onPrivacyClick, isPrivacyActive = false, onPlanClick, isPlanActive = false, onHelpClick, isHelpActive = false, isProfileActive, isSecurityActive, isPreferencesActive }) {
   const closeBtnRef = useRef(null);
   const stepRef = useRef(step);
 
@@ -162,6 +162,9 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
               onAppearanceClick={onAppearanceClick} isAppearanceActive={isAppearanceActive}
               onPersonalizationClick={onPersonalizationClick} isPersonalizationActive={isPersonalizationActive}
               onNotificationsClick={onNotificationsClick} isNotificationsActive={isNotificationsActive}
+              onPrivacyClick={onPrivacyClick} isPrivacyActive={isPrivacyActive}
+              onPlanClick={onPlanClick} isPlanActive={isPlanActive}
+              onHelpClick={onHelpClick} isHelpActive={isHelpActive}
               isProfileActive={isProfileActive} isSecurityActive={isSecurityActive} />
           </div>
         )}

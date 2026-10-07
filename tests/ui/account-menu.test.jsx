@@ -147,3 +147,24 @@ it.each([false, true])("opens Notifications and closes the account menu (mobile=
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   if (mobile) expect(close).toHaveBeenCalledOnce();
 });
+
+it.each(["Appearance", "Notifications", "Privacy & Data", "Plan", "Help & Product"])("does not throw clicking %s with no handler provided", label => {
+  render(<AccountMenu currentUser={{ userId: 1, email: "test@example.org" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  expect(() => fireEvent.click(screen.getByRole("menuitem", { name: label }))).not.toThrow();
+});
+
+it.each([
+  ["Privacy & Data", "onPrivacyClick", "isPrivacyActive"],
+  ["Plan", "onPlanClick", "isPlanActive"],
+  ["Help & Product", "onHelpClick", "isHelpActive"],
+])("opens %s and closes the account menu", (label, clickProp, activeProp) => {
+  const navigate = vi.fn();
+  render(<AccountMenu currentUser={{ userId: 1, email: "test@example.org" }} {...{ [clickProp]: navigate, [activeProp]: true }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  const item = screen.getByRole("menuitem", { name: label });
+  expect(item).toHaveAttribute("aria-current", "page");
+  fireEvent.click(item);
+  expect(navigate).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+});

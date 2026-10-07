@@ -3,6 +3,12 @@ import { Badge, Card, Button, Input, ProgressBar, Spinner, Tabs, Table } from "@
 import Login from "../components/Login";
 import * as billingApi from "../lib/billingApi";
 import * as platformAdminApi from "../lib/platformAdminApi";
+import { isStripeHostedUrl, openStripeUrl } from "../lib/stripePortal";
+
+// Re-exported so existing imports of `isStripeHostedUrl` from this module
+// keep working unchanged now that it lives in lib/stripePortal.js (shared
+// with AccountPlan.jsx).
+export { isStripeHostedUrl };
 
 const MANAGE_ALL_ORGS = "manage_all_orgs";
 
@@ -94,51 +100,6 @@ const valueStyle = { fontSize: "var(--font-size-sm)", color: "var(--text)" };
 const sectionTitleStyle = { fontSize: "var(--font-size-sm)", fontWeight: 700, color: "#fff", marginBottom: 10, letterSpacing: "0.02em" };
 
 const PAYMENT_UNAVAILABLE_MESSAGE = "Online card payments are not available on this deployment yet.";
-
-// The only two pages billingApi's setup/portal sessions are ever allowed to
-// open: Stripe Checkout (setup mode) and the Stripe Billing Portal. Checked
-// against URL#origin (derived by the parser from scheme+host+port, not the
-// raw string), so something like "https://checkout.stripe.com@evil.example"
-// — whose origin is actually evil.example — is correctly rejected rather
-// than matched by a naive prefix/substring check.
-const STRIPE_HOSTED_ORIGINS = new Set(["https://checkout.stripe.com", "https://billing.stripe.com"]);
-
-export function isStripeHostedUrl(url) {
-  try {
-    return STRIPE_HOSTED_ORIGINS.has(new URL(url).origin);
-  } catch (_) {
-    return false;
-  }
-}
-
-// Card data must never pass through OmniBioAI, so the only thing this page
-// ever does with a setup/portal session is hand the browser off to Stripe's
-// own hosted page for it — never render it in an iframe, never fetch it
-// ourselves. Guarded by isStripeHostedUrl so a compromised or misbehaving
-// billing-service can't redirect the user (and their Electron app's
-// shell.openExternal privilege) somewhere arbitrary.
-function openStripeUrl(url, stripeTab) {
-  if (!isStripeHostedUrl(url)) {
-    throw new Error("Refused to open a non-Stripe-hosted URL");
-  }
-  if (stripeTab) {
-    if (stripeTab.closed) throw new Error("The Stripe tab was closed. Please try again.");
-    // Navigate from the reserved tab without sending Studio's referrer.
-    // Its opener was already severed synchronously before the API request.
-    const link = stripeTab.document.createElement("a");
-    link.href = url;
-    link.rel = "noopener noreferrer";
-    link.target = "_self";
-    stripeTab.document.body.appendChild(link);
-    link.click();
-  } else if (window.electronAPI?.openExternal) {
-    window.electronAPI.openExternal(url);
-  } else if (window.api?.openExternal) {
-    window.api.openExternal(url);
-  } else {
-    window.location.assign(url);
-  }
-}
 
 // Stripe redirects back to <BILLING_WEB_BASE_URL>/billing?payment=success|
 // cancelled (billing-service builds that URL server-side — see
