@@ -39,7 +39,6 @@ import Settings from "../../src/ui/pages/Settings";
 import Launch from "../../src/ui/pages/Launch";
 import Logs from "../../src/ui/pages/Logs";
 import Services from "../../src/ui/pages/Services";
-import IdeServices from "../../src/ui/pages/IdeServices";
 import Jobs from "../../src/ui/pages/Jobs";
 import Studio from "../../src/ui/pages/Studio";
 import RoleManagement from "../../src/ui/pages/RoleManagement";
@@ -96,7 +95,6 @@ describe("page and component coverage matrix", () => {
       [Launch, { config, onStatusChange: vi.fn() }],
       [Logs, {}],
       [Services, { config, currentUser: user }],
-      [IdeServices, { currentUser: user }],
       [Jobs, {}],
       [Studio, {}],
     ]) {

@@ -38,7 +38,6 @@ vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> 
 vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <><div>Studio page</div><button onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: 13 }))}>Open Workbench catalog</button></> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
-vi.mock("../../src/ui/pages/IdeServices", () => ({ default: () => <div>IDE page</div> }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
 vi.mock("../../src/ui/pages/Developer", () => ({ default: () => <div>Developer page</div> }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ url, label, onBack }) => <div>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
@@ -68,6 +67,19 @@ beforeEach(() => {
 });
 
 describe("App shell — Studio landing", () => {
+  it("removes IDE Services and resolves its retired internal index to Launch", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await screen.findByText("Studio page");
+    expect(document.querySelector('[data-nav-item="IDE Services"]')).toBeNull();
+    expect(screen.queryByText("IDE Services")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Account menu" })).toBeInTheDocument();
+    fireEvent(window, new CustomEvent("navigate", { detail: 10 }));
+    await screen.findByText("Launch page");
+    expect(screen.getByText("launch", { selector: "span" })).toBeInTheDocument();
+    expect(screen.queryByText("IDE Services")).not.toBeInTheDocument();
+  });
+
   it("opens Personalization directly and navigates through canonical Account URLs", async () => {
     getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/personalization");
     render(<App />); await screen.findByText("Account Personalization page");
@@ -109,7 +121,7 @@ describe("App shell — Studio landing", () => {
       "", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "Organization", "System",
     ]);
     expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
-    expect(sections[5].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Billing.*Developer/);
+    expect(sections[5].textContent).toMatch(/Launch.*Services.*Logs.*Billing.*Developer/);
     expect(sections[5].textContent).not.toContain("Studio");
     expect(sections[5].textContent).not.toContain("Jobs");
     expect(document.querySelector("[data-nav-item='Profile']")).not.toBeInTheDocument();
@@ -195,7 +207,7 @@ describe("App shell — Studio landing", () => {
     expect(screen.queryByRole("button", { name: "← Back to Studio" })).not.toBeInTheDocument();
 
     for (const page of [
-      "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "IDE Services",
+      "Mode", "LLM", "Cloud", "HPC", "Launch", "Services",
       "Logs", "Jobs", "Roles", "Settings", "Billing", "Developer",
     ]) {
       fireEvent.click(screen.getByText(page, { selector: "div" }));
@@ -455,7 +467,7 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     const sectionEls = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
     const runtime = sectionEls.find(el => el.getAttribute("data-nav-section") === "Runtime");
     const runtimeItems = [...runtime.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"));
-    expect(runtimeItems).toEqual(["Launch", "Services", "IDE Services", "Logs", "Billing", "Developer"]);
+    expect(runtimeItems).toEqual(["Launch", "Services", "Logs", "Billing", "Developer"]);
   });
 
   it("Ask OmniBioAI opens the existing Dev Hub service, same mechanism as Code/Workflows, and returns to Studio", async () => {

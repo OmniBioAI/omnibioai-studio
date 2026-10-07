@@ -32,7 +32,6 @@ vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> 
 vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <div>Studio page</div> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
-vi.mock("../../src/ui/pages/IdeServices", () => ({ default: () => <div>IDE page</div> }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: () => <div>Service page</div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: () => <div>Videos page</div> }));

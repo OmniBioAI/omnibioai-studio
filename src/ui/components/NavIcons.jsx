@@ -23,7 +23,6 @@ const IconCloud        = p => <svg {...base} {...p}><path d="M6.5 18a4 4 0 1 1 .
 const IconServer       = p => <svg {...base} {...p}><rect x="3" y="4" width="18" height="6" rx="1.2" /><rect x="3" y="14" width="18" height="6" rx="1.2" /><path d="M7 7h.01" /><path d="M7 17h.01" /></svg>;
 const IconRocket       = p => <svg {...base} {...p}><path d="M12 3c2.5 1.5 4 4.3 4 8 0 2-.7 3.8-1.8 5.2L12 18l-2.2-1.8C8.7 14.8 8 13 8 11c0-3.7 1.5-6.5 4-8z" /><path d="M9.5 16 7 18.5" /><path d="M14.5 16 17 18.5" /><circle cx="12" cy="10" r="1.3" /></svg>;
 const IconBoxes        = p => <svg {...base} {...p}><path d="M12 3 7 6v5l5 3 5-3V6z" /><path d="M7 11 3 13.5v5L8 21l4-2.5" /><path d="M17 11l4 2.5v5L16 21l-4-2.5" /></svg>;
-const IconTerminal     = p => <svg {...base} {...p}><rect x="3" y="4" width="18" height="16" rx="1.5" /><path d="M7 9l3 3-3 3" /><path d="M12 15h5" /></svg>;
 const IconScrollText   = p => <svg {...base} {...p}><path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 1 1-4 0V6" /><path d="M6 4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9" /><path d="M8 9h7" /><path d="M8 13h5" /></svg>;
 const IconCreditCard   = p => <svg {...base} {...p}><rect x="2.5" y="5.5" width="19" height="13" rx="1.8" /><path d="M2.5 9.5h19" /><path d="M6 14.5h4" /></svg>;
 const IconWrench       = p => <svg {...base} {...p}><path d="M14.7 6.3a4 4 0 1 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z" /></svg>;
@@ -48,7 +47,6 @@ export const NAV_ICONS = {
   "HPC":           IconServer,
   "Launch":        IconRocket,
   "Services":      IconBoxes,
-  "IDE Services":  IconTerminal,
   "Logs":          IconScrollText,
   "Billing":       IconCreditCard,
   "Developer":     IconWrench,

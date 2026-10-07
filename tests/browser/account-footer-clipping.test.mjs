@@ -56,7 +56,7 @@ after(async () => {
   if (server) await new Promise(resolve => server.close(resolve));
 });
 
-for (const viewport of [{ width: 1366, height: 768 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
+for (const viewport of [{ width: 1366, height: 768 }, { width: 1440, height: 900 }, { width: 1280, height: 800 }, { width: 1920, height: 1080 }]) {
   test(`admin Sidebar keeps the Account footer and system status visible at ${viewport.width}x${viewport.height}`, async () => {
     const context = await browser.newContext({ viewport, serviceWorkers: "block" });
     await context.addInitScript(() => localStorage.setItem("omnibioai_access_token", "TEST-ADMIN-SIDEBAR"));
@@ -78,6 +78,11 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 1440, height: 900
 
       const accountTrigger = page.getByRole("button", { name: "Account menu" });
       await accountTrigger.waitFor();
+
+      assert.equal(await page.locator('[data-nav-item="IDE Services"]').count(), 0);
+      assert.deepEqual(await page.locator('.studio-sidebar-wrap [data-nav-section="Runtime"] [data-nav-item]').evaluateAll(
+        items => items.map(item => item.dataset.navItem),
+      ), ["Launch", "Services", "Logs", "Billing", "Developer"]);
 
       // 1 + 2. Footer exists and is fully contained inside the Sidebar's
       // viewport-clipped wrapper, not pushed past it.
@@ -134,3 +139,34 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 1440, height: 900
     }
   });
 }
+
+test("mobile navigation keeps Runtime and Account without IDE Services", async () => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  await context.addInitScript(() => localStorage.setItem("omnibioai_access_token", "TEST-MOBILE"));
+  const page = await context.newPage();
+  await page.route("**/*", route => {
+    const url = new URL(route.request().url());
+    if (url.origin !== origin) return route.abort();
+    if (url.pathname === "/auth/validate") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...ADMIN_USER, permissions: [] }) });
+    if (url.pathname.startsWith("/_svc/")) return route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+    return route.continue();
+  });
+  try {
+    await page.goto(`${origin}/studio`);
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    const drawer = page.getByRole("dialog", { name: "Navigation", exact: true });
+    assert.equal(await drawer.isVisible(), true);
+    assert.equal(await drawer.locator('[data-nav-item="IDE Services"]').count(), 0);
+    assert.equal(await drawer.locator('[data-nav-item="Roles"]').count(), 0);
+    assert.deepEqual(await drawer.locator('[data-nav-section="Runtime"] [data-nav-item]').evaluateAll(
+      items => items.map(item => item.dataset.navItem),
+    ), ["Launch", "Services", "Logs", "Billing", "Developer"]);
+    const account = drawer.getByRole("button", { name: "Account menu" });
+    const box = await account.boundingBox();
+    assert.ok(box && box.y >= 0 && box.y + box.height <= 844, "Mobile Account is within the viewport");
+    await account.click();
+    assert.equal(await page.getByRole("menuitem", { name: /Profile/ }).isVisible(), true);
+  } finally {
+    await context.close();
+  }
+});

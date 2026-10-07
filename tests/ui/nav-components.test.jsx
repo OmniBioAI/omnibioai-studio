@@ -43,7 +43,7 @@ describe("Sidebar", () => {
         { name: "Mode", idx: 0 }, { name: "LLM", idx: 1 }, { name: "Cloud", idx: 2 }, { name: "HPC", idx: 3 },
       ] },
       { section: "Runtime", items: [
-        { name: "Launch", idx: 4 }, { name: "Services", idx: 5 }, { name: "IDE Services", idx: 10 },
+        { name: "Launch", idx: 4 }, { name: "Services", idx: 5 },
         { name: "Logs", idx: 6 }, { name: "Jobs", idx: 9 }, { name: "Billing", idx: 12 },
       ] },
       { section: "Security", items: [{ name: "Roles", idx: 11 }] },
@@ -55,7 +55,7 @@ describe("Sidebar", () => {
     expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
     expect(sections[1].textContent).toContain("Setup");
     expect(sections[0].compareDocumentPosition(sections[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(sections[2].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Jobs.*Billing/);
+    expect(sections[2].textContent).toMatch(/Launch.*Services.*Logs.*Jobs.*Billing/);
     expect(sections[2].textContent).not.toContain("Studio");
     expect(sections[3].textContent).toContain("Roles");
     expect(sections[4].textContent).toContain("Settings");

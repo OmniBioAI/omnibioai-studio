@@ -74,7 +74,7 @@ forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-stud
 - **Report Bug modal** — title, description, email, severity (Low / Medium / High / Critical) with Submit Bug Report
 
 ### v0.3.0-beta ✅
-- IDE Services — JupyterLab, RStudio, and VS Code Server managed directly from Studio UI
+- Interactive environments — choose and launch JupyterLab, RStudio, VS Code, or Terminal through Launcher (Studio → Code)
 - IDE Layer — dedicated section on Services page with per-container lifecycle management
 - Launcher backend — Express API using Docker socket for IDE container control; ARM64-compatible
 - Unified Grafana metrics dashboard embedded in Studio
@@ -137,10 +137,6 @@ forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-stud
 ### Services — Full Stack
 ![Services](docs/screenshots/services.png)
 *40 Compose services across Data, Security Control Plane, Execution, AI, and Developer layers*
-
-### IDE Services
-![IDE Services](docs/screenshots/ide-services.png)
-*JupyterLab, RStudio, VS Code Server — all RUNNING, managed via Launcher :5190*
 
 ### Live Logs
 ![Logs](docs/screenshots/logs.png)

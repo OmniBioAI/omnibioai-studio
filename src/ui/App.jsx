@@ -18,7 +18,6 @@ import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
 import PluginPage from "./pages/PluginPage";
 import Videos        from "./pages/Videos";
-import IdeServices   from "./pages/IdeServices";
 import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
 import Developer from "./pages/Developer";
@@ -82,7 +81,6 @@ const BASE_NAV = [
   { section: "Runtime", items: [
     { name:"Launch",       idx:4  },
     { name:"Services",     idx:5  },
-    { name:"IDE Services", idx:10 },
     { name:"Logs",         idx:6  },
     { name:"Billing",      idx:12 },
     { name:"Developer",    idx:14 },
@@ -112,7 +110,7 @@ const WIZARD_MAX   = 4;
 
 const PAGE_NAMES = [
   "mode","llm","cloud","hpc","launch",
-  "services","logs","studio","settings","jobs","ide-services","roles","billing","workbench","developer","profile","security","preferences",
+  "services","logs","studio","settings","jobs",null,"roles","billing","workbench","developer","profile","security","preferences",
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
   "projects","artifacts","explore","notifications","personalization","appearance","organization-connections",
   "privacy","plan","help",
@@ -120,7 +118,7 @@ const PAGE_NAMES = [
 
 const PAGE_LABELS = [
   "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
-  "Studio", "Settings", "Jobs", "IDE Services", "Roles", "Billing", "Workbench", "Developer", "Profile", "Security", "Preferences",
+  "Studio", "Settings", "Jobs", null, "Roles", "Billing", "Workbench", "Developer", "Profile", "Security", "Preferences",
   "Code", "Workflows",
   "Projects", "Artifacts", "Explore", "Notifications", "Personalization", "Appearance", "Connections",
   "Privacy & Data", "Plan", "Help & Product",
@@ -284,7 +282,7 @@ export default function App() {
 
   // ─── Listen for navigate events (from Workbench page) ──
   useEffect(() => {
-    const handler = (e) => setStep(e.detail);
+    const handler = (e) => setStep(e.detail === 10 ? 4 : e.detail);
     window.addEventListener("navigate", handler);
     return () => window.removeEventListener("navigate", handler);
   }, []);
@@ -377,7 +375,7 @@ export default function App() {
     <Studio />,
     <Settings  config={config} setConfig={setConfig} currentUser={currentUser} />,
     <Jobs         />,
-    <IdeServices  currentUser={currentUser} />,
+    null, // 10 — retired IDE Services slot; keep later page indices stable
     <RoleManagement currentUser={currentUser} />,
     <Billing currentUser={currentUser} />,
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}

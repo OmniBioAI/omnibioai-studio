@@ -2,7 +2,6 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Services from "../../src/ui/pages/Services";
-import IdeServices from "../../src/ui/pages/IdeServices";
 
 const user = { email: "owner@example.test", permissions: ["manage_config"] };
 const tools = ["jupyter", "rstudio", "vscode"];
@@ -30,7 +29,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe.each([["Services", Services], ["IDE Services", IdeServices]])("%s polling authentication", (_name, Page) => {
+describe.each([["Services", Services]])("%s polling authentication", (_name, Page) => {
   it("authenticates all three tools using the existing session and never logs the credential", async () => {
     const credential = "test-only-session-credential";
     localStorage.setItem(tokenKey, credential);

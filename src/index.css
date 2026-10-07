@@ -366,7 +366,7 @@ a:focus:not(:focus-visible) {
 }
 
 /* ── Config/wizard pages: fixed N-col panel grids collapse to 1 column ── */
-/* Settings, LLM (x2), Cloud, HPC (x2), Launch's Summary+Logs, IdeServices —
+/* Settings, LLM (x2), Cloud, HPC (x2), Launch's Summary+Logs —
    same "several Nfr panels side by side" shape, all readable as a single
    stacked column below 768px. !important for the same inline-style-override
    reason as the Jobs rules above. */
