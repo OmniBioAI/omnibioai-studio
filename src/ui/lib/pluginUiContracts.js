@@ -5,6 +5,9 @@ const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 const URI_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 export const OPAQUE_ARTIFACT_ID = /^art_[A-Za-z0-9_-]{43}$/;
 export const MAX_MULTISELECT_CHOICES = 50;
+export const RESOURCE_ID = /^[A-Za-z0-9_.-]{1,128}$/;
+export const RESOURCE_SLUG = /^[a-z0-9][a-z0-9_]*$/;
+export const MAX_RESOURCES = 100;
 const FINITE_CHOICE_VALUE = /^[A-Za-z0-9][A-Za-z0-9_.+-]{0,127}$/;
 const ARTIFACT_KINDS = new Set(["archive", "file", "log", "plot", "report", "table"]);
 const MEDIA_TYPE = /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/i;
@@ -92,6 +95,26 @@ export function validateArtifactPayload(payload, maxItems = 100) {
     ids.add(artifact.artifact_id);
   }
   return payload.artifacts;
+}
+
+export function validateResourcePayload(payload) {
+  if (!hasOnlyKeys(payload, ["results"], ["results"]) || !Array.isArray(payload.results) ||
+      payload.results.length > MAX_RESOURCES) {
+    throw new Error("Invalid resource response.");
+  }
+  const ids = new Set();
+  for (const resource of payload.results) {
+    if (!hasOnlyKeys(resource, ["id", "label", "source_plugin"], ["id", "label", "source_plugin"]) ||
+        typeof resource.id !== "string" || !RESOURCE_ID.test(resource.id) || resource.id.includes("..") ||
+        ids.has(resource.id) ||
+        typeof resource.label !== "string" || !resource.label.trim() || resource.label.length > 200 ||
+        /[\x00-\x1f\x7f]/.test(resource.label) ||
+        typeof resource.source_plugin !== "string" || !RESOURCE_SLUG.test(resource.source_plugin)) {
+      throw new Error("Invalid resource response.");
+    }
+    ids.add(resource.id);
+  }
+  return payload.results;
 }
 
 export function isDataPath(path) {

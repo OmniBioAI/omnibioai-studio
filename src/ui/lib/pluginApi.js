@@ -5,8 +5,9 @@ const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
 const FIELD_ID = /^[a-z][a-z0-9_]*$/;
 const FORBIDDEN_FIELD_IDS = new Set(["constructor", "prototype", "__proto__", "password", "token", "secret", "api_key", "credentials"]);
-const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-query|ui-detail|ui-reference|ui-artifacts)\/(?:[A-Za-z0-9_.:{}-]+\/){0,3}(?:\?[^#]*)?$/;
+const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-query|ui-detail|ui-reference|ui-artifacts|ui-resources)\/(?:[A-Za-z0-9_.:{}-]+\/){0,3}(?:\?[^#]*)?$/;
 const RUN_ID = /^[A-Za-z0-9_.:-]+$/;
+const RESOURCE_TYPES = new Set(["run"]);
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
 const ASYNC_REQUIRED_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
 const ASYNC_CAPABILITIES = [...ASYNC_REQUIRED_CAPABILITIES, "render"];
@@ -48,10 +49,17 @@ export function pluginArtifactDownloadUrl(slug, runId, artifactId, options) {
   return serviceUrl(`/plugins/${slug}/api/ui-artifacts/${runId}/${artifactId}/download/`, options);
 }
 
+export function pluginResourceUrl(slug, resourceType, options) {
+  if (typeof slug !== "string" || !SLUG.test(slug) || typeof resourceType !== "string" || !RESOURCE_TYPES.has(resourceType)) {
+    throw new Error("Invalid resource identity.");
+  }
+  return serviceUrl(`/plugins/${slug}/api/ui-resources/${resourceType}/`, options);
+}
+
 function validateField(field) {
   if (!field || typeof field.id !== "string" || !FIELD_ID.test(field.id) || FORBIDDEN_FIELD_IDS.has(field.id)) throw new PluginDescriptorError("Invalid plugin input schema.");
   const component = field.component ?? field.widget;
-  if (!["file", "text", "textarea", "select", "checkbox", "multiselect"].includes(component) || typeof field.format !== "string") throw new PluginDescriptorError("Unsupported plugin input schema.");
+  if (!["file", "text", "textarea", "select", "checkbox", "multiselect", "resource_select"].includes(component) || typeof field.format !== "string") throw new PluginDescriptorError("Unsupported plugin input schema.");
   if (field.component && field.widget && field.component !== field.widget) throw new PluginDescriptorError("Invalid plugin input schema.");
   if (typeof field.label !== "string" || typeof field.description !== "string" || typeof field.required !== "boolean") {
     throw new PluginDescriptorError("Invalid plugin input schema.");
@@ -71,6 +79,15 @@ function validateField(field) {
         !Array.isArray(field.default) || new Set(field.default).size !== field.default.length ||
         field.default.some(value => typeof value !== "string" || !field.choices.some(choice => choice.value === value))) {
       throw new PluginDescriptorError("Invalid multiselect field schema.");
+    }
+    return field;
+  }
+  if (component === "resource_select") {
+    const allowed = ["id", "widget", "component", "label", "description", "required", "format", "multiple", "resource_type", "endpoint"];
+    const required = ["id", "label", "description", "required", "format", "multiple", "resource_type", "endpoint"];
+    if (!hasOnlyKeys(field, allowed, required) || field.format !== "text" || field.multiple !== false ||
+        !RESOURCE_TYPES.has(field.resource_type) || typeof field.endpoint !== "string") {
+      throw new PluginDescriptorError("Invalid resource field schema.");
     }
     return field;
   }
@@ -294,6 +311,13 @@ function validateDescriptor(data, slug) {
   }
   data.inputs.forEach(validateField);
   validateConditionalInputs(data.inputs);
+  data.inputs.forEach(field => {
+    if ((field.component ?? field.widget) !== "resource_select") return;
+    if (field.endpoint !== `/plugins/${slug}/api/ui-resources/${field.resource_type}/`) {
+      throw new PluginDescriptorError("Invalid resource endpoint schema.");
+    }
+    validatePluginEndpoint(field.endpoint, slug);
+  });
   data.outputs.forEach(output => {
     if (!output || typeof output.id !== "string" || !SLUG.test(output.id) || typeof output.label !== "string" || typeof output.format !== "string") {
       throw new PluginDescriptorError("Invalid plugin output schema.");

@@ -35,7 +35,7 @@ export default function PluginField({ input, value, files, required = input?.req
         controlId={controlId}
         describedBy={describedBy}
         invalid={Boolean(fieldError)}
-        disabled={disabled || (readOnly && ["file", "select", "checkbox", "multiselect"].includes(type))}
+        disabled={disabled || (readOnly && ["file", "select", "checkbox", "multiselect", "resource_select"].includes(type))}
         readOnly={readOnly}
         onChange={type === "file" ? onFilesChange : onValueChange}
       />

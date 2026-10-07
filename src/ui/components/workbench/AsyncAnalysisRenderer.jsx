@@ -11,7 +11,7 @@ import { validateArtifactPayload } from "../../lib/pluginUiContracts";
 const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR"]);
 
 function inputName(input) {
-  return ["text", "textarea", "checkbox", "multiselect"].includes(descriptorComponent(input))
+  return ["text", "textarea", "checkbox", "multiselect", "resource_select"].includes(descriptorComponent(input))
     ? `param_${input.id}`
     : `input_${input.id}`;
 }

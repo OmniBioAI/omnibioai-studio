@@ -21,7 +21,7 @@ const input = (overrides = {}) => ({
 describe("allowlisted Workbench component registry", () => {
   it("resolves only the finite shared field and result types", () => {
     expect(Object.keys(WORKBENCH_COMPONENT_REGISTRY).sort()).toEqual([
-      "artifact_download", "artifact_list", "checkbox", "detail", "file", "filters", "key_value", "multiselect", "number", "pagination", "reference", "select", "table", "text", "textarea",
+      "artifact_download", "artifact_list", "checkbox", "detail", "file", "filters", "key_value", "multiselect", "number", "pagination", "reference", "resource_select", "select", "table", "text", "textarea",
     ]);
     expect(resolveWorkbenchComponent("file")).toBeTruthy();
     expect(resolveWorkbenchComponent("text")).toBeTruthy();
@@ -29,6 +29,7 @@ describe("allowlisted Workbench component registry", () => {
     expect(resolveWorkbenchComponent("select")).toBeTruthy();
     expect(resolveWorkbenchComponent("checkbox")).toBeTruthy();
     expect(resolveWorkbenchComponent("multiselect")).toBeTruthy();
+    expect(resolveWorkbenchComponent("resource_select")).toBeTruthy();
     expect(resolveWorkbenchComponent("../../arbitrary")).toBeNull();
     expect(resolveWorkbenchComponent("constructor")).toBeNull();
   });
