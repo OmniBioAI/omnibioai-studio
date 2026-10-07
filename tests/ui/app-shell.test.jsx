@@ -514,8 +514,11 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 
-  it("keeps Projects local while Artifacts loads through the canonical Workbench proxy", async () => {
+  it("loads Projects and Artifacts through their canonical Workbench proxy routes", async () => {
     const fetchSpy = vi.fn(url => {
+      if (String(url).includes("/_svc/workbench/api/projects/")) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ projects: [] }) });
+      }
       if (String(url).includes("/_svc/workbench/plugins/artifact_manager/artifacts")) {
         return Promise.resolve({ ok: true, status: 200, json: async () => ({ results: [], total: 0, limit: 200, offset: 0 }) });
       }
@@ -528,16 +531,19 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
 
     fireEvent.click(screen.getByText("Projects", { selector: "div" }));
     expect(await screen.findByRole("heading", { name: "Projects" })).toBeInTheDocument();
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole("heading", { name: "No projects yet" })).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls[0][0]).toBe("http://localhost:5174/_svc/workbench/api/projects/?status=all");
+    expect(fetchSpy.mock.calls[0][0]).not.toMatch(/organization/i);
     fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
     fireEvent.click(screen.getByText("Artifacts", { selector: "div" }));
     expect(await screen.findByRole("heading", { name: "Artifacts" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "No artifacts yet" })).toBeInTheDocument();
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(fetchSpy.mock.calls[0][0]).toBe("http://localhost:5174/_svc/workbench/plugins/artifact_manager/artifacts?limit=200&offset=0");
-    expect(fetchSpy.mock.calls[0][0]).not.toMatch(/organization/i);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls[1][0]).toBe("http://localhost:5174/_svc/workbench/plugins/artifact_manager/artifacts?limit=200&offset=0");
+    expect(fetchSpy.mock.calls[1][0]).not.toMatch(/organization/i);
     expect(screen.queryByText(/unified artifact tracking/i)).not.toBeInTheDocument();
     vi.unstubAllGlobals();
   });
@@ -569,13 +575,16 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("Projects' Create project action is a genuinely disabled control, not a CSS-only fake", async () => {
+  it("opens the canonical Create project form from the Projects route", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, status: 200, json: async () => ({ projects: [] }) });
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Projects", { selector: "div" }));
-    const createButton = await screen.findByRole("button", { name: "Create project" });
-    expect(createButton).toBeDisabled();
+    await screen.findByRole("heading", { name: "No projects yet" });
+    fireEvent.click(screen.getAllByRole("button", { name: "Create project" })[0]);
+    expect(screen.getByRole("dialog", { name: "Create project" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toBeRequired();
   });
 
   it("supports direct deep links to /studio/projects, /studio/artifacts and /studio/explore", async () => {
