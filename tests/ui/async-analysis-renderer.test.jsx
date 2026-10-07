@@ -48,6 +48,23 @@ describe("AsyncAnalysisRenderer", () => {
     expect(fetchMock.mock.calls[0][1].body.get("input_input_file")).toBe(file);
   });
 
+  it("treats a cancelled run as terminal instead of polling forever", async () => {
+    const user = userEvent.setup();
+    const file = new File(["a"], "input.tsv");
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ run_id: "run-1", status: "RUNNING" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ state: "CANCELLED", detail: "Cancelled by user" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ lines: ["cancelled"] }) });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AsyncAnalysisRenderer descriptor={descriptor} />);
+    await user.upload(screen.getByLabelText(/Input File/), file);
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    expect(await screen.findByRole("status")).toHaveTextContent("CANCELLED: Cancelled by user");
+    expect(await screen.findByText("cancelled")).toBeInTheDocument();
+    // Terminal: submit + one status poll + one log poll, no artifacts fetch and no further polling.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it("supports file plus text and textarea parameter naming", async () => {
     const user = userEvent.setup();
     const textDescriptor = {

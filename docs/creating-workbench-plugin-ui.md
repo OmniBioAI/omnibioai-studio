@@ -306,3 +306,46 @@ Answer these, in order, before writing anything:
 **DO NOT BUILD A NEW RESULT COMPONENT WITHOUT FIRST AUDITING REAL, EXISTING
 PLUGIN OUTPUT SHAPES.** A plausible-sounding name from a roadmap is not
 evidence.
+
+## 8. Specialized-renderer guidance (when NOT to use this system)
+
+Some plugins are not an ordinary single-submit/single-result analysis and
+should stay legacy (`ServiceViewer`) rather than being forced through
+`generic_runner`/`query`/`informational`:
+
+- **Dashboards** (multiple independent, simultaneously-fetched read widgets
+  on one page, e.g. `resource_monitoring`, `security_dashboard`,
+  `job_monitor`): a materially different shape than one form → one result.
+  No shared dashboard renderer exists yet; this is documented future work,
+  not something to approximate with `table`/`key_value` composition.
+- **Multi-stage orchestration / scheduling / chat** (`multi_agent_bio_orchestrator`,
+  `workflow_runner`, `workflow_scheduler`, `bio_agent`): DAG execution with
+  resume/replay, cron-style scheduling, and conversational UI are three
+  different interaction models from each other and from `generic_runner`.
+  Do not force any of them into the async-analysis contract.
+- **Graph/network editors and viewers** (`workflow_builder`,
+  `network_analysis`, `literature_summarizer`, `dataset_ingest`): different
+  libraries, different data shapes, no shared contract. An editable canvas
+  is categorically not a "result" at all.
+- **Genuinely interactive molecular/genome viewers** (`alphafold`'s NGL 3D
+  viewer, `genome_viewer`'s IGV.js locus browser): real, narrow, one-off
+  specialized renderers if ever built — never a plugin-descriptor-controlled
+  arbitrary viewer spec.
+- A plugin that merely *produces a plain image or table* — even if its own
+  name or docstring suggests something fancier (several "3D viewer"-named
+  plugins in this codebase turned out to render a plain matplotlib PNG) —
+  needs no specialized renderer at all. Check the actual artifact `type`/`mime`
+  before assuming a plugin needs new frontend work.
+- **A real external application** means the plugin's backend launches,
+  stops, or otherwise controls a separate running application server (e.g.
+  `jupyterhub` starting a per-user notebook server). An external *data* API
+  (even a licensed/credentialed one — NCBI, Ensembl, Grafana's read API,
+  Galaxy's job API) is not an external application and does not justify
+  keeping a plugin off this system; it is an ordinary backend data source
+  like any other native plugin's.
+
+None of the above require, or should be approximated with, a generic
+recursive viewer, a dashboard framework, a workflow/DAG builder, or an
+arbitrary plotting-spec engine. If evidence later shows one of these families
+repeats safely enough to generalize, it gets its own narrowly-scoped
+contract — it does not get folded into `generic_runner`/`query`.

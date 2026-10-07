@@ -8,7 +8,7 @@ import { descriptorComponent } from "./PluginField";
 import { csrfToken, pluginEndpoint } from "../../lib/pluginApi";
 import { validateArtifactPayload } from "../../lib/pluginUiContracts";
 
-const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR"]);
+const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR", "CANCELLED"]);
 
 function inputName(input) {
   return ["text", "textarea", "checkbox", "multiselect", "resource_select"].includes(descriptorComponent(input))

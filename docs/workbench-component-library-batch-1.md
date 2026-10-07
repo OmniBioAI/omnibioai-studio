@@ -942,3 +942,258 @@ merely to force a proof plugin native"). It is reported here as a concrete,
 evidence-backed finding for a future, explicitly-scoped batch.
 
 ### DO NOT BUILD A RESULT COMPONENT WITHOUT REPEATED, VERIFIABLE EVIDENCE OF ITS DATA SHAPE.
+
+## Batch 9: architecture completeness audit and #708 closure evidence
+
+This is the final planned #708 implementation batch. Its objective was not to
+add components, but to audit Batches 1–8 against the issue's Definition of
+Done and either close genuine gaps or explicitly document why a boundary is
+correct as-is.
+
+### Final component registry (`componentRegistry.jsx`) — 16 entries
+
+`file`, `text`, `textarea`, `select`, `number`, `checkbox`, `multiselect`,
+`resource_select`, `table`, `pagination`, `key_value`, `detail`, `filters`,
+`reference`, `artifact_list`, `artifact_download`, `image_gallery`. Every
+entry is a static top-of-file `import`; `resolveWorkbenchComponent` uses
+`Object.prototype.hasOwnProperty.call` and returns `null` for anything else —
+no `eval`, no global lookup, no dynamic module path. No gaps found; no
+duplicate semantic component found.
+
+### Final renderer registry (`rendererRegistry.jsx`) — 3 entries + 1 alias
+
+`async_analysis` (plus the `generic_runner` compatibility alias),
+`informational`, `query`. `resolveWorkbenchRenderer` fails closed to `null`
+for any other string (`tests/ui/renderer-registry.test.js` already exercises
+injection-shaped strings: `../../module`, `https://evil.example`,
+`javascript:alert(1)`, `constructor`, `prototype`, `__proto__` — all
+rejected). No new renderer was added or was found justified.
+
+### Descriptor/engine completeness
+
+`src/ui/pages/PluginPage.jsx` is the complete, already-correct engine:
+`loadPluginDescriptor` → `validatePluginDescriptor` (schema version ∈ {1,2}
+only; `rejectExecutableMetadata` recursively rejects `__proto__`,
+`prototype`, `constructor`, `script`, `html`, `dangerouslySetInnerHTML`,
+`callback`, `eval`, `function`, `module`, `import`, `credentials`,
+`password`, `token`, `api_key`, `secret`, `upstream_url`, and more, on every
+key at every depth) → `resolveWorkbenchRenderer` → one allowlisted renderer
+component. A 404, a `PluginDescriptorError`, `native_supported: false`, or an
+unresolvable renderer all fall back to the unchanged legacy `ServiceViewer`
+iframe. A grep of the entire `src/ui` tree for `dangerouslySetInnerHTML`,
+`eval(`, `new Function`, `Function(`, `srcDoc`, `javascript:`, and dynamic
+`import(` found **zero** matches anywhere (the one string match is the guard
+regex itself). The backend mirrors this: `grep` for `mark_safe`,
+`format_html`, `|safe`, `eval(`, `exec(` across `plugins/shared/*.py` found
+zero matches. `tests/ui/workbench-catalog-contracts.test.js`, run against
+this exact worktree with `WORKBENCH_SOURCE`, independently validates **all
+501 enabled plugin descriptors** (129 v1 native + 2 v2 native + 370 legacy)
+through the real frontend validator and confirms every native input resolves
+to a real registered component and every native renderer resolves to a real
+registered renderer. This is the strongest available evidence that the
+engine is complete and safe end-to-end.
+
+### Runtime state / progress / actions — audited, nothing new built
+
+`RunStatus.jsx` (state + optional detail) and `LogViewer.jsx` (joined log
+lines) are the complete runtime UI; both are unchanged. RunStore's
+`status.json` has no percent/progress field anywhere, and no plugin writes
+one into the shared contract (two plugins compute a percentage privately,
+outside RunStore, precisely because the shared contract has none) — a
+`RunProgress` component would have no real data to display. Exactly one
+plugin (`multi_agent_bio_orchestrator`) has a wired, authorized cancel
+endpoint, but it only flips `RunStore.set_state(...,"CANCELLED")` — its own
+executor's step loop never checks for that flag, so it does not actually
+interrupt execution, and its own template's per-step "Cancel" button calls an
+undefined JS function (dead code). No other RunStore-tracked analysis plugin
+has any cancel/retry/resume-by-id capability; the only real retry/cancel
+endpoints found operate on two entirely separate DB models
+(`job_queue_manager`'s `Job`, `file_transfer_manager`'s `Transfer`), not
+RunStore. Generalizing a shared "cancel" contract would be safe on the
+*authorization* half (`authorize_run_access` already covers it) but not on
+the *execution* half — essentially every other RunStore-using executor's run
+loop would need new cooperative-cancellation code first. That is backend
+work across the legacy plugin population, not a #708 frontend gap.
+**`RUN_PROGRESS_COMPONENT_REQUIRED=NO`, `RUN_ACTION_COMPONENT_REQUIRED=NO`.**
+
+One narrow, zero-new-feature fix was made: `AsyncAnalysisRenderer.jsx`'s
+`TERMINAL` state set (`COMPLETED`/`COMPLETE`/`FAILED`/`ERROR`) did not include
+`CANCELLED`, even though `RunStatus.state` is an unenforced free-text string
+and at least one plugin already writes exactly that value. A native plugin
+that legitimately reported `CANCELLED` would poll forever. `CANCELLED` was
+added to `TERMINAL`; this does not add a cancel *feature* (no button, no
+descriptor field, no new endpoint) — it only makes the existing polling loop
+correctly recognize a state value the architecture already permitted.
+Covered by a new test in `tests/ui/async-analysis-renderer.test.jsx`.
+
+**`SYNCHRONOUS_ACTION_RENDERER_REQUIRED=NO`.** `AsyncAnalysisRenderer` submits
+then immediately begins polling; a `sync`-execution-model plugin's first poll
+simply observes an already-terminal state. No plugin was found needing
+different browser behavior for synchronous execution — it is a fast
+degenerate case of the same flow, not a distinct renderer family.
+
+### Specialized-renderer boundaries (documented, not implemented)
+
+Two parallel audits covered the complete catalog of non-ordinary-analysis
+plugins. None of the following were implemented — each is intentionally a
+documented boundary, matching this issue's explicit scope:
+
+- **Dashboard** (`alerting`, `api_analytics`, `audit_log`,
+  `environment_manager`, `file_transfer_manager`, `job_monitor`,
+  `job_queue_manager`, `multiqc_wrapper`, `notification_center`,
+  `object_registry_explorer`, `resource_monitoring`, `schema_registry`,
+  `security_dashboard`, `storage_quota_manager`, plus `catalog`,
+  `plugin_manager`, `provenance`, `workflow_registry_admin`,
+  `agent_workflow_studio`): a genuinely distinct, uniform shape (N
+  independent read-mostly `api/*` widgets rendered on one page, manual
+  refresh only — no polling found anywhere in the sampled plugins — plus
+  simple single-record CRUD/mutate actions). Real and repeated, but a
+  materially different interaction model than submit-one-form/get-one-result;
+  building it is a new, nontrivial renderer family explicitly out of this
+  batch's scope ("arbitrary dashboard framework"). **Disposition:
+  `SPECIALIZED_RENDERER_REQUIRED`, future work.**
+- **Multi-stage / orchestration** (`multi_agent_bio_orchestrator`,
+  `workflow_runner`, `workflow_scheduler`, `bio_agent`,
+  `integration_connections`, `data_manager`, `dataset_catalog`,
+  `run_inspector`, `workflow_explorer`): too heterogeneous for one
+  contract — DAG execution with resume/replay, cron-style scheduling CRUD,
+  and a conversational chat UI are three different interaction models.
+  Notably, `workflow_explorer`'s own docstring calls itself an "interactive
+  DAG-based explorer," but its actual template is a plain HTML table with no
+  graph library at all — simpler than advertised, but still not a
+  generic_runner case. **Disposition: `SPECIALIZED_RENDERER_REQUIRED` /
+  `SERVICEVIEWER_MIGRATION_FALLBACK` per-plugin, future work.**
+- **Graph/network** (`dataset_ingest`, `literature_summarizer`,
+  `network_analysis`, `workflow_builder`): three incompatible libraries
+  (d3-force, cytoscape.js, a hand-rolled canvas editor) with incompatible
+  data shapes; `workflow_builder` is an editable DAG canvas (an editor, not a
+  viewer) and must stay specialized regardless. **Disposition:
+  `SPECIALIZED_RENDERER_REQUIRED`, no shared contract exists.**
+- **Molecular/structure**: split. `alphafold` loads NGL for a genuine
+  interactive 3D viewer — **`SPECIALIZED_RENDERER_REQUIRED`**. But
+  `agentic_pymol`, `docking_pose_viewer`, and `structure_visualizer` all
+  render a plain matplotlib/PyMOL PNG today — **already fully expressible by
+  the existing `StaticPngResult`/`ArtifactDownload` contract, no new
+  component needed.** All three were evaluated as Batch 9 proof-plugin
+  candidates for exactly this reason; all three are held (see Proof plugins,
+  below) for the same pre-existing executor defect found in Batch 8, not for
+  any component gap.
+- **Genome/locus**: `genome_viewer` is the only real IGV.js-based
+  locus/track browser in the codebase, with no sibling to generalize
+  against. **Disposition: `SPECIALIZED_RENDERER_REQUIRED`, one-off.**
+- **Interactive scientific plot**: no plugin was found producing an
+  interactive (non-static-image) plot from a shared, safely-representable
+  payload; `StaticPngResult`/`ImageGallery` already cover the real,
+  repeated image-result population (Batch 8). An arbitrary
+  Vega/Plotly/D3 spec supplied by a descriptor remains explicitly
+  unsupported for security reasons (arbitrary plotting-spec execution).
+
+None of these need a universal "viewer" abstraction; each documented family
+is its own narrow future contract if and when pursued.
+
+### True external applications — reclassified
+
+Of the four historical candidates, only **`jupyterhub`** is a genuine
+external application: `api_server_start`/`api_server_stop` launch and stop a
+real per-user Jupyter server process via the Hub's own REST API. The other
+three are reclassified:
+
+- **`galaxy`**: documented (plugin.json) as calling only Galaxy's REST API,
+  no database/filesystem access, and already shaped exactly like the
+  Standard Plugin API (`api_run`/`api_status`/`api_log`/`api_artifacts`) — an
+  ordinary API-data connector, not an embedded application.
+- **`prometheus_grafana`**: documented as a read-only PromQL/Grafana-API
+  connector with no dashboard embedding and no mutation capability.
+- **`omniml_studio`**: not externally connected at all — it indexes this
+  repository's own local tutorial README files.
+
+`TRUE_EXTERNAL_APPLICATIONS=jupyterhub`.
+`RECLASSIFIED_EXTERNAL_WRAPPERS=galaxy, prometheus_grafana, omniml_studio`.
+
+### Grouped / dependent fields and dataset resource families
+
+No real plugin's input set was found large or complex enough to need
+presentational grouping beyond the existing per-field `FieldShell` (native
+plugins top out around 5 fields, the conditional-classifier family's fixed
+`mode`/primary-input/`labels`/`model_ref`/`hyperparams`). **`GROUPED_FIELD_STATUS=NOT_JUSTIFIED`
+— no repeated evidence.** The existing finite classifier condition grammar
+(`controller`/`operator=equals`/`value`/`effect`) remains the only, and
+sufficient, dependency relationship found anywhere; it is not generalized.
+**`DEPENDENT_FIELD_STATUS=SUFFICIENT`.** Dataset/registered-object resource
+families remain exactly where Batch 7 left them: `PLUGIN_RESOURCE_SOURCES`
+is still empty, ownership/visibility for those families is still
+heterogeneous and unaudited, and nothing was added. **`RESOURCE_FAMILY_STATUS=DEFERRED_BACKEND_CONTRACT`**
+— the generic `ResourceSelectField` architecture exists and is proven; adding
+a dataset/object adapter later is additive, not a #708 blocker.
+
+### Executor ownership defect — classification B, not fixed
+
+Batch 8 found 4 legacy executors whose `submit()` re-calls
+`RunStore.create_run()` with `meta={"cli": True, ...}`, carrying no
+`owner_user_id` and erasing whatever the generic `_api_run` view had already
+recorded. Batch 9's proof-plugin evaluation independently found the
+**identical** pattern in 3 more (`agentic_pymol`, `docking_pose_viewer`,
+`structure_visualizer` — all `meta={"cli": True}`, no `owner_user_id`), for
+7 confirmed instances across two batches. This is a systemic, pre-existing
+legacy-executor pattern, unrelated to the React/descriptor architecture
+itself, and it is not fixed here.
+
+**`EXECUTOR_OWNERSHIP_DEFECT_CLASSIFICATION=B`** — a #707 migration /
+backend-hardening prerequisite, not a #708 architecture gap. The generic
+descriptor → renderer → component pipeline is already correct and already
+enforces ownership correctly (via `authorize_run_access`) for every plugin
+whose executor doesn't independently erase it after the fact; this is a
+per-executor bug to fix before *those specific plugins* can migrate, not a
+missing architectural capability.
+
+### Proof plugins — all held, zero new native
+
+| Plugin | UI family | Components | Renderer | Hold reason |
+|---|---|---|---|---|
+| `agentic_pymol` | static image result | `StaticPngResult`/`ArtifactDownload` (existing) | `generic_runner` | Executor ownership defect (`meta={"cli": True}`, no `owner_user_id`) |
+| `docking_pose_viewer` | static image result | `StaticPngResult`/`ArtifactDownload` (existing) | `generic_runner` | Same defect |
+| `structure_visualizer` | static image result | `StaticPngResult`/`ArtifactDownload` (existing) | `generic_runner` | Same defect |
+| `cell_comm_visualization`, `chipseq_signal_plots`, `scanpy_qc_metrics`, `rnaseq_analysis` | multi-image result | `ImageGallery` (existing, Batch 8) | `generic_runner` | Same defect (held since Batch 8, re-confirmed) |
+
+**`NEW_NATIVE=0`.** Every candidate's UI-side requirement is already fully
+satisfiable by existing, unchanged components; every hold reason is the
+identical backend defect above, not a frontend gap.
+
+### Catalog compatibility (unchanged)
+
+`ENABLED_PLUGINS=501`, `V1_NATIVE=129`, `V2_NATIVE=2`, `TOTAL_NATIVE=131`,
+`LEGACY=370`, `NEW_NATIVE=0` — independently re-verified both by direct
+Python computation in the Workbench worktree and by the cross-repository
+`workbench-catalog-contracts.test.js` run against this exact worktree.
+Real plugin category counts (`load_registry`, 501 enabled):
+`reference_db` 129, `integration` 66, `analysis` 54, `genomics` 36, `ml` 31,
+`utilities` 27, `epigenomics` 21, `ai` 20, `metabolomics` 16,
+`drug_discovery` 15, `single_cell` 14, `dashboard` 13, `clinical` 9,
+`pipeline` 8, `proteomics` 8, `search` 8, `spatial` 7, `microbiome` 6,
+`structure` 5, `circrna` 3, `crispr` 3, `chemoinformatics` 1, `utility` 1 —
+confirming `dashboard`/`ai`/`pipeline` are the project's own pre-existing
+categories for exactly the specialized families documented above, not a
+classification invented for this audit (see `docs/PLUGIN_CATEGORIES.md` in
+the Workbench repo).
+
+### #708 completion evidence
+
+- Complete, documented UI vocabulary: 16 components, 3 renderers, 2 schema
+  versions — all in one place in this document.
+- Explicit schema validation, with a dedicated fail-closed test for every
+  rejection path (unknown component, unknown renderer, unsupported schema
+  version, executable metadata, malformed field/result).
+- 501/501 enabled plugins classified exactly once, cross-repo verified.
+- Zero descriptor- or result-controlled HTML/JS/URL/module execution path
+  anywhere in the engine (grepped, zero matches outside the guard itself).
+- Ordinary-plugin evidence: 131 plugins already render natively with zero
+  plugin-specific JSX; the Batch 9 proof-plugin evaluation shows the
+  remaining simple-image-result candidates need no new frontend work at all,
+  only an unrelated backend fix.
+- Specialized families (dashboard, multi-stage, graph, molecular, genome,
+  true external app) are explicitly scoped out with documented future
+  contracts, not silently ignored or forced into the generic system.
+
+See "Creating a New Workbench Plugin UI" for the developer-facing decision
+path, including when a result stays `ArtifactDownload`, when HTML must never
+be rendered inline, and when plugin-specific React is actually justified.
