@@ -18,7 +18,7 @@ const statusLabel = {
 export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onAppearanceClick, isAppearanceActive = false, onPersonalizationClick, isPersonalizationActive = false, onNotificationsClick, isNotificationsActive, onPrivacyClick, isPrivacyActive = false, onPlanClick, isPlanActive = false, onHelpClick, isHelpActive = false, isProfileActive, isSecurityActive, isPreferencesActive }) {
   return (
     <div style={{
-      width:200, background:"var(--bg2)",
+      width:200, height:"100%", background:"var(--bg2)",
       borderRight:"1px solid var(--border)",
       display:"flex", flexDirection:"column", flexShrink:0,
     }}>
@@ -62,7 +62,7 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
       )}
 
       {/* Nav */}
-      <nav style={{ padding:"12px 8px", flex:1, overflowY:"auto" }}>
+      <nav style={{ padding:"12px 8px", flex:1, minHeight:0, overflowY:"auto" }}>
         {nav.map(({ section, items }) => (
           <div key={section || "top-level"} data-nav-section={section || ""}>
             {section && <div style={{
