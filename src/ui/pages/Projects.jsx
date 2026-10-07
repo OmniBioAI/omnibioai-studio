@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Spinner } from "@omnibioai/ui";
 import { useAccountDateTime } from "../components/PreferencesProvider";
+import ProjectCollaboration from "../components/projects/ProjectCollaboration";
 import { archiveProject, createProject, getProject, listProjects, updateProject } from "../lib/projectsApi";
 import "./Projects.css";
 
@@ -163,7 +164,7 @@ function ProjectDetail({ summary, formatDate, onClose, onProjectChange }) {
   }, [summary.projectId]);
 
   useEffect(() => {
-    const close = event => { if (event.key === "Escape" && !editing && !archiving) onClose(); };
+    const close = event => { if (event.key === "Escape" && !event.defaultPrevented && !editing && !archiving) onClose(); };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [archiving, editing, onClose]);
@@ -226,7 +227,7 @@ function ProjectDetail({ summary, formatDate, onClose, onProjectChange }) {
                 {archiving ? "Archiving…" : "Confirm archive"}</button></div>
           </div>}
         </section>}
-        <div className="project-detail-extension" data-project-detail-extension="collaboration" />
+        {detail.status === "success" && <ProjectCollaboration project={project} formatDate={formatDate} />}
       </div>
     </aside>
     {editing && <ProjectFormDialog mode="edit" project={project} onClose={() => setEditing(false)} onSaved={accept} />}

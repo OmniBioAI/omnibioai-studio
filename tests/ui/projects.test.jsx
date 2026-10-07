@@ -9,6 +9,9 @@ vi.mock("../../src/ui/lib/projectsApi", () => api);
 vi.mock("../../src/ui/components/PreferencesProvider", () => ({
   useAccountDateTime: () => value => value ? `date:${value}` : "Unavailable",
 }));
+vi.mock("../../src/ui/components/projects/ProjectCollaboration", () => ({
+  default: () => <div data-project-detail-extension="collaboration" />,
+}));
 
 import Projects from "../../src/ui/pages/Projects";
 
