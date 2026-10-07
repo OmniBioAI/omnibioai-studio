@@ -34,11 +34,15 @@ export default function BugReport() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 left-4 bg-red-600 hover:bg-red-700
+        className="fixed bottom-4 right-4 bg-red-600 hover:bg-red-700
                    text-white text-xs px-3 py-2 rounded-full shadow-lg
                    flex items-center gap-1 z-50"
         style={{
-          position: "fixed", bottom: 16, left: 16,
+          // Bottom-right, not bottom-left: the desktop Sidebar's own
+          // Account footer/system-status area lives in the viewport's
+          // bottom-left corner (see Sidebar.jsx), and this button used to
+          // render fixed on top of it at the same corner.
+          position: "fixed", bottom: 16, right: 16, left: "auto",
           background: "#dc2626", color: "#fff",
           border: "none", borderRadius: 9999,
           padding: "6px 12px", fontSize: 12, cursor: "pointer",
