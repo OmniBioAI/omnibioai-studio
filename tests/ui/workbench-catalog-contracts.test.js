@@ -11,17 +11,17 @@ import { resolveWorkbenchComponent } from "../../src/ui/components/workbench/com
 const source = process.env.WORKBENCH_SOURCE;
 const enabled = Boolean(source);
 describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
-  it("validates all 129 original native descriptors, two proofs, and legacy fallbacks", () => {
+  it("validates all 154 v1 native descriptors, two proofs, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 131, legacy: 370 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 156, legacy: 345 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(129);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(154);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual(["ensembl", "rcsb_pdb"]);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "query")).toHaveLength(9);
     for (const entry of catalog.plugins) {
