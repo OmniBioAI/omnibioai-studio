@@ -19,8 +19,15 @@ const proof = (slug = "rcsb_pdb") => ({
   ...(slug === "ensembl" ? {} : {
     pagination: { component: "pagination", mode: "page" },
     filters: { component: "filters", title: "Filters", field_ids: ["organism", "max_resolution"] },
-    detail: { component: "detail", title: "Structure detail", fields: [
-      { key: "pdb_id", label: "PDB ID" }, { key: "title", label: "Title" },
+    detail: { component: "detail", title: "Structure detail", sections: [
+      { id: "identity", title: "Identity", presentation: "scalar", fields: [
+        { key: "pdb_id", label: "PDB ID" }, { key: "title", label: "Title" },
+      ] },
+      { id: "authors", title: "Authors", presentation: "table", optional: true, row_key: "position", max_rows: 100,
+        columns: [{ key: "position", label: "Order" }, { key: "author", label: "Author" }] },
+      { id: "provenance", title: "Provenance", presentation: "provenance", fields: [
+        { key: "source", label: "Source" }, { key: "retrieved_at", label: "Retrieved at" },
+      ] },
     ] },
   }),
 });
@@ -79,8 +86,13 @@ describe("Batch 1 descriptor boundary", () => {
     ["duplicate filter field", value => { value.filters.field_ids.push(value.filters.field_ids[0]); }],
     ["filter expression", value => { value.filters.expression = "score > 1"; }],
     ["unknown detail component", value => { value.detail.component = "CustomDetail"; }],
-    ["prototype detail field", value => { value.detail.fields[0].key = "constructor"; }],
-    ["detail formatter", value => { value.detail.fields[0].formatter = "javascript"; }],
+    ["prototype section", value => { value.detail.sections[0].id = "constructor"; }],
+    ["unknown section presentation", value => { value.detail.sections[0].presentation = "CustomComponent"; }],
+    ["detail formatter", value => { value.detail.sections[0].fields[0].formatter = "javascript"; }],
+    ["recursive sections", value => { value.detail.sections[0].sections = []; }],
+    ["table callback", value => { value.detail.sections[1].callback = "render"; }],
+    ["provenance URL", value => { value.detail.sections[2].url = "https://example.test"; }],
+    ["sensitive provenance field", value => { value.detail.sections[2].fields[0].key = "token"; }],
     ["colliding page parameter", value => { value.inputs.push(number({ id: "page" })); }],
     ["missing page-size field", value => { value.inputs = value.inputs.filter(input => input.id !== "page_size"); }],
     ["text page-size field", value => { value.inputs = value.inputs.map(input => input.id === "page_size" ? text("page_size") : input); }],
@@ -107,6 +119,12 @@ describe("Batch 1 descriptor boundary", () => {
     expect(validatePluginDescriptor(legacy, "ensembl")).toBe(legacy);
     expect(() => validatePluginDescriptor({ ...legacy, inputs: [number()] }, "ensembl")).toThrow();
     expect(() => validatePluginDescriptor({ ...legacy, pagination: { component: "pagination", mode: "page" } }, "ensembl")).toThrow();
+  });
+
+  it("preserves the Batch 2 flat scalar detail contract", () => {
+    const descriptor = proof();
+    descriptor.detail = { component: "detail", title: "Structure detail", fields: [{ key: "pdb_id", label: "PDB ID" }] };
+    expect(validatePluginDescriptor(descriptor, "rcsb_pdb")).toBe(descriptor);
   });
 });
 
@@ -187,7 +205,7 @@ describe("query API adapter", () => {
   });
 
   it("uses the fixed detail operation and rejects disabled or malformed detail identifiers", async () => {
-    fetch.mockResolvedValue(response({ pdb_id: "4HHB", title: "Hemoglobin" }));
+    fetch.mockResolvedValue(response({ identity: { pdb_id: "4HHB", title: "Hemoglobin" }, provenance: { source: "RCSB", retrieved_at: null } }));
     await queryDetail(proof(), "4HHB");
     expect(fetch).toHaveBeenCalledWith("/_svc/workbench/plugins/rcsb_pdb/api/ui-detail/4HHB/", expect.objectContaining({ credentials: "same-origin" }));
     for (const id of ["", null, {}, "../secret", "https://evil.test/path"]) await expect(queryDetail(proof(), id)).rejects.toThrow();
@@ -196,9 +214,11 @@ describe("query API adapter", () => {
   });
 
   it.each([
-    { pdb_id: "4HHB", title: {} },
-    { pdb_id: "4HHB", title: [] },
-    { pdb_id: "4HHB", title: "Safe", raw: { html: "<b>no</b>" } },
+    { identity: { pdb_id: "4HHB", title: {} }, provenance: { source: "RCSB" } },
+    { identity: { pdb_id: "4HHB", title: "Safe" }, provenance: { source: "RCSB" }, raw: {} },
+    { identity: { pdb_id: "4HHB", title: "Safe" }, authors: [{ position: 1, author: {} }], provenance: { source: "RCSB" } },
+    { identity: { pdb_id: "4HHB", title: "Safe" }, authors: [{ position: 1, author: "A", html: "bad" }], provenance: { source: "RCSB" } },
+    { identity: { pdb_id: "4HHB", title: "Safe" }, provenance: { source: "RCSB", url: "https://evil.test" } },
   ])("rejects structured or undeclared detail response data", async payload => {
     fetch.mockResolvedValue(response(payload));
     await expect(queryDetail(proof(), "4HHB")).rejects.toThrow("invalid response");

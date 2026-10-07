@@ -82,7 +82,7 @@ export default function QueryRenderer({ descriptor }) {
   const Pagination = descriptor.pagination ? resolveWorkbenchComponent(descriptor.pagination.component) : null;
   const Filters = descriptor.filters ? resolveWorkbenchComponent(descriptor.filters.component) : null;
   const Detail = detailEnabled ? resolveWorkbenchComponent(descriptor.detail?.component || "detail") : null;
-  const detailFields = descriptor.detail?.fields ?? (detail ? Object.keys(detail)
+  const detailFields = descriptor.detail?.fields ?? (!descriptor.detail?.sections && detail ? Object.keys(detail)
     .filter(key => ["string", "number", "boolean"].includes(typeof detail[key]))
     .map(key => ({ key, label: key.replaceAll("_", " ") })) : []);
   if (!Table || (descriptor.pagination && !Pagination) || (descriptor.filters && !Filters) || (detailEnabled && !Detail)) {
@@ -111,6 +111,7 @@ export default function QueryRenderer({ descriptor }) {
       {Pagination && payload && <Pagination pagination={payload.pagination} loading={loading} onNavigate={navigate} />}
     </PanelBody></Panel>}
     {(detailLoading || detailError || detail) && <Detail title={descriptor.detail?.title || "Detail"} fields={detailFields}
+      sections={descriptor.detail?.sections}
       record={detail} loading={detailLoading} error={detailError} headingRef={detailHeading} />}
   </div>;
 }

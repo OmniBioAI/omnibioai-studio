@@ -39,9 +39,16 @@ const descriptor = validatePluginDescriptor({
   result: { presentation: "table", rows_path: "results", row_key: "pdb_id", detail_key: "pdb_id", columns: [{ key: "pdb_id", label: "PDB ID" }, { key: "score", label: "Score" }] },
   pagination: { component: "pagination", mode: "page" },
   filters: { component: "filters", title: "Structure filters", field_ids: ["organism", "max_resolution"] },
-  detail: { component: "detail", title: "Structure detail", fields: [
-    { key: "pdb_id", label: "PDB ID" }, { key: "title", label: "Title" },
-    { key: "experimental_method", label: "Experimental method" }, { key: "resolution_angstrom", label: "Resolution (Å)" },
+  detail: { component: "detail", title: "Structure detail", sections: [
+    { id: "identity", title: "Structure identity", presentation: "scalar", fields: [
+      { key: "pdb_id", label: "PDB ID" }, { key: "title", label: "Title" },
+      { key: "experimental_method", label: "Experimental method" }, { key: "resolution_angstrom", label: "Resolution (Å)" },
+    ] },
+    { id: "authors", title: "Primary citation authors", presentation: "table", optional: true,
+      row_key: "position", max_rows: 100, columns: [{ key: "position", label: "Order" }, { key: "author", label: "Author" }] },
+    { id: "provenance", title: "Provenance", presentation: "provenance", fields: [
+      { key: "source", label: "Source database" }, { key: "retrieved_at", label: "Retrieved at" },
+    ] },
   ] },
 }, "rcsb_pdb");
 const page = { mode: "page", page: 1, page_size: 10, total_items: 25, has_previous: false, has_next: true };

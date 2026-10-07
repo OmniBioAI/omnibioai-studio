@@ -15,7 +15,8 @@ rendering, arbitrary actions, frontend scientific logic or dynamic URLs.
 - Inputs: `text`, `textarea`, `number`, or the existing finite `select`.
 - Results: `table`; optionally one-based `pagination`.
 - Secondary criteria: optional `filters`, referencing declared optional inputs.
-- Selected-record detail: optional `detail`, composed from scalar key/value rows.
+- Selected-record detail: optional `detail`, composed from either flat scalar
+  rows or one ordered level of scalar, bounded-table and provenance sections.
 
 Identifiers are registry allowlists. Descriptors never name React modules,
 formatters, callbacks, arbitrary backend URLs or upstream URLs.
@@ -39,7 +40,11 @@ uses actual supported metadata:
   "endpoints":{"query":"/plugins/rcsb_pdb/api/ui-query/","detail":"/plugins/rcsb_pdb/api/ui-detail/{detail_id}/"},
   "result":{"presentation":"table","rows_path":"results","row_key":"pdb_id","detail_key":"pdb_id","columns":[{"key":"pdb_id","label":"PDB ID"}]},
   "filters":{"component":"filters","title":"Filters","field_ids":["organism"]},
-  "detail":{"component":"detail","title":"Structure detail","fields":[{"key":"pdb_id","label":"PDB ID"}]}
+  "detail":{"component":"detail","title":"Structure detail","sections":[
+    {"id":"identity","title":"Structure identity","presentation":"scalar","fields":[{"key":"pdb_id","label":"PDB ID"}]},
+    {"id":"citation_authors","title":"Primary citation authors","presentation":"table","optional":true,"row_key":"position","max_rows":100,"columns":[{"key":"position","label":"Order"},{"key":"author","label":"Author"}]},
+    {"id":"provenance","title":"Provenance","presentation":"provenance","fields":[{"key":"source","label":"Source database"}]}
+  ]}
 }
 ```
 
@@ -53,12 +58,30 @@ Expose only `/plugins/{slug}/api/ui-query/` and, when declared,
 `/plugins/{slug}/api/ui-detail/{detail_id}/`. Django authenticates and authorizes,
 allowlists parameters, normalizes and scientifically validates values,
 constructs upstream requests, enforces pagination, validates detail IDs and
-projects declared scalar fields. Never expose credentials, upstream URLs or raw payloads.
+projects declared scalar fields and bounded table rows. It must reject rather
+than silently truncate data beyond a declared bound. Never expose credentials,
+upstream URLs or raw payloads.
+
+For section detail, return an object keyed by exact section IDs:
+
+```json
+{
+  "identity":{"pdb_id":"4HHB"},
+  "citation_authors":[{"position":1,"author":"A. Researcher"}],
+  "provenance":{"source":"RCSB Protein Data Bank"}
+}
+```
+
+Use `scalar` for identity or measurements, `table` for repeated uniform rows,
+and `provenance` for source/retrieval facts. Do not nest sections, return
+arbitrary objects, put URLs in provenance, or ask React to interpret upstream
+scientific JSON. Keep the plugin legacy when a finite projection would lose
+scientific meaning.
 
 ## 5. Add tests
 
 Add the plugin to parameterized backend contracts. Verify schema, auth, method,
-input projection, scientific validation, scalar projection, malformed upstream
+input projection, scientific validation, section projection and bounds, malformed upstream
 handling and endpoint scope. The Studio catalog test must validate every emitted
 descriptor. Add a component test only for genuinely new shared behavior.
 

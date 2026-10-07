@@ -23,8 +23,15 @@ const descriptor = {
     columns: [{ key: "pdb_id", label: "PDB ID" }, { key: "score", label: "Score" }] },
   pagination: { component: "pagination", mode: "page" },
   filters: { component: "filters", title: "Structure filters", field_ids: ["max_resolution"] },
-  detail: { component: "detail", title: "Structure detail", fields: [
-    { key: "title", label: "Title" }, { key: "assembly_count", label: "Assemblies" },
+  detail: { component: "detail", title: "Structure detail", sections: [
+    { id: "identity", title: "Structure identity", presentation: "scalar", fields: [
+      { key: "title", label: "Title" }, { key: "assembly_count", label: "Assemblies" },
+    ] },
+    { id: "authors", title: "Primary citation authors", presentation: "table", optional: true,
+      row_key: "position", max_rows: 100, columns: [{ key: "position", label: "Order" }, { key: "author", label: "Author" }] },
+    { id: "provenance", title: "Provenance", presentation: "provenance", fields: [
+      { key: "source", label: "Source database" }, { key: "retrieved_at", label: "Retrieved at" },
+    ] },
   ] },
 };
 const page = (current = 1, id = "4HHB", total = 41) => ({
@@ -152,7 +159,7 @@ describe("Batch 1 query composition", () => {
     expect(new URL(fetch.mock.calls[1][0], window.location.origin).searchParams.get("page")).toBe("1");
   });
 
-  it("keeps scalar detail inert, presents loading and transfers focus to the detail heading", async () => {
+  it("keeps structured detail inert, composes scalar/table/provenance sections and transfers focus", async () => {
     const pending = deferred();
     fetch.mockResolvedValueOnce(response(page())).mockReturnValueOnce(pending.promise);
     const { container } = render(<QueryRenderer descriptor={descriptor} />);
@@ -160,10 +167,17 @@ describe("Batch 1 query composition", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^View/ }));
     expect(screen.getByText("Loading detail…")).toHaveAttribute("role", "status");
     expect(screen.getByRole("button", { name: /^View/ })).toBeDisabled();
-    await act(async () => pending.resolve(response({ title: "<script>alert(1)</script>", assembly_count: 2 })));
+    await act(async () => pending.resolve(response({
+      identity: { title: "<script>alert(1)</script>", assembly_count: 2 },
+      authors: [{ position: 1, author: "Ada Lovelace" }],
+      provenance: { source: "RCSB Protein Data Bank", retrieved_at: "2026-10-07T00:00:00Z" },
+    })));
     expect(screen.getByText("<script>alert(1)</script>")).toBeInTheDocument();
     expect(container.querySelector("script")).toBeNull();
     expect(screen.getByText("Assemblies")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Primary citation authors" })).toBeInTheDocument();
+    expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
+    expect(screen.getByText("RCSB Protein Data Bank")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Structure detail" })).toHaveFocus();
     expect(fetch.mock.calls[1][0]).toBe("/_svc/workbench/plugins/rcsb_pdb/api/ui-detail/4HHB/");
   });
@@ -171,7 +185,7 @@ describe("Batch 1 query composition", () => {
   it("shows and retries detail errors without discarding search results", async () => {
     fetch.mockResolvedValueOnce(response(page()))
       .mockResolvedValueOnce(response({ error: "Structure not available" }, false))
-      .mockResolvedValueOnce(response({ title: "Hemoglobin" }));
+      .mockResolvedValueOnce(response({ identity: { title: "Hemoglobin", assembly_count: 2 }, provenance: { source: "RCSB" } }));
     render(<QueryRenderer descriptor={descriptor} />);
     search();
     fireEvent.click(await screen.findByRole("button", { name: /^View/ }));
@@ -192,7 +206,7 @@ describe("Batch 1 query composition", () => {
     search("hemoglobin");
     await screen.findByRole("cell", { name: "2ABC" });
     expect(signal.aborted).toBe(true);
-    await act(async () => pending.resolve(response({ title: "Obsolete detail" })));
+    await act(async () => pending.resolve(response({ identity: { title: "Obsolete detail" }, provenance: { source: "RCSB" } })));
     expect(screen.queryByText("Obsolete detail")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Structure detail" })).not.toBeInTheDocument();
   });

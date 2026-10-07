@@ -150,7 +150,8 @@ Forbidden metadata includes callbacks, JSX, JavaScript, eval/functions, raw
 HTML, modules/imports, script URLs, arbitrary API URLs, filesystem paths and
 credentials. Unknown properties anywhere in v2 fail closed. Display strings
 may contain HTML-looking text but are always escaped. Component identifiers
-are exactly `file`, `text`, `textarea`, `select`, `number`, `table`, `pagination`;
+are exactly `file`, `text`, `textarea`, `select`, `number`, `table`,
+`pagination`, `key_value`, `detail`, `filters`;
 field dispatch separately excludes result components. Renderer identifiers
 remain `query`, `informational`, `async_analysis`, plus the existing
 `generic_runner` alias. ServiceViewer remains the controlled fallback.
@@ -281,3 +282,111 @@ semantically distinct and must wait for an evidence-backed section/provenance
 contract rather than receive a duplicate scalar panel or automatic JSON view.
 
 See `docs/creating-workbench-plugin-ui.md` for the implemented query workflow.
+
+## Batch 3: finite structured detail sections
+
+### Evidence and boundary
+
+IntAct, dbSNP, RCSB PDB, ClinVar and Reactome demonstrate repeated scalar
+identity, bounded child-table and provenance sections. They do not justify an
+arbitrary component tree. DetailPanel therefore accepts exactly one ordered
+section level and composes existing KeyValueResult and ResultsTable primitives.
+No new registry component is required.
+
+RCSB PDB proves the production contract with structure identity, optional
+primary citation, a bounded citation-author table and provenance. IntAct remains
+held for POST interaction semantics and complete participant/evidence sections.
+dbSNP remains held pending complete backend projection and safe server-authorized
+cross-reference navigation.
+
+### DetailPanel section contract
+
+**Purpose / when to use:** one authorized selected entity whose backend can
+project an ordered finite set of scalar, bounded child-table and provenance
+sections. **Do not use** it for recursive JSON, arbitrary nesting, trees, links,
+mutations, dashboards or frontend scientific interpretation.
+
+```json
+{
+  "component": "detail",
+  "title": "Structure detail",
+  "sections": [
+    {
+      "id": "identity", "title": "Structure identity", "presentation": "scalar",
+      "fields": [{"key": "pdb_id", "label": "PDB ID"}]
+    },
+    {
+      "id": "citation_authors", "title": "Primary citation authors",
+      "presentation": "table", "optional": true,
+      "row_key": "position", "max_rows": 100,
+      "columns": [{"key": "position", "label": "Order"}, {"key": "author", "label": "Author"}]
+    },
+    {
+      "id": "provenance", "title": "Provenance", "presentation": "provenance",
+      "fields": [{"key": "source", "label": "Source database"}]
+    }
+  ]
+}
+```
+
+Required section properties are `id`, `title`, `presentation`, plus `fields`
+for `scalar`/`provenance` or `columns`, `row_key`, `max_rows` for `table`.
+`optional` is the only optional property. IDs and keys use the established safe
+identifier grammar. Presentations are exactly `scalar`, `table`, `provenance`.
+Table bounds are safe integers from 1 through 500; the row key must be a declared
+flat column. Duplicate IDs/keys, paths, unknown properties and mixed `fields`
+plus `sections` fail closed.
+
+Runtime data is keyed by section ID. Required sections must exist; optional
+sections may be absent. Scalar/provenance records contain only declared string,
+finite-number, boolean or null values. Table rows contain only declared scalar
+columns, remain within `max_rows`, and have unique stable row identities.
+
+```json
+{
+  "identity": {"pdb_id": "4HHB"},
+  "citation_authors": [{"position": 1, "author": "A. Researcher"}],
+  "provenance": {"source": "RCSB Protein Data Bank"}
+}
+```
+
+Django authenticates, authorizes, validates the detail ID, performs upstream
+access, projects each section and enforces bounds. React validates and presents
+that projection. Objects in scalar cells, arbitrary response sections, excess
+rows, URLs, HTML, callbacks, component names, formatters and recursive sections
+are rejected. Text is escaped.
+
+DetailPanel provides a labeled busy region, focused detail heading, logical
+section headings and live loading/error/empty messages. Child tables retain
+captions and keyboard-focusable overflow regions. Scalar grids reflow to one
+column on narrow screens; meaningful scientific values wrap without truncation.
+Malformed section data renders a controlled alert. Missing optional sections are
+omitted; declared empty tables retain ResultsTable's empty state.
+
+Real evidence: RCSB PDB structure/citation/provenance, dbSNP variant sections,
+IntAct interaction evidence and ClinVar condition rows. Tests live in
+`tests/ui/workbench-structured-detail.test.jsx`, `tests/ui/query-batch.test.jsx`
+and Workbench `plugins/shared/tests/test_query_ui.py`.
+
+### Current component reference
+
+| Component | Registry ID | Status | Use |
+| --- | --- | --- | --- |
+| TextField | `text` | PRODUCTION | Single-line text |
+| TextAreaField | `textarea` | PRODUCTION | Multiline plain text |
+| NumberField | `number` | PRODUCTION | Integer/float entry |
+| SelectField | `select` | PRODUCTION | Finite backend-declared choices |
+| FileUploadField | `file` | PRODUCTION | Existing file input contract |
+| ResultsTable | `table` | PRODUCTION | Declared scalar tables, including child tables |
+| PaginationControls | `pagination` | PRODUCTION | One-based backend pagination |
+| KeyValueResult | `key_value` | PRODUCTION | Declared labeled scalars |
+| DetailPanel | `detail` | PRODUCTION | Flat or finite section detail |
+| FilterControls | `filters` | PRODUCTION | Existing optional query fields |
+| TextareaField | — | COMPATIBILITY_ALIAS | Export alias for TextAreaField |
+| RunStatus | — | PRODUCTION | Existing asynchronous run state |
+| LogViewer | — | PRODUCTION | Existing run logs |
+| PluginResults | — | PARTIAL | Existing asynchronous result dispatch |
+| StaticPngResult | — | PRODUCTION | Existing static PNG result |
+| MetadataPanel | — | PLANNED_NOT_AVAILABLE | Not distinct from scalar sections |
+| ExternalLink-by-ID | — | PLANNED_NOT_AVAILABLE | Needed for authorized navigation |
+| Structured recursive JSON viewer | — | PLANNED_NOT_AVAILABLE | Intentionally unsupported |

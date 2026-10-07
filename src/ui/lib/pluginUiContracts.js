@@ -2,6 +2,7 @@
 // No field in these objects is evaluated, imported, or resolved as a callback.
 const FORBIDDEN_NAMES = new Set(["__proto__", "prototype", "constructor", "password", "token", "api_key", "secret", "credentials"]);
 const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
+const URI_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 
 export function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value) &&
@@ -56,9 +57,56 @@ export function validScalarRecord(record, fields, { strict = false } = {}) {
 }
 
 export function validDetailDescriptor(value) {
-  return hasOnlyKeys(value, ["component", "title", "fields"], ["component", "title", "fields"]) &&
-    value.component === "detail" && typeof value.title === "string" && value.title.trim().length > 0 &&
-    validScalarFields(value.fields) && value.fields.every(field => !field.key.includes("."));
+  if (!hasOnlyKeys(value, ["component", "title", "fields", "sections"], ["component", "title"]) ||
+      value.component !== "detail" || typeof value.title !== "string" || !value.title.trim() ||
+      (value.fields === undefined) === (value.sections === undefined)) return false;
+  if (value.fields !== undefined) return validScalarFields(value.fields);
+  return validDetailSections(value.sections);
+}
+
+export function validDetailSections(sections) {
+  if (!Array.isArray(sections) || sections.length === 0 ||
+      new Set(sections.map(section => section?.id)).size !== sections.length) return false;
+  return sections.every(section => {
+    if (!isRecord(section) || typeof section.id !== "string" || !IDENTIFIER.test(section.id) || FORBIDDEN_NAMES.has(section.id) ||
+        typeof section.title !== "string" || !section.title.trim() ||
+        (section.optional !== undefined && typeof section.optional !== "boolean")) return false;
+    const common = ["id", "title", "presentation", "optional"];
+    if (["scalar", "provenance"].includes(section.presentation)) {
+      return hasOnlyKeys(section, [...common, "fields"], ["id", "title", "presentation", "fields"]) &&
+        validScalarFields(section.fields);
+    }
+    return section.presentation === "table" &&
+      hasOnlyKeys(section, [...common, "columns", "row_key", "max_rows"], ["id", "title", "presentation", "columns", "row_key", "max_rows"]) &&
+      validColumns(section.columns) && section.columns.every(column => !column.key.includes(".")) &&
+      typeof section.row_key === "string" && section.columns.some(column => column.key === section.row_key) &&
+      Number.isSafeInteger(section.max_rows) && section.max_rows >= 1 && section.max_rows <= 500;
+  });
+}
+
+export function validStructuredDetailRecord(record, sections, { strict = false } = {}) {
+  if (!isRecord(record) || !validDetailSections(sections)) return false;
+  const allowed = new Set(sections.map(section => section.id));
+  if (strict && Object.keys(record).some(key => !allowed.has(key))) return false;
+  return sections.every(section => {
+    if (!Object.hasOwn(record, section.id)) return section.optional === true;
+    const value = record[section.id];
+    if (["scalar", "provenance"].includes(section.presentation)) {
+      return validScalarRecord(value, section.fields, { strict: true }) &&
+        (section.presentation !== "provenance" || section.fields.every(field => {
+          const provenanceValue = Object.hasOwn(value, field.key) ? value[field.key] : null;
+          return typeof provenanceValue !== "string" || !URI_SCHEME.test(provenanceValue.trim());
+        }));
+    }
+    if (!Array.isArray(value) || value.length > section.max_rows || rowKeys(value, section.row_key) === null) return false;
+    const columns = new Set(section.columns.map(column => column.key));
+    return value.every(row => Object.keys(row).every(key => columns.has(key)) &&
+      section.columns.every(column => {
+        const cell = Object.hasOwn(row, column.key) ? row[column.key] : null;
+        return cell === null || typeof cell === "string" || typeof cell === "boolean" ||
+          (typeof cell === "number" && Number.isFinite(cell));
+      }));
+  });
 }
 
 export function validFilterDescriptor(value, inputs) {

@@ -55,7 +55,11 @@ try {
         }
         if (url.pathname === "/_svc/workbench/plugins/rcsb_pdb/api/ui-detail/4HHB/") {
           apiRequests.push(url.pathname);
-          return route.fulfill({ json: { pdb_id: "4HHB", title: "Authorized detail remains an inert scalar response.", experimental_method: "X-RAY DIFFRACTION", resolution_angstrom: 1.74 } });
+          return route.fulfill({ json: {
+            identity: { pdb_id: "4HHB", title: `Authorized detail preserves ${"NM_007294.4:c.5266dupC ".repeat(8)}`, experimental_method: "X-RAY DIFFRACTION", resolution_angstrom: 1.74 },
+            authors: [{ position: 1, author: "A. Researcher with a deliberately complete publication identifier" }],
+            provenance: { source: "RCSB Protein Data Bank", retrieved_at: "2026-10-07T00:00:00Z" },
+          } });
         }
         if (url.pathname.startsWith("/_svc/")) return route.abort();
         return route.continue();
@@ -117,6 +121,9 @@ try {
       await detail.waitFor();
       await page.waitForFunction(element => element === document.activeElement, await detail.elementHandle());
       assert(await detail.evaluate(element => element === document.activeElement));
+      assert(await query.getByRole("heading", { name: "Structure identity", exact: true }).isVisible());
+      assert(await query.getByRole("table", { name: "Primary citation authors", exact: true }).isVisible());
+      assert(await query.getByRole("heading", { name: "Provenance", exact: true }).isVisible());
       await query.screenshot({ path: path.join(artifacts, `${theme}-${width}-query-detail.png`) });
       await query.getByRole("button", { name: "Next" }).click();
       await query.getByRole("button", { name: "View details for 1ABC" }).waitFor();
