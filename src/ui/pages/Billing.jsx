@@ -222,7 +222,7 @@ function PaymentMethodCard({ orgId }) {
             </div>
           ) : (
             <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
-              No card on file for this organization.
+              No payment method on file for this organization.
             </div>
           )}
 
@@ -237,7 +237,7 @@ function PaymentMethodCard({ orgId }) {
                 disabled={actionBusy != null}
                 onClick={() => runAction("setup", () => billingApi.createPaymentSetupSession(orgId))}
               >
-                {data.has_payment_method ? "Replace card" : "Add card"}
+                {data.has_payment_method ? "Replace card" : <><span aria-hidden="true">+</span> Add payment method</>}
               </Button>
               {data.has_payment_method && (
                 <Button

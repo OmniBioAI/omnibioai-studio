@@ -1,4 +1,5 @@
 import React from "react";
+import userEvent from "@testing-library/user-event";
 import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -499,13 +500,18 @@ describe("Billing page Payment method card", () => {
     expect(screen.getByText("Manage billing")).toBeInTheDocument();
   });
 
-  it("renders 'No card on file' and only an Add card button when there is no card yet", async () => {
+  it("renders 'No payment method on file' and only an Add payment method button when there is no card yet", async () => {
     billingApi.getPaymentMethod.mockResolvedValue({
       stripe_enabled: true, can_manage: true, has_payment_method: false, card: null,
     });
     await openOverview();
-    await waitFor(() => expect(screen.getByText("No card on file for this organization.")).toBeInTheDocument());
-    expect(screen.getByText("Add card")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("No payment method on file for this organization.")).toBeInTheDocument());
+    expect(screen.getByText("Payment method")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Overview" })).toHaveClass("active");
+    const button = screen.getByRole("button", { name: "Add payment method", exact: true });
+    expect(button).toHaveClass("omni-btn--secondary", "omni-btn--sm");
+    expect(button.querySelector('[aria-hidden="true"]')).toHaveTextContent("+");
+    expect(screen.queryByRole("button", { name: "Add card" })).not.toBeInTheDocument();
     expect(screen.queryByText("Manage billing")).not.toBeInTheDocument();
   });
 
@@ -528,12 +534,28 @@ describe("Billing page Payment method card", () => {
     billingApi.createPaymentSetupSession.mockResolvedValue({ url: "https://checkout.stripe.com/pay/cs_1" });
     window.electronAPI = { openExternal: vi.fn() };
     await openOverview();
-    await waitFor(() => expect(screen.getByText("Add card")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Add payment method")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("Add card"));
+    fireEvent.click(screen.getByText("Add payment method"));
 
     await waitFor(() => expect(window.electronAPI.openExternal).toHaveBeenCalledWith("https://checkout.stripe.com/pay/cs_1"));
     expect(billingApi.createPaymentSetupSession).toHaveBeenCalledWith("42");
+  });
+
+  it.each(["{Enter}", " "])("activates the existing payment setup flow with keyboard %s", async (key) => {
+    const user = userEvent.setup();
+    billingApi.getPaymentMethod.mockResolvedValue({
+      stripe_enabled: true, can_manage: true, has_payment_method: false, card: null,
+    });
+    billingApi.createPaymentSetupSession.mockResolvedValue({ url: "https://checkout.stripe.com/pay/cs_keyboard" });
+    window.electronAPI = { openExternal: vi.fn() };
+    await openOverview();
+    const button = await screen.findByRole("button", { name: "Add payment method", exact: true });
+    button.focus();
+    expect(button).toHaveFocus();
+    await user.keyboard(key);
+    await waitFor(() => expect(window.electronAPI.openExternal).toHaveBeenCalledWith("https://checkout.stripe.com/pay/cs_keyboard"));
+    expect(billingApi.createPaymentSetupSession).toHaveBeenCalledExactlyOnceWith("42");
   });
 
   it("falls back to window.api.openExternal when the Electron API is absent", async () => {
@@ -566,9 +588,9 @@ describe("Billing page Payment method card", () => {
     });
     try {
       await openOverview();
-      await waitFor(() => expect(screen.getByText("Add card")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText("Add payment method")).toBeInTheDocument());
 
-      fireEvent.click(screen.getByText("Add card"));
+      fireEvent.click(screen.getByText("Add payment method"));
 
       await waitFor(() => expect(window.open.mock.results[0].value.document.querySelector("a")).not.toBeNull());
       expect(assignMock).not.toHaveBeenCalled();
@@ -589,9 +611,9 @@ describe("Billing page Payment method card", () => {
     billingApi.createPaymentSetupSession.mockResolvedValue({ url: "https://evil.example/phish" });
     window.electronAPI = { openExternal: vi.fn() };
     await openOverview();
-    await waitFor(() => expect(screen.getByText("Add card")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Add payment method")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("Add card"));
+    fireEvent.click(screen.getByText("Add payment method"));
 
     await waitFor(() => expect(screen.getByText("Refused to open a non-Stripe-hosted URL")).toBeInTheDocument());
     expect(window.electronAPI.openExternal).not.toHaveBeenCalled();
@@ -603,9 +625,9 @@ describe("Billing page Payment method card", () => {
     });
     billingApi.createPaymentSetupSession.mockRejectedValue({ status: 503, message: "Stripe is not enabled on this deployment." });
     await openOverview();
-    await waitFor(() => expect(screen.getByText("Add card")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Add payment method")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("Add card"));
+    fireEvent.click(screen.getByText("Add payment method"));
 
     await waitFor(() => expect(screen.getByText("Stripe is not enabled on this deployment.")).toBeInTheDocument());
   });
@@ -633,7 +655,7 @@ describe("Billing page Payment method card", () => {
   });
 });
 
-describe("Billing Add card new-tab lifecycle", () => {
+describe("Billing Add payment method new-tab lifecycle", () => {
   const hostedUrl = "https://checkout.stripe.com/test-only/new-tab";
 
   async function ready() {
@@ -642,7 +664,7 @@ describe("Billing Add card new-tab lifecycle", () => {
     billingApi.getUsageLimits.mockResolvedValue({ limits: [] });
     billingApi.getBillingSummary.mockResolvedValue({ currency: "usd" });
     const view = render(<Billing currentUser={member} />);
-    await screen.findByRole("button", { name: "Add card" });
+    await screen.findByRole("button", { name: "Add payment method" });
     return view;
   }
 
@@ -658,9 +680,9 @@ describe("Billing Add card new-tab lifecycle", () => {
     const tab = window.open.getMockImplementation()();
     tab.opener = window;
     window.open.mockReturnValue(tab);
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add payment method" }));
     expect(tab.document.querySelector("a")).toBeNull();
-    expect(screen.getByRole("button", { name: "Add card" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add payment method" })).toBeDisabled();
     resolve({ url: hostedUrl });
     await waitFor(() => expect(tab.document.querySelector("a")).not.toBeNull());
     const link = tab.document.querySelector("a");
@@ -677,7 +699,7 @@ describe("Billing Add card new-tab lifecycle", () => {
     billingApi.createPaymentSetupSession.mockRejectedValue(new Error("Session unavailable"));
     await ready();
     const originalUrl = window.location.href;
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add payment method" }));
     await screen.findByText("Session unavailable");
     expect(window.open.mock.results[0].value.close).toHaveBeenCalledOnce();
     expect(window.location.href).toBe(originalUrl);
@@ -687,16 +709,16 @@ describe("Billing Add card new-tab lifecycle", () => {
   it("handles popup blocking before creating any Stripe session", async () => {
     await ready();
     window.open.mockReturnValue(null);
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add payment method" }));
     await screen.findByText("Please allow pop-ups for Studio, then try adding your card again.");
     expect(billingApi.createPaymentSetupSession).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Add card" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Add payment method" })).toBeEnabled();
   });
 
   it("closes the reserved tab when the response URL is not Stripe-hosted", async () => {
     billingApi.createPaymentSetupSession.mockResolvedValue({ url: "https://invalid.example/" });
     await ready();
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add payment method" }));
     await screen.findByText("Refused to open a non-Stripe-hosted URL");
     expect(window.open.mock.results[0].value.close).toHaveBeenCalledOnce();
     expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
@@ -706,7 +728,7 @@ describe("Billing Add card new-tab lifecycle", () => {
     await ready();
     window.open.mockReturnValue({ closed: true, opener: window, close: vi.fn() });
     billingApi.createPaymentSetupSession.mockResolvedValue({ url: hostedUrl });
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add payment method" }));
     await screen.findByText("The Stripe tab was closed. Please try again.");
     expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
   });
@@ -715,7 +737,7 @@ describe("Billing Add card new-tab lifecycle", () => {
     let resolve;
     billingApi.createPaymentSetupSession.mockImplementation(() => new Promise(r => { resolve = r; }));
     await ready();
-    const button = screen.getByRole("button", { name: "Add card" });
+    const button = screen.getByRole("button", { name: "Add payment method" });
     fireEvent.click(button);
     fireEvent.click(button);
     expect(billingApi.createPaymentSetupSession).toHaveBeenCalledOnce();
@@ -729,11 +751,11 @@ describe("Billing Add card new-tab lifecycle", () => {
     await ready();
     fireEvent(window, new Event("focus"));
     expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add payment method" }));
     await waitFor(() => expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce());
     fireEvent(window, new Event("focus"));
     await waitFor(() => expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(2));
-    await screen.findByText("No card on file for this organization.");
+    await screen.findByText("No payment method on file for this organization.");
     fireEvent(window, new Event("focus"));
     expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(2);
     expect(screen.queryByText("Payment method saved.")).not.toBeInTheDocument();
@@ -744,7 +766,7 @@ describe("Billing Add card new-tab lifecycle", () => {
     vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibility);
     billingApi.createPaymentSetupSession.mockResolvedValue({ url: hostedUrl });
     await ready();
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add payment method" }));
     await waitFor(() => expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce());
     visibility = "hidden";
     fireEvent(document, new Event("visibilitychange"));
@@ -759,7 +781,7 @@ describe("Billing Add card new-tab lifecycle", () => {
   it("does not refresh on focus after setup failed", async () => {
     billingApi.createPaymentSetupSession.mockRejectedValue(new Error("Session unavailable"));
     await ready();
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add payment method" }));
     await screen.findByText("Session unavailable");
     fireEvent(window, new Event("focus"));
     expect(billingApi.getPaymentMethod).toHaveBeenCalledTimes(1);
