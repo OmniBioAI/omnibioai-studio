@@ -1,22 +1,26 @@
 import React from "react";
 vi.mock("../../src/ui/pages/AccountPersonalization", () => ({ default: () => <div>Account Personalization page</div> }));
-vi.mock("../../src/ui/components/PreferencesProvider", () => ({ default: ({ children }) => <>{children}</> }));
+vi.mock("../../src/ui/components/PreferencesProvider", () => ({
+  default: ({ children }) => <>{children}</>,
+  useAccountDateTime: () => value => value || "Unavailable",
+}));
 vi.mock("../../src/ui/pages/AccountPreferences", () => ({ default: () => <div>Account Preferences page</div> }));
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, refresh, getRefreshToken, logout } = vi.hoisted(() => ({
+const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, getSessionVersion, refresh, getRefreshToken, logout } = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   onSessionChange: vi.fn(() => vi.fn()),
   consumeOAuthRedirectParams: vi.fn(() => null),
   isElectron: vi.fn(() => true),
   getToken: vi.fn(() => "tok"),
+  getSessionVersion: vi.fn(() => 1),
   refresh: vi.fn(),
   getRefreshToken: vi.fn(() => null),
   logout: vi.fn(),
 }));
 vi.mock("../../src/ui/lib/session", () => ({
-  getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, refresh, getRefreshToken, logout,
+  getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, getSessionVersion, refresh, getRefreshToken, logout,
 }));
 
 vi.mock("../../src/ui/components/LicenseGate", () => ({ default: ({ children }) => <>{children}</> }));
@@ -510,33 +514,31 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 
-  it("Projects and Artifacts render as local shells without backend calls", async () => {
-    const fetchSpy = vi.fn();
+  it("keeps Projects local while Artifacts loads through the canonical Workbench proxy", async () => {
+    const fetchSpy = vi.fn(url => {
+      if (String(url).includes("/_svc/workbench/plugins/artifact_manager/artifacts")) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ results: [], total: 0, limit: 200, offset: 0 }) });
+      }
+      return Promise.reject(new Error(`unexpected request: ${url}`));
+    });
     vi.stubGlobal("fetch", fetchSpy);
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
-    for (const [label, heading, disabledCreate] of [
-      ["Projects", "Projects", true],
-      ["Artifacts", "Artifacts", false],
-    ]) {
-      fetchSpy.mockClear();
-      fireEvent.click(screen.getByText(label, { selector: "div" }));
-      expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
-      // Local shell: no network call made to render it.
-      expect(fetchSpy).not.toHaveBeenCalled();
-      // No fake platform data of any kind.
-      const body = document.body.textContent;
-      for (const fakeMarker of [
-        /\b\d+\s*(projects?|artifacts?|collaborators?|runs?|workflows? run)\b/i,
-        /storage used/i, /recent activity/i, /GB\b/, /MB\b/,
-      ]) {
-        expect(body).not.toMatch(fakeMarker);
-      }
-      fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
-      await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    }
+    fireEvent.click(screen.getByText("Projects", { selector: "div" }));
+    expect(await screen.findByRole("heading", { name: "Projects" })).toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText("Artifacts", { selector: "div" }));
+    expect(await screen.findByRole("heading", { name: "Artifacts" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "No artifacts yet" })).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls[0][0]).toBe("http://localhost:5174/_svc/workbench/plugins/artifact_manager/artifacts?limit=200&offset=0");
+    expect(fetchSpy.mock.calls[0][0]).not.toMatch(/organization/i);
+    expect(screen.queryByText(/unified artifact tracking/i)).not.toBeInTheDocument();
     vi.unstubAllGlobals();
   });
 
