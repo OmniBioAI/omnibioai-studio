@@ -385,7 +385,7 @@ and Workbench `plugins/shared/tests/test_query_ui.py`.
 | TextareaField | — | COMPATIBILITY_ALIAS | Export alias for TextAreaField |
 | RunStatus | — | PRODUCTION | Existing asynchronous run state |
 | LogViewer | — | PRODUCTION | Existing run logs |
-| PluginResults | — | PARTIAL | Existing asynchronous result dispatch |
+| PluginResults | — | PRODUCTION | Finite asynchronous artifact, image-gallery and static-PNG result composition |
 | StaticPngResult | — | PRODUCTION | Existing static PNG result |
 | MetadataPanel | — | PLANNED_NOT_AVAILABLE | Not distinct from scalar sections |
 | ScientificReference | `reference` | PRODUCTION | Server-authorized scientific cross-reference navigation |
@@ -950,7 +950,7 @@ add components, but to audit Batches 1–8 against the issue's Definition of
 Done and either close genuine gaps or explicitly document why a boundary is
 correct as-is.
 
-### Final component registry (`componentRegistry.jsx`) — 16 entries
+### Final component registry (`componentRegistry.jsx`) — 17 entries
 
 `file`, `text`, `textarea`, `select`, `number`, `checkbox`, `multiselect`,
 `resource_select`, `table`, `pagination`, `key_value`, `detail`, `filters`,
@@ -1178,7 +1178,7 @@ the Workbench repo).
 
 ### #708 completion evidence
 
-- Complete, documented UI vocabulary: 16 components, 3 renderers, 2 schema
+- Complete, documented UI vocabulary: 17 components, 3 renderers, 2 schema
   versions — all in one place in this document.
 - Explicit schema validation, with a dedicated fail-closed test for every
   rejection path (unknown component, unknown renderer, unsupported schema

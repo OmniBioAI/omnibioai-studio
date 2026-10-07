@@ -1,7 +1,10 @@
 # Creating a New Workbench Plugin UI
 
-This guide covers the implemented declarative query family only. Do not use it
-for jobs, mutations, dashboards, graphs, arbitrary reports or multi-stage flows.
+This guide covers the implemented declarative native plugin UI system for the
+ordinary supported renderer families: `async_analysis`, `informational`, and
+`query`. `generic_runner` remains a compatibility alias for `async_analysis`
+where applicable. Do not use this system for jobs, mutations, dashboards,
+graphs, arbitrary reports or multi-stage flows.
 
 ## 1. Confirm the interaction family
 
