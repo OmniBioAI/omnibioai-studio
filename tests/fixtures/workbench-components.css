@@ -1,0 +1,8 @@
+/* Fixture layout only. All fields/results/pagination use production styles. */
+body, #root { overflow: auto; }
+.review-page { width: 100%; max-width: 1200px; margin: 0 auto; padding: 24px; display: grid; gap: 20px; min-width: 0; }
+.review-page h1 { font-size: var(--font-size-2xl); overflow-wrap: anywhere; }
+.review-page h2 { margin: 0 0 16px; font-size: var(--font-size-lg); }
+.review-intro { color: var(--color-text-secondary); line-height: 1.5; }
+.review-panel { min-width: 0; padding: 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+@media (max-width: 480px) { .review-page { padding: 12px; gap: 16px; } .review-panel { padding: 12px; } }

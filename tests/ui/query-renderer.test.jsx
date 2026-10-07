@@ -53,7 +53,7 @@ describe("QueryRenderer", () => {
     fireEvent.change(screen.getByLabelText(/Query/), { target: { value: "VCV1" } });
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await screen.findByText("Variant");
-    fireEvent.click(screen.getByRole("button", { name: "View" }));
+    fireEvent.click(screen.getByRole("button", { name: /^View/ }));
     await waitFor(() => expect(screen.getByText("pathogenic")).toBeInTheDocument());
     expect(fetch).toHaveBeenCalledTimes(2);
   });
@@ -65,7 +65,7 @@ describe("QueryRenderer", () => {
     fireEvent.change(screen.getByLabelText(/Gene symbol/), { target: { value: "TPMT" } });
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await screen.findByText("TPMT");
-    fireEvent.click(screen.getByRole("button", { name: "View" }));
+    fireEvent.click(screen.getByRole("button", { name: /^View/ }));
     await waitFor(() => expect(screen.getByText("PA356")).toBeInTheDocument());
     expect(fetch).toHaveBeenCalledWith("/_svc/workbench/plugins/pharmgkb/genes/search/?symbol=TPMT", expect.objectContaining({ credentials: "same-origin" }));
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -77,7 +77,7 @@ describe("QueryRenderer", () => {
     fireEvent.change(screen.getByLabelText(/Query/), { target: { value: "TP53" } });
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await screen.findByText("No detail");
-    expect(screen.queryByRole("button", { name: "View" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^View/ })).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 });

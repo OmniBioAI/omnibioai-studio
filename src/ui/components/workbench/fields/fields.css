@@ -1,0 +1,133 @@
+/* Workbench's established field rhythm; theme values come from Studio tokens. */
+.plugin-field {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.plugin-field label,
+.plugin-field small,
+.plugin-field-error {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.plugin-field label {
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.plugin-field small[id] {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.plugin-field .studio-field,
+.plugin-field-control {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color-scheme: dark;
+}
+
+html[data-theme="light"] .plugin-field .studio-field,
+html[data-theme="light"] .plugin-field-control { color-scheme: light; }
+
+.plugin-field .studio-field::placeholder,
+.plugin-field-control::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+textarea.plugin-field-control {
+  resize: vertical;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.plugin-field .studio-field:hover:not(:disabled):not(:read-only),
+.plugin-field-control:hover:not(:disabled):not(:read-only) {
+  border-color: var(--color-text-secondary);
+}
+
+.plugin-field .studio-field:focus,
+.plugin-field-control:focus {
+  border-color: var(--accent);
+}
+
+.plugin-field .studio-field:focus-visible,
+.plugin-field-control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.plugin-field .studio-field:disabled,
+.plugin-field-control:disabled {
+  color: var(--color-text-secondary);
+  background: var(--bg3);
+  cursor: not-allowed;
+}
+
+.plugin-field-control[readonly] {
+  background: var(--bg3);
+}
+
+.plugin-field .studio-field[aria-invalid="true"],
+.plugin-field-control[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.plugin-field-error {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.plugin-field-error::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  margin-right: 6px;
+  background: var(--danger);
+  vertical-align: text-bottom;
+}
+
+.plugin-form {
+  min-width: 0;
+}
+
+.plugin-form > .plugin-error {
+  margin-bottom: 12px;
+  color: var(--text);
+  border-left: 3px solid var(--danger);
+  padding-left: 10px;
+  line-height: 1.5;
+}
+
+.plugin-form > button[type="submit"] {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* The accent is too light against a light surface for a keyboard focus ring. */
+html[data-theme="light"] .plugin-field .studio-field:focus-visible,
+html[data-theme="light"] .plugin-field-control:focus-visible,
+html[data-theme="light"] .plugin-form > button:focus-visible {
+  outline-color: var(--text);
+}

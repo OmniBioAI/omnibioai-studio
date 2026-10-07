@@ -1,9 +1,10 @@
 import React from "react";
 import PluginField from "./PluginField";
+import { fieldText } from "./fields/FieldShell";
 
 function currentValue(input, values) {
   const value = values[input.id];
-  return value === undefined || value === "" ? (input.default ?? "") : value;
+  return value === undefined ? (input.default ?? "") : value;
 }
 
 export function validateConditionalInputs(inputs) {
@@ -55,10 +56,13 @@ export default function PluginForm({
   onFilesChange,
   onSubmit,
   error,
+  fieldErrors = {},
+  disabled = false,
+  readOnly = false,
   submitting = false,
   submitLabel = "Run analysis",
 }) {
-  const [validationError, setValidationError] = React.useState("");
+  const [validationErrors, setValidationErrors] = React.useState({});
   let conditionallyValid = true;
   try {
     validateConditionalInputs(inputs);
@@ -71,27 +75,56 @@ export default function PluginForm({
   }
 
   function handleSubmit(event) {
-    setValidationError("");
+    if (disabled || readOnly || submitting) {
+      event.preventDefault();
+      return;
+    }
+    const errors = {};
+    let firstInvalid;
     const fields = new Map(inputs.map(input => [input.id, input]));
+    const controls = Array.from(event.currentTarget.elements);
     for (const input of inputs) {
       const state = fieldState(input, values, fields);
-      if (!state.visible || !state.required) continue;
+      if (!state.visible) continue;
+      const control = controls.find(element => element.closest(".plugin-field")?.dataset.fieldId === input.id);
       const present = (input.component ?? input.widget) === "file"
         ? (files[input.id] || []).length > 0
-        : String(currentValue(input, values)).trim().length > 0;
-      if (!present) {
-        event.preventDefault();
-        setValidationError(`${input.label} is required.`);
-        return;
+        : fieldText(currentValue(input, values)).trim().length > 0;
+      if (control?.validity.badInput) {
+        errors[input.id] = `${input.label} must be a number.`;
+      } else if (state.required && !present) {
+        errors[input.id] = `${input.label} is required.`;
+      } else if ((input.component ?? input.widget) === "number" && control && !control.validity.valid) {
+        errors[input.id] = `${input.label}: ${control.validationMessage}`;
       }
+      if (errors[input.id] && !firstInvalid) firstInvalid = control;
+    }
+    setValidationErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      event.preventDefault();
+      firstInvalid?.focus();
+      return;
     }
     onSubmit?.(event);
   }
 
-  const displayError = validationError || error;
+  function clearValidationError(id, nextValues = values) {
+    setValidationErrors(previous => {
+      if (Object.keys(previous).length === 0) return previous;
+      const next = { ...previous };
+      delete next[id];
+      const fields = new Map(inputs.map(input => [input.id, input]));
+      inputs.forEach(input => {
+        if (!fieldState(input, nextValues, fields).visible) delete next[input.id];
+      });
+      return next;
+    });
+  }
+
+  const displayError = Object.values(validationErrors)[0] || fieldText(error);
   const fields = new Map(inputs.map(input => [input.id, input]));
   return (
-    <form onSubmit={handleSubmit} encType="multipart/form-data" noValidate>
+    <form className="plugin-form" onSubmit={handleSubmit} encType="multipart/form-data" aria-busy={submitting} noValidate>
       {inputs.map(input => {
         const state = fieldState(input, values, fields);
         if (!state.visible) return null;
@@ -101,12 +134,15 @@ export default function PluginForm({
           required={state.required}
           value={currentValue(input, values)}
           files={files[input.id] || []}
-          onValueChange={value => onValueChange?.(input.id, value)}
-          onFilesChange={fileList => onFilesChange?.(input.id, fileList)}
+          error={validationErrors[input.id] || fieldErrors[input.id]}
+          disabled={disabled || submitting}
+          readOnly={readOnly}
+          onValueChange={value => { clearValidationError(input.id, { ...values, [input.id]: value }); onValueChange?.(input.id, value); }}
+          onFilesChange={fileList => { clearValidationError(input.id); onFilesChange?.(input.id, fileList); }}
         />;
       })}
       {displayError && <p role="alert" className="plugin-error">{displayError}</p>}
-      <button type="submit" className="omni-btn omni-btn--primary" disabled={submitting}>
+      <button type="submit" className="omni-btn omni-btn--primary omni-btn--md" disabled={disabled || readOnly || submitting}>
         {submitting ? "Loading…" : submitLabel}
       </button>
     </form>

@@ -188,7 +188,7 @@ describe("plugin descriptor API boundary", () => {
     expect(validatePluginDescriptor({ ...queryDescriptor, plugin: { ...queryDescriptor.plugin, slug }, endpoints: { query, detail } }, slug).renderer).toBe("query");
   });
 
-  it("treats descriptor metadata as inert data", () => {
+  it("rejects executable and sensitive descriptor metadata", () => {
     const unsafe = {
       ...descriptor,
       callback: "javascript:alert(1)",
@@ -196,6 +196,6 @@ describe("plugin descriptor API boundary", () => {
       credentials: { password: "secret", api_key: "token" },
       html: "<script>alert(1)</script>",
     };
-    expect(validatePluginDescriptor(unsafe, "deseq2_analysis")).toBe(unsafe);
+    expect(() => validatePluginDescriptor(unsafe, "deseq2_analysis")).toThrow("Forbidden plugin metadata");
   });
 });

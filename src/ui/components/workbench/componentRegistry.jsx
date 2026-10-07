@@ -1,59 +1,48 @@
-import { Select, Textarea } from "../UI";
+import TextField from "./fields/TextField";
+import TextAreaField from "./fields/TextAreaField";
+import NumberField from "./fields/NumberField";
+import ResultsTable from "./results/ResultsTable";
+import PaginationControls from "./results/PaginationControls";
+
+export { TextField, TextAreaField, NumberField, ResultsTable, PaginationControls };
+export const TextareaField = TextAreaField;
 
 /**
  * The descriptor is data. Keep this registry explicit so descriptor values
  * can only select known presentation behavior.
  */
-export function FileUploadField({ input, files = [], onChange }) {
+export function FileUploadField({ input, files = [], onChange, controlId, describedBy, invalid, disabled, readOnly }) {
   return (
     <input
-      id={`plugin-${input.id}`}
+      id={controlId || `plugin-${input.id}`}
       name={`input_${input.id}`}
       type="file"
       className="studio-field"
       multiple={Boolean(input.multiple)}
       accept={input.accept || undefined}
       required={Boolean(input.required)}
+      disabled={disabled || readOnly}
+      aria-invalid={invalid || undefined}
       onChange={event => onChange?.(event.target.files)}
-      aria-describedby={`plugin-${input.id}-description`}
+      aria-describedby={describedBy}
       data-selected-count={files.length}
     />
   );
 }
 
-export function TextField({ input, value = "", onChange }) {
+export function SelectField({ input, value = "", onChange, controlId, describedBy, invalid, disabled, readOnly }) {
   return (
-    <Textarea
-      id={`plugin-${input.id}`}
-      name={`param_${input.id}`}
-      rows={3}
-      placeholder={input.placeholder || ""}
-      required={Boolean(input.required)}
-      aria-required={Boolean(input.required)}
-      value={value}
-      onChange={event => onChange?.(event.target.value)}
-      aria-describedby={`plugin-${input.id}-description`}
-    />
-  );
-}
-
-// textarea is an explicit alias so the allowlist can distinguish descriptor
-// vocabulary without creating another design-system textarea implementation.
-export const TextareaField = TextField;
-
-export function SelectField({ input, value = "", onChange }) {
-  const options = (input.choices || []).map(choice => ({ value: choice, label: choice || "Any" }));
-  return (
-    <Select
-      id={`plugin-${input.id}`}
+    <select
+      id={controlId || `plugin-${input.id}`}
       name={`query_${input.id}`}
+      className="studio-field workbench-field-control"
       value={value}
-      options={options}
       onChange={event => onChange?.(event.target.value)}
       required={Boolean(input.required)}
-      aria-required={Boolean(input.required)}
-      aria-describedby={`plugin-${input.id}-description`}
-    />
+      disabled={disabled || readOnly}
+      aria-invalid={invalid || undefined}
+      aria-describedby={describedBy}
+    >{(input.choices || []).map(choice => <option key={choice} value={choice}>{choice || "Any"}</option>)}</select>
   );
 }
 
@@ -62,7 +51,12 @@ export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
   text: TextField,
   textarea: TextareaField,
   select: SelectField,
+  number: NumberField,
+  table: ResultsTable,
+  pagination: PaginationControls,
 });
+
+export const WORKBENCH_FIELD_TYPES = Object.freeze(["file", "text", "textarea", "select", "number"]);
 
 export function resolveWorkbenchComponent(type) {
   if (typeof type !== "string") return null;

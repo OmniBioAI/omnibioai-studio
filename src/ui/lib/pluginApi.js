@@ -1,8 +1,9 @@
 import { isElectron } from "./session";
+import { hasOnlyKeys, isDataPath, isRecord, validBatchField, validColumns, validPaginationDescriptor } from "./pluginUiContracts";
 
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
-const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
+const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-query|ui-detail)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
 const ASYNC_REQUIRED_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
 const ASYNC_CAPABILITIES = [...ASYNC_REQUIRED_CAPABILITIES, "render"];
@@ -37,7 +38,7 @@ export function endpointUrl(path, options) {
 }
 
 function validateField(field) {
-  if (!field || typeof field.id !== "string" || !SLUG.test(field.id)) throw new PluginDescriptorError("Invalid plugin input schema.");
+  if (!field || typeof field.id !== "string" || !SLUG.test(field.id) || ["constructor", "prototype", "__proto__", "password", "token", "secret", "api_key"].includes(field.id)) throw new PluginDescriptorError("Invalid plugin input schema.");
   const component = field.component ?? field.widget;
   if (!["file", "text", "textarea", "select"].includes(component) || typeof field.format !== "string") throw new PluginDescriptorError("Unsupported plugin input schema.");
   if (field.component && field.widget && field.component !== field.widget) throw new PluginDescriptorError("Invalid plugin input schema.");
@@ -45,6 +46,8 @@ function validateField(field) {
     throw new PluginDescriptorError("Invalid plugin input schema.");
   }
   if (field.accept !== undefined && typeof field.accept !== "string") throw new PluginDescriptorError("Invalid plugin input schema.");
+  if (field.query_key !== undefined && (!isDataPath(field.query_key) || field.query_key.includes("."))) throw new PluginDescriptorError("Invalid query parameter schema.");
+  if (field.default !== undefined && component !== "select" && typeof field.default !== "string") throw new PluginDescriptorError("Invalid plugin default schema.");
   if (component === "select" && (!Array.isArray(field.choices) || field.choices.some(choice => typeof choice !== "string"))) {
     throw new PluginDescriptorError("Invalid plugin choice schema.");
   }
@@ -96,6 +99,8 @@ function validateConditionalInputs(inputs) {
 }
 
 function validateQueryDescriptor(data) {
+  if (data.pagination !== undefined) throw new PluginDescriptorError("Pagination requires schema version 2.");
+  if (data.result?.row_key !== undefined) throw new PluginDescriptorError("Row identity metadata requires schema version 2.");
   if (!data.capabilities || Object.keys(data.capabilities).some(key => !QUERY_CAPABILITIES.includes(key)) || data.capabilities.query !== true || (data.capabilities.detail !== undefined && typeof data.capabilities.detail !== "boolean")) {
     throw new PluginDescriptorError("Invalid query capability schema.");
   }
@@ -108,10 +113,10 @@ function validateQueryDescriptor(data) {
   if (!data.result || data.result.presentation !== "table" || typeof data.result.rows_path !== "string" || !Array.isArray(data.result.columns)) {
     throw new PluginDescriptorError("Invalid query result schema.");
   }
-  if (data.result.columns.some(column => !column || typeof column.key !== "string" || !/^[a-z][a-z0-9_.]*$/.test(column.key) || typeof column.label !== "string")) {
+  if (!validColumns(data.result.columns)) {
     throw new PluginDescriptorError("Invalid query result schema.");
   }
-  if (detailEnabled && (typeof data.result.detail_key !== "string" || !/^[a-z][a-z0-9_.]*$/.test(data.result.detail_key))) {
+  if (detailEnabled && !isDataPath(data.result.detail_key)) {
     throw new PluginDescriptorError("Invalid query result schema.");
   }
   if (!detailEnabled && data.result.detail_key !== undefined) throw new PluginDescriptorError("Invalid query result schema.");
@@ -156,16 +161,65 @@ function validateStaticPngResult(data) {
 }
 
 function validatePluginEndpoint(path, slug) {
-  endpointUrl(path);
+  if (typeof path !== "string" || path.includes("?")) throw new PluginDescriptorError("Invalid plugin endpoint.");
+  try { endpointUrl(path); } catch { throw new PluginDescriptorError("Invalid plugin endpoint."); }
   const match = path.match(/^\/plugins\/([^/]+)\//);
   if (!match || match[1] !== slug) throw new PluginDescriptorError("Plugin endpoint scope mismatch.");
 }
 
-export function validatePluginDescriptor(data, slug) {
-  if (typeof slug !== "string" || !SLUG.test(slug) || data?.schema_version !== 1 || data?.plugin?.slug !== slug || typeof data.renderer !== "string" || typeof data.native_supported !== "boolean") {
+function rejectExecutableMetadata(value, depth = 0) {
+  if (depth > 30 || typeof value === "function") throw new PluginDescriptorError("Invalid plugin metadata.");
+  if (!value || typeof value !== "object") return;
+  for (const [key, child] of Object.entries(value)) {
+    if (/^(?:__proto__|prototype|constructor|jsx|javascript|script|script_url|html|raw_html|dangerouslySetInnerHTML|callback|callbacks|onChange|onClick|onSubmit|onLoad|onError|module|module_path|import|imports|eval|function|function_name|credentials|password|token|access_token|api_key|secret|secrets|source_path|filesystem_path|upstream_url)$/i.test(key)) {
+      throw new PluginDescriptorError("Forbidden plugin metadata.");
+    }
+    rejectExecutableMetadata(child, depth + 1);
+  }
+}
+
+function validateBatchQueryDescriptor(data) {
+  if (!hasOnlyKeys(data, ["schema_version", "plugin", "renderer", "native_supported", "inputs", "outputs", "capabilities", "endpoints", "result", "pagination"],
+    ["schema_version", "plugin", "renderer", "native_supported", "inputs", "outputs", "capabilities", "endpoints", "result"]) ||
+    data.renderer !== "query" || data.native_supported !== true ||
+    !hasOnlyKeys(data.plugin, ["slug", "name", "version", "description", "category"], ["slug", "name", "version", "description", "category"]) ||
+    !Array.isArray(data.inputs) || !data.inputs.length || !data.inputs.every(validBatchField) ||
+    new Set(data.inputs.map(input => input.id)).size !== data.inputs.length ||
+    !Array.isArray(data.outputs) || data.outputs.length !== 0) {
+    throw new PluginDescriptorError("Invalid batch query descriptor.");
+  }
+  if (!hasOnlyKeys(data.capabilities, QUERY_CAPABILITIES, ["query"]) || data.capabilities.query !== true ||
+    (data.capabilities.detail !== undefined && data.capabilities.detail !== true)) throw new PluginDescriptorError("Invalid query capability schema.");
+  const detail = data.capabilities.detail === true;
+  const endpointKeys = detail ? ["query", "detail"] : ["query"];
+  if (!hasOnlyKeys(data.endpoints, endpointKeys, endpointKeys) ||
+    data.endpoints.query !== `/plugins/${data.plugin.slug}/api/ui-query/` ||
+    (detail && data.endpoints.detail !== `/plugins/${data.plugin.slug}/api/ui-detail/{detail_id}/`)) {
+    throw new PluginDescriptorError("Invalid batch query endpoints.");
+  }
+  if (!hasOnlyKeys(data.result, ["presentation", "rows_path", "row_key", "columns", ...(detail ? ["detail_key"] : [])],
+    ["presentation", "rows_path", "row_key", "columns", ...(detail ? ["detail_key"] : [])]) ||
+    data.result.presentation !== "table" || data.result.rows_path !== "results" ||
+    !validColumns(data.result.columns) || !isDataPath(data.result.row_key) ||
+    data.result.columns.some(column => column.key.includes(".")) ||
+    !data.result.columns.some(column => column.key === data.result.row_key) ||
+    (detail && !data.result.columns.some(column => column.key === data.result.detail_key))) throw new PluginDescriptorError("Invalid query result schema.");
+  if (data.pagination !== undefined && (!validPaginationDescriptor(data.pagination) ||
+    data.inputs.some(input => input.id === "page") ||
+    !data.inputs.some(input => input.id === "page_size" && input.component === "number" && input.format === "integer"))) throw new PluginDescriptorError("Invalid pagination descriptor.");
+}
+
+function validateDescriptor(data, slug) {
+  if (!isRecord(data) || !isRecord(data.plugin) || typeof slug !== "string" || !SLUG.test(slug) || ![1, 2].includes(data?.schema_version) || data?.plugin?.slug !== slug || typeof data.renderer !== "string" || typeof data.native_supported !== "boolean") {
     throw new PluginDescriptorError("Workbench returned an invalid plugin descriptor.");
   }
-  if (!data.native_supported) return data;
+  if (data.schema_version === 2) {
+    rejectExecutableMetadata(data);
+    validateBatchQueryDescriptor(data);
+    if (["name", "version", "description", "category"].some(key => typeof data.plugin[key] !== "string")) throw new PluginDescriptorError("Invalid plugin metadata.");
+    return data;
+  }
+  if (!data.native_supported) { rejectExecutableMetadata(data); return data; }
   if (!NATIVE_RENDERERS.has(data.renderer)) {
     throw new PluginDescriptorError("Unsupported plugin renderer.");
   }
@@ -175,6 +229,7 @@ export function validatePluginDescriptor(data, slug) {
   }
   if (data.renderer === "informational") {
     validateInformationalDescriptor(data);
+    rejectExecutableMetadata(data);
     return data;
   }
   if (!Array.isArray(data.inputs) || !Array.isArray(data.outputs) || !data.endpoints) {
@@ -182,6 +237,7 @@ export function validatePluginDescriptor(data, slug) {
   }
   if (data.renderer === "query") {
     validateQueryDescriptor(data);
+    rejectExecutableMetadata(data);
     return data;
   }
   if (!data.capabilities || typeof data.capabilities !== "object" || Array.isArray(data.capabilities)) {
@@ -217,7 +273,18 @@ export function validatePluginDescriptor(data, slug) {
   } else if (data.capabilities.render !== undefined || data.endpoints.render !== undefined) {
     throw new PluginDescriptorError("Invalid static PNG result endpoint schema.");
   }
+  rejectExecutableMetadata(data);
   return data;
+}
+
+export function validatePluginDescriptor(data, slug) {
+  try { return validateDescriptor(data, slug); }
+  catch (error) {
+    if (error instanceof PluginDescriptorError) throw error;
+    // Malformed nested structures use the same controlled fallback as other
+    // invalid descriptors, never a raw TypeError or a partially rendered UI.
+    throw new PluginDescriptorError("Workbench returned an invalid plugin descriptor.");
+  }
 }
 
 export async function loadPluginDescriptor(slug, { signal, options } = {}) {

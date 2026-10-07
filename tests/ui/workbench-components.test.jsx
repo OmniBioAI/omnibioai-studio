@@ -19,8 +19,8 @@ const input = (overrides = {}) => ({
 });
 
 describe("allowlisted Workbench component registry", () => {
-  it("resolves only the proven file, text, textarea, and query select types", () => {
-    expect(Object.keys(WORKBENCH_COMPONENT_REGISTRY).sort()).toEqual(["file", "select", "text", "textarea"]);
+  it("resolves only the finite shared field and result types", () => {
+    expect(Object.keys(WORKBENCH_COMPONENT_REGISTRY).sort()).toEqual(["file", "number", "pagination", "select", "table", "text", "textarea"]);
     expect(resolveWorkbenchComponent("file")).toBeTruthy();
     expect(resolveWorkbenchComponent("text")).toBeTruthy();
     expect(resolveWorkbenchComponent("textarea")).toBeTruthy();
@@ -63,7 +63,7 @@ describe("PluginForm composition", () => {
     const onValueChange = vi.fn();
     render(<PluginForm inputs={[input({ id: "ligand_smiles", label: "SMILES", widget: "text", format: "txt", required: false })]} onValueChange={onValueChange} />);
     const control = screen.getByLabelText("SMILES");
-    expect(control.tagName).toBe("TEXTAREA");
+    expect(control.tagName).toBe("INPUT");
     expect(control).toHaveAttribute("name", "param_ligand_smiles");
     await user.type(control, "CCO");
     expect(onValueChange).toHaveBeenCalledWith("ligand_smiles", "C");
