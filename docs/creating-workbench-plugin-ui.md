@@ -16,7 +16,8 @@ rendering, arbitrary actions, frontend scientific logic or dynamic URLs.
 - Results: `table`; optionally one-based `pagination`.
 - Secondary criteria: optional `filters`, referencing declared optional inputs.
 - Selected-record detail: optional `detail`, composed from either flat scalar
-  rows or one ordered level of scalar, bounded-table and provenance sections.
+  rows or one ordered level of scalar, bounded-table, provenance and
+  server-authorized scientific-reference sections.
 
 Identifiers are registry allowlists. Descriptors never name React modules,
 formatters, callbacks, arbitrary backend URLs or upstream URLs.
@@ -43,6 +44,7 @@ uses actual supported metadata:
   "detail":{"component":"detail","title":"Structure detail","sections":[
     {"id":"identity","title":"Structure identity","presentation":"scalar","fields":[{"key":"pdb_id","label":"PDB ID"}]},
     {"id":"citation_authors","title":"Primary citation authors","presentation":"table","optional":true,"row_key":"position","max_rows":100,"columns":[{"key":"position","label":"Order"},{"key":"author","label":"Author"}]},
+    {"id":"primary_references","title":"Primary citation references","presentation":"references","optional":true,"reference_types":["doi","pubmed"],"max_items":2},
     {"id":"provenance","title":"Provenance","presentation":"provenance","fields":[{"key":"source","label":"Source database"}]}
   ]}
 }
@@ -68,6 +70,7 @@ For section detail, return an object keyed by exact section IDs:
 {
   "identity":{"pdb_id":"4HHB"},
   "citation_authors":[{"position":1,"author":"A. Researcher"}],
+  "primary_references":[{"reference_type":"pubmed","identifier":"6726807"}],
   "provenance":{"source":"RCSB Protein Data Bank"}
 }
 ```
@@ -77,6 +80,43 @@ and `provenance` for source/retrieval facts. Do not nest sections, return
 arbitrary objects, put URLs in provenance, or ask React to interpret upstream
 scientific JSON. Keep the plugin legacy when a finite projection would lose
 scientific meaning.
+
+## Adding a Scientific Cross-Reference
+
+Use a `references` detail section only when the backend projects a bounded list
+of scientific identifiers and an existing server policy owns their external
+destination. For example, RCSB declares `reference_types: ["doi", "pubmed"]`
+and returns exact `{reference_type, identifier}` records. `DetailPanel` composes
+the registered `ScientificReference` primitive automatically; plugins do not
+select React components or write JSX.
+
+Workflow:
+
+1. Check `plugins/shared/scientific_references.py` for an existing allowlisted
+   type and reuse it.
+2. If the scientific resource is genuinely reusable, add a small server policy
+   with a resource-specific identifier grammar, fixed HTTPS host and fixed path
+   resolver, then scope it to the evidence plugin.
+3. Add the type to the finite frontend validation/label registry. This duplicate
+   check is UX/fail-closed defense; Django remains authoritative.
+4. Declare the type and bound in a `references` section. Do not declare an
+   endpoint, host or template.
+5. Project only validated identifiers from Django. Never forward raw upstream
+   links or ask React to infer database semantics.
+6. Add backend redirect/open-redirect tests, descriptor/response contract tests,
+   component accessibility tests and catalog regression coverage.
+
+**DO NOT PUT URLS IN PLUGIN UI DESCRIPTORS.** Do not put `href`, `url`,
+`base_url`, `url_template`, `route_template`, host, scheme, redirect destination
+or callback metadata in the descriptor or response. The browser visits a fixed
+same-origin resolver operation; Django validates the type and identifier and
+constructs the allowlisted destination. Unknown/malformed references cannot
+navigate.
+
+Keep the plugin legacy if parity also needs unrelated interactions. dbSNP is the
+canonical example: ClinVar/Gene/RefSeq references now fit the library, but its
+complete multi-operation variant workflow still needs a separate authoritative
+projection design.
 
 ## 5. Add tests
 

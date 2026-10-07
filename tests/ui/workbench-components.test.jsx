@@ -21,7 +21,7 @@ const input = (overrides = {}) => ({
 describe("allowlisted Workbench component registry", () => {
   it("resolves only the finite shared field and result types", () => {
     expect(Object.keys(WORKBENCH_COMPONENT_REGISTRY).sort()).toEqual([
-      "detail", "file", "filters", "key_value", "number", "pagination", "select", "table", "text", "textarea",
+      "detail", "file", "filters", "key_value", "number", "pagination", "reference", "select", "table", "text", "textarea",
     ]);
     expect(resolveWorkbenchComponent("file")).toBeTruthy();
     expect(resolveWorkbenchComponent("text")).toBeTruthy();

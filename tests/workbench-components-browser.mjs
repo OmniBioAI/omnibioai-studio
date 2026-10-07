@@ -58,6 +58,10 @@ try {
           return route.fulfill({ json: {
             identity: { pdb_id: "4HHB", title: `Authorized detail preserves ${"NM_007294.4:c.5266dupC ".repeat(8)}`, experimental_method: "X-RAY DIFFRACTION", resolution_angstrom: 1.74 },
             authors: [{ position: 1, author: "A. Researcher with a deliberately complete publication identifier" }],
+            primary_references: [
+              { reference_type: "doi", identifier: "10.1016/0022-2836(84)90472-8" },
+              { reference_type: "pubmed", identifier: "6726807" },
+            ],
             provenance: { source: "RCSB Protein Data Bank", retrieved_at: "2026-10-07T00:00:00Z" },
           } });
         }
@@ -123,6 +127,12 @@ try {
       assert(await detail.evaluate(element => element === document.activeElement));
       assert(await query.getByRole("heading", { name: "Structure identity", exact: true }).isVisible());
       assert(await query.getByRole("table", { name: "Primary citation authors", exact: true }).isVisible());
+      const reference = query.getByRole("link", { name: /DOI: 10\.1016.*external scientific resource/ });
+      assert(await reference.isVisible());
+      assert((await reference.getAttribute("href")).startsWith("/_svc/workbench/plugins/rcsb_pdb/api/ui-reference/doi/?identifier="));
+      await reference.focus();
+      assert(await reference.evaluate(element => element === document.activeElement));
+      assert.notEqual(await reference.evaluate(element => getComputedStyle(element).outlineStyle), "none");
       assert(await query.getByRole("heading", { name: "Provenance", exact: true }).isVisible());
       await query.screenshot({ path: path.join(artifacts, `${theme}-${width}-query-detail.png`) });
       await query.getByRole("button", { name: "Next" }).click();

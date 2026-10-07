@@ -46,6 +46,8 @@ const descriptor = validatePluginDescriptor({
     ] },
     { id: "authors", title: "Primary citation authors", presentation: "table", optional: true,
       row_key: "position", max_rows: 100, columns: [{ key: "position", label: "Order" }, { key: "author", label: "Author" }] },
+    { id: "primary_references", title: "Primary citation references", presentation: "references", optional: true,
+      reference_types: ["doi", "pubmed"], max_items: 2 },
     { id: "provenance", title: "Provenance", presentation: "provenance", fields: [
       { key: "source", label: "Source database" }, { key: "retrieved_at", label: "Retrieved at" },
     ] },

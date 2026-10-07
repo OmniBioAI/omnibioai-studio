@@ -112,6 +112,7 @@ export default function QueryRenderer({ descriptor }) {
     </PanelBody></Panel>}
     {(detailLoading || detailError || detail) && <Detail title={descriptor.detail?.title || "Detail"} fields={detailFields}
       sections={descriptor.detail?.sections}
-      record={detail} loading={detailLoading} error={detailError} headingRef={detailHeading} />}
+      record={detail} loading={detailLoading} error={detailError} headingRef={detailHeading}
+      pluginSlug={descriptor.plugin.slug} />}
   </div>;
 }

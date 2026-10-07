@@ -75,7 +75,7 @@ describe("finite structured scientific detail", () => {
 });
 
 describe("structured-detail descriptor boundary", () => {
-  it("accepts only the finite scalar, table and provenance vocabulary", () => {
+  it("accepts the finite scalar, table and provenance vocabulary", () => {
     expect(validDetailDescriptor({ component: "detail", title: "Variant detail", sections })).toBe(true);
   });
 

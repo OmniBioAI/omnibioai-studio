@@ -1,9 +1,9 @@
 import { isElectron } from "./session";
-import { hasOnlyKeys, isDataPath, isRecord, validBatchField, validColumns, validDetailDescriptor, validFilterDescriptor, validPaginationDescriptor } from "./pluginUiContracts";
+import { hasOnlyKeys, isDataPath, isRecord, scientificReferenceTypesForPlugin, validBatchField, validColumns, validDetailDescriptor, validFilterDescriptor, validPaginationDescriptor } from "./pluginUiContracts";
 
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
-const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-query|ui-detail)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
+const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-query|ui-detail|ui-reference)\/(?:[A-Za-z0-9_.:-]+\/)?(?:\?[^#]*)?$/;
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
 const ASYNC_REQUIRED_CAPABILITIES = ["submit", "status", "logs", "artifacts", "downloads"];
 const ASYNC_CAPABILITIES = [...ASYNC_REQUIRED_CAPABILITIES, "render"];
@@ -207,7 +207,7 @@ function validateBatchQueryDescriptor(data) {
   if (data.pagination !== undefined && (!validPaginationDescriptor(data.pagination) ||
     data.inputs.some(input => input.id === "page") ||
     !data.inputs.some(input => input.id === "page_size" && input.component === "number" && input.format === "integer"))) throw new PluginDescriptorError("Invalid pagination descriptor.");
-  if (data.detail !== undefined && (!detail || !validDetailDescriptor(data.detail))) {
+  if (data.detail !== undefined && (!detail || !validDetailDescriptor(data.detail, scientificReferenceTypesForPlugin(data.plugin.slug)))) {
     throw new PluginDescriptorError("Invalid detail presentation descriptor.");
   }
   if (data.filters !== undefined && !validFilterDescriptor(data.filters, data.inputs)) {

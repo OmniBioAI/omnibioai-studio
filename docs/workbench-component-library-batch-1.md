@@ -151,7 +151,7 @@ HTML, modules/imports, script URLs, arbitrary API URLs, filesystem paths and
 credentials. Unknown properties anywhere in v2 fail closed. Display strings
 may contain HTML-looking text but are always escaped. Component identifiers
 are exactly `file`, `text`, `textarea`, `select`, `number`, `table`,
-`pagination`, `key_value`, `detail`, `filters`;
+`pagination`, `key_value`, `detail`, `filters`, `reference`;
 field dispatch separately excludes result components. Renderer identifiers
 remain `query`, `informational`, `async_analysis`, plus the existing
 `generic_runner` alias. ServiceViewer remains the controlled fallback.
@@ -388,5 +388,100 @@ and Workbench `plugins/shared/tests/test_query_ui.py`.
 | PluginResults | — | PARTIAL | Existing asynchronous result dispatch |
 | StaticPngResult | — | PRODUCTION | Existing static PNG result |
 | MetadataPanel | — | PLANNED_NOT_AVAILABLE | Not distinct from scalar sections |
-| ExternalLink-by-ID | — | PLANNED_NOT_AVAILABLE | Needed for authorized navigation |
+| ScientificReference | `reference` | PRODUCTION | Server-authorized scientific cross-reference navigation |
+| Arbitrary hyperlink | — | INTENTIONALLY_UNSUPPORTED | Descriptors/runtime data never carry destinations |
 | Structured recursive JSON viewer | — | PLANNED_NOT_AVAILABLE | Intentionally unsupported |
+
+## Batch 4: server-authorized scientific references
+
+### Evidence and component boundary
+
+RCSB PDB primary citations contain DOI and PubMed identifiers. IntAct also
+contains PubMed publications. dbSNP exposes bounded ClinVar, NCBI Gene and
+RefSeq cross-references, while ClinVar and UniProt demonstrate the same broader
+catalog need. Existing scalar values cannot be anchors without making
+KeyValueResult or ResultsTable destination-aware. Batch 4 therefore adds one
+small navigation primitive, `ScientificReference` (`reference`), composed only
+by the finite `references` detail section. It does not add arbitrary links,
+cell renderers, downloads or actions.
+
+### ScientificReference
+
+- **Purpose / when to use:** navigate from a validated scientific identifier to
+  its authoritative external record through Django's fixed redirect policy.
+- **When not to use:** arbitrary web links, downloads, artifacts, internal
+  routes, user-supplied URLs, signed URLs or server actions.
+- **Trusted React props:** `pluginSlug`, `referenceType`, `identifier`. These are
+  supplied by QueryRenderer and a validated backend response, not arbitrary
+  descriptor component props.
+- **Runtime contract:** exactly
+  `{"reference_type":"pubmed","identifier":"6726807"}`. No other key is
+  allowed. Identifiers are strings, retain their full scientific precision and
+  must pass the type-specific grammar.
+- **Backend responsibility:** authenticate; enforce plugin/type scope; validate
+  the identifier; select the fixed HTTPS scheme, host and path policy; return a
+  redirect with `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, and
+  `X-Content-Type-Options: nosniff`.
+- **Security boundary:** React constructs only the fixed same-origin operation
+  `/plugins/{slug}/api/ui-reference/{reference_type}/?identifier=...`. Neither
+  descriptors nor response records contain `href`, URL, host, scheme, template,
+  callback or destination. Unknown types and malformed identifiers render inert
+  or fail closed. Django never accepts a `next`, redirect or destination input.
+- **Accessibility:** a semantic anchor has a contextual name including the
+  resource and full identifier, a visible focus ring and a non-color external
+  resource mark. It uses the current browsing context; no casual
+  `target="_blank"` behavior is introduced.
+- **Responsive behavior:** the complete identifier wraps at narrow widths and
+  is never ellipsized. The component uses existing theme/focus/type tokens.
+- **Error behavior:** invalid or unavailable data is inert text with
+  `aria-disabled`; a malformed authoritative response rejects the complete
+  detail payload before rendering.
+- **Real plugin evidence:** RCSB DOI/PubMed is the production proof. dbSNP
+  ClinVar/Gene/RefSeq establishes registry reuse but remains legacy because its
+  complete multi-operation projection is outside this batch.
+- **Tests:** Studio `tests/ui/workbench-scientific-reference.test.jsx`; Workbench
+  `plugins/shared/tests/test_scientific_references.py` and `test_query_ui.py`.
+
+### Descriptor and response contract
+
+Query-v2 adds one optional section presentation; no schema version changes.
+
+```json
+{
+  "id": "primary_references",
+  "title": "Primary citation references",
+  "presentation": "references",
+  "optional": true,
+  "reference_types": ["doi", "pubmed"],
+  "max_items": 2
+}
+```
+
+Required keys are `id`, `title`, `presentation`, `reference_types`, and
+`max_items`; `optional` is the sole optional key. Types are unique identifiers
+from the frontend/backend allowlist. Bounds are integers from 1 through 100.
+Unknown keys, duplicate types, unknown types and destination metadata fail
+closed. Runtime data is a bounded array of unique exact reference records:
+
+```json
+{
+  "primary_references": [
+    {"reference_type": "doi", "identifier": "10.1016/0022-2836(84)90472-8"},
+    {"reference_type": "pubmed", "identifier": "6726807"}
+  ]
+}
+```
+
+The production registry contains only evidence-backed `doi`, `pubmed`,
+`clinvar`, `ncbi_gene`, and `refseq` policies. Each owns its validation grammar,
+label, HTTPS host and path resolver on the server. DOI suffix slashes are
+percent-encoded as identity data. RefSeq selects the fixed NCBI nucleotide or
+protein collection from its validated accession prefix. This registry is not a
+generic redirect service or arbitrary proxy.
+
+**Open-redirect defense:** absolute/protocol-relative URLs, schemes, encoded
+schemes/slashes, query or fragment injection, CR/LF, backslashes, traversal,
+Unicode slash lookalikes, overlong values, duplicate query parameters and
+destination-like query keys are rejected. The redirect `Location` can only be
+created by a registry policy and is verified again for exact HTTPS host, no
+userinfo and no port. **Do not put URLs in plugin UI descriptors.**

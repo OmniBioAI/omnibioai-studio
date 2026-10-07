@@ -2,22 +2,29 @@ import React from "react";
 import { Panel, PanelBody, PanelHeader } from "../../UI";
 import KeyValueResult from "./KeyValueResult";
 import ResultsTable from "./ResultsTable";
+import ScientificReference from "./ScientificReference";
 import { validStructuredDetailRecord } from "../../../lib/pluginUiContracts";
 import "./detail.css";
 
-function DetailSection({ section, value }) {
+function DetailSection({ section, value, pluginSlug }) {
   const instanceId = React.useId().replaceAll(":", "");
   const headingId = `workbench-detail-${section.id}-${instanceId}`;
   return <section className="workbench-detail-section" aria-labelledby={headingId}>
     <h3 id={headingId}>{section.title}</h3>
     {section.presentation === "table"
       ? <ResultsTable columns={section.columns} rows={value} rowKey={section.row_key} caption={section.title} />
-      : <KeyValueResult fields={section.fields} record={value} emptyMessage={`No ${section.title.toLowerCase()} available.`} />}
+      : section.presentation === "references"
+        ? value.length
+          ? <ul className="workbench-reference-list">{value.map(reference => <li
+            key={`${reference.reference_type}:${reference.identifier}`}><ScientificReference pluginSlug={pluginSlug}
+              referenceType={reference.reference_type} identifier={reference.identifier} /></li>)}</ul>
+          : <p role="status">No {section.title.toLowerCase()} available.</p>
+        : <KeyValueResult fields={section.fields} record={value} emptyMessage={`No ${section.title.toLowerCase()} available.`} />}
   </section>;
 }
 
 export default function DetailPanel({ title = "Detail", fields = [], sections, record = null, loading = false,
-  error = "", headingRef }) {
+  error = "", headingRef, pluginSlug = "" }) {
   const structured = sections !== undefined;
   const validStructured = !structured || !record || validStructuredDetailRecord(record, sections, { strict: true });
   return <section className="workbench-detail" aria-busy={loading} aria-label={title}>
@@ -30,7 +37,7 @@ export default function DetailPanel({ title = "Detail", fields = [], sections, r
         {!loading && !error && record && !validStructured && <p role="alert" className="plugin-error">Invalid structured detail data.</p>}
         {!loading && !error && record && validStructured && (structured
           ? <div className="workbench-detail-sections">{sections.filter(section => Object.hasOwn(record, section.id))
-            .map(section => <DetailSection key={section.id} section={section} value={record[section.id]} />)}</div>
+            .map(section => <DetailSection key={section.id} section={section} value={record[section.id]} pluginSlug={pluginSlug} />)}</div>
           : <KeyValueResult fields={fields} record={record} />)}
         {!loading && !error && !record && <p role="status">No detail selected.</p>}
       </PanelBody>

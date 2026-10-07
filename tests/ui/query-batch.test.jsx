@@ -29,6 +29,8 @@ const descriptor = {
     ] },
     { id: "authors", title: "Primary citation authors", presentation: "table", optional: true,
       row_key: "position", max_rows: 100, columns: [{ key: "position", label: "Order" }, { key: "author", label: "Author" }] },
+    { id: "primary_references", title: "Primary citation references", presentation: "references", optional: true,
+      reference_types: ["doi", "pubmed"], max_items: 2 },
     { id: "provenance", title: "Provenance", presentation: "provenance", fields: [
       { key: "source", label: "Source database" }, { key: "retrieved_at", label: "Retrieved at" },
     ] },
@@ -45,6 +47,8 @@ describe("validated Batch 1 page routing", () => {
     ["unsupported schema", value => { value.schema_version = 999; }],
     ["arbitrary endpoint", value => { value.endpoints.query = "https://example.test"; }],
     ["unknown renderer", value => { value.renderer = "custom_import"; }],
+    ["reference type outside plugin policy", value => { value.detail.sections[2].reference_types = ["clinvar"]; }],
+    ["reference destination template", value => { value.detail.sections[2].url_template = "https://evil.test/{id}"; }],
   ])("uses the supplied compatibility fallback for %s without issuing a query", async (_name, mutate) => {
     const invalid = JSON.parse(JSON.stringify(descriptor));
     mutate(invalid);
@@ -170,6 +174,7 @@ describe("Batch 1 query composition", () => {
     await act(async () => pending.resolve(response({
       identity: { title: "<script>alert(1)</script>", assembly_count: 2 },
       authors: [{ position: 1, author: "Ada Lovelace" }],
+      primary_references: [{ reference_type: "pubmed", identifier: "6726807" }],
       provenance: { source: "RCSB Protein Data Bank", retrieved_at: "2026-10-07T00:00:00Z" },
     })));
     expect(screen.getByText("<script>alert(1)</script>")).toBeInTheDocument();
@@ -177,6 +182,8 @@ describe("Batch 1 query composition", () => {
     expect(screen.getByText("Assemblies")).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Primary citation authors" })).toBeInTheDocument();
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /PubMed: 6726807/ })).toHaveAttribute("href",
+      "/_svc/workbench/plugins/rcsb_pdb/api/ui-reference/pubmed/?identifier=6726807");
     expect(screen.getByText("RCSB Protein Data Bank")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Structure detail" })).toHaveFocus();
     expect(fetch.mock.calls[1][0]).toBe("/_svc/workbench/plugins/rcsb_pdb/api/ui-detail/4HHB/");

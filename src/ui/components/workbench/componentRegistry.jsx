@@ -6,8 +6,9 @@ import PaginationControls from "./results/PaginationControls";
 import KeyValueResult from "./results/KeyValueResult";
 import DetailPanel from "./results/DetailPanel";
 import FilterControls from "./filters/FilterControls";
+import ScientificReference from "./results/ScientificReference";
 
-export { TextField, TextAreaField, NumberField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls };
+export { TextField, TextAreaField, NumberField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls, ScientificReference };
 export const TextareaField = TextAreaField;
 
 /**
@@ -60,6 +61,7 @@ export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
   key_value: KeyValueResult,
   detail: DetailPanel,
   filters: FilterControls,
+  reference: ScientificReference,
 });
 
 export const WORKBENCH_FIELD_TYPES = Object.freeze(["file", "text", "textarea", "select", "number"]);

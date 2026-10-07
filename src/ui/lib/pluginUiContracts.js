@@ -3,6 +3,39 @@
 const FORBIDDEN_NAMES = new Set(["__proto__", "prototype", "constructor", "password", "token", "api_key", "secret", "credentials"]);
 const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 const URI_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+const SCIENTIFIC_REFERENCE_TYPES = Object.freeze({
+  doi: { label: "DOI", maximum: 255, pattern: /^10\.\d{4,9}\/[A-Za-z0-9][A-Za-z0-9._;()/:+\-]{0,243}$/ },
+  pubmed: { label: "PubMed", maximum: 10, pattern: /^[1-9]\d{0,9}$/ },
+  clinvar: { label: "ClinVar", maximum: 32, pattern: /^VCV\d{9}(?:\.\d+)?$/ },
+  ncbi_gene: { label: "NCBI Gene", maximum: 10, pattern: /^[1-9]\d{0,9}$/ },
+  refseq: { label: "RefSeq", maximum: 32, pattern: /^(?:NC|NG|NM|NR|NT|NW|NZ|XM|XR|NP|XP|YP|WP)_\d{6,9}(?:\.\d{1,4})?$/ },
+});
+
+export const SCIENTIFIC_REFERENCE_TYPE_IDS = Object.freeze(Object.keys(SCIENTIFIC_REFERENCE_TYPES));
+const PLUGIN_SCIENTIFIC_REFERENCE_TYPES = Object.freeze({
+  rcsb_pdb: Object.freeze(["doi", "pubmed"]),
+  dbsnp: Object.freeze(["clinvar", "ncbi_gene", "refseq"]),
+});
+
+export function scientificReferenceTypesForPlugin(pluginSlug) {
+  return Object.hasOwn(PLUGIN_SCIENTIFIC_REFERENCE_TYPES, pluginSlug)
+    ? PLUGIN_SCIENTIFIC_REFERENCE_TYPES[pluginSlug] : Object.freeze([]);
+}
+
+export function referenceTypeLabel(referenceType) {
+  return Object.hasOwn(SCIENTIFIC_REFERENCE_TYPES, referenceType) ? SCIENTIFIC_REFERENCE_TYPES[referenceType].label : "Reference";
+}
+
+export function validScientificReference(value, allowedTypes = SCIENTIFIC_REFERENCE_TYPE_IDS) {
+  if (!hasOnlyKeys(value, ["reference_type", "identifier"], ["reference_type", "identifier"]) ||
+      !Array.isArray(allowedTypes) || !allowedTypes.includes(value.reference_type) ||
+      !Object.hasOwn(SCIENTIFIC_REFERENCE_TYPES, value.reference_type) || typeof value.identifier !== "string") return false;
+  const policy = SCIENTIFIC_REFERENCE_TYPES[value.reference_type];
+  return value.identifier.length > 0 && value.identifier.length <= policy.maximum &&
+    !value.identifier.includes("..") && !value.identifier.includes("\\") &&
+    ![...value.identifier].some(character => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) &&
+    policy.pattern.test(value.identifier);
+}
 
 export function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value) &&
@@ -56,15 +89,15 @@ export function validScalarRecord(record, fields, { strict = false } = {}) {
   });
 }
 
-export function validDetailDescriptor(value) {
+export function validDetailDescriptor(value, allowedReferenceTypes = SCIENTIFIC_REFERENCE_TYPE_IDS) {
   if (!hasOnlyKeys(value, ["component", "title", "fields", "sections"], ["component", "title"]) ||
       value.component !== "detail" || typeof value.title !== "string" || !value.title.trim() ||
       (value.fields === undefined) === (value.sections === undefined)) return false;
   if (value.fields !== undefined) return validScalarFields(value.fields);
-  return validDetailSections(value.sections);
+  return validDetailSections(value.sections, allowedReferenceTypes);
 }
 
-export function validDetailSections(sections) {
+export function validDetailSections(sections, allowedReferenceTypes = SCIENTIFIC_REFERENCE_TYPE_IDS) {
   if (!Array.isArray(sections) || sections.length === 0 ||
       new Set(sections.map(section => section?.id)).size !== sections.length) return false;
   return sections.every(section => {
@@ -75,6 +108,14 @@ export function validDetailSections(sections) {
     if (["scalar", "provenance"].includes(section.presentation)) {
       return hasOnlyKeys(section, [...common, "fields"], ["id", "title", "presentation", "fields"]) &&
         validScalarFields(section.fields);
+    }
+    if (section.presentation === "references") {
+      return hasOnlyKeys(section, [...common, "reference_types", "max_items"],
+        ["id", "title", "presentation", "reference_types", "max_items"]) &&
+        Array.isArray(section.reference_types) && section.reference_types.length > 0 &&
+        new Set(section.reference_types).size === section.reference_types.length &&
+        section.reference_types.every(type => allowedReferenceTypes.includes(type) && SCIENTIFIC_REFERENCE_TYPE_IDS.includes(type)) &&
+        Number.isSafeInteger(section.max_items) && section.max_items >= 1 && section.max_items <= 100;
     }
     return section.presentation === "table" &&
       hasOnlyKeys(section, [...common, "columns", "row_key", "max_rows"], ["id", "title", "presentation", "columns", "row_key", "max_rows"]) &&
@@ -97,6 +138,11 @@ export function validStructuredDetailRecord(record, sections, { strict = false }
           const provenanceValue = Object.hasOwn(value, field.key) ? value[field.key] : null;
           return typeof provenanceValue !== "string" || !URI_SCHEME.test(provenanceValue.trim());
         }));
+    }
+    if (section.presentation === "references") {
+      return Array.isArray(value) && value.length <= section.max_items &&
+        value.every(reference => validScientificReference(reference, section.reference_types)) &&
+        new Set(value.map(reference => `${reference.reference_type}:${reference.identifier}`)).size === value.length;
     }
     if (!Array.isArray(value) || value.length > section.max_rows || rowKeys(value, section.row_key) === null) return false;
     const columns = new Set(section.columns.map(column => column.key));
