@@ -1,4 +1,5 @@
 import React from "react";
+import OmniBioAILogo from "../components/brand/OmniBioAILogo";
 
 export default function Wizard({
   step,
@@ -23,7 +24,8 @@ export default function Wizard({
       {/* Header */}
 
       <div style={{ marginBottom: "30px" }}>
-        <h1>OmniBioAI Studio</h1>
+        <OmniBioAILogo variant="full" size="md" label="OmniBioAI" />
+        <h1>Studio</h1>
 
         <p>
           AI-native bioinformatics orchestration platform

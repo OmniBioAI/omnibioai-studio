@@ -1,6 +1,7 @@
 import React from "react";
 import AccountMenu from "./AccountMenu";
 import { NAV_ICONS } from "./NavIcons";
+import OmniBioAILogo from "./brand/OmniBioAILogo";
 
 const statusColor = {
   idle:     "var(--color-text-muted)",
@@ -26,18 +27,11 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
       {/* Logo */}
       <div style={{ padding:"18px 16px 14px", borderBottom:"1px solid var(--border)" }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:2 }}>
-          <div style={{
-            width:24, height:24, flexShrink:0,
-            background:"linear-gradient(135deg, var(--accent), #0094ff)",
-            clipPath:"polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)",
-          }} />
-          <span style={{ fontSize:'var(--font-size-base)', fontWeight:700, letterSpacing:"0.04em", color:"#fff" }}>
-            OmniBioAI
-          </span>
+          <OmniBioAILogo variant="full" size="sm" label="OmniBioAI" />
         </div>
         <div style={{
           fontSize:'var(--font-size-xs)', color:"var(--color-text-muted)", fontFamily:"var(--mono)",
-          letterSpacing:"0.06em", paddingLeft:32,
+          letterSpacing:"0.06em", paddingLeft:30,
         }}>
           STUDIO v0.8.0
         </div>

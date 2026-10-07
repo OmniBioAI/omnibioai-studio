@@ -2,6 +2,7 @@ import React from "react";
 import { Card } from "@omnibioai/ui";
 import { ToggleRow } from "../components/UI";
 import { useAppearance } from "../components/AppearanceProvider";
+import OmniBioAILogo from "../components/brand/OmniBioAILogo";
 
 const MODE_OPTIONS = [
   { value: "system", label: "System", ariaLabel: "System — follow OS appearance" },
@@ -56,8 +57,7 @@ function LivePreview({ accent }) {
         <div className="appearance-preview-frame">
           <div className="appearance-preview-sidebar">
             <div className="appearance-preview-brand">
-              <span className="appearance-preview-dot" />
-              OmniBioAI
+              <OmniBioAILogo variant="full" size="xs" />
             </div>
             <div className="appearance-preview-nav-item appearance-preview-nav-item--active">Studio</div>
             <div className="appearance-preview-nav-item">Jobs</div>

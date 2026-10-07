@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 64" fill="none">
+  <defs>
+    <linearGradient id="omnibioai-logo-strand-a" x1="14" y1="7" x2="50" y2="57" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="0.52" stop-color="#0094FF"/>
+      <stop offset="1" stop-color="#00E5A0"/>
+    </linearGradient>
+    <linearGradient id="omnibioai-logo-strand-b" x1="50" y1="7" x2="14" y2="57" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00E5A0"/>
+      <stop offset="0.5" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#0094FF"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#86F4E2" stroke-width="3" stroke-linecap="round" opacity="0.78">
+    <path d="M22 14h20"/>
+    <path d="M17 24h30"/>
+    <path d="M17 40h30"/>
+    <path d="M22 50h20"/>
+  </g>
+  <path d="M18 7c22 8 31 16 31 25S40 49 18 57" stroke="url(#omnibioai-logo-strand-a)" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M46 7C24 15 15 23 15 32s9 17 31 25" stroke="url(#omnibioai-logo-strand-b)" stroke-width="5.5" stroke-linecap="round"/>
+  <text x="76" y="45" fill="#F4F8FF" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" letter-spacing="0.2">OmniBio<tspan fill="#22D3EE">AI</tspan></text>
+</svg>

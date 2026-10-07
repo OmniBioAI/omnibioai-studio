@@ -31,7 +31,7 @@ describe("Studio portal", () => {
   it("renders the Studio identity, security section, and native Workbench catalog tile", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
-    expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "OmniBioAI Studio" })).toBeInTheDocument();
     expect(screen.getByText("Unified access to OmniBioAI platform services, workflows, AI, and security")).toBeInTheDocument();
     expect(screen.getByText("Platform Services")).toBeInTheDocument();
     expect(screen.getByText("Security Control Plane")).toBeInTheDocument();

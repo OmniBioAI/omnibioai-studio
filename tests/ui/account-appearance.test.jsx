@@ -17,6 +17,7 @@ describe("AccountAppearance", () => {
     expect(screen.getByText(/never change how the AI responds/)).toBeInTheDocument();
     expect(screen.getByText("RNA-seq workflow")).toBeInTheDocument();
     expect(screen.getByText(/Preview only/)).toBeInTheDocument();
+    expect(document.querySelector('[data-omnibioai-logo="full"]')).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByRole("radiogroup", { name: "Color mode" })).toBeInTheDocument();
     expect(screen.getByRole("radiogroup", { name: "Accent color" })).toBeInTheDocument();
     expect(screen.getByRole("radiogroup", { name: "Workspace density" })).toBeInTheDocument();

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import OmniBioAILogo from './brand/OmniBioAILogo';
 
 export default function LicenseGate({ children }) {
     const [license, setLicense] = useState(null);
@@ -66,9 +67,8 @@ export default function LicenseGate({ children }) {
         <div className="flex items-center justify-center h-screen bg-gray-900">
             <div className="bg-gray-800 rounded-2xl p-8 w-full max-w-md shadow-2xl">
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold text-white mb-2">
-                        OmniBioAI Studio
-                    </h1>
+                    <OmniBioAILogo variant="full" size="md" label="OmniBioAI" />
+                    <h1 className="text-2xl font-bold text-white mb-2">Studio</h1>
                     <p className="text-gray-400">Enter your license key to continue</p>
                 </div>
 

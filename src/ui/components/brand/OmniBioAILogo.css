@@ -1,0 +1,30 @@
+.omnibioai-logo {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  line-height: 0;
+  vertical-align: middle;
+}
+
+.omnibioai-logo img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: var(--omnibioai-logo-height);
+  object-fit: contain;
+}
+
+.omnibioai-logo--xs { --omnibioai-logo-height: 16px; }
+.omnibioai-logo--sm { --omnibioai-logo-height: 22px; }
+.omnibioai-logo--md { --omnibioai-logo-height: 30px; }
+.omnibioai-logo--lg { --omnibioai-logo-height: 42px; }
+
+.omnibioai-logo--mark.omnibioai-logo--xs { --omnibioai-logo-height: 16px; }
+.omnibioai-logo--mark.omnibioai-logo--sm { --omnibioai-logo-height: 22px; }
+.omnibioai-logo--mark.omnibioai-logo--md { --omnibioai-logo-height: 32px; }
+.omnibioai-logo--mark.omnibioai-logo--lg { --omnibioai-logo-height: 48px; }
+
+.omnibioai-logo--wordmark.omnibioai-logo--xs { --omnibioai-logo-height: 14px; }
+.omnibioai-logo--wordmark.omnibioai-logo--sm { --omnibioai-logo-height: 20px; }
+.omnibioai-logo--wordmark.omnibioai-logo--md { --omnibioai-logo-height: 27px; }
+.omnibioai-logo--wordmark.omnibioai-logo--lg { --omnibioai-logo-height: 36px; }

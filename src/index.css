@@ -296,6 +296,17 @@ a:focus:not(:focus-visible) {
   align-items: center;
   justify-content: space-between;
 }
+.workbench-brand-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 5px;
+  color: var(--text);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
 .workbench-header-actions {
   display: flex;
   align-items: center;
@@ -607,8 +618,7 @@ a:focus:not(:focus-visible) {
 .appearance-preview { border: 1px solid var(--border2); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg); box-shadow: var(--shadow-card); }
 .appearance-preview-frame { display: flex; height: 180px; font-size: 11px; }
 .appearance-preview-sidebar { width: 96px; flex-shrink: 0; background: var(--bg2); border-right: 1px solid var(--border); padding: calc(10px * var(--density-scale)) 8px; display: flex; flex-direction: column; gap: 4px; }
-.appearance-preview-brand { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; font-weight: 700; color: var(--text); }
-.appearance-preview-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.appearance-preview-brand { display: flex; align-items: center; min-height: 16px; margin-bottom: 6px; }
 .appearance-preview-nav-item { padding: calc(5px * var(--density-scale)) 6px; border-radius: var(--radius-xs); color: var(--color-text-muted); }
 .appearance-preview-nav-item--active { background: var(--color-accent-dim, rgba(0,229,160,0.1)); color: var(--accent); }
 .appearance-preview-main { flex: 1; min-width: 0; padding: calc(10px * var(--density-scale)) 12px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); color: var(--text); }

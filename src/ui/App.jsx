@@ -40,6 +40,7 @@ import AccountLayout from "./components/AccountLayout";
 import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
+import OmniBioAILogo from "./components/brand/OmniBioAILogo";
 import { GrafanaViewer } from "./components/GrafanaViewer";
 import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } from "./lib/session";
 import { loadConfig as loadWebConfig } from "./lib/web/webApi";
@@ -494,16 +495,10 @@ export default function App() {
         alignItems:"center", justifyContent:"center",
         background:"var(--bg)", flexDirection:"column", gap:12,
       }}>
-        <div style={{
-          width:32, height:32, borderRadius:"50%",
-          border:"3px solid rgba(255,255,255,0.1)",
-          borderTop:"3px solid var(--accent)",
-          animation:"spin 1s linear infinite",
-        }} />
+        <OmniBioAILogo variant="mark" size="lg" />
         <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
           Loading configuration...
         </div>
-        <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }

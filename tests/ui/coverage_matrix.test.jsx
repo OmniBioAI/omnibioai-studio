@@ -72,7 +72,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 describe("page and component coverage matrix", () => {
   it("walks the authorized production shell through every route", async () => {
     render(<App />);
-    await waitFor(() => expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByRole("img", { name: "OmniBioAI" }).length).toBeGreaterThan(0));
     for (let step = 0; step <= 14; step += 1) {
       window.dispatchEvent(new CustomEvent("navigate", { detail: step }));
       await waitFor(() => expect(document.body.textContent.length).toBeGreaterThan(20));

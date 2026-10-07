@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/src/ui/assets/brand/omnibioai-mark.svg" />
     <title>OmniBioAI Studio</title>
     <style>
       #loader {
@@ -15,22 +16,17 @@
         background: #0a0c10;
         color: #e8eaf0;
       }
-      .spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid rgba(255,255,255,0.1);
-        border-top: 3px solid #00e5a0;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+      .brand-mark {
+        width: 48px;
+        height: 48px;
         margin-bottom: 16px;
       }
-      @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
     <div id="root">
       <div id="loader">
-        <div class="spinner"></div>
+        <img class="brand-mark" src="/src/ui/assets/brand/omnibioai-mark.svg" alt="" aria-hidden="true" />
         <div>Starting OmniBioAI Studio...</div>
       </div>
     </div>

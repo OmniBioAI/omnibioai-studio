@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Badge } from "@omnibioai/ui";
 import { loginWithPassword, loginWithLicenseKey, isElectron, getOAuthLoginUrl, oauthProviders } from "../lib/session";
+import OmniBioAILogo from "./brand/OmniBioAILogo";
 
 const PROVIDER_LABELS = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
@@ -12,20 +13,6 @@ const FIELD_BORDER = "rgba(0, 212, 170, 0.12)";
 const TEXT = "#e8f0fe";
 const MUTED = "#7a9bbf";
 const LABEL_MUTED = "#3d5a78";
-
-function LogoMark({ size = 40 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M20 2 L36 11 V29 L20 38 L4 29 V11 Z"
-        stroke={ACCENT}
-        strokeWidth="2"
-        fill="rgba(0, 212, 170, 0.08)"
-      />
-      <path d="M20 12 L28 16.5 V25.5 L20 30 L12 25.5 V16.5 Z" fill={ACCENT} opacity="0.85" />
-    </svg>
-  );
-}
 
 function GoogleIcon() {
   return (
@@ -155,7 +142,7 @@ export default function Login({ title, description }) {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
-            <LogoMark />
+            <OmniBioAILogo variant="full" size="md" label="OmniBioAI" />
             <div
               style={{
                 fontFamily: "var(--mono)",
@@ -165,7 +152,7 @@ export default function Login({ title, description }) {
                 letterSpacing: "0.02em",
               }}
             >
-              OmniBioAI / beta
+              Platform / beta
             </div>
             <div
               style={{

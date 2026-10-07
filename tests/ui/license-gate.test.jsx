@@ -23,17 +23,17 @@ describe("LicenseGate", () => {
   it("falls through to the entry form for an expired or invalid cached license, or a lookup error", async () => {
     window.electronAPI = { getLicense: vi.fn().mockResolvedValue({ valid: true, expiry: "2000-01-01" }) };
     render(<LicenseGate><div>protected content</div></LicenseGate>);
-    await waitFor(() => expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("img", { name: "OmniBioAI" })).toBeInTheDocument());
     cleanup();
 
     window.electronAPI = { getLicense: vi.fn().mockResolvedValue({ valid: false }) };
     render(<LicenseGate><div>protected content</div></LicenseGate>);
-    await waitFor(() => expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("img", { name: "OmniBioAI" })).toBeInTheDocument());
     cleanup();
 
     window.electronAPI = { getLicense: vi.fn().mockRejectedValue(new Error("ipc down")) };
     render(<LicenseGate><div>protected content</div></LicenseGate>);
-    await waitFor(() => expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("img", { name: "OmniBioAI" })).toBeInTheDocument());
   });
 
   it("validates a license key: empty input, invalid with and without a reason, a thrown error, and success", async () => {
@@ -42,7 +42,7 @@ describe("LicenseGate", () => {
       validateLicense: vi.fn(),
     };
     render(<LicenseGate><div>protected content</div></LicenseGate>);
-    await waitFor(() => expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("img", { name: "OmniBioAI" })).toBeInTheDocument());
 
     fireEvent.click(screen.getByText("Activate License"));
     expect(await screen.findByText("Please enter a license key")).toBeInTheDocument();

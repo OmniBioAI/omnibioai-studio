@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import AccountMenu from "./AccountMenu";
 import { NAV_ICONS } from "./NavIcons";
+import OmniBioAILogo from "./brand/OmniBioAILogo";
 
 // Mobile drawer nav. Deliberately takes the exact same `nav`/`step`/`setStep`
 // data App.jsx already builds via buildNav() and passes to the desktop
@@ -81,14 +82,7 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
           display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{
-              width: 22, height: 22, flexShrink: 0,
-              background: "linear-gradient(135deg, var(--accent), #0094ff)",
-              clipPath: "polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)",
-            }} />
-            <span style={{ fontSize: "var(--font-size-base)", fontWeight: 700, letterSpacing: "0.04em", color: "#fff" }}>
-              OmniBioAI
-            </span>
+            <OmniBioAILogo variant="full" size="sm" label="OmniBioAI" />
           </div>
           <button
             ref={closeBtnRef}

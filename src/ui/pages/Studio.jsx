@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } from "../lib/session";
 import { applicationUrl } from "../lib/workbenchApi";
+import OmniBioAILogo from "../components/brand/OmniBioAILogo";
 
 // Permission gate for the Admin Console tile — reuses the same permission
 // string control-center's own backend gates its core admin routes on
@@ -277,9 +278,10 @@ export default function Studio() {
       {/* Header */}
       <div className="workbench-header">
         <div>
-          <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
-            OmniBioAI Studio
-          </div>
+          <h1 className="workbench-brand-heading" aria-label="OmniBioAI Studio">
+            <OmniBioAILogo variant="full" size="md" label="OmniBioAI" />
+            <span>Studio</span>
+          </h1>
           <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
             Unified access to OmniBioAI platform services, workflows, AI, and security
           </div>
