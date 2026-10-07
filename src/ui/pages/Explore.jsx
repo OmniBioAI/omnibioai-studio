@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Badge, Spinner } from "@omnibioai/ui";
 import { Panel, PanelBody } from "../components/UI";
 import { loadExploreResources } from "../lib/exploreApi";
+import { openDomainDataset } from "../lib/exploreDomains";
 
-const FILTERS = [["all", "All"], ["tool", "Tools"], ["workflow", "Workflows"], ["service", "Services"], ["capability", "Capabilities"]];
+const FILTERS = [["all", "All"], ["tool", "Tools"], ["workflow", "Workflows"], ["service", "Services"], ["domain", "Domains"], ["capability", "Capabilities"]];
 const MAX_RESULTS = 200;
-const searchableText = resource => [resource.name, resource.description, ...(resource.tags || [])].join(" ").toLowerCase();
+const searchableText = resource => [resource.name, resource.description, resource.sourceName, resource.corpus, resource.provider, ...(resource.tags || []), ...(resource.sources || []).filter(source => source.destination).map(source => source.label)].join(" ").toLowerCase();
 
 export default function Explore({ onOpen }) {
   const [resources, setResources] = useState([]);
@@ -30,7 +31,7 @@ export default function Explore({ onOpen }) {
   }, [filter, query, resources]);
 
   return <div className="explore-page">
-    <header className="explore-header"><h1>Explore</h1><p>Discover tools, workflows, services and scientific capabilities across OmniBioAI.</p></header>
+    <header className="explore-header"><h1>Explore</h1><p>Discover tools, workflows, services, domains and scientific capabilities across OmniBioAI.</p></header>
     <Panel><PanelBody>
       <label className="explore-search">Search OmniBioAI
         <input type="search" value={query} placeholder="Search OmniBioAI..." aria-label="Search OmniBioAI" onChange={event => setQuery(event.target.value)} />
@@ -48,8 +49,12 @@ export default function Explore({ onOpen }) {
           : <div className="explore-grid">{visible.map(resource => <Panel key={resource.id}><PanelBody>
             <div className="explore-card-type">{resource.type}</div><h2>{resource.name}</h2>
             {resource.description && <p className="explore-description">{resource.description}</p>}
+            {resource.type === "domain" && <div className="explore-tags"><span>{resource.corpus} • {resource.provider}</span></div>}
             {resource.tags?.length > 0 && <div className="explore-tags">{resource.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
-            <button type="button" className="explore-action" onClick={() => onOpen?.(resource.destination, resource)} aria-label={`Open ${resource.name}`}>{resource.destination?.label || "View"} <span aria-hidden="true">→</span></button>
+            {resource.type === "domain" ? <>
+              <div className="explore-tags">{resource.sources.map(source => <span key={source.kind}>{source.label} · {source.availability === "remote" ? "Remote" : "Unavailable"}</span>)}</div>
+              {resource.sources.filter(source => source.destination).map(source => <button key={source.kind} type="button" className="explore-action" onClick={() => openDomainDataset(source.destination)} aria-label={`${source.destination.label} for ${resource.name}`}>{source.destination.label} <span aria-hidden="true">→</span></button>)}
+            </> : <button type="button" className="explore-action" onClick={() => onOpen?.(resource.destination, resource)} aria-label={`Open ${resource.name}`}>{resource.destination?.label || "View"} <span aria-hidden="true">→</span></button>}
           </PanelBody></Panel>)}</div>}
       </>}
   </div>;

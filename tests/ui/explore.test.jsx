@@ -19,9 +19,9 @@ describe("Explore page", () => {
   it("replaces the placeholder with the heading, subtitle, search and filters", async () => {
     render(<Explore />);
     expect(screen.getByRole("heading", { name: "Explore" })).toBeInTheDocument();
-    expect(screen.getByText("Discover tools, workflows, services and scientific capabilities across OmniBioAI.")).toBeInTheDocument();
+    expect(screen.getByText("Discover tools, workflows, services, domains and scientific capabilities across OmniBioAI.")).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search OmniBioAI" })).toHaveAttribute("placeholder", "Search OmniBioAI...");
-    for (const label of ["All", "Tools", "Workflows", "Services", "Capabilities"]) expect(screen.getByRole("button", { name: new RegExp(`^${label}`) })).toBeInTheDocument();
+    for (const label of ["All", "Tools", "Workflows", "Services", "Domains", "Capabilities"]) expect(screen.getByRole("button", { name: new RegExp(`^${label}`) })).toBeInTheDocument();
     expect(screen.queryByText(/being prepared/i)).not.toBeInTheDocument();
   });
 

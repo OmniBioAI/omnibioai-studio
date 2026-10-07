@@ -1,5 +1,6 @@
 import { isElectron, getToken } from "./session";
 import { applicationUrl, loadWorkbenchCatalog } from "./workbenchApi";
+import { loadDomainResources } from "./exploreDomains";
 
 const STATIC_SERVICES = [
   { id: "studio-tool-executor", type: "service", name: "Tool Executor", description: "Register, execute and inspect tools", tags: ["execution", "tools"], destination: { kind: "service", url: "/_svc/toolserver/docs", label: "Tool Executor" }, source: "studio-navigation" },
@@ -95,7 +96,7 @@ function uniqueResources(resources) {
 }
 
 export async function loadExploreResources({ signal } = {}) {
-  const [workbench, tools, workflows, runtimes] = await Promise.allSettled([loadWorkbenchCatalog({ signal }), loadToolRegistry({ signal }), loadWorkflowRegistry({ signal }), loadRuntimeMetadata({ signal })]);
+  const [workbench, tools, workflows, runtimes, domains] = await Promise.allSettled([loadWorkbenchCatalog({ signal }), loadToolRegistry({ signal }), loadWorkflowRegistry({ signal }), loadRuntimeMetadata({ signal }), loadDomainResources()]);
   const failures = [];
   const resources = [...STATIC_SERVICES];
   if (workbench.status === "fulfilled") resources.push(...workbenchResources(workbench.value));
@@ -106,6 +107,8 @@ export async function loadExploreResources({ signal } = {}) {
   else if (workflows.reason?.name !== "AbortError") failures.push("some workflows");
   if (runtimes.status === "fulfilled") resources.push(...runtimeCapabilities(runtimes.value));
   else if (runtimes.reason?.name !== "AbortError") failures.push("runtime metadata");
+  if (domains.status === "fulfilled") resources.push(...domains.value);
+  else failures.push("some domains");
   return { resources: uniqueResources(resources), failures };
 }
 
