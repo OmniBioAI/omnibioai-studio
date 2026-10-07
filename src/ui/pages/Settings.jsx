@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, Toggle, Btn } from "../components/UI";
 import RequirePermission from "../components/RequirePermission";
+import { openExternal } from "../lib/externalLink";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -124,14 +125,6 @@ function SettingsConsole({ config, setConfig }) {
   };
 
   const isFirstRun = !settings.data_dir || !settings.work_dir;
-
-  const openExternal = useCallback((url) => {
-    if (window.api?.openExternal) {
-      window.api.openExternal(url);
-    } else {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  }, []);
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>

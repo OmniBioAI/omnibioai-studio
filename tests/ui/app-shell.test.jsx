@@ -49,6 +49,9 @@ vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Accou
 
 vi.mock("../../src/ui/pages/AccountNotifications", () => ({ default: () => <div>Account Notifications page</div> }));
 vi.mock("../../src/ui/pages/AccountAppearance", () => ({ default: () => <div>Account Appearance page</div> }));
+vi.mock("../../src/ui/pages/AccountPrivacy", () => ({ default: () => <div>Account Privacy page</div> }));
+vi.mock("../../src/ui/pages/AccountPlan", () => ({ default: () => <div>Account Plan page</div> }));
+vi.mock("../../src/ui/pages/AccountHelp", () => ({ default: () => <div>Account Help page</div> }));
 
 vi.mock("../../src/ui/pages/OrganizationConnections", () => ({ default: () => <div>Organization Connections page</div> }));
 
@@ -684,6 +687,59 @@ it("opens Appearance from the Account menu and closes the menu", async () => {
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });
 
+
+it.each([
+  ["Privacy & Data", "/studio/privacy", "Account Privacy page"],
+  ["Plan", "/studio/plan", "Account Plan page"],
+  ["Help & Product", "/studio/help", "Account Help page"],
+])("opens the %s Account route without adding primary navigation", async (label, path, pageText) => {
+  getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", path);
+  render(<App />); await screen.findByText(pageText);
+  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent(label);
+  expect(document.querySelector(`[data-nav-item="${label}"]`)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
+  await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
+  fireEvent.click(screen.getByRole("button", { name: label, exact: true }));
+  await screen.findByText(pageText); expect(location.pathname).toBe(path);
+});
+
+it.each([
+  ["Privacy & Data", "Account Privacy page"],
+  ["Plan", "Account Plan page"],
+  ["Help & Product", "Account Help page"],
+])("opens %s from the Account menu and closes the menu", async (label, pageText) => {
+  getCurrentUser.mockResolvedValue(admin);
+  render(<App />);
+  await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: label }));
+  await screen.findByText(pageText);
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+});
+
+it("keeps Privacy, Plan and Help distinct page indices with no collision against existing Account or Organization routes", async () => {
+  getCurrentUser.mockResolvedValue(admin);
+  render(<App />);
+  await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+  const routes = [
+    ["/studio/profile", "Profile page"],
+    ["/studio/security", "Account Security page"],
+    ["/studio/preferences", "Account Preferences page"],
+    ["/studio/notifications", "Account Notifications page"],
+    ["/studio/personalization", "Account Personalization page"],
+    ["/studio/appearance", "Account Appearance page"],
+    ["/studio/privacy", "Account Privacy page"],
+    ["/studio/plan", "Account Plan page"],
+    ["/studio/help", "Account Help page"],
+    ["/studio/organization/connections", "Organization Connections page"],
+  ];
+  for (const [path, pageText] of routes) {
+    window.history.replaceState({}, "", path);
+    render(<App />);
+    await screen.findByText(pageText);
+    cleanup();
+  }
+});
 
 it("opens Organization Connections directly and from navigation outside Account", async () => {
   getCurrentUser.mockResolvedValue(admin);

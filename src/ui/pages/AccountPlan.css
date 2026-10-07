@@ -1,0 +1,21 @@
+.account-plan { display: grid; gap: 20px; min-width: 0; }
+.account-plan h2 { margin: 0; font-size: var(--font-size-xl); }
+.account-plan h3 { margin: 16px 0 8px; font-size: var(--font-size-md); }
+.account-plan p { line-height: 1.6; color: var(--color-text-secondary); }
+.account-plan [role="alert"] { color: var(--danger); }
+.plan-summary { display: grid; gap: 0; margin: 0; }
+.plan-summary > div { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.plan-summary > div:last-child { border-bottom: none; }
+.plan-summary dt { width: 160px; color: var(--color-text-muted); flex-shrink: 0; }
+.plan-summary dd { margin: 0; overflow-wrap: anywhere; }
+.plan-features { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.plan-features li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: var(--font-size-sm); }
+.plan-features li:last-child { border-bottom: none; }
+.plan-features li span:first-child { text-transform: capitalize; color: var(--color-text-muted); }
+.plan-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.plan-note { font-size: var(--font-size-sm); margin: 0; }
+.account-plan button:disabled { cursor: not-allowed; opacity: .6; }
+.account-plan button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .plan-summary dt { width: 100%; }
+}

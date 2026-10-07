@@ -1,0 +1,7 @@
+.account-help { display: grid; gap: 20px; min-width: 0; }
+.account-help h2 { margin: 0; font-size: var(--font-size-xl); }
+.account-help p { line-height: 1.6; color: var(--color-text-secondary); }
+.help-links { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.help-links li { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.help-links p { margin: 0; font-size: var(--font-size-sm); }
+.account-help button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
