@@ -13,6 +13,15 @@ const user = { userId: 7, email: "manish.kumar@omnibioai.org" };
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("AccountMenu", () => {
+  it.each([true, false])("opens Personalization and closes its host; mobile=%s", mobile => {
+    const navigate = vi.fn(), close = vi.fn();
+    render(<AccountMenu currentUser={user} onPersonalizationClick={navigate} onAfterAction={mobile ? close : undefined} isPersonalizationActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const item = screen.getByRole("menuitem", { name: /Personalization/ });
+    expect(item).toHaveAttribute("aria-current", "page"); fireEvent.click(item);
+    expect(navigate).toHaveBeenCalledOnce(); expect(close).toHaveBeenCalledTimes(mobile ? 1 : 0);
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
   it.each([true, false])("navigates to Preferences and closes; mobile=%s", mobile => {
     const navigate = vi.fn(), close = vi.fn();
     render(<AccountMenu currentUser={user} onPreferencesClick={navigate} onAfterAction={mobile ? close : undefined} isPreferencesActive />);
@@ -116,6 +125,17 @@ describe("AccountMenu", () => {
   });
 });
 
+
+it.each([false, true])("opens Appearance and closes the account menu (mobile=%s)", mobile => {
+  const navigate = vi.fn(), close = vi.fn();
+  render(<AccountMenu currentUser={{ userId: 1, email: "test@example.org" }} onAppearanceClick={navigate} onAfterAction={mobile ? close : undefined} isAppearanceActive />);
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  const item = screen.getByRole("menuitem", { name: /Appearance/ });
+  expect(item).toHaveAttribute("aria-current", "page");
+  fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  if (mobile) expect(close).toHaveBeenCalledOnce();
+});
 
 it.each([false, true])("opens Notifications and closes the account menu (mobile=%s)", mobile => {
   const navigate = vi.fn(), close = vi.fn();

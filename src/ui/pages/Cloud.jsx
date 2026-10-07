@@ -1,7 +1,7 @@
 import React from "react";
 import {
   Panel, PanelHeader, PanelBody,
-  FormRow, Input, Select, Textarea, ToggleRow,
+  FormRow, Input, Select, ToggleRow,
 } from "../components/UI";
 import RequirePermission from "../components/RequirePermission";
 
@@ -36,6 +36,7 @@ function CloudConsole({ config, setConfig }) {
         </div>
       </div>
 
+      <p role="note">Studio does not store cloud credentials. Use your operator-managed runtime credential configuration.</p>
       <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         {/* AWS */}
         <Panel>
@@ -46,21 +47,6 @@ function CloudConsole({ config, setConfig }) {
             />
           </PanelHeader>
           <PanelBody>
-            <FormRow label="Access Key ID">
-              <Input
-                placeholder="AKIA••••••••••••"
-                value={cloud.aws_access_key || ""}
-                onChange={(e) => set("aws_access_key", e.target.value)}
-              />
-            </FormRow>
-            <FormRow label="Secret Access Key">
-              <Input
-                type="password"
-                placeholder="••••••••••••••••"
-                value={cloud.aws_secret_key || ""}
-                onChange={(e) => set("aws_secret_key", e.target.value)}
-              />
-            </FormRow>
             <FormRow label="Region">
               <Select
                 value={cloud.aws_region || "us-east-1"}
@@ -137,14 +123,6 @@ function CloudConsole({ config, setConfig }) {
                 value={cloud.gcp_region || "us-central1"}
                 onChange={(e) => set("gcp_region", e.target.value)}
                 options={["us-central1", "us-east1", "us-west1", "europe-west1", "asia-east1"]}
-              />
-            </FormRow>
-            <FormRow label="Service Account Key JSON">
-              <Textarea
-                placeholder={'{\n  "type": "service_account",\n  ...\n}'}
-                value={cloud.gcp_service_account_key || ""}
-                onChange={(e) => set("gcp_service_account_key", e.target.value)}
-                rows={4}
               />
             </FormRow>
             <FormRow label="Cloud Storage Bucket">

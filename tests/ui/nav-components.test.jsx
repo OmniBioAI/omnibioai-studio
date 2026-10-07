@@ -15,11 +15,25 @@ const user = { email: "u@test" };
 afterEach(() => { cleanup(); vi.clearAllMocks(); delete window.api; });
 
 describe("Sidebar", () => {
+  it("opens Personalization through the personal footer", () => {
+    const navigate = vi.fn();
+    render(<Sidebar nav={nav} step={24} setStep={vi.fn()} systemStatus="idle" currentUser={user} onPersonalizationClick={navigate} isPersonalizationActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const item = screen.getByRole("menuitem", { name: /Personalization/ }); expect(item).toHaveAttribute("aria-current", "page");
+    fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
+  });
   it("opens Preferences through the personal footer", () => {
     const navigate = vi.fn();
     render(<Sidebar nav={nav} step={17} setStep={vi.fn()} systemStatus="idle" currentUser={{ userId: 1, email: "test@example.test" }} onPreferencesClick={navigate} isPreferencesActive />);
     fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
     const item = screen.getByRole("menuitem", { name: /Preferences/ }); expect(item).toHaveAttribute("aria-current", "page");
+    fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
+  });
+  it("opens Appearance through the personal footer", () => {
+    const navigate = vi.fn();
+    render(<Sidebar nav={nav} step={24} setStep={vi.fn()} systemStatus="idle" currentUser={{ userId: 1, email: "test@example.test" }} onAppearanceClick={navigate} isAppearanceActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const item = screen.getByRole("menuitem", { name: /Appearance/ }); expect(item).toHaveAttribute("aria-current", "page");
     fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
   });
   it("renders Studio as the first top-level destination and keeps grouped items ordered", () => {
@@ -107,11 +121,25 @@ describe("Sidebar", () => {
 });
 
 describe("MobileNav", () => {
+  it("opens Personalization and closes the drawer", () => {
+    const navigate = vi.fn(), close = vi.fn();
+    render(<MobileNav nav={nav} step={24} setStep={vi.fn()} currentUser={user} open onClose={close} onPersonalizationClick={navigate} isPersonalizationActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Personalization/ }));
+    expect(navigate).toHaveBeenCalledOnce(); expect(close).toHaveBeenCalledOnce();
+  });
   it("opens Preferences and closes the drawer", () => {
     const navigate = vi.fn(), close = vi.fn();
     render(<MobileNav nav={nav} step={17} setStep={vi.fn()} currentUser={{ userId: 1, email: "test@example.test" }} open onClose={close} onPreferencesClick={navigate} isPreferencesActive />);
     fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
     fireEvent.click(screen.getByRole("menuitem", { name: /Preferences/ }));
+    expect(navigate).toHaveBeenCalledOnce(); expect(close).toHaveBeenCalledOnce();
+  });
+  it("opens Appearance and closes the drawer", () => {
+    const navigate = vi.fn(), close = vi.fn();
+    render(<MobileNav nav={nav} step={24} setStep={vi.fn()} currentUser={{ userId: 1, email: "test@example.test" }} open onClose={close} onAppearanceClick={navigate} isAppearanceActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Appearance/ }));
     expect(navigate).toHaveBeenCalledOnce(); expect(close).toHaveBeenCalledOnce();
   });
   it("closes on backdrop click, and signs out and closes on Sign out click", () => {

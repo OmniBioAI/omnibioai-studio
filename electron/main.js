@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, shell, session, dialog } = require("electro
 const path = require("path");
 const fs = require("fs");
 const { writeConfig, readConfig, resetConfig } = require("../backend/config");
+const { projectConfig, retireLegacyProviderEnvironment } = require("../backend/providerConfig");
 const { spawn, execFile } = require("child_process");
 const os = require("os");
 const crypto = require("crypto");
@@ -155,7 +156,8 @@ function pipeLog(proc) {
 }
 
 // ─── ENV FILE GENERATION ──────────────────────────────────────────────────────
-function writeEnvFile(config) {
+function writeEnvFile(input) {
+  const config = projectConfig(input);
   ensureDbInit();
   const llm      = config.llm      || {};
   const cloud    = config.cloud    || {};
@@ -177,11 +179,7 @@ function writeEnvFile(config) {
 
   const lines = [
     `HOST_IP=0.0.0.0`,
-    `ANTHROPIC_API_KEY=${llm.claude_api_key         || ""}`,
-    `OPENAI_API_KEY=${llm.openai_api_key            || ""}`,
     `OLLAMA_URL=${llm.ollama_host                   || "http://ollama:11434"}`,
-    `AWS_ACCESS_KEY_ID=${cloud.aws_access_key       || ""}`,
-    `AWS_SECRET_ACCESS_KEY=${cloud.aws_secret_key   || ""}`,
     `AWS_DEFAULT_REGION=${cloud.aws_region          || "us-east-1"}`,
     `AZURE_SUBSCRIPTION_ID=${cloud.azure_subscription_id || ""}`,
     `GCP_PROJECT_ID=${cloud.gcp_project_id          || ""}`,
@@ -201,6 +199,7 @@ function writeEnvFile(config) {
     // generated key and crash-loop the LIMS container on next start.
     `LIMSX_FIELD_ENCRYPTION_KEY=${existing.LIMSX_FIELD_ENCRYPTION_KEY || ''}`,
     `AUTH_SECRET_KEY=${existing.AUTH_SECRET_KEY     || ''}`,
+    `RAG_PROVIDER_KEY_REVEAL_SECRET=${existing.RAG_PROVIDER_KEY_REVEAL_SECRET || ''}`,
     `GF_ADMIN_PASSWORD=${existing.GF_ADMIN_PASSWORD || ''}`,
     `GF_STUDIO_TOKEN=${existing.GF_STUDIO_TOKEN    || ''}`,
     `LICENSE_SECRET=${existing.LICENSE_SECRET       || ''}`,
@@ -235,6 +234,7 @@ function writeEnvFile(config) {
     `REDIS_WORKFLOW_IAM_PASSWORD=${existing.REDIS_WORKFLOW_IAM_PASSWORD || ''}`,
   ];
 
+  if (lines.some(line => /[\r\n\0]/.test(line))) throw new Error("Invalid environment setting");
   fs.mkdirSync(path.dirname(envPath), { recursive: true });
   fs.writeFileSync(envPath, lines.join("\n") + "\n", "utf-8");
   fs.chmodSync(envPath, 0o600);
@@ -360,6 +360,15 @@ app.on("web-contents-created", (_, contents) => {
 app.whenReady().then(() => {
   // Generate random secrets on first launch or when defaults are detected
   const repoEnvPath = getEnvPath();
+  try {
+    if (retireLegacyProviderEnvironment(repoEnvPath)) {
+      console.info("Legacy provider environment entries retired; organization credentials belong in Auth.");
+    }
+  } catch {
+    dialog.showErrorBox("Provider credential retirement failed", "Studio could not update its legacy environment file. Check file permissions before starting services.");
+    app.quit();
+    return;
+  }
   const rotated = generateSecrets(repoEnvPath);
   try {
     writeRedisAclCredentialFiles(
@@ -498,7 +507,8 @@ ipcMain.handle("save-config", async (_, config) => {
   try {
     writeEnvFile(config);
   } catch (e) {
-    console.error("writeEnvFile failed:", e);
+    console.error("Unable to update Studio environment");
+    return { success: false, error: "Unable to update Studio environment" };
   }
   return result;
 });

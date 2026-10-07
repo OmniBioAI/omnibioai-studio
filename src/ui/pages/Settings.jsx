@@ -135,6 +135,9 @@ function SettingsConsole({ config, setConfig }) {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      {config.provider_credentials_retired && <p role="status">Legacy provider credentials were removed from Studio configuration. This does not revoke them at the provider. Organization AI keys are managed in Auth.</p>}
+      {config.provider_credential_retirement_pending && <p role="alert">Studio could not retire the old configuration file. Check file permissions and save settings again.</p>}
+
 
       {/* Header */}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>

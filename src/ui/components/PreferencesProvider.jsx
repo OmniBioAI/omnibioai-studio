@@ -47,8 +47,10 @@ function SessionPreferences({ owner, version, authenticated, children }) {
         setState({ owner, status: "success", data, saving: false, error: "" });
         return true;
       }
-    } catch (_) {
-      if (current(id)) setState(previous => ({ ...previous, saving: false, error: "Unable to save preferences. The change has not been confirmed." }));
+    } catch (error) {
+      if (current(id)) setState(previous => ({ ...previous, saving: false, error: error?.code === "PREFERENCES_VALIDATION"
+        ? "Check your preference values and try again. The change has not been confirmed."
+        : "Unable to save preferences. The change has not been confirmed." }));
     } finally {
       if (current(id)) locked.current = false;
     }

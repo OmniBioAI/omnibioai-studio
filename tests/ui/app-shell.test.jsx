@@ -1,4 +1,5 @@
 import React from "react";
+vi.mock("../../src/ui/pages/AccountPersonalization", () => ({ default: () => <div>Account Personalization page</div> }));
 vi.mock("../../src/ui/components/PreferencesProvider", () => ({ default: ({ children }) => <>{children}</> }));
 vi.mock("../../src/ui/pages/AccountPreferences", () => ({ default: () => <div>Account Preferences page</div> }));
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
@@ -47,6 +48,9 @@ vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page<
 vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Account Security page</div> }));
 
 vi.mock("../../src/ui/pages/AccountNotifications", () => ({ default: () => <div>Account Notifications page</div> }));
+vi.mock("../../src/ui/pages/AccountAppearance", () => ({ default: () => <div>Account Appearance page</div> }));
+
+vi.mock("../../src/ui/pages/OrganizationConnections", () => ({ default: () => <div>Organization Connections page</div> }));
 
 import App from "../../src/ui/App";
 
@@ -61,6 +65,23 @@ beforeEach(() => {
 });
 
 describe("App shell — Studio landing", () => {
+  it("opens Personalization directly and navigates through canonical Account URLs", async () => {
+    getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/personalization");
+    render(<App />); await screen.findByText("Account Personalization page");
+    expect(screen.getByText("account", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Personalization" })).toHaveAttribute("aria-current", "page");
+    for (const [label, page] of [["Preferences", "Account Preferences page"], ["Security", "Account Security page"], ["Profile", "Profile page"], ["Notifications", "Account Notifications page"]]) {
+      fireEvent.click(screen.getByRole("button", { name: label, exact: true })); await screen.findByText(page);
+      expect(location.pathname).toBe(`/studio/${label.toLowerCase()}`);
+      fireEvent.click(screen.getByRole("button", { name: "Personalization", exact: true })); await screen.findByText("Account Personalization page");
+      expect(location.pathname).toBe("/studio/personalization");
+    }
+    fireEvent.click(screen.getByTitle("Back to Studio")); await screen.findByText("Studio page");
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Personalization/ }));
+    await screen.findByText("Account Personalization page"); expect(location.pathname).toBe("/studio/personalization");
+    expect(document.querySelector('[data-nav-item="Personalization"]')).toBeNull();
+  });
   it("opens Preferences directly with account breadcrumb and navigates between all account sections", async () => {
     getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/preferences");
     render(<App />); await screen.findByText("Account Preferences page");
@@ -82,7 +103,7 @@ describe("App shell — Studio landing", () => {
     expect(screen.getByText("Studio", { selector: "div" })).toBeInTheDocument();
     const sections = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
     expect(sections.map((section) => section.getAttribute("data-nav-section"))).toEqual([
-      "", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "System",
+      "", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "Organization", "System",
     ]);
     expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
     expect(sections[5].textContent).toMatch(/Launch.*Services.*IDE Services.*Logs.*Billing.*Developer/);
@@ -392,19 +413,20 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     expect(screen.getByRole("menuitem", { name: /Profile/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Appearance/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Notifications/ })).toBeInTheDocument();
   });
 });
 
 describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
-  it("renders Studio, AI, Work, Discover, Setup, Runtime, Security and System exactly once each, in order, with the exact Work order and no duplicate items", async () => {
+  it("renders Studio, AI, Work, Discover, Setup, Runtime, Security, Organization and System exactly once each, in order, with the exact Work order and no duplicate items", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
     const sectionEls = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
     const sectionNames = sectionEls.map(el => el.getAttribute("data-nav-section"));
-    expect(sectionNames).toEqual(["", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "System"]);
+    expect(sectionNames).toEqual(["", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "Organization", "System"]);
 
     const aiSection = sectionEls[sectionNames.indexOf("AI")];
     expect([...aiSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual(["Ask OmniBioAI"]);
@@ -638,4 +660,40 @@ it("opens the Notifications Account route without adding primary navigation", as
   await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
   fireEvent.click(screen.getByRole("button", { name: "Notifications", exact: true }));
   await screen.findByText("Account Notifications page"); expect(location.pathname).toBe("/studio/notifications");
+});
+
+it("opens the Appearance Account route without adding primary navigation", async () => {
+  getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/appearance");
+  render(<App />); await screen.findByText("Account Appearance page");
+  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent("Appearance");
+  expect(document.querySelector('[data-nav-item="Appearance"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
+  await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
+  fireEvent.click(screen.getByRole("button", { name: "Appearance", exact: true }));
+  await screen.findByText("Account Appearance page"); expect(location.pathname).toBe("/studio/appearance");
+});
+
+it("opens Appearance from the Account menu and closes the menu", async () => {
+  getCurrentUser.mockResolvedValue(admin);
+  render(<App />);
+  await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: /Appearance/ }));
+  await screen.findByText("Account Appearance page");
+  expect(location.pathname).toBe("/studio/appearance");
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+});
+
+
+it("opens Organization Connections directly and from navigation outside Account", async () => {
+  getCurrentUser.mockResolvedValue(admin);
+  window.history.replaceState({}, "", "/studio/organization/connections");
+  render(<App />);
+  await screen.findByText("Organization Connections page");
+  expect(screen.queryByRole("button", { name: "Personalization", exact: true })).toBeNull();
+  fireEvent.click(screen.getByTitle("Back to Studio"));
+  await screen.findByText("Studio page");
+  fireEvent.keyDown(screen.getByRole("button", { name: "Connections", exact: true }), { key: "Enter" });
+  await screen.findByText("Organization Connections page");
+  expect(location.pathname).toBe("/studio/organization/connections");
 });

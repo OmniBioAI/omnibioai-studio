@@ -15,7 +15,7 @@ const statusLabel = {
   error:    "ERROR",
 };
 
-export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onNotificationsClick, isNotificationsActive, isProfileActive, isSecurityActive, isPreferencesActive }) {
+export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onAppearanceClick, isAppearanceActive = false, onPersonalizationClick, isPersonalizationActive = false, onNotificationsClick, isNotificationsActive, isProfileActive, isSecurityActive, isPreferencesActive }) {
   return (
     <div style={{
       width:200, background:"var(--bg2)",
@@ -78,6 +78,12 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
                 <div
                   key={name}
                   data-nav-item={name}
+                  role={name === "Connections" ? "button" : undefined}
+                  tabIndex={name === "Connections" ? 0 : undefined}
+                  aria-current={name === "Connections" && isActive ? "page" : undefined}
+                  onKeyDown={name === "Connections" ? event => {
+                    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setStep(idx); }
+                  } : undefined}
                   onClick={disabled ? undefined : () => setStep(idx)}
                   aria-disabled={disabled || undefined}
                   style={{
@@ -122,6 +128,8 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
         <div className="studio-account-footer">
           <AccountMenu currentUser={currentUser} onProfileClick={onProfileClick} onSecurityClick={onSecurityClick}
             onPreferencesClick={onPreferencesClick} isPreferencesActive={isPreferencesActive}
+            onAppearanceClick={onAppearanceClick} isAppearanceActive={isAppearanceActive}
+            onPersonalizationClick={onPersonalizationClick} isPersonalizationActive={isPersonalizationActive}
               onNotificationsClick={onNotificationsClick} isNotificationsActive={isNotificationsActive}
             isProfileActive={isProfileActive} isSecurityActive={isSecurityActive} />
         </div>

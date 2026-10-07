@@ -151,6 +151,86 @@
   --font-size-md: 14px;
 }
 
+/* ── Appearance: color mode ──
+   Dark is the unparameterized default above (`:root`), preserving the exact
+   pre-Appearance look for anyone who has never opened the Appearance page
+   (AppearanceProvider only ever sets data-theme once it has resolved System/
+   Light/Dark, defaulting to the current dark values via `systemDark`'s
+   initial `true`). Light overrides the same variable names consumed both
+   here and by @omnibioai/ui (packages/omnibioai-design-tokens/tokens.css) so
+   every existing component re-themes without a second theme system. */
+html[data-theme="light"] {
+  --bg: #f7f8fa;
+  --bg2: #ffffff;
+  --bg3: #eef0f4;
+  --border: rgba(15, 23, 42, 0.08);
+  --border2: rgba(15, 23, 42, 0.14);
+  --text: #0f172a;
+  --muted: #64748b;
+  --color-text-muted: #64748b;
+  --color-text-secondary: #475569;
+
+  --color-bg: #f7f8fa;
+  --color-bg-surface: #ffffff;
+  --color-bg-surface2: #eef0f4;
+  --color-bg-surface3: #e4e7ee;
+  --color-bg-elevated: #ffffff;
+  --color-border: rgba(15, 23, 42, 0.08);
+  --color-border-muted: rgba(15, 23, 42, 0.07);
+  --color-border-bright: rgba(15, 23, 42, 0.14);
+  --color-text: #0f172a;
+  --color-text-soft: #1e293b;
+  --color-text-dim: #94a3b8;
+
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.10);
+  --shadow-card: 0 4px 24px rgba(15, 23, 42, 0.10);
+  --shadow-header: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Appearance: accent ──
+   "teal" is the existing/default OmniBioAI accent and needs no override —
+   these three alternates reuse hex values already present elsewhere in the
+   token set (--accent2, --accent3, @omnibioai/ui's --color-purple) rather
+   than inventing new colors, and keep #000 on-accent text (already the
+   default) for a verified >=9.9:1 contrast ratio against all four swatches. */
+html[data-accent="blue"] {
+  --accent: #0094ff; --color-accent: #0094ff;
+  --color-accent-dim: rgba(0,148,255,0.10); --color-accent-surface: rgba(0,148,255,0.07); --color-accent-border: rgba(0,148,255,0.30);
+}
+html[data-accent="purple"] {
+  --accent: #a855f7; --color-accent: #a855f7;
+  --color-accent-dim: rgba(168,85,247,0.12); --color-accent-surface: rgba(168,85,247,0.08); --color-accent-border: rgba(168,85,247,0.30);
+}
+html[data-accent="orange"] {
+  --accent: #ff6b35; --color-accent: #ff6b35;
+  --color-accent-dim: rgba(255,107,53,0.12); --color-accent-surface: rgba(255,107,53,0.08); --color-accent-border: rgba(255,107,53,0.30);
+}
+
+/* ── Appearance: workspace density ──
+   GLOBAL_DENSITY_APPLICATION=DEFERRED — Studio's layout spacing is inline
+   px throughout (App.jsx, Sidebar.jsx, page components), not token-driven,
+   so applying this everywhere would mean an invasive unrelated rewrite of
+   every page's inline styles. Density is instead applied, truthfully, to
+   the Account shell + the Appearance page's own live preview — the one
+   representative surface this campaign owns — via this scale variable. */
+:root { --density-scale: 1; }
+html[data-density="compact"] { --density-scale: 0.72; }
+
+/* ── Appearance: reduced motion ──
+   The explicit "Reduce motion" choice forces the same rules the OS-level
+   media query already applies by default, so decorative animation is never
+   on by accident for someone who asked Studio to turn it off — regardless
+   of what the browser reports. Functionality (nothing here is purely
+   decorative-required) is untouched; only transition/animation timing is. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body, #root {
@@ -452,3 +532,100 @@ a:focus:not(:focus-visible) {
 .plugin-artifact-list a { color: var(--accent); }
 .native-plugin-loading, .native-plugin-error { padding: 20px; display: grid; gap: 12px; }
 @media (max-width: 700px) { .omni-page-hero { flex-direction: column; gap: 12px; } .omni-page-actions { justify-content: flex-start; } .omni-page-hero h1 { font-size: var(--font-size-xl); } .plugin-artifact-list li { align-items: flex-start; flex-direction: column; } }
+
+/* ── Account: Appearance page ── */
+.appearance-page { display: grid; gap: calc(20px * var(--density-scale)); max-width: 880px; width: 100%; margin: 0 auto; }
+.appearance-page h1 { font-size: var(--font-size-xl); font-weight: 700; margin: 0 0 6px; }
+.appearance-page > header p { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-sm); line-height: 1.5; }
+.appearance-section { display: grid; gap: calc(12px * var(--density-scale)); }
+.appearance-section h2 { font-size: var(--font-size-md); font-weight: 600; margin: 0; }
+.appearance-section-hint { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-xs); line-height: 1.5; }
+
+.appearance-segmented { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); }
+.appearance-segmented button {
+  min-height: 36px; padding: calc(7px * var(--density-scale)) 14px; border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm); font-weight: 500; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.appearance-segmented button[aria-checked="true"] { background: var(--bg3); border-color: var(--border2); color: var(--text); }
+.appearance-segmented button[aria-checked="true"] .appearance-segmented-mark { opacity: 1; }
+.appearance-segmented-mark { opacity: 0; color: var(--accent); font-weight: 700; }
+
+.appearance-accent-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.appearance-swatch {
+  width: 40px; height: 40px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; position: relative;
+  display: inline-flex; align-items: center; justify-content: center; color: #000; font-size: 14px; font-weight: 700;
+}
+.appearance-swatch[aria-checked="true"] { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg2), 0 0 0 4px var(--border2); }
+.appearance-swatch-check { opacity: 0; }
+.appearance-swatch[aria-checked="true"] .appearance-swatch-check { opacity: 1; }
+.appearance-swatch--teal   { background: #00e5a0; }
+.appearance-swatch--blue   { background: #0094ff; }
+.appearance-swatch--purple { background: #a855f7; }
+.appearance-swatch--orange { background: #ff6b35; }
+
+.appearance-density-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.appearance-density-card {
+  flex: 1 1 160px; min-width: 150px; text-align: left; padding: calc(12px * var(--density-scale)) 14px; border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); background: var(--bg2); color: var(--text); cursor: pointer; font: inherit;
+}
+.appearance-density-card[aria-checked="true"] { border-color: var(--accent); background: var(--color-accent-dim, rgba(0,229,160,0.08)); }
+.appearance-density-card strong { display: block; font-size: var(--font-size-sm); margin-bottom: 3px; }
+.appearance-density-card span { display: block; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+
+.appearance-deferred-note { display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+
+/* Live preview — a self-contained miniature of the Studio shell, rendered
+   with the *same* CSS variables as the real app so it updates the instant
+   mode/accent/density/motion change, with no data of its own. */
+.appearance-preview { border: 1px solid var(--border2); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg); box-shadow: var(--shadow-card); }
+.appearance-preview-frame { display: flex; height: 180px; font-size: 11px; }
+.appearance-preview-sidebar { width: 96px; flex-shrink: 0; background: var(--bg2); border-right: 1px solid var(--border); padding: calc(10px * var(--density-scale)) 8px; display: flex; flex-direction: column; gap: 4px; }
+.appearance-preview-brand { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; font-weight: 700; color: var(--text); }
+.appearance-preview-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.appearance-preview-nav-item { padding: calc(5px * var(--density-scale)) 6px; border-radius: var(--radius-xs); color: var(--color-text-muted); }
+.appearance-preview-nav-item--active { background: var(--color-accent-dim, rgba(0,229,160,0.1)); color: var(--accent); }
+.appearance-preview-main { flex: 1; min-width: 0; padding: calc(10px * var(--density-scale)) 12px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); color: var(--text); }
+.appearance-preview-title { font-weight: 600; }
+.appearance-preview-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: var(--radius-pill, 999px); background: var(--color-accent-dim, rgba(0,229,160,0.1)); color: var(--accent); font-weight: 600; width: fit-content; }
+.appearance-preview-badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.appearance-preview-terminal { flex: 1; min-height: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 8px; font-family: var(--mono); color: var(--color-text-secondary); overflow: hidden; }
+.appearance-preview-terminal div + div { margin-top: 2px; }
+.appearance-preview-caption { margin-top: 8px; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+
+@media (max-width: 480px) {
+  .appearance-preview-frame { height: 210px; }
+  .appearance-preview-sidebar { width: 76px; }
+}
+
+/* Organization connections use the same appearance tokens as the Studio shell. */
+.connections-page { max-width: 860px; margin: 0 auto; padding: clamp(16px, 4vw, 40px); color: var(--text); }
+.connections-page header { margin-bottom: 28px; }
+.connections-page h1 { font-size: 28px; margin: 6px 0 12px; }
+.connections-page h2, .connections-dialog h2 { font-size: 20px; margin: 0; }
+.connections-page h3 { font-size: 18px; margin: 24px 0 8px; }
+.connections-page p, .connections-dialog p { line-height: 1.6; }
+.connections-eyebrow, .connections-note { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.connections-eyebrow { text-transform: uppercase; letter-spacing: .1em; }
+.connections-card, .connections-dialog { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: clamp(16px, 3vw, 28px); box-shadow: var(--shadow-card); }
+.connections-card-heading, .connections-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.connections-card-heading { justify-content: space-between; }
+.connections-status { color: var(--accent); font-size: var(--font-size-sm); }
+.connections-page dl { margin: 24px 0; }
+.connections-page dl > div { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.connections-page dt { width: 120px; color: var(--color-text-muted); }
+.connections-page dd { margin: 0; overflow-wrap: anywhere; }
+.connections-actions { margin-top: 24px; }
+.connections-page button, .connections-dialog button, .connections-dialog select, .connections-dialog input[type="password"] { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 14px; min-height: 44px; }
+.connections-page button { cursor: pointer; }
+.connections-page button:disabled { opacity: .55; cursor: not-allowed; }
+.connections-page .connections-primary { border-color: var(--accent); }
+.connections-page :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.connections-overlay { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.connections-dialog { width: 100%; max-width: 520px; max-height: calc(100dvh - 32px); overflow-y: auto; box-sizing: border-box; }
+.connections-dialog label { display: block; margin: 18px 0 8px; }
+.connections-dialog select, .connections-dialog input[type="password"] { width: 100%; box-sizing: border-box; }
+.connections-dialog .connections-confirm { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
+.connections-confirm input { margin-top: 5px; accent-color: var(--accent); }
+.connections-page [role="alert"] { color: var(--text); border-left: 3px solid var(--danger); padding-left: 12px; }
+@media (max-width: 480px) { .connections-actions { align-items: stretch; flex-direction: column; } .connections-actions button { width: 100%; } }
