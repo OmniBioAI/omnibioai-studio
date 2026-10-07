@@ -185,10 +185,10 @@ const EXTERNAL_NAV_SERVICES = {
   [CODE_NAV_IDX]:      { url: "/_svc/sdk",       label: "Code" },
   [WORKFLOWS_NAV_IDX]: { url: "/_svc/workflows", label: "Workflows" },
   // Dev Hub's own sidebar (Playground section) has the actual Ask OmniBioAI
-  // page -- Dev Hub is a single-page client-side app with no URL-addressable
-  // route for it yet, so this lands on its root, same shallow-link shape as
-  // Code/Workflows above, not a deep link straight to the chat page.
-  [ASK_NAV_IDX]:       { url: "/_svc/devhub",    label: "Ask OmniBioAI" },
+  // page. ?view=chat is Dev Hub's own deep-link contract (its App.tsx reads
+  // this once at mount and validates it against its known page ids) --
+  // lands directly on the chat page instead of its dashboard root.
+  [ASK_NAV_IDX]:       { url: "/_svc/devhub?view=chat", label: "Ask OmniBioAI" },
 };
 
 function getInitialService() {

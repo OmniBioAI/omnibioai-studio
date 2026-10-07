@@ -467,7 +467,7 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
 
     fireEvent.click(ask);
-    expect(await screen.findByText("ServiceViewer:Ask OmniBioAI:http://localhost:5174/_svc/devhub")).toBeInTheDocument();
+    expect(await screen.findByText("ServiceViewer:Ask OmniBioAI:http://localhost:5174/_svc/devhub?view=chat")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("svback"));
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
