@@ -76,8 +76,24 @@ try {
       assert.equal(await scientificField.evaluate(element => element.tagName), "INPUT");
       assert.equal(await page.getByRole("textbox", { name: "Multiline scientific notes" }).evaluate(element => element.tagName), "TEXTAREA");
       assert.equal(await page.getByRole("spinbutton", { name: "Distance" }).inputValue(), "1e-7");
+      const booleanField = page.getByRole("checkbox", { name: /Include regulatory-region consequences/ });
+      assert.equal(await booleanField.isChecked(), false);
+      assert((await booleanField.getAttribute("aria-describedby")).includes("description"));
+      await booleanField.focus();
+      await page.keyboard.press("Space");
+      assert.equal(await booleanField.isChecked(), true);
+      assert.notEqual(await booleanField.evaluate(element => getComputedStyle(element).outlineStyle), "none");
+      const multiselect = page.getByRole("listbox", { name: "Annotation sources" });
+      assert.deepEqual(await multiselect.locator("option:checked").evaluateAll(options => options.map(option => option.value)), ["ensembl_vep", "clinvar"]);
+      assert((await multiselect.getAttribute("aria-describedby")).includes("description"));
+      await multiselect.focus();
+      await page.keyboard.press("End");
+      assert(await multiselect.locator('option[value="gnomad"]').evaluate(option => option.selected));
+      assert.notEqual(await multiselect.evaluate(element => getComputedStyle(element).outlineStyle), "none");
+      await scientificField.focus();
       await page.keyboard.press("Tab");
-      assert(await scientificField.evaluate(element => element === document.activeElement));
+      assert(await page.getByRole("textbox", { name: "Multiline scientific notes" }).evaluate(element => element === document.activeElement));
+      await scientificField.focus();
       const focusOutline = await scientificField.evaluate(element => getComputedStyle(element).outlineStyle);
       assert.notEqual(focusOutline, "none");
       const focusColors = await scientificField.evaluate(element => ({ ring: getComputedStyle(element).outlineColor,

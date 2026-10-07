@@ -4,6 +4,8 @@ const FORBIDDEN_NAMES = new Set(["__proto__", "prototype", "constructor", "passw
 const IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 const URI_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 export const OPAQUE_ARTIFACT_ID = /^art_[A-Za-z0-9_-]{43}$/;
+export const MAX_MULTISELECT_CHOICES = 50;
+const FINITE_CHOICE_VALUE = /^[A-Za-z0-9][A-Za-z0-9_.+-]{0,127}$/;
 const ARTIFACT_KINDS = new Set(["archive", "file", "log", "plot", "report", "table"]);
 const MEDIA_TYPE = /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/i;
 const SCIENTIFIC_REFERENCE_TYPES = Object.freeze({
@@ -48,6 +50,19 @@ export function isRecord(value) {
 export function hasOnlyKeys(value, allowed, required = []) {
   return isRecord(value) && Object.keys(value).every(key => allowed.includes(key)) &&
     required.every(key => Object.hasOwn(value, key));
+}
+
+export function validFiniteChoices(choices) {
+  if (!Array.isArray(choices) || choices.length < 1 || choices.length > MAX_MULTISELECT_CHOICES) return false;
+  const values = new Set();
+  return choices.every(choice => {
+    if (!hasOnlyKeys(choice, ["value", "label"], ["value", "label"]) ||
+        typeof choice.value !== "string" || !FINITE_CHOICE_VALUE.test(choice.value) || values.has(choice.value) ||
+        typeof choice.label !== "string" || !choice.label.trim() || choice.label.length > 200 ||
+        /[<>\x00-\x1f\x7f]/.test(choice.label)) return false;
+    values.add(choice.value);
+    return true;
+  });
 }
 
 export function validArtifactPresentation(value) {

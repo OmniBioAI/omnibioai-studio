@@ -80,6 +80,13 @@ function Fixture() {
         field({ id: "notes", component: "textarea", label: "Multiline scientific notes", description: "Multiline values remain complete and editable.", default: ">ENST00000357654.9\nACGTACGT\nTGACTGAC" }),
         field({ id: "distance", component: "number", format: "float", label: "Distance", description: "The backend validates scientific suitability.", default: 1e-7, min: 0, max: 10, step: "any", unit: "nm" }),
         field({ id: "count", component: "number", format: "integer", label: "Result count", description: "The server enforces the requested result bound.", default: 20, min: 1, max: 100, step: 1 }),
+        field({ id: "include_regulatory", component: "checkbox", format: "boolean", label: "Include regulatory-region consequences with complete transcript context", description: "A deterministic scientific boolean; unchecked is submitted as false.", default: false, multiple: false }),
+        field({ id: "annotation_sources", component: "multiselect", format: "text", label: "Annotation sources", description: "Choose multiple fixed sources. Use platform multiple-selection keys where needed.", required: true, multiple: true,
+          choices: [
+            { value: "ensembl_vep", label: "Ensembl Variant Effect Predictor with complete transcript annotations" },
+            { value: "clinvar", label: "ClinVar clinical significance and review-status annotations" },
+            { value: "gnomad", label: "gnomAD population allele-frequency annotations" },
+          ], default: ["ensembl_vep", "clinvar"] }),
       ]} values={values} onValueChange={(id, value) => setValues(previous => ({ ...previous, [id]: value }))}
         onSubmit={event => { event.preventDefault(); setSubmitted(true); }} submitLabel="Validate presentation" />
       {submitted && <p role="status">Inputs accepted for backend validation.</p>}

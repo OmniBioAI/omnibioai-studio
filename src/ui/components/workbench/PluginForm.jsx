@@ -4,7 +4,12 @@ import { fieldText } from "./fields/FieldShell";
 
 function currentValue(input, values) {
   const value = values[input.id];
-  return value === undefined ? (input.default ?? "") : value;
+  if (value !== undefined) return value;
+  const component = input.component ?? input.widget;
+  if (input.default !== undefined) return input.default;
+  if (component === "checkbox") return false;
+  if (component === "multiselect") return [];
+  return "";
 }
 
 export function validateConditionalInputs(inputs) {
@@ -89,9 +94,14 @@ export default function PluginForm({
       const state = fieldState(input, values, fields);
       if (!state.visible) continue;
       const control = controls.find(element => element.closest(".plugin-field")?.dataset.fieldId === input.id);
-      const present = (input.component ?? input.widget) === "file"
+      const component = input.component ?? input.widget;
+      const present = component === "file"
         ? (files[input.id] || []).length > 0
-        : fieldText(currentValue(input, values)).trim().length > 0;
+        : component === "checkbox"
+          ? currentValue(input, values) === true
+          : component === "multiselect"
+            ? Array.isArray(currentValue(input, values)) && currentValue(input, values).length > 0
+            : fieldText(currentValue(input, values)).trim().length > 0;
       if (control?.validity.badInput) {
         errors[input.id] = `${input.label} must be a number.`;
       } else if (state.required && !present) {

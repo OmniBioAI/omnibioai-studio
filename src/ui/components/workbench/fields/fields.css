@@ -45,6 +45,24 @@
 html[data-theme="light"] .plugin-field .studio-field,
 html[data-theme="light"] .plugin-field-control { color-scheme: light; }
 
+.plugin-field .plugin-checkbox-control {
+  width: 20px;
+  height: 20px;
+  margin: 4px 0;
+  padding: 0;
+  justify-self: start;
+  accent-color: var(--accent);
+}
+
+.plugin-checkbox-control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.plugin-checkbox-control:disabled { cursor: not-allowed; opacity: 0.65; }
+.plugin-multiselect-control { min-height: 132px; padding: 4px; }
+.plugin-multiselect-control option { padding: 7px 8px; white-space: normal; overflow-wrap: anywhere; }
+
 .plugin-field .studio-field::placeholder,
 .plugin-field-control::placeholder {
   color: var(--color-text-secondary);
@@ -128,6 +146,7 @@ textarea.plugin-field-control {
 /* The accent is too light against a light surface for a keyboard focus ring. */
 html[data-theme="light"] .plugin-field .studio-field:focus-visible,
 html[data-theme="light"] .plugin-field-control:focus-visible,
+html[data-theme="light"] .plugin-checkbox-control:focus-visible,
 html[data-theme="light"] .plugin-form > button:focus-visible {
   outline-color: var(--text);
 }

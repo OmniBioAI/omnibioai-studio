@@ -1,8 +1,10 @@
 import { isElectron } from "./session";
-import { hasOnlyKeys, isDataPath, isRecord, OPAQUE_ARTIFACT_ID, scientificReferenceTypesForPlugin, validArtifactPresentation, validBatchField, validColumns, validDetailDescriptor, validFilterDescriptor, validPaginationDescriptor } from "./pluginUiContracts";
+import { hasOnlyKeys, isDataPath, isRecord, OPAQUE_ARTIFACT_ID, scientificReferenceTypesForPlugin, validArtifactPresentation, validBatchField, validColumns, validDetailDescriptor, validFilterDescriptor, validFiniteChoices, validPaginationDescriptor } from "./pluginUiContracts";
 
 const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
+const FIELD_ID = /^[a-z][a-z0-9_]*$/;
+const FORBIDDEN_FIELD_IDS = new Set(["constructor", "prototype", "__proto__", "password", "token", "secret", "api_key", "credentials"]);
 const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-query|ui-detail|ui-reference|ui-artifacts)\/(?:[A-Za-z0-9_.:{}-]+\/){0,3}(?:\?[^#]*)?$/;
 const RUN_ID = /^[A-Za-z0-9_.:-]+$/;
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
@@ -47,12 +49,30 @@ export function pluginArtifactDownloadUrl(slug, runId, artifactId, options) {
 }
 
 function validateField(field) {
-  if (!field || typeof field.id !== "string" || !SLUG.test(field.id) || ["constructor", "prototype", "__proto__", "password", "token", "secret", "api_key"].includes(field.id)) throw new PluginDescriptorError("Invalid plugin input schema.");
+  if (!field || typeof field.id !== "string" || !FIELD_ID.test(field.id) || FORBIDDEN_FIELD_IDS.has(field.id)) throw new PluginDescriptorError("Invalid plugin input schema.");
   const component = field.component ?? field.widget;
-  if (!["file", "text", "textarea", "select"].includes(component) || typeof field.format !== "string") throw new PluginDescriptorError("Unsupported plugin input schema.");
+  if (!["file", "text", "textarea", "select", "checkbox", "multiselect"].includes(component) || typeof field.format !== "string") throw new PluginDescriptorError("Unsupported plugin input schema.");
   if (field.component && field.widget && field.component !== field.widget) throw new PluginDescriptorError("Invalid plugin input schema.");
   if (typeof field.label !== "string" || typeof field.description !== "string" || typeof field.required !== "boolean") {
     throw new PluginDescriptorError("Invalid plugin input schema.");
+  }
+  if (component === "checkbox") {
+    const allowed = ["id", "widget", "component", "label", "description", "required", "format", "multiple", "default"];
+    if (!hasOnlyKeys(field, allowed, ["id", "label", "description", "required", "format", "multiple", "default"]) ||
+        field.format !== "boolean" || field.multiple !== false || typeof field.default !== "boolean") {
+      throw new PluginDescriptorError("Invalid checkbox field schema.");
+    }
+    return field;
+  }
+  if (component === "multiselect") {
+    const allowed = ["id", "widget", "component", "label", "description", "required", "format", "multiple", "default", "choices"];
+    if (!hasOnlyKeys(field, allowed, ["id", "label", "description", "required", "format", "multiple", "default", "choices"]) ||
+        field.format !== "text" || field.multiple !== true || !validFiniteChoices(field.choices) ||
+        !Array.isArray(field.default) || new Set(field.default).size !== field.default.length ||
+        field.default.some(value => typeof value !== "string" || !field.choices.some(choice => choice.value === value))) {
+      throw new PluginDescriptorError("Invalid multiselect field schema.");
+    }
+    return field;
   }
   if (field.accept !== undefined && typeof field.accept !== "string") throw new PluginDescriptorError("Invalid plugin input schema.");
   if (field.query_key !== undefined && (!isDataPath(field.query_key) || field.query_key.includes("."))) throw new PluginDescriptorError("Invalid query parameter schema.");
@@ -117,7 +137,12 @@ function validateQueryDescriptor(data) {
   if (Object.keys(data.endpoints).some(key => !QUERY_ENDPOINTS.includes(key)) || typeof data.endpoints.query !== "string" || (detailEnabled && typeof data.endpoints.detail !== "string") || (!detailEnabled && data.endpoints.detail !== undefined)) {
     throw new PluginDescriptorError("Invalid query endpoint schema.");
   }
-  data.inputs.forEach(validateField);
+  data.inputs.forEach(field => {
+    validateField(field);
+    if (["checkbox", "multiselect"].includes(field.component ?? field.widget)) {
+      throw new PluginDescriptorError("Unsupported query input schema.");
+    }
+  });
   validateConditionalInputs(data.inputs);
   if (!data.result || data.result.presentation !== "table" || typeof data.result.rows_path !== "string" || !Array.isArray(data.result.columns)) {
     throw new PluginDescriptorError("Invalid query result schema.");
@@ -180,7 +205,7 @@ function rejectExecutableMetadata(value, depth = 0) {
   if (depth > 30 || typeof value === "function") throw new PluginDescriptorError("Invalid plugin metadata.");
   if (!value || typeof value !== "object") return;
   for (const [key, child] of Object.entries(value)) {
-    if (/^(?:__proto__|prototype|constructor|jsx|javascript|script|script_url|html|raw_html|dangerouslySetInnerHTML|callback|callbacks|onChange|onClick|onSubmit|onLoad|onError|module|module_path|import|imports|eval|function|function_name|credentials|password|token|access_token|api_key|secret|secrets|source_path|filesystem_path|upstream_url)$/i.test(key)) {
+    if (/^(?:__proto__|prototype|constructor|jsx|javascript|script|script_url|html|raw_html|dangerouslySetInnerHTML|callback|callbacks|event_handler|expression|onChange|onClick|onSubmit|onLoad|onError|module|module_path|import|imports|eval|function|function_name|credentials|password|token|access_token|api_key|secret|secrets|source_path|filesystem_path|upstream_url)$/i.test(key)) {
       throw new PluginDescriptorError("Forbidden plugin metadata.");
     }
     rejectExecutableMetadata(child, depth + 1);

@@ -391,6 +391,10 @@ and Workbench `plugins/shared/tests/test_query_ui.py`.
 | ScientificReference | `reference` | PRODUCTION | Server-authorized scientific cross-reference navigation |
 | ArtifactList | `artifact_list` | PRODUCTION | Bounded metadata for caller-owned run artifacts |
 | ArtifactDownload | `artifact_download` | PRODUCTION | Fixed same-origin download by opaque artifact ID |
+| CheckboxField | `checkbox` | PRODUCTION | Deterministic true/false input using a native checkbox |
+| MultiSelectField | `multiselect` | PRODUCTION | Multiple selections from at most 50 descriptor-owned choices |
+| ServerSelect | — | PLANNED_NOT_AVAILABLE | Server/user-resource discovery is a separate future contract |
+| ResourceSelector | — | PLANNED_NOT_AVAILABLE | Never model resource discovery as a finite multiselect |
 | Arbitrary hyperlink | — | INTENTIONALLY_UNSUPPORTED | Descriptors/runtime data never carry destinations |
 | Structured recursive JSON viewer | — | PLANNED_NOT_AVAILABLE | Intentionally unsupported |
 
@@ -578,3 +582,73 @@ Example response:
 **DO NOT PUT FILESYSTEM PATHS OR DOWNLOAD URLS IN UI DESCRIPTORS.** Runtime
 artifact records likewise never contain paths, storage keys, buckets, signed
 URLs, credentials or arbitrary endpoints.
+
+## Batch 6: finite boolean and multiple-choice fields
+
+### CheckboxField (`checkbox`)
+
+- **Purpose / when to use:** one genuine two-state scientific or execution
+  option, such as enabling an analysis step or including a result class.
+- **When not to use:** tri-state values, consent/mutation actions, conditional
+  expression engines, or string/numeric encodings of booleans.
+- **Descriptor contract:** `widget` is `checkbox`, `format` is `boolean`,
+  `multiple` is `false`, and `default` is a real JSON boolean. The normal
+  `id`, `label`, `description`, and `required` properties apply.
+- **Value/default contract:** React state is always `true` or `false`; an
+  omitted default is normalized by Django to `false`. There is no indeterminate
+  state. Required means the value must be true.
+- **Submission:** Studio always appends exact `true` or `false` text to
+  `param_<field_id>`, including unchecked controls. Django accepts only those
+  spellings and normalizes to a Python boolean.
+- **Backend responsibility:** independently enforce type, requiredness,
+  defaults, and scientific validity before execution.
+- **Accessibility/error behavior:** native checkbox, associated label/help/
+  error, keyboard Space behavior, visible token-based focus, and native
+  disabled/required semantics.
+- **Evidence:** toxicity prediction switches, spatial H5AD export, single-cell
+  stages, GWAS/popgen steps, and marker-analysis switches.
+- **Tests:** Studio `tests/ui/workbench-choice-fields.test.jsx`; Workbench
+  `plugins/shared/tests/test_input_components.py`.
+
+```json
+{"id":"include_intronic","widget":"checkbox","format":"boolean",
+ "label":"Include intronic variants","description":"Include intronic consequences.",
+ "required":false,"multiple":false,"default":false}
+```
+
+### MultiSelectField (`multiselect`)
+
+- **Purpose / when to use:** select zero or more values from a small, immutable
+  descriptor-owned scientific vocabulary.
+- **When not to use:** datasets, artifacts, saved objects, conditions loaded
+  from data, remote search, free-text tags, or option creation. **DO NOT USE
+  MULTISELECT FOR SERVER-BACKED RESOURCE DISCOVERY.**
+- **Finite choice contract:** 1–50 exact `{value,label}` objects. Values are
+  unique bounded safe scalar tokens; labels are bounded inert text.
+- **Value/default contract:** a duplicate-free string array whose members are
+  declared values. Defaults must be a subset. Descriptors define display and
+  normalized submission order regardless of user selection order.
+- **Required semantics:** at least one selection; optional fields may submit an
+  empty array.
+- **Submission:** Studio sends one JSON string array in `param_<field_id>` so
+  empty selection differs from omission. Django accepts only a flat string
+  array, rejects objects/unknowns/duplicates, and returns a normalized Python
+  list. This is transport encoding, not a generic JSON input contract.
+- **Accessibility/error behavior:** labeled native `select multiple`, help and
+  error association, native keyboard operation and visible focus. Long labels
+  wrap rather than ellipsize.
+- **Evidence:** fixed GO/Reactome/GSEA methods in pathway enrichment and three
+  fixed anomaly-detection algorithms. Proteomics conditions/states and ChIP-seq
+  objects are excluded because their choices are server-derived.
+- **Tests:** Studio `tests/ui/workbench-choice-fields.test.jsx`; Workbench
+  `plugins/shared/tests/test_input_components.py`.
+
+```json
+{"id":"enrichment_types","widget":"multiselect","format":"text",
+ "label":"Methods","description":"Select one or more enrichment methods.",
+ "required":true,"multiple":true,
+ "choices":[{"value":"go","label":"GO (Gene Ontology)"},
+            {"value":"reactome","label":"Reactome"},
+            {"value":"gsea","label":"GSEA"}],
+ "default":["go"]}
+```

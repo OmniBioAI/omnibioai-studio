@@ -1,6 +1,8 @@
 import TextField from "./fields/TextField";
 import TextAreaField from "./fields/TextAreaField";
 import NumberField from "./fields/NumberField";
+import CheckboxField from "./fields/CheckboxField";
+import MultiSelectField from "./fields/MultiSelectField";
 import ResultsTable from "./results/ResultsTable";
 import PaginationControls from "./results/PaginationControls";
 import KeyValueResult from "./results/KeyValueResult";
@@ -10,7 +12,7 @@ import ScientificReference from "./results/ScientificReference";
 import ArtifactList from "./results/ArtifactList";
 import ArtifactDownload from "./results/ArtifactDownload";
 
-export { TextField, TextAreaField, NumberField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls, ScientificReference, ArtifactList, ArtifactDownload };
+export { TextField, TextAreaField, NumberField, CheckboxField, MultiSelectField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls, ScientificReference, ArtifactList, ArtifactDownload };
 export const TextareaField = TextAreaField;
 
 /**
@@ -58,6 +60,8 @@ export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
   textarea: TextareaField,
   select: SelectField,
   number: NumberField,
+  checkbox: CheckboxField,
+  multiselect: MultiSelectField,
   table: ResultsTable,
   pagination: PaginationControls,
   key_value: KeyValueResult,
@@ -68,7 +72,7 @@ export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
   artifact_download: ArtifactDownload,
 });
 
-export const WORKBENCH_FIELD_TYPES = Object.freeze(["file", "text", "textarea", "select", "number"]);
+export const WORKBENCH_FIELD_TYPES = Object.freeze(["file", "text", "textarea", "select", "number", "checkbox", "multiselect"]);
 
 export function resolveWorkbenchComponent(type) {
   if (typeof type !== "string") return null;

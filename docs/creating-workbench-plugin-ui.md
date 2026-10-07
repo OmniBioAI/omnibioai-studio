@@ -170,6 +170,52 @@ resolves storage.
 template, callback or storage credential metadata. Keep a plugin legacy if its
 artifact cannot be tied to authoritative ownership and containment.
 
+## Choosing Boolean and Multiple-Choice Inputs
+
+Use the narrowest implemented field:
+
+```text
+Need a true/false option?        -> CheckboxField (`checkbox`)
+Need one finite choice?          -> SelectField (`select`)
+Need multiple finite choices?    -> MultiSelectField (`multiselect`)
+Need server/user-owned choices?  -> keep the plugin legacy pending a
+                                    server-backed selector contract
+```
+
+Checkbox defaults must be JSON booleans. Studio submits both checked and
+unchecked state, while Django validates and normalizes the value again. A
+required checkbox means `true`, not merely that the form key was present.
+
+MultiSelect choices are embedded in the validated descriptor and capped at 50.
+Each choice has a stable scalar `value` and inert human-readable `label`.
+Defaults and submitted values must be duplicate-free subsets. Django restores
+descriptor order before the executor receives the list.
+
+**DO NOT USE MULTISELECT FOR SERVER-BACKED RESOURCE DISCOVERY.** Conditions,
+datasets, artifacts, saved objects, or other user-owned resources need a later
+authorized selector contract. Do not snapshot them into a descriptor, accept
+unknown values, add remote callbacks, or turn this component into tags or
+autocomplete.
+
+```json
+{"id":"run_qc","widget":"checkbox","format":"boolean",
+ "label":"Run quality control","description":"Apply QC before analysis.",
+ "required":false,"multiple":false,"default":true}
+```
+
+```json
+{"id":"methods","widget":"multiselect","format":"text",
+ "label":"Methods","description":"Choose one or more fixed methods.",
+ "required":true,"multiple":true,
+ "choices":[{"value":"go","label":"GO (Gene Ontology)"},
+            {"value":"reactome","label":"Reactome"}],
+ "default":["go"]}
+```
+
+Add backend descriptor/submission tests and frontend registry, keyboard,
+required, default, error, malformed-metadata, and payload tests. Keep plugins
+legacy when their remaining interaction or result family is unsupported.
+
 ## 5. Add tests
 
 Add the plugin to parameterized backend contracts. Verify schema, auth, method,

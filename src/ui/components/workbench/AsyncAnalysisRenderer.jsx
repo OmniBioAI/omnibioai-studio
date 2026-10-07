@@ -11,9 +11,17 @@ import { validateArtifactPayload } from "../../lib/pluginUiContracts";
 const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR"]);
 
 function inputName(input) {
-  return descriptorComponent(input) === "text" || descriptorComponent(input) === "textarea"
+  return ["text", "textarea", "checkbox", "multiselect"].includes(descriptorComponent(input))
     ? `param_${input.id}`
     : `input_${input.id}`;
+}
+
+function effectiveValue(input, values) {
+  if (values[input.id] !== undefined) return values[input.id];
+  if (input.default !== undefined) return input.default;
+  if (descriptorComponent(input) === "checkbox") return false;
+  if (descriptorComponent(input) === "multiselect") return [];
+  return "";
 }
 
 export default function AsyncAnalysisRenderer({ descriptor }) {
@@ -87,11 +95,23 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
         setError(`${input.label} is required.`);
         return;
       }
+      if (descriptorComponent(input) === "checkbox" && effectiveValue(input, values) !== true) {
+        setError(`${input.label} is required.`);
+        return;
+      }
+      if (descriptorComponent(input) === "multiselect" && !effectiveValue(input, values).length) {
+        setError(`${input.label} is required.`);
+        return;
+      }
     }
     const formData = new FormData();
     inputs.forEach(input => {
-      if (descriptorComponent(input) === "file") (files[input.id] || []).forEach(file => formData.append(inputName(input), file));
-      else if (values[input.id]) formData.append(inputName(input), values[input.id]);
+      const component = descriptorComponent(input);
+      const value = effectiveValue(input, values);
+      if (component === "file") (files[input.id] || []).forEach(file => formData.append(inputName(input), file));
+      else if (component === "checkbox") formData.append(inputName(input), value ? "true" : "false");
+      else if (component === "multiselect") formData.append(inputName(input), JSON.stringify(value));
+      else if (value !== "" && value !== null && value !== undefined) formData.append(inputName(input), value);
     });
     setSubmitting(true);
     setRunId(""); setStatus(null); setLogs([]); setArtifacts([]); setRenderedResult(null);
