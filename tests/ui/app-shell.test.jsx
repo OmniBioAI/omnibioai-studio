@@ -458,18 +458,19 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     expect(runtimeItems).toEqual(["Launch", "Services", "IDE Services", "Logs", "Billing", "Developer"]);
   });
 
-  it("Ask OmniBioAI is visible but disabled: not clickable, no navigation, no local page, no Dev Hub fallback", async () => {
+  it("Ask OmniBioAI opens the existing Dev Hub service, same mechanism as Code/Workflows, and returns to Studio", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     const ask = screen.getByText("Ask OmniBioAI", { selector: "div" });
-    expect(ask).toHaveAttribute("aria-disabled", "true");
+    expect(ask).not.toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
 
     fireEvent.click(ask);
-    // No navigation of any kind happened: still on Studio, no service opened, no "ask" page rendered.
-    expect(screen.getByText("Studio page")).toBeInTheDocument();
-    expect(screen.queryByText(/ServiceViewer:/)).not.toBeInTheDocument();
-    expect(window.location.pathname).toBe("/studio");
+    expect(await screen.findByText("ServiceViewer:Ask OmniBioAI:http://localhost:5174/_svc/devhub")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("svback"));
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 
   it("Projects, Artifacts and Explore are local native shells that render with no backend call and no fake data", async () => {

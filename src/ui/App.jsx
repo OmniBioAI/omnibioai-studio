@@ -48,8 +48,8 @@ import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 // idx values: 0-17 are real `step` pages (see `pages` below); 18/19 are the
 // Code/Workflows service aliases (never a real step -- see
 // EXTERNAL_NAV_SERVICES); 20-22 are the new native Projects/Artifacts/Explore
-// shells; -1 is Ask OmniBioAI's placeholder, which never navigates at all
-// (see the `disabled` nav-item contract below).
+// shells; -1 is Ask OmniBioAI, another EXTERNAL_NAV_SERVICES alias (same
+// shape as Code/Workflows below).
 const ASK_NAV_IDX = -1;
 const PROJECTS_PAGE = 20;
 const ARTIFACTS_PAGE = 21;
@@ -57,12 +57,11 @@ const EXPLORE_PAGE = 22;
 
 const BASE_NAV = [
   { section: null, items: [{ name:"Studio", idx:7 }] },
-  // Ask OmniBioAI is intentionally unwired -- the real implementation lives in
-  // the sibling Dev Hub app and Studio has no verified stable deep link to its
-  // Ask page yet, so this item is visible but not an operational destination
-  // (see the Sidebar/MobileNav `disabled` handling).
+  // The real implementation lives in the sibling Dev Hub app (its own
+  // "Playground" nav section) -- see EXTERNAL_NAV_SERVICES below, same
+  // service-view mechanism Code/Workflows already use.
   { section: "AI", items: [
-    { name:"Ask OmniBioAI", idx: ASK_NAV_IDX, disabled: true },
+    { name:"Ask OmniBioAI", idx: ASK_NAV_IDX },
   ]},
   { section: "Work", items: [
     { name:"Projects",  idx: PROJECTS_PAGE },
@@ -185,6 +184,11 @@ const WORKFLOWS_NAV_IDX = 19;
 const EXTERNAL_NAV_SERVICES = {
   [CODE_NAV_IDX]:      { url: "/_svc/sdk",       label: "Code" },
   [WORKFLOWS_NAV_IDX]: { url: "/_svc/workflows", label: "Workflows" },
+  // Dev Hub's own sidebar (Playground section) has the actual Ask OmniBioAI
+  // page -- Dev Hub is a single-page client-side app with no URL-addressable
+  // route for it yet, so this lands on its root, same shallow-link shape as
+  // Code/Workflows above, not a deep link straight to the chat page.
+  [ASK_NAV_IDX]:       { url: "/_svc/devhub",    label: "Ask OmniBioAI" },
 };
 
 function getInitialService() {
