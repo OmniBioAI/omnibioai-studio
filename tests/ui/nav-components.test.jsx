@@ -246,6 +246,74 @@ describe("MobileNav", () => {
   });
 });
 
+describe("Navigation icons", () => {
+  const iconNav = [
+    { section: null, items: [{ name: "Studio", idx: 7 }] },
+    { section: "AI", items: [{ name: "Ask OmniBioAI", idx: -1 }] },
+    { section: "Work", items: [
+      { name: "Projects", idx: 20 }, { name: "Code", idx: 18 }, { name: "Workflows", idx: 19 },
+      { name: "Jobs", idx: 9 }, { name: "Artifacts", idx: 21 },
+    ] },
+    { section: "Runtime", items: [{ name: "Launch", idx: 4 }, { name: "Billing", idx: 12 }] },
+    { section: "Security", items: [{ name: "Roles", idx: 11 }] },
+    { section: "Organization", items: [{ name: "Connections", idx: 26 }] },
+  ];
+  const allItems = iconNav.flatMap(group => group.items);
+
+  it("renders a semantic SVG icon (not a generic dot) for every nav destination, with the label still present, on desktop", () => {
+    const { container } = render(<Sidebar nav={iconNav} step={7} setStep={vi.fn()} systemStatus="idle" currentUser={null} />);
+    for (const { name } of allItems) {
+      const row = container.querySelector(`[data-nav-item="${name}"]`);
+      expect(row.querySelector("svg")).toBeInTheDocument();
+      expect(row.querySelector('[style*="border-radius: 50%"]')).not.toBeInTheDocument();
+      expect(row).toHaveTextContent(name);
+    }
+  });
+
+  it("renders a semantic SVG icon (not a generic dot) for every nav destination, with the label still present, on mobile", () => {
+    const { container } = render(<MobileNav nav={iconNav} step={7} setStep={vi.fn()} currentUser={null} open onClose={vi.fn()} />);
+    for (const { name } of allItems) {
+      const row = container.querySelector(`[data-nav-item="${name}"]`);
+      expect(row.querySelector("svg")).toBeInTheDocument();
+      expect(row.querySelector('[style*="border-radius: 50%"]')).not.toBeInTheDocument();
+      expect(row).toHaveTextContent(name);
+    }
+  });
+
+  it("uses the same semantic icon mapping on desktop and mobile for every destination", () => {
+    const { container: desktop } = render(<Sidebar nav={iconNav} step={7} setStep={vi.fn()} systemStatus="idle" currentUser={null} />);
+    const { container: mobile } = render(<MobileNav nav={iconNav} step={7} setStep={vi.fn()} currentUser={null} open onClose={vi.fn()} />);
+    for (const { name } of allItems) {
+      const desktopShapeCount = desktop.querySelector(`[data-nav-item="${name}"] svg`).querySelectorAll("path, circle, rect").length;
+      const mobileShapeCount = mobile.querySelector(`[data-nav-item="${name}"] svg`).querySelectorAll("path, circle, rect").length;
+      expect(mobileShapeCount).toBe(desktopShapeCount);
+      expect(mobileShapeCount).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives disabled destinations the same icon as their enabled counterpart, unaffected by the disabled flag", () => {
+    const enabledAsk = [{ section: "AI", items: [{ name: "Ask OmniBioAI", idx: -1 }] }];
+    const disabledAsk = [{ section: "AI", items: [{ name: "Ask OmniBioAI", idx: -1, disabled: true }] }];
+    const { container: enabled } = render(<Sidebar nav={enabledAsk} step={-1} setStep={vi.fn()} systemStatus="idle" currentUser={null} />);
+    const { container: disabled } = render(<Sidebar nav={disabledAsk} step={-1} setStep={vi.fn()} systemStatus="idle" currentUser={null} />);
+    const enabledRow = enabled.querySelector('[data-nav-item="Ask OmniBioAI"]');
+    const disabledRow = disabled.querySelector('[data-nav-item="Ask OmniBioAI"]');
+    expect(enabledRow.querySelector("svg")).toBeInTheDocument();
+    expect(enabledRow).not.toHaveAttribute("aria-disabled");
+    expect(disabledRow.querySelector("svg")).toBeInTheDocument();
+    expect(disabledRow).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("does not add icons to section headings", () => {
+    const { container } = render(<Sidebar nav={iconNav} step={7} setStep={vi.fn()} systemStatus="idle" currentUser={null} />);
+    const headings = [...container.querySelectorAll("[data-nav-section] > div:first-child")]
+      .filter(el => !el.hasAttribute("data-nav-item"));
+    for (const heading of headings) {
+      expect(heading.querySelector("svg")).not.toBeInTheDocument();
+    }
+  });
+});
+
 describe("UpdateBanner", () => {
   it("renders nothing without window.api.onUpdateAvailable", () => {
     const { container } = render(<UpdateBanner />);

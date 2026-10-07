@@ -1,5 +1,6 @@
 import React from "react";
 import AccountMenu from "./AccountMenu";
+import { NAV_ICONS } from "./NavIcons";
 
 const statusColor = {
   idle:     "var(--color-text-muted)",
@@ -74,6 +75,7 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
             </div>}
             {items.map(({ name, idx, disabled }) => {
               const isActive = !disabled && step === idx;
+              const Icon = NAV_ICONS[name];
               return (
                 <div
                   key={name}
@@ -103,10 +105,12 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
                       width:2, height:16, background:"var(--accent)", borderRadius:'var(--radius-xs)',
                     }} />
                   )}
-                  <div style={{
-                    width:6, height:6, borderRadius:"50%",
-                    background:"currentColor", opacity: isActive ? 1 : 0.4, flexShrink:0,
-                  }} />
+                  <span style={{
+                    width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center",
+                    flexShrink:0, opacity: isActive ? 1 : 0.75,
+                  }}>
+                    {Icon && <Icon />}
+                  </span>
                   {name}
                   {disabled && (
                     <span style={{

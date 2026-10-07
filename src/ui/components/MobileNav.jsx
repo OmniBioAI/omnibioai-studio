@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import AccountMenu from "./AccountMenu";
+import { NAV_ICONS } from "./NavIcons";
 
 // Mobile drawer nav. Deliberately takes the exact same `nav`/`step`/`setStep`
 // data App.jsx already builds via buildNav() and passes to the desktop
@@ -114,6 +115,7 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
               </div>}
               {items.map(({ name, idx, disabled }) => {
                 const isActive = !disabled && step === idx;
+                const Icon = NAV_ICONS[name];
                 return (
                   <div
                     key={name}
@@ -133,10 +135,12 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
                       border: isActive ? "1px solid rgba(0,229,160,0.15)" : "1px solid transparent",
                     }}
                   >
-                    <div style={{
-                      width: 6, height: 6, borderRadius: "50%",
-                      background: "currentColor", opacity: isActive ? 1 : 0.4, flexShrink: 0,
-                    }} />
+                    <span style={{
+                      width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0, opacity: isActive ? 1 : 0.75,
+                    }}>
+                      {Icon && <Icon />}
+                    </span>
                     {name}
                     {disabled && (
                       <span style={{
