@@ -544,17 +544,25 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     const allowed = [
       "http://localhost:5174/_svc/workbench/home/catalog/",
       "http://webstudio.omnibioai.org:8081/api/tools",
+      "http://webstudio.omnibioai.org:8098/v1/workflows",
+      "http://webstudio.omnibioai.org:8081/api/servers",
     ];
-    const fetchSpy = vi.fn(url => Promise.reject(new Error(`test response for ${url}`)));
+    const fetchSpy = vi.fn(url => {
+      if (String(url).includes("home/catalog")) return Promise.resolve({ ok: true, json: async () => ({ schema_version: 1, total_count: 0, categories: [] }) });
+      if (String(url).endsWith("/api/tools")) return Promise.resolve({ ok: true, json: async () => [] });
+      if (String(url).endsWith("/v1/workflows")) return Promise.resolve({ ok: true, json: async () => [{ id: 1, name: "rnaseq", display_name: "RNA-seq workflow", engine: "nextflow", category: "transcriptomics", description: "Canonical workflow registry record" }] });
+      if (String(url).endsWith("/api/servers")) return Promise.resolve({ ok: true, json: async () => [{ server_id: "local", adapter_type: "local", capabilities: { cpu: 4 } }] });
+      return Promise.reject(new Error(`unexpected Explore request: ${url}`));
+    });
     vi.stubGlobal("fetch", fetchSpy);
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Explore", { selector: "div" }));
     expect(await screen.findByRole("heading", { name: "Explore" })).toBeInTheDocument();
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(4));
     expect(fetchSpy.mock.calls.map(([url]) => url).sort()).toEqual(allowed.sort());
-    expect(screen.getByRole("heading", { name: "Workflows", level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "RNA-seq workflow", level: 2 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Tool Executor", level: 2 })).toBeInTheDocument();
     vi.unstubAllGlobals();
   });
