@@ -170,16 +170,22 @@ resolves storage.
 template, callback or storage credential metadata. Keep a plugin legacy if its
 artifact cannot be tied to authoritative ownership and containment.
 
-## Choosing Boolean and Multiple-Choice Inputs
+## Choosing Boolean, Multiple-Choice, and Resource Inputs
 
 Use the narrowest implemented field:
 
 ```text
-Need a true/false option?        -> CheckboxField (`checkbox`)
-Need one finite choice?          -> SelectField (`select`)
-Need multiple finite choices?    -> MultiSelectField (`multiselect`)
-Need server/user-owned choices?  -> keep the plugin legacy pending a
-                                    server-backed selector contract
+Need a true/false option?             -> CheckboxField (`checkbox`)
+Need one finite descriptor choice?    -> SelectField (`select`)
+Need multiple finite descriptor
+  choices?                            -> MultiSelectField (`multiselect`)
+Need one of the caller's own prior
+  completed runs?                     -> ResourceSelectField (`resource_select`)
+Need any other server/user-owned
+  resource (dataset, registered
+  object, ...)?                       -> keep the plugin legacy; no
+                                          evidence-backed contract exists yet
+Need an arbitrary remote URL/API?     -> NOT SUPPORTED
 ```
 
 Checkbox defaults must be JSON booleans. Studio submits both checked and
@@ -191,11 +197,35 @@ Each choice has a stable scalar `value` and inert human-readable `label`.
 Defaults and submitted values must be duplicate-free subsets. Django restores
 descriptor order before the executor receives the list.
 
-**DO NOT USE MULTISELECT FOR SERVER-BACKED RESOURCE DISCOVERY.** Conditions,
-datasets, artifacts, saved objects, or other user-owned resources need a later
-authorized selector contract. Do not snapshot them into a descriptor, accept
-unknown values, add remote callbacks, or turn this component into tags or
-autocomplete.
+**DO NOT USE MULTISELECT FOR SERVER-BACKED RESOURCE DISCOVERY.** A caller's own
+prior completed runs use `ResourceSelectField` (`resource_select`) instead —
+see below. Datasets, registered objects, or other user-owned resource families
+still have no evidence-backed contract; keep those plugins legacy rather than
+snapshotting server-owned choices into a descriptor, accepting unknown values,
+or turning either component into a remote callback, tag input, or autocomplete.
+
+`ResourceSelectField` fetches its own options from a fixed, server-computed
+`GET /plugins/<slug>/api/ui-resources/<resource_type>/` endpoint — never a
+URL the descriptor or plugin.json supplies. The *source* plugin(s) a field may
+list are registered once, centrally, in
+`plugins.shared.resource_ui.PLUGIN_RESOURCE_SOURCES`, keyed by your plugin's
+slug; a field cannot grant itself a new source plugin from its own manifest.
+Selection is always single (`multiple` is always `false`); the submitted
+value is the opaque run id, exactly like a `text` field. **Discovery does not
+authorize execution** — your executor never needs to re-check this, because
+`_input_payload`'s `resource_select` branch already re-resolves and
+re-authorizes the submitted id against RunStore ownership and `COMPLETED`
+state before your executor ever sees it.
+
+```json
+{"id":"source_run_id","widget":"resource_select","format":"text",
+ "label":"Source run","description":"A prior completed run to use as input.",
+ "required":true,"multiple":false,"resource_type":"run",
+ "endpoint":"/plugins/your_plugin/api/ui-resources/run/"}
+```
+
+**DO NOT PUT RESOURCE URLS, STORAGE PATHS, OR AUTHORIZATION DATA IN UI
+DESCRIPTORS.**
 
 ```json
 {"id":"run_qc","widget":"checkbox","format":"boolean",

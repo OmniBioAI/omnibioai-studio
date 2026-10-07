@@ -393,8 +393,7 @@ and Workbench `plugins/shared/tests/test_query_ui.py`.
 | ArtifactDownload | `artifact_download` | PRODUCTION | Fixed same-origin download by opaque artifact ID |
 | CheckboxField | `checkbox` | PRODUCTION | Deterministic true/false input using a native checkbox |
 | MultiSelectField | `multiselect` | PRODUCTION | Multiple selections from at most 50 descriptor-owned choices |
-| ServerSelect | — | PLANNED_NOT_AVAILABLE | Server/user-resource discovery is a separate future contract |
-| ResourceSelector | — | PLANNED_NOT_AVAILABLE | Never model resource discovery as a finite multiselect |
+| ResourceSelectField | `resource_select` | PRODUCTION | Single selection from the caller's own completed prior runs, discovered server-side |
 | Arbitrary hyperlink | — | INTENTIONALLY_UNSUPPORTED | Descriptors/runtime data never carry destinations |
 | Structured recursive JSON viewer | — | PLANNED_NOT_AVAILABLE | Intentionally unsupported |
 
@@ -652,3 +651,104 @@ URLs, credentials or arbitrary endpoints.
             {"value":"gsea","label":"GSEA"}],
  "default":["go"]}
 ```
+
+## Batch 7: server-authorized resource selection using opaque resource identities
+
+### Evidence and component boundary
+
+Audited `plugins/bio_agent` (a legacy, non-native page that already lists a
+caller's own runs via `owned_run_ids`/`_load_omniobjects_for_select`),
+`plugins/multiqc_wrapper` (an `io_contract.consumes` field,
+`source_run: {plugin, run_id}`, that lets one QC report reference an existing
+RunStore run — but whose own `resolve_source_run_dir` performs no ownership
+check, a pre-existing gap out of this batch's scope to fix), and
+`plugins/pdf_report_builder` (a `report_id`/32-capability dispatch plugin,
+far larger than one selector field). Only one resource family in this
+codebase has an evidence-backed, uniformly-enforced per-user ownership
+boundary and an existing cross-plugin precedent: a caller's own **RunStore
+runs**, via `owner_user_id` + `plugins.shared.run_authz`. Dataset/registered-
+object families were not adopted into this contract; they do not share this
+run's exact ownership/state shape and would need their own narrow evidence
+pass.
+
+One shared component, not two: `ResourceSelectField` (`resource_select`)
+supersedes both placeholder names this document previously reserved
+(`ServerSelect`, `ResourceSelector`). A single server-owned resource family
+(prior completed runs) needs exactly one narrowly-typed selector; inventing a
+second generic component for the same shape would be a duplicate, not a
+distinct architectural case.
+
+### ResourceSelectField (`resource_select`)
+
+- **Purpose / when to use:** let a caller pick one of their own prior
+  **completed** runs (of a server-declared source plugin or plugins) as input
+  to a new run — e.g. "use the output of an earlier QC run."
+- **When not to use:** finite descriptor-owned choices (`select`/
+  `multiselect`), arbitrary remote/API search, datasets or registered objects
+  (no evidence-backed ownership contract yet), multiple-resource selection (no
+  evidence found), or any field needing a client-chosen upstream/source.
+- **Resource identity:** RunStore's own existing opaque run id
+  (`uuid4().hex`, assigned server-side at `RunStore.create_run`) — not a new
+  identity system. It carries no path, bucket, or storage detail.
+- **Discovery contract:** `GET /plugins/<slug>/api/ui-resources/<resource_type>/`
+  (same `plugins/<slug>/api/ui-*` family as `ui-query`/`ui-reference`/
+  `ui-artifacts`). `resource_type` is presently only `"run"`. No query
+  parameters are accepted. The *source* plugin(s) searched are never a URL
+  segment or client input — only `plugins.shared.resource_ui
+  .PLUGIN_RESOURCE_SOURCES`, keyed by the **rendering** plugin slug, decides
+  that, exactly like `PLUGIN_REFERENCE_TYPES` already does for scientific
+  references. A plugin's own manifest cannot grant itself a new source.
+- **Response contract:** `{"results": [{"id", "label", "source_plugin"}, …]}`,
+  bounded to 100, newest-first. `label` is server-derived from the run's own
+  `created_at` and the source plugin's name — never a client-supplied value,
+  since no caller-authored run label exists yet. No path, params, or other
+  run.json content is ever serialized.
+- **Descriptor contract:** `widget` is `resource_select`, `format` is `text`,
+  `multiple` is always `false`, plus `resource_type` (`"run"`) and a
+  server-computed `endpoint`. No `choices`, `default`, `accept`, or
+  `placeholder` key is accepted. A field is dropped from the descriptor
+  entirely (fails closed, same convention as every other malformed v1 field)
+  if its rendering plugin has no `PLUGIN_RESOURCE_SOURCES` entry.
+- **Selection semantics:** single selection only; the submitted value is the
+  opaque id string, in `param_<field_id>`, identical to a `text` field.
+- **Submission reauthorization:** discovery never authorizes execution.
+  `_input_payload`'s `resource_select` branch calls
+  `resource_owned_by_user(user_id=request.user.id, source_plugins=…,
+  resource_id=…)`, which independently re-resolves RunStore ownership and
+  requires `state == "COMPLETED"` — exactly as if the id had never been seen
+  before. A value that was legitimately listed in discovery, then becomes
+  unowned/incomplete/deleted before submission, is rejected the same as one
+  that was never listed.
+- **UI states:** loading (native `<select aria-busy>` plus an `aria-live`
+  status line), loaded, empty (`role="status"`, disabled control), error
+  (`role="alert"` with a Retry button that re-fetches), selected, disabled,
+  required, invalid, and read-only — reusing `FieldShell` and the existing
+  `.studio-field`/`.plugin-field-control` tokens; no new visual system.
+- **Accessibility:** native `<select>`, the same label/description/error
+  association every field gets from `FieldShell`, full keyboard operation,
+  visible focus, and a disabled first "Select…" option so nothing is ever
+  silently preselected.
+- **Security boundary:** `CAN_RESOURCE_ID_BYPASS_OWNERSHIP=NO`,
+  `CAN_RESOURCE_ID_CROSS_PLUGIN_SCOPE=NO`,
+  `CAN_RESOURCE_ID_CROSS_RESOURCE_TYPE=NO` (only `"run"` exists),
+  `CAN_CLIENT_SELECT_UNDISCOVERABLE_RESOURCE=NO` (reauthorization is
+  independent of discovery) — see the IDOR test matrix below.
+- **Evidence:** no production plugin is wired in yet
+  (`PLUGIN_RESOURCE_SOURCES` is empty in production); the contract is proven
+  by its own backend/frontend test suites so a future plugin can adopt it
+  without re-deriving the security model.
+- **Tests:** Workbench `plugins/shared/tests/test_resource_ui.py` (discovery
+  view + IDOR matrix) and `plugins/shared/tests/test_resource_select_field.py`
+  (descriptor + submission reauthorization); Studio
+  `tests/ui/workbench-resource-select.test.jsx`.
+
+```json
+{"id":"source_run_id","widget":"resource_select","format":"text",
+ "label":"Source run","description":"A prior completed run to use as input.",
+ "required":true,"multiple":false,"resource_type":"run",
+ "endpoint":"/plugins/report_builder/api/ui-resources/run/"}
+```
+
+### DO NOT PUT RESOURCE URLS, STORAGE PATHS, OR AUTHORIZATION DATA IN UI DESCRIPTORS.
+
+### DISCOVERY DOES NOT AUTHORIZE EXECUTION; THE BACKEND REAUTHORIZES THE SELECTED RESOURCE.
