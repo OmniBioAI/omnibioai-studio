@@ -5,17 +5,18 @@ vi.mock("../../src/ui/pages/AccountPreferences", () => ({ default: () => <div>Ac
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken, logout } = vi.hoisted(() => ({
+const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, refresh, getRefreshToken, logout } = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   onSessionChange: vi.fn(() => vi.fn()),
   consumeOAuthRedirectParams: vi.fn(() => null),
   isElectron: vi.fn(() => true),
+  getToken: vi.fn(() => "tok"),
   refresh: vi.fn(),
   getRefreshToken: vi.fn(() => null),
   logout: vi.fn(),
 }));
 vi.mock("../../src/ui/lib/session", () => ({
-  getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken, logout,
+  getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, refresh, getRefreshToken, logout,
 }));
 
 vi.mock("../../src/ui/components/LicenseGate", () => ({ default: ({ children }) => <>{children}</> }));
@@ -509,7 +510,7 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
   });
 
-  it("Projects, Artifacts and Explore are local native shells that render with no backend call and no fake data", async () => {
+  it("Projects and Artifacts render as local shells without backend calls", async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     getCurrentUser.mockResolvedValue(admin);
@@ -519,7 +520,6 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     for (const [label, heading, disabledCreate] of [
       ["Projects", "Projects", true],
       ["Artifacts", "Artifacts", false],
-      ["Explore", "Explore", false],
     ]) {
       fetchSpy.mockClear();
       fireEvent.click(screen.getByText(label, { selector: "div" }));
@@ -537,6 +537,25 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
       fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
       await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
     }
+    vi.unstubAllGlobals();
+  });
+
+  it("Explore renders as a native shell and only loads canonical discovery sources", async () => {
+    const allowed = [
+      "http://localhost:5174/_svc/workbench/home/catalog/",
+      "http://webstudio.omnibioai.org:8081/api/tools",
+    ];
+    const fetchSpy = vi.fn(url => Promise.reject(new Error(`test response for ${url}`)));
+    vi.stubGlobal("fetch", fetchSpy);
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByText("Explore", { selector: "div" }));
+    expect(await screen.findByRole("heading", { name: "Explore" })).toBeInTheDocument();
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+    expect(fetchSpy.mock.calls.map(([url]) => url).sort()).toEqual(allowed.sort());
+    expect(screen.getByRole("heading", { name: "Workflows", level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tool Executor", level: 2 })).toBeInTheDocument();
     vi.unstubAllGlobals();
   });
 
