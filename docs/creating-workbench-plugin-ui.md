@@ -1,7 +1,15 @@
 # Creating a New Workbench Plugin UI
 
-This guide covers the implemented declarative query family only. Do not use it
-for jobs, mutations, dashboards, graphs, arbitrary reports or multi-stage flows.
+> This is the original batch-by-batch audit note. For the current, restructured
+> developer guide (same facts, organized by renderer/component with cross-links
+> into the full `docs/plugin-ui/` reference tree), see
+> [`docs/plugin-ui/creating-plugin-ui.md`](plugin-ui/creating-plugin-ui.md).
+
+This guide covers the implemented declarative native plugin UI system for the
+ordinary supported renderer families: `async_analysis`, `informational`, and
+`query`. `generic_runner` remains a compatibility alias for `async_analysis`
+where applicable. Do not use this system for jobs, mutations, dashboards,
+graphs, arbitrary reports or multi-stage flows.
 
 ## 1. Confirm the interaction family
 
@@ -273,8 +281,8 @@ Answer these, in order, before writing anything:
 3. **Which shared result component should I declare?** `table` (`ResultsTable`)
    for scalar rows, `key_value`/`detail` for declared scalar or finite
    sectioned detail, `reference` for a scientific cross-reference,
-   `static_png` for exactly one primary plot. If the run produces **two or
-   more** plot-type artifacts, nothing extra is needed: `ImageGallery`
+   `static_png` for a backend-declared primary plot. If the run publishes
+   **one or more** plot-type image artifacts, nothing extra is needed: `ImageGallery`
    (Batch 8) renders automatically from the existing artifacts response —
    it is not a descriptor-level choice.
 4. **What must Django normalize?** Every result value the frontend ever

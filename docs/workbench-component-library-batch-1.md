@@ -1,5 +1,9 @@
 # Workbench component library — Batch 1
 
+> This file is the historical, batch-by-batch implementation record for
+> #708. For the current-state developer reference (organized by component,
+> not by batch), see [`docs/plugin-ui/README.md`](plugin-ui/README.md).
+
 Workbench descriptors select explicitly registered presentation behavior. Plugin
 code remains in Django. There are no plugin-specific React pages, plugin-name
 branches, descriptor callbacks, or dynamic component imports.
@@ -385,7 +389,7 @@ and Workbench `plugins/shared/tests/test_query_ui.py`.
 | TextareaField | — | COMPATIBILITY_ALIAS | Export alias for TextAreaField |
 | RunStatus | — | PRODUCTION | Existing asynchronous run state |
 | LogViewer | — | PRODUCTION | Existing run logs |
-| PluginResults | — | PARTIAL | Existing asynchronous result dispatch |
+| PluginResults | — | PRODUCTION | Finite asynchronous artifact, image-gallery and static-PNG result composition |
 | StaticPngResult | — | PRODUCTION | Existing static PNG result |
 | MetadataPanel | — | PLANNED_NOT_AVAILABLE | Not distinct from scalar sections |
 | ScientificReference | `reference` | PRODUCTION | Server-authorized scientific cross-reference navigation |
@@ -550,7 +554,9 @@ inline PNG viewer and coexists with the downloadable artifact list.
   metadata wraps and the download affordance stacks at narrow widths.
 - **Error behavior:** invalid runtime metadata rejects the response; invalid
   primitive identity becomes an inert “Download unavailable” state.
-- **Real evidence:** DESeq2 is the async proof and volcano plot verifies
+- **Real evidence:** DESeq2 supplies the async artifact shape, but its current
+  executor re-creates the run without `owner_user_id`, so it is not clean
+  end-to-end authorization proof. The `volcano_plot` contract verifies
   coexistence with StaticPngResult. Reuse evidence includes omics QC reports,
   ChIP-seq reports, metabolomics reports, anomaly detection and Scanpy QC.
 - **Tests:** Studio `tests/ui/workbench-artifacts.test.jsx` and
@@ -837,11 +843,11 @@ safely.
 
 ### ImageGallery (`image_gallery`)
 
-- **Purpose / when to use:** show a run's own multiple plot images inline,
-  together, instead of as plain download links only — e.g. multiple QC plots,
-  per-comparison volcano plots, or a cell-communication figure set.
-- **When not to use:** a single primary plot (`StaticPngResult` already covers
-  exactly that case and is unchanged by this batch), non-image artifacts,
+- **Purpose / when to use:** show a run's own plot-image artifacts inline,
+  including multi-image sets, instead of as plain download links only — e.g.
+  QC plots, per-comparison volcano plots, or a cell-communication figure set.
+- **When not to use:** a backend-declared primary render
+  (`StaticPngResult` covers that separate contract), non-image artifacts,
   report/document viewing, or any case needing interactive zoom/lightbox/
   annotation (no evidence found for any of that).
 - **Resource identity:** none — new. `ImageGallery` introduces **no new
@@ -859,7 +865,7 @@ safely.
 - **Descriptor contract:** none. No `widget`, no `resource_type`, no new
   `capabilities`/`endpoints` key — a plugin needs zero descriptor changes to
   get a gallery; it appears automatically whenever its existing, unchanged
-  artifacts response contains two or more qualifying items.
+  artifacts response contains one or more qualifying items.
 - **Response contract:** none beyond the existing, unchanged Batch 5
   `{"artifacts":[{"artifact_id","display_name","label","media_type","size_bytes","kind"}]}`
   contract. `ImageGallery` performs no additional network request of its own.
@@ -950,7 +956,7 @@ add components, but to audit Batches 1–8 against the issue's Definition of
 Done and either close genuine gaps or explicitly document why a boundary is
 correct as-is.
 
-### Final component registry (`componentRegistry.jsx`) — 16 entries
+### Final component registry (`componentRegistry.jsx`) — 17 entries
 
 `file`, `text`, `textarea`, `select`, `number`, `checkbox`, `multiselect`,
 `resource_select`, `table`, `pagination`, `key_value`, `detail`, `filters`,
@@ -1178,7 +1184,7 @@ the Workbench repo).
 
 ### #708 completion evidence
 
-- Complete, documented UI vocabulary: 16 components, 3 renderers, 2 schema
+- Complete, documented UI vocabulary: 17 components, 3 renderers, 2 schema
   versions — all in one place in this document.
 - Explicit schema validation, with a dedicated fail-closed test for every
   rejection path (unknown component, unknown renderer, unsupported schema
