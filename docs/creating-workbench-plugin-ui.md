@@ -259,3 +259,50 @@ Run the configured Studio suite, shared UI package, relevant backend suite,
 generated compatibility classification, web and Electron builds, and the
 browser/accessibility matrix for material UI changes. Confirm every enabled
 plugin remains classified exactly once before marking it native.
+
+## 7. Choosing a Result Presentation
+
+Answer these, in order, before writing anything:
+
+1. **Is my result already representable?** A single downloadable file
+   (table/log/archive/report/anything) is already fully covered by
+   `ArtifactList`/`ArtifactDownload` — most plugins need nothing else.
+2. **Which renderer should I use?** `generic_runner`/`async_analysis` for a
+   submit-and-poll run; `query` for a search-and-detail family; `informational`
+   for a read-only static page. Do not invent a fourth.
+3. **Which shared result component should I declare?** `table` (`ResultsTable`)
+   for scalar rows, `key_value`/`detail` for declared scalar or finite
+   sectioned detail, `reference` for a scientific cross-reference,
+   `static_png` for exactly one primary plot. If the run produces **two or
+   more** plot-type artifacts, nothing extra is needed: `ImageGallery`
+   (Batch 8) renders automatically from the existing artifacts response —
+   it is not a descriptor-level choice.
+4. **What must Django normalize?** Every result value the frontend ever
+   reads: finite scalar types, bounded lists, exact allowlisted keys, a
+   real server-derived `media_type`/`kind`, never a raw tool-specific JSON
+   blob passed through unexamined.
+5. **What must never appear in a descriptor?** A URL, endpoint template,
+   storage path, SQL, callback, JavaScript, component name, serializer,
+   arbitrary query, expression, or credential — the same rule Batches 1–7
+   already established, unchanged by Batch 8.
+6. **When should an output remain an `ArtifactDownload`?** Any report/document
+   (HTML, PDF, Markdown) — audited across 15+ reporting plugins in Batch 8 and
+   found, without exception, to need nothing beyond download. Do not build a
+   bespoke inline report viewer.
+7. **When should HTML/report output remain unsupported?** Always, for inline
+   rendering — this codebase never injects a report's raw HTML into React
+   (`dangerouslySetInnerHTML`, `srcDoc`, or an un-sandboxed `<iframe>` are all
+   unsupported). A same-origin HTML artifact may be opened as its own
+   document in a new tab (existing precedent: `clinical_report_generator`),
+   never embedded into the Workbench page's own DOM.
+8. **When is plugin-specific React actually justified?** When a result or
+   input shape is genuinely novel and does not repeat anywhere else in the
+   plugin population (Batch 8 found exactly one such case, a one-off nested
+   tab cluster in a single plugin's legacy table cell) — and even then,
+   prefer keeping that plugin legacy over writing a one-off native component
+   for it. A shared component is only worth building when the audit finds the
+   same shape repeating across multiple real plugins.
+
+**DO NOT BUILD A NEW RESULT COMPONENT WITHOUT FIRST AUDITING REAL, EXISTING
+PLUGIN OUTPUT SHAPES.** A plausible-sounding name from a roadmap is not
+evidence.

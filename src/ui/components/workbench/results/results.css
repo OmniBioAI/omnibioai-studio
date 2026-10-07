@@ -22,6 +22,11 @@
 .workbench-artifact-download:hover { text-decoration-thickness: 2px; }
 .workbench-artifact-download:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--radius-sm); }
 .workbench-artifact-unavailable { flex: 0 0 auto; color: var(--muted); font-size: var(--font-size-sm); }
+.workbench-image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; list-style: none; margin: 0 0 16px; padding: 0; min-width: 0; }
+.workbench-image-gallery-item { display: grid; gap: 8px; min-width: 0; padding: 10px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); }
+.workbench-image-gallery-figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+.workbench-image-gallery-figure img { display: block; width: 100%; height: auto; max-height: 320px; object-fit: contain; background: var(--bg3); border-radius: var(--radius-sm); }
+.workbench-image-gallery-figure figcaption { color: var(--text); font-size: var(--font-size-sm); font-weight: 600; overflow-wrap: anywhere; }
 html[data-theme="light"] .workbench-table-scroll:focus-visible,
 html[data-theme="light"] .workbench-pagination button:focus-visible,
 html[data-theme="light"] .workbench-results button:focus-visible,

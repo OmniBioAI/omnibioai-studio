@@ -12,8 +12,9 @@ import FilterControls from "./filters/FilterControls";
 import ScientificReference from "./results/ScientificReference";
 import ArtifactList from "./results/ArtifactList";
 import ArtifactDownload from "./results/ArtifactDownload";
+import ImageGallery from "./results/ImageGallery";
 
-export { TextField, TextAreaField, NumberField, CheckboxField, MultiSelectField, ResourceSelectField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls, ScientificReference, ArtifactList, ArtifactDownload };
+export { TextField, TextAreaField, NumberField, CheckboxField, MultiSelectField, ResourceSelectField, ResultsTable, PaginationControls, KeyValueResult, DetailPanel, FilterControls, ScientificReference, ArtifactList, ArtifactDownload, ImageGallery };
 export const TextareaField = TextAreaField;
 
 /**
@@ -72,6 +73,7 @@ export const WORKBENCH_COMPONENT_REGISTRY = Object.freeze({
   reference: ScientificReference,
   artifact_list: ArtifactList,
   artifact_download: ArtifactDownload,
+  image_gallery: ImageGallery,
 });
 
 export const WORKBENCH_FIELD_TYPES = Object.freeze(["file", "text", "textarea", "select", "number", "checkbox", "multiselect", "resource_select"]);

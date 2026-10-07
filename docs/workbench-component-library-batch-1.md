@@ -394,8 +394,12 @@ and Workbench `plugins/shared/tests/test_query_ui.py`.
 | CheckboxField | `checkbox` | PRODUCTION | Deterministic true/false input using a native checkbox |
 | MultiSelectField | `multiselect` | PRODUCTION | Multiple selections from at most 50 descriptor-owned choices |
 | ResourceSelectField | `resource_select` | PRODUCTION | Single selection from the caller's own completed prior runs, discovered server-side |
+| ImageGallery | `image_gallery` | PRODUCTION | Inline collection of a run's own server-authorized plot images |
 | Arbitrary hyperlink | — | INTENTIONALLY_UNSUPPORTED | Descriptors/runtime data never carry destinations |
 | Structured recursive JSON viewer | — | PLANNED_NOT_AVAILABLE | Intentionally unsupported |
+| ReportResult | — | INTENTIONALLY_UNSUPPORTED | ArtifactList/ArtifactDownload already cover every audited report/document case |
+| SequenceResult / TextResult | — | PLANNED_NOT_AVAILABLE | No repeated RESULT-side (as opposed to input-side) evidence found yet |
+| StructuredResult (generic) | — | INTENTIONALLY_UNSUPPORTED | Compose KeyValueResult/ResultsTable/DetailPanel instead; see Batch 8 |
 
 ## Batch 4: server-authorized scientific references
 
@@ -752,3 +756,189 @@ distinct architectural case.
 ### DO NOT PUT RESOURCE URLS, STORAGE PATHS, OR AUTHORIZATION DATA IN UI DESCRIPTORS.
 
 ### DISCOVERY DOES NOT AUTHORIZE EXECUTION; THE BACKEND REAUTHORIZES THE SELECTED RESOURCE.
+
+## Batch 8: shared result presentation — ImageGallery
+
+### Evidence and component boundary
+
+Audited the four candidate result families named in the issue: report/document,
+sequence/text, structured JSON-like, and multi-image.
+
+**Report/document** — every report-producing plugin sampled (`pdf_report_builder`,
+`omics_qc_report_generator`, `chipseq_report_generator`, `clinical_report_generator`,
+`rnaseq_report`, `proteomics_report`, `metabolomics_report`, `atac_report`,
+`splicing_report`, `longread_report`, plus `spatial_report_generation`,
+`drug_report_generator`, `microbiome_report`, `epigenomics_report`,
+`single_cell_annotation`, `bio_narrator_ai`) reduces to exactly one opaque HTML,
+PDF, or Markdown artifact, already correctly typed `"report"`/`"file"` in its
+RunStore manifest. The existing `ArtifactList`/`ArtifactDownload` contract
+(Batch 5) already covers every case; its own documentation already cites
+"omics QC, ChIP-seq reporting, metabolomics reporting and Scanpy QC" as
+reuse evidence. **No `ReportResult` component was built.** One real,
+pre-existing issue was found and is explicitly *not* fixed here, as it sits
+entirely in a legacy Django template outside the native registry:
+`metabolomics_report/templates/metabolomics_report/run_detail.html` builds an
+unescaped `innerHTML` string from a manifest `label` and embeds report HTML in
+an un-sandboxed `<iframe>`. This is a legacy-template risk, not a native
+descriptor/React registry risk, and fixing arbitrary legacy Django templates
+is out of Batch 8's scope (shared result presentation for the native
+registry). Flagged for a future, explicitly-scoped legacy-template hardening
+pass.
+
+**Structured JSON-like results** — the one shape that genuinely repeats (a flat
+scalar `"summary"` dict, e.g. `{"n_genes":…, "n_samples":…}`) appears in the
+manifest of essentially every plugin built from the shared Docker-tool-runner
+boilerplate (`assembly_qc`, `deseq2_analysis`, `gsea_enrichment`, and 30+
+other `NATIVE_GENERIC_RUNNER_PILOTS`, all with the identical
+`outputs = extra.get("outputs", []); summary = extra.get("summary", {})`
+pattern). This shape is architecturally a perfect match for the *existing*
+`KeyValueResult` — no new component would be needed, only a per-plugin field
+allowlist analogous to `STATIC_PNG_RESULT_METADATA`. **This was deliberately
+not implemented**, because the actual `summary` keys are produced by
+Docker images whose source is not present in this repository, and no
+plugin here documents or tests its real summary schema (e.g.
+`assembly_qc/tests/test_executor.py` only ever asserts against `"summary": {}`
+— an empty dict). Declaring a field allowlist without verified ground truth
+would either silently no-op or encode a wrong contract. Any other structured
+shape found (`clinical_report_generator`'s report-content JSON, `environment_manager`'s
+dict-of-scalars/dict-of-lists, `gene_annotation`'s one-off nested tab clusters)
+either isn't a Workbench *result* at all, already maps onto
+`KeyValueResult`/`ResultsTable`/`DetailPanel`, or doesn't repeat elsewhere. **No
+new `StructuredResult` component was built; composition of existing
+components remains the correct answer.**
+
+**Sequence/text results** — across every `plugin.json` and executor/script in
+the repository, exactly **one** plugin (`msa_conservation_viewer`) produces a
+standalone short sequence-like text result (`consensus_sequence.fasta`), and
+it is already mistyped as artifact kind `"table"` only because no better
+`_KINDS` value exists. Every other FASTA/text-adjacent case found is either an
+*input*, or sequence data already living as an ordinary column inside a table
+artifact. One plugin out of roughly 529 does not meet the "repeated real
+behavior" bar this audit is testing for. **No new `SequenceResult`/`TextResult`
+component was built.**
+
+**Multi-image** — genuinely repeated, with real evidence across at least a
+dozen plugins: `proteomics` (legacy `runner.py` path — a *dynamic, unbounded*
+count: one heatmap plus one volcano plot per differential comparison, already
+hand-rendered as a 2-column image grid in `proteomics/templates/proteomics/results.html`),
+`cell_comm_visualization` and `chipseq_signal_plots` (3 distinctly-labeled
+plots each, written through the standard `RunStore.write_artifacts` manifest
+with real `"label"` values), and a long tail of 2-plot plugins
+(`scanpy_qc_metrics`, `restriction_digest`, `orf_finder`, `circrna_plotter`,
+`rnaseq_analysis`, `venn_upset_plot`, `ml_eval_plots`, `manhattan_qq_plot`,
+`chromatin_accessibility`, `qc_plots`). `StaticPngResult`'s single-fixed-PNG
+model (Batch 1) cannot represent any of these. **`ImageGallery` (`image_gallery`)
+was built** — the one component Batch 8 adds.
+
+One component, not four: only the multi-image case had a real, repeated,
+safely-representable gap. The other three families are either already fully
+covered by existing components, or lack verifiable evidence to build against
+safely.
+
+### ImageGallery (`image_gallery`)
+
+- **Purpose / when to use:** show a run's own multiple plot images inline,
+  together, instead of as plain download links only — e.g. multiple QC plots,
+  per-comparison volcano plots, or a cell-communication figure set.
+- **When not to use:** a single primary plot (`StaticPngResult` already covers
+  exactly that case and is unchanged by this batch), non-image artifacts,
+  report/document viewing, or any case needing interactive zoom/lightbox/
+  annotation (no evidence found for any of that).
+- **Resource identity:** none — new. `ImageGallery` introduces **no new
+  identity, endpoint, descriptor field, or backend code at all**. It is a pure
+  frontend composition over the artifact list Batch 5 already established:
+  it filters the same validated `artifacts` array (already fetched and
+  validated by `AsyncAnalysisRenderer`/`PluginResults` via
+  `validateArtifactPayload`) to items where `kind === "plot"` and
+  `media_type` starts with `image/`, and renders each via the existing,
+  already-authorized `GET /plugins/{slug}/api/ui-artifacts/{run_id}/{artifact_id}/download/`
+  endpoint as an `<img src>`. `Content-Disposition: attachment` on that
+  response does not prevent a browser from rendering it as an `<img>` (it only
+  affects top-level navigation), so no backend change was needed to reuse it
+  this way.
+- **Descriptor contract:** none. No `widget`, no `resource_type`, no new
+  `capabilities`/`endpoints` key — a plugin needs zero descriptor changes to
+  get a gallery; it appears automatically whenever its existing, unchanged
+  artifacts response contains two or more qualifying items.
+- **Response contract:** none beyond the existing, unchanged Batch 5
+  `{"artifacts":[{"artifact_id","display_name","label","media_type","size_bytes","kind"}]}`
+  contract. `ImageGallery` performs no additional network request of its own.
+- **Backend responsibilities:** unchanged from Batch 5 — authenticate, check
+  `owner_user_id`, resolve the opaque artifact ID against the manifest,
+  contain the path under the run output root, derive media type, force
+  `attachment`/`nosniff`/`no-store`. Nothing in this batch touches
+  `plugins/shared/artifact_ui.py` or `plugins/shared/plugin_ui.py`.
+- **Security boundary:** every image URL is the same opaque, server-derived,
+  ownership-checked download URL Batch 5 already produces; the component
+  never receives or constructs a path, bucket, signed URL, or arbitrary
+  endpoint. A malformed/attacker-shaped `artifact_id` falls back to an inert
+  "Image unavailable" state instead of ever constructing a broken `src`
+  (mirrors `ArtifactDownload`'s existing fail-closed behavior exactly).
+- **Loading/empty/error behavior:** `ImageGallery` renders nothing while
+  `loading` or `error` are set (the sibling `ArtifactList` already
+  communicates those states so nothing duplicates them), and renders nothing
+  when zero qualifying images are present — a plugin with no plot artifacts
+  is simply unaffected. Every image artifact remains independently listed and
+  downloadable in `ArtifactList` regardless of also appearing in the gallery
+  (same coexistence precedent as `StaticPngResult`).
+- **Accessibility:** each image is a semantic `<figure>`/`<figcaption>` pair
+  inside a labeled `<ul aria-label="Result images">`; `alt` is always the
+  artifact's own non-empty `label`; every item still carries its existing,
+  keyboard-reachable `ArtifactDownload` link. Images use `loading="lazy"` so a
+  large (bounded-by-100) result set doesn't eagerly fetch every image.
+- **Scientific-content behavior:** long captions wrap (`overflow-wrap: anywhere`,
+  reusing the same rule already applied to artifact names); nothing is
+  truncated.
+- **Responsive/theme:** CSS grid `repeat(auto-fill, minmax(220px, 1fr))`
+  collapses to a single column well before 320px; all colors/spacing reuse
+  existing tokens (`--bg2`, `--bg3`, `--border2`, `--radius-sm`,
+  `--font-size-sm`); no new visual system, no hard-coded colors.
+- **Evidence:** `proteomics` (dynamic/unbounded per-comparison volcano plots),
+  `cell_comm_visualization`, `chipseq_signal_plots`, `scanpy_qc_metrics`,
+  `restriction_digest`, `orf_finder`, `circrna_plotter`, `rnaseq_analysis`,
+  `venn_upset_plot`, `ml_eval_plots`, `manhattan_qq_plot`,
+  `chromatin_accessibility`, `qc_plots`.
+- **Known limitation:** none of the plugins above are wired into the native
+  registry yet (see Proof plugins below) — all are currently legacy. The
+  component is proven by its own test suite against synthetic descriptors,
+  exactly as `ResourceSelectField` was in Batch 7.
+- **Tests:** Studio `tests/ui/workbench-image-gallery.test.jsx`.
+
+```json
+{"artifacts":[
+  {"artifact_id":"art_…A","display_name":"qc_violin.png","label":"QC Violin Plot","media_type":"image/png","size_bytes":20480,"kind":"plot"},
+  {"artifact_id":"art_…B","display_name":"qc_scatter.png","label":"QC Scatter Plot","media_type":"image/png","size_bytes":18240,"kind":"plot"}
+]}
+```
+
+### Proof plugins — all held, with a systemic finding
+
+Five real multi-image-producing legacy plugins were evaluated as potential
+native proof plugins: `cell_comm_visualization`, `chipseq_signal_plots`,
+`scanpy_qc_metrics`, `rnaseq_analysis`, and `proteomics`. **All five were
+held; `NEW_NATIVE=0`.**
+
+A single systemic blocker was found and independently confirmed in four of
+the five (`cell_comm_visualization`, `chipseq_signal_plots`,
+`scanpy_qc_metrics`, `rnaseq_analysis`): each executor's `submit()` method
+calls `RunStore.create_run(...)` a **second** time with
+`meta={"cli": True, …}` — which carries no `owner_user_id`. Since
+`RunStore.create_run()` fully replaces `run.json` on every call (see
+`plugins/shared/run_authz.py`'s own documented reasoning for `merge_meta`),
+this second call erases whatever `owner_user_id` the generic `_api_run` view
+had already recorded from `request.user.id` before invoking the executor.
+Under the Batch 5 fail-closed ownership policy, a run with no recorded
+`owner_user_id` is denied to **everyone**, including its own creator — so
+wiring any of these plugins through the standard native `_api_run` path as-is
+would make every run immediately inaccessible to the very user who started
+it. `proteomics`'s dynamic-count evidence lives in an entirely separate,
+non-`StepInput` legacy `runner.py`/`views.py` architecture, a larger
+migration than this batch's scope.
+
+This is a pre-existing, widespread pattern across legacy "CLI executor"
+plugins, unrelated to result presentation, and explicitly out of scope to fix
+in a shared-result-presentation batch ("do not rewrite scientific executors
+merely to force a proof plugin native"). It is reported here as a concrete,
+evidence-backed finding for a future, explicitly-scoped batch.
+
+### DO NOT BUILD A RESULT COMPONENT WITHOUT REPEATED, VERIFIABLE EVIDENCE OF ITS DATA SHAPE.
