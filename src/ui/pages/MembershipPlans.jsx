@@ -122,7 +122,7 @@ export default function MembershipPlans({ currentUser, membershipState, onBillin
 
     <Card title="Storage and subscription boundaries">
       <div className="membership-boundaries">
-        <p><strong>Personal managed storage:</strong> Billing authoritatively reports the 1 GB, 20 GB, or 100 GB allowance. Storage enforcement remains a separate future workstream.</p>
+        <p><strong>Personal managed storage:</strong> Billing authoritatively reports the 1 GB, 20 GB, or 100 GB allowance. The Storage page reports the backend accounting and rollout mode; audit mode does not claim active enforcement.</p>
         <p><strong>Organization storage:</strong> customer-owned storage is a separate ORGANIZATION scope and does not consume a user&rsquo;s personal managed-storage allowance by default.</p>
         <p><strong>Subscription ownership:</strong> a USER Pro membership never grants Enterprise or organization-administrator privileges. Organization access continues to come from IAM and authoritative organization billing records.</p>
       </div>

@@ -538,6 +538,14 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
       if (String(url).includes("/_svc/workbench/plugins/artifact_manager/artifacts")) {
         return Promise.resolve({ ok: true, status: 200, json: async () => ({ results: [], total: 0, limit: 200, offset: 0 }) });
       }
+      if (String(url).includes("/_svc/workbench/api/storage/me/usage")) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({
+          owner_type: "USER", owner_id: "1", used_bytes: 0, reserved_bytes: 0,
+          quota_bytes: 1_000_000_000, available_bytes: 1_000_000_000,
+          membership_plan: "free", over_quota: false, quota_mode: "audit",
+          enforcement_active: false, entitlement_status: "fresh",
+        }) });
+      }
       return Promise.reject(new Error(`unexpected request: ${url}`));
     });
     vi.stubGlobal("fetch", fetchSpy);
@@ -557,9 +565,11 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     fireEvent.click(screen.getByText("Artifacts", { selector: "div" }));
     expect(await screen.findByRole("heading", { name: "Artifacts" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "No artifacts yet" })).toBeInTheDocument();
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
-    expect(fetchSpy.mock.calls[1][0]).toBe("http://localhost:5174/_svc/workbench/plugins/artifact_manager/artifacts?limit=200&offset=0");
-    expect(fetchSpy.mock.calls[1][0]).not.toMatch(/organization/i);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    const artifactUrls = fetchSpy.mock.calls.slice(1).map(call => call[0]);
+    expect(artifactUrls).toContain("http://localhost:5174/_svc/workbench/plugins/artifact_manager/artifacts?limit=200&offset=0");
+    expect(artifactUrls).toContain("http://localhost:5174/_svc/workbench/api/storage/me/usage");
+    artifactUrls.forEach(url => expect(url).not.toMatch(/organization/i));
     expect(screen.queryByText(/unified artifact tracking/i)).not.toBeInTheDocument();
     vi.unstubAllGlobals();
   });

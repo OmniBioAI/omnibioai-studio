@@ -12,6 +12,7 @@ import {
   downloadArtifact,
   getArtifact,
   getArtifactProvenance,
+  getStorageUsage,
   listArtifacts,
   normalizeArtifact,
 } from "../../src/ui/lib/artifactsApi";
@@ -65,6 +66,18 @@ beforeEach(() => {
 });
 
 describe("Artifacts API", () => {
+  it("loads and validates personal managed-storage usage", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: {
+      owner_type: "USER", owner_id: "7", used_bytes: 240000000, reserved_bytes: 1000,
+      quota_bytes: 1000000000, available_bytes: 759999000, membership_plan: "free",
+      over_quota: false, quota_mode: "enforce", enforcement_active: true,
+      entitlement_status: "fresh", last_reconciled_at: null,
+    } }));
+    const usage = await getStorageUsage();
+    expect(fetchSpy.mock.calls[0][0]).toBe("/_svc/workbench/api/storage/me/usage");
+    expect(usage).toMatchObject({ usedBytes: 240000000, availableBytes: 759999000, plan: "free", enforcementActive: true });
+  });
+
   it("lists through the Workbench browser proxy without client-controlled organization context", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({
       body: { results: [rawArtifact], total: 1, limit: 200, offset: 0 },
@@ -149,6 +162,8 @@ describe("Artifacts API", () => {
     [401, "unauthorized"],
     [403, "forbidden"],
     [404, "not_found"],
+    [409, "conflict"],
+    [413, "quota_exceeded"],
     [500, "unavailable"],
   ])("maps HTTP %s without parsing sensitive response details", async (status, code) => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(response({

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Spinner } from "@omnibioai/ui";
+import { ProgressBar, Spinner } from "@omnibioai/ui";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 import {
   downloadArtifact,
   getArtifact,
   getArtifactProvenance,
+  getStorageUsage,
   listArtifacts,
 } from "../lib/artifactsApi";
 import "./Artifacts.css";
@@ -33,12 +34,12 @@ function typeLabel(value = "") {
 
 function formatBytes(value) {
   if (value === null) return "Unavailable";
-  if (value < 1024) return `${value} B`;
+  if (value < 1000) return `${value} B`;
   const units = ["KB", "MB", "GB", "TB"];
-  let amount = value / 1024;
+  let amount = value / 1000;
   let unit = units[0];
-  for (let index = 1; index < units.length && amount >= 1024; index += 1) {
-    amount /= 1024;
+  for (let index = 1; index < units.length && amount >= 1000; index += 1) {
+    amount /= 1000;
     unit = units[index];
   }
   return `${amount >= 10 ? amount.toFixed(0) : amount.toFixed(1)} ${unit}`;
@@ -92,6 +93,18 @@ export default function Artifacts() {
   const [filter, setFilter] = useState("All");
   const [result, setResult] = useState({ status: "loading", items: [], error: "" });
   const [selected, setSelected] = useState(null);
+  const [usage, setUsage] = useState({ status: "loading", data: null });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setUsage({ status: "loading", data: null });
+    getStorageUsage({ signal: controller.signal }).then(data => {
+      if (!controller.signal.aborted) setUsage({ status: "success", data });
+    }).catch(error => {
+      if (!controller.signal.aborted && error?.name !== "AbortError") setUsage({ status: "error", data: null });
+    });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -132,6 +145,8 @@ export default function Artifacts() {
         <p>Discover authorized scientific outputs, inspect their metadata and lineage, and securely download available files.</p>
       </div>
     </header>
+
+    <StorageUsage state={usage} />
 
     <div className="artifacts-toolbar">
       <form className="artifact-search" role="search" onSubmit={submitSearch}>
@@ -181,6 +196,32 @@ export default function Artifacts() {
       </>}
     </div>
     {selected && <ArtifactDetail summary={selected} formatDate={formatDate} onClose={() => setSelected(null)} />}
+  </section>;
+}
+
+function StorageUsage({ state }) {
+  if (state.status === "loading") return <section className="storage-usage" aria-busy="true">
+    <p role="status"><Spinner size="sm" /> Loading personal storage usage…</p>
+  </section>;
+  if (state.status === "error") return <section className="storage-usage storage-usage--unavailable">
+    <h2>Personal managed storage</h2><p role="alert">Storage usage is unavailable right now. No usage value has been assumed.</p>
+  </section>;
+  const value = state.data;
+  const percent = value.quotaBytes ? Math.min(100, ((value.usedBytes + value.reservedBytes) / value.quotaBytes) * 100) : 0;
+  return <section className={`storage-usage${value.overQuota ? " storage-usage--over" : ""}`}>
+    <div className="storage-usage__heading"><div><h2>Personal managed storage</h2>
+      <p>Membership: {value.plan ? value.plan[0].toUpperCase() + value.plan.slice(1) : "Unavailable"}</p></div>
+      <a className="omni-btn omni-btn--secondary omni-btn--sm" href="/studio/billing/plans">View upgrade options</a></div>
+    {value.quotaBytes === null ? <p role="alert">Your current storage allowance is unavailable.</p> : <>
+      <ProgressBar value={percent} variant={value.overQuota ? "danger" : percent >= 85 ? "warning" : "accent"} />
+      <dl><div><dt>Used</dt><dd>{formatBytes(value.usedBytes)}</dd></div>
+        <div><dt>Reserved</dt><dd>{formatBytes(value.reservedBytes)}</dd></div>
+        <div><dt>Available</dt><dd>{formatBytes(value.availableBytes)}</dd></div>
+        <div><dt>Total</dt><dd>{formatBytes(value.quotaBytes)}</dd></div></dl>
+    </>}
+    {value.enforcementActive && <p className="storage-usage__enforced">Quota enforced</p>}
+    {value.quotaMode === "audit" && <p>Quota accounting is in audit mode; enforcement is not active.</p>}
+    {value.overQuota && <p role="alert">You are over your current storage allowance. Downloads and deletion remain available, but new storage may be blocked.</p>}
   </section>;
 }
 

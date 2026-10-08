@@ -435,6 +435,10 @@ services:
       DB_NAME: omnibioai
       DB_USER: root
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
+      STORAGE_IAM_URL: http://auth-service:8001
+      STORAGE_BILLING_URL: ${STORAGE_BILLING_URL:?STORAGE_BILLING_URL must be set}
+      STORAGE_QUOTA_MODE: ${STORAGE_QUOTA_MODE:-audit}
+      STORAGE_QUOTA_BASELINE_VERIFIED: ${STORAGE_QUOTA_BASELINE_VERIFIED:-false}
       REDIS_HOST: redis
       REDIS_PORT: "6380"
       USAGE_REDIS_URL: redis://redis_usage_producer:${REDIS_USAGE_PRODUCER_PASSWORD}@redis:6379

@@ -91,7 +91,36 @@ function statusCode(status) {
   if (status === 401) return "unauthorized";
   if (status === 403) return "forbidden";
   if (status === 404) return "not_found";
+  if (status === 409) return "conflict";
+  if (status === 413) return "quota_exceeded";
   return "unavailable";
+}
+
+function byteField(value, nullable = false) {
+  if (nullable && value === null) return null;
+  if (!Number.isSafeInteger(value) || value < 0) throw new ArtifactsApiError("invalid");
+  return value;
+}
+
+export async function getStorageUsage({ signal } = {}) {
+  const value = await requestJson("/api/storage/me/usage", { signal });
+  if (!value || value.owner_type !== "USER" || typeof value.owner_id !== "string"
+      || !["free", "plus", "pro", null].includes(value.membership_plan)
+      || !["off", "audit", "enforce", "blocked"].includes(value.quota_mode)
+      || typeof value.over_quota !== "boolean" || typeof value.enforcement_active !== "boolean") {
+    throw new ArtifactsApiError("invalid");
+  }
+  return Object.freeze({
+    usedBytes: byteField(value.used_bytes),
+    reservedBytes: byteField(value.reserved_bytes),
+    quotaBytes: byteField(value.quota_bytes, true),
+    availableBytes: byteField(value.available_bytes, true),
+    plan: value.membership_plan,
+    overQuota: value.over_quota,
+    quotaMode: value.quota_mode,
+    enforcementActive: value.enforcement_active,
+    entitlementStatus: cleanText(value.entitlement_status, 32),
+  });
 }
 
 async function request(path, { signal, accept = "application/json" } = {}) {

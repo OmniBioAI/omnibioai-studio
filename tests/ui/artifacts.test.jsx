@@ -7,6 +7,7 @@ const api = vi.hoisted(() => ({
   getArtifact: vi.fn(),
   getArtifactProvenance: vi.fn(),
   downloadArtifact: vi.fn(),
+  getStorageUsage: vi.fn(),
 }));
 
 vi.mock("../../src/ui/lib/artifactsApi", () => api);
@@ -64,6 +65,11 @@ function provenance(overrides = {}) {
 }
 
 beforeEach(() => {
+  api.getStorageUsage.mockReset().mockResolvedValue({
+    usedBytes: 240_000_000, reservedBytes: 0, quotaBytes: 1_000_000_000,
+    availableBytes: 760_000_000, plan: "free", overQuota: false,
+    quotaMode: "audit", enforcementActive: false, entitlementStatus: "fresh",
+  });
   api.listArtifacts.mockReset().mockResolvedValue({ artifacts: [], total: 0 });
   api.getArtifact.mockReset().mockResolvedValue(report);
   api.getArtifactProvenance.mockReset().mockResolvedValue(provenance());
@@ -76,12 +82,31 @@ afterEach(() => {
 });
 
 describe("Artifacts page", () => {
+  it("shows real personal usage and does not claim audit mode is enforced", async () => {
+    render(<Artifacts />);
+    expect(await screen.findByRole("heading", { name: "Personal managed storage" })).toBeInTheDocument();
+    expect(screen.getByText("Membership: Free")).toBeInTheDocument();
+    expect(screen.getByText("240 MB")).toBeInTheDocument();
+    expect(screen.getByText("760 MB")).toBeInTheDocument();
+    expect(screen.getByText("1.0 GB")).toBeInTheDocument();
+    expect(screen.getByText("Quota accounting is in audit mode; enforcement is not active.")).toBeInTheDocument();
+    expect(screen.queryByText("Quota enforced")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View upgrade options" })).toHaveAttribute("href", "/studio/billing/plans");
+  });
+
+  it("keeps unavailable storage distinct from zero usage", async () => {
+    api.getStorageUsage.mockRejectedValue(new Error("offline"));
+    render(<Artifacts />);
+    expect(await screen.findByText("Storage usage is unavailable right now. No usage value has been assumed.")).toBeInTheDocument();
+    expect(screen.queryByText(/^0 B$/)).not.toBeInTheDocument();
+  });
+
   it("renders loading and then a truthful empty state without fake records", async () => {
     let resolve;
     api.listArtifacts.mockReturnValue(new Promise(done => { resolve = done; }));
     render(<Artifacts />);
     expect(screen.getByRole("heading", { name: "Artifacts" })).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Loading artifacts");
+    expect(screen.getByText(/Loading artifacts/)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     resolve({ artifacts: [], total: 0 });
     expect(await screen.findByRole("heading", { name: "No artifacts yet" })).toBeInTheDocument();

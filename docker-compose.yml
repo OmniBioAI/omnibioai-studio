@@ -785,6 +785,10 @@ services:
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       ORCHESTRATOR_MAX_RETRIES: "10"
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      STORAGE_IAM_URL: http://auth-service:8001
+      STORAGE_BILLING_URL: http://billing-service:8005
+      STORAGE_QUOTA_MODE: ${STORAGE_QUOTA_MODE:-audit}
+      STORAGE_QUOTA_BASELINE_VERIFIED: ${STORAGE_QUOTA_BASELINE_VERIFIED:-false}
       # Shared internal authentication for Auth provider-policy lookup and
       # Workbench credential-reference resolution. Required, independent of
       # browser JWTs, provider credentials, and CONFIG_ENCRYPTION_KEY.
