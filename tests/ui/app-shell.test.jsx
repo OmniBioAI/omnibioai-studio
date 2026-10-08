@@ -59,6 +59,7 @@ vi.mock("../../src/ui/pages/AccountHelp", () => ({ default: () => <div>Account H
 
 vi.mock("../../src/ui/pages/OrganizationConnections", () => ({ default: () => <div>Organization Connections page</div> }));
 vi.mock("../../src/ui/pages/Integrations", () => ({ default: () => <div>Integrations page</div> }));
+vi.mock("../../src/ui/pages/MembershipPlans", () => ({ default: () => <div>Membership Plans page</div> }));
 
 import App from "../../src/ui/App";
 
@@ -822,6 +823,7 @@ it("keeps Privacy, Plan and Help distinct page indices with no collision against
     ["/studio/plan", "Account Plan page"],
     ["/studio/help", "Account Help page"],
     ["/studio/organization/connections", "Organization Connections page"],
+    ["/studio/billing/plans", "Membership Plans page"],
   ];
   for (const [path, pageText] of routes) {
     window.history.replaceState({}, "", path);

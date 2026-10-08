@@ -102,6 +102,33 @@ describe("AccountPlan", () => {
     expect(await screen.findByRole("button", { name: "Manage subscription" })).toBeInTheDocument();
   });
 
+  it("shows only authoritative organization billing fields and honest storage/seat gaps", async () => {
+    billingApi.getSubscription.mockResolvedValue({
+      ...subscription,
+      features: [...subscription.features, { feature_key: "max_users", value_type: "integer", int_value: 25 }],
+    });
+    billingApi.getPaymentMethod.mockResolvedValue({ can_manage: true, stripe_enabled: true, has_payment_method: true, card: { brand: "visa", last4: "4242" } });
+    render(<AccountPlan currentUser={user} />);
+    await screen.findByText("Growth");
+    expect(screen.getByText("ORGANIZATION")).toBeInTheDocument();
+    expect(screen.getByText("visa ending in 4242")).toBeInTheDocument();
+    expect(screen.getAllByText("25")).toHaveLength(2);
+    expect(screen.getByText(/Billing does not report member counts/)).toBeInTheDocument();
+    expect(screen.getByText(/no organization storage configuration API/)).toBeInTheDocument();
+    expect(screen.getByText(/AWS S3, Google Cloud Storage, Azure Blob/)).toBeInTheDocument();
+  });
+
+  it("keeps organization subscription management admin-only while plans remain viewable", async () => {
+    billingApi.getSubscription.mockResolvedValue(subscription);
+    billingApi.getPaymentMethod.mockResolvedValue({ can_manage: false, stripe_enabled: true, has_payment_method: false });
+    const onMembershipPlans = vi.fn();
+    render(<AccountPlan currentUser={user} onMembershipPlans={onMembershipPlans} />);
+    await screen.findByText("Growth");
+    expect(screen.queryByRole("button", { name: "Manage subscription" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Upgrade individual plan" }));
+    expect(onMembershipPlans).toHaveBeenCalledOnce();
+  });
+
   it("opens the Stripe-hosted billing portal through the Electron bridge when present", async () => {
     billingApi.getSubscription.mockResolvedValue(subscription);
     billingApi.getPaymentMethod.mockResolvedValue({ can_manage: true });
@@ -141,7 +168,7 @@ describe("AccountPlan", () => {
     expect(screen.getByText("2027-01-01")).toBeInTheDocument();
     expect(screen.getByText("Enabled")).toBeInTheDocument();
     expect(screen.getByText("Disabled")).toBeInTheDocument();
-    expect(screen.getByText("Unlimited")).toBeInTheDocument();
+    expect(screen.getAllByText("Unlimited").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("gold")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     expect(screen.getByText("No active billing period")).toBeInTheDocument();

@@ -262,7 +262,7 @@ function PaymentMethodCard({ orgId }) {
   );
 }
 
-export default function Billing({ currentUser }) {
+export default function Billing({ currentUser, onMembershipPlans }) {
   if (!currentUser) {
     return <Login title="Sign in required" description="Billing information requires an authenticated OmniBioAI account." />;
   }
@@ -276,10 +276,10 @@ export default function Billing({ currentUser }) {
     // org_id, independent of the caller's own org_id claim. Only the
     // org-picker UI to drive it was missing.
     if (currentUser.permissions?.includes(MANAGE_ALL_ORGS)) {
-      return <PlatformOrgPicker />;
+      return <><MembershipPlansEntry onMembershipPlans={onMembershipPlans} /><PlatformOrgPicker /></>;
     }
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "60px 16px 0" }}>
+      <><MembershipPlansEntry onMembershipPlans={onMembershipPlans} /><div style={{ display: "flex", justifyContent: "center", padding: "60px 16px 0" }}>
         <div style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
           <Card elevated>
             <div style={{ fontSize: 32, marginBottom: 12 }}>🏢</div>
@@ -291,10 +291,17 @@ export default function Billing({ currentUser }) {
             </div>
           </Card>
         </div>
-      </div>
+      </div></>
     );
   }
-  return <BillingSummary orgId={currentUser.orgId} />;
+  return <><MembershipPlansEntry onMembershipPlans={onMembershipPlans} /><BillingSummary orgId={currentUser.orgId} /></>;
+}
+
+function MembershipPlansEntry({ onMembershipPlans }) {
+  if (!onMembershipPlans) return null;
+  return <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+    <Button variant="secondary" size="sm" onClick={onMembershipPlans}>Membership &amp; Plans</Button>
+  </div>;
 }
 
 // Platform admins (manage_all_orgs) have no personal org membership to

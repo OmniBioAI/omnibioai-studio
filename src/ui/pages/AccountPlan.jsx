@@ -57,15 +57,16 @@ function errorMessage(error) {
   return "Your organization's plan is unavailable right now. Please retry.";
 }
 
-export default function AccountPlan({ currentUser }) {
+export default function AccountPlan({ currentUser, onMembershipPlans }) {
   if (!currentUser) return <p role="status">Sign in to view your organization's plan.</p>;
   if (!currentUser.orgId) return <p role="status">An authenticated organization context is required to view plan details.</p>;
-  return <PlanView key={`${currentUser.userId}:${currentUser.orgId}`} orgId={currentUser.orgId} />;
+  return <PlanView key={`${currentUser.userId}:${currentUser.orgId}`} orgId={currentUser.orgId} onMembershipPlans={onMembershipPlans} />;
 }
 
-function PlanView({ orgId }) {
+function PlanView({ orgId, onMembershipPlans }) {
   const [state, setState] = useState({ status: "loading", subscription: null, summary: null, error: null });
   const [canManage, setCanManage] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState({ status: "loading", data: null });
   const [reload, setReload] = useState(0);
   const [portalBusy, setPortalBusy] = useState(false);
   const [portalError, setPortalError] = useState("");
@@ -83,7 +84,13 @@ function PlanView({ orgId }) {
       if (!controller.signal.aborted) setState({ status: "error", subscription: null, summary: null, error });
     });
     setCanManage(false);
-    billingApi.getPaymentMethod(orgId).then(data => { if (!controller.signal.aborted) setCanManage(!!data?.can_manage); }).catch(() => {});
+    setPaymentMethod({ status: "loading", data: null });
+    billingApi.getPaymentMethod(orgId).then(data => {
+      if (!controller.signal.aborted) {
+        setCanManage(!!data?.can_manage);
+        setPaymentMethod({ status: "success", data });
+      }
+    }).catch(() => { if (!controller.signal.aborted) setPaymentMethod({ status: "error", data: null }); });
     return () => controller.abort();
   }, [orgId, reload]);
 
@@ -145,6 +152,23 @@ function PlanView({ orgId }) {
           </dl>
         )}
       </Card>
+      <Card title="Organization subscription details">
+        <dl className="plan-summary">
+          <div><dt>Ownership</dt><dd>ORGANIZATION</dd></div>
+          <div><dt>Billing account</dt><dd>{paymentMethod.status === "loading" ? "Loading…" : paymentMethod.status === "error" ? "Unavailable" : paymentMethod.data?.has_payment_method && paymentMethod.data?.card ? `${paymentMethod.data.card.brand || "Card"} ending in ${paymentMethod.data.card.last4}` : paymentMethod.data?.stripe_enabled ? "No payment method on file" : "Online billing unavailable"}</dd></div>
+          <div><dt>Licensed members</dt><dd>Unavailable — Billing does not report member counts.</dd></div>
+          <div><dt>Seat allowance</dt><dd>{seatAllowance(state.subscription)}</dd></div>
+        </dl>
+      </Card>
+      <Card title="Organization storage">
+        <dl className="plan-summary">
+          <div><dt>Ownership scope</dt><dd>ORGANIZATION — separate from personal managed storage</dd></div>
+          <div><dt>Configured provider</dt><dd>Unavailable — no organization storage configuration API is connected.</dd></div>
+          <div><dt>Connection health</dt><dd>Unavailable — no storage health API is connected.</dd></div>
+        </dl>
+        <p className="plan-note">Planned customer-owned options: AWS S3, Google Cloud Storage, Azure Blob, S3-compatible storage, and an on-premises storage gateway. This page does not configure credentials, gateways, or transfers.</p>
+      </Card>
+      {onMembershipPlans && <div className="plan-actions"><button type="button" className="omni-btn omni-btn--secondary omni-btn--sm" onClick={onMembershipPlans}>Upgrade individual plan</button></div>}
       {canManage && (
         <div className="plan-actions">
           <button type="button" className="omni-btn omni-btn--primary omni-btn--sm" disabled={portalBusy} onClick={manageSubscription}>
@@ -157,4 +181,10 @@ function PlanView({ orgId }) {
       {!canManage && state.status === "success" && <p className="plan-note">Contact an organization billing administrator to make changes to this plan.</p>}
     </section>
   );
+}
+
+function seatAllowance(subscription) {
+  const feature = subscription?.features?.find(item => ["max_users", "seats", "seat_allowance"].includes(item.feature_key));
+  if (!feature) return "Unavailable — no seat allowance is present in the subscription record.";
+  return featureValue(feature);
 }

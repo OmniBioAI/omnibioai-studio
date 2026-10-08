@@ -35,6 +35,7 @@ import Projects from "./pages/Projects";
 import Artifacts from "./pages/Artifacts";
 import Explore from "./pages/Explore";
 import Integrations from "./pages/Integrations";
+import MembershipPlans from "./pages/MembershipPlans";
 import PreferencesProvider from "./components/PreferencesProvider";
 import AppearanceProvider from "./components/AppearanceProvider";
 import AccountLayout from "./components/AccountLayout";
@@ -56,6 +57,7 @@ const PROJECTS_PAGE = 20;
 const ARTIFACTS_PAGE = 21;
 const EXPLORE_PAGE = 22;
 const INTEGRATIONS_PAGE = 30;
+const MEMBERSHIP_PLANS_PAGE = 31;
 
 const BASE_NAV = [
   { section: null, items: [{ name:"Studio", idx:7 }] },
@@ -117,7 +119,7 @@ const PAGE_NAMES = [
   "services","logs","studio","settings","jobs",null,"roles","billing","workbench","developer","profile","security","preferences",
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
   "projects","artifacts","explore","notifications","personalization","appearance","organization-connections",
-  "privacy","plan","help","integrations",
+  "privacy","plan","help","integrations","membership-plans",
 ];
 
 const PAGE_LABELS = [
@@ -125,7 +127,7 @@ const PAGE_LABELS = [
   "Studio", "Settings", "Jobs", null, "Roles", "Billing", "Workbench", "Developer", "Profile", "Security", "Preferences",
   "Code", "Workflows",
   "Projects", "Artifacts", "Explore", "Notifications", "Personalization", "Appearance", "Connections",
-  "Privacy & Data", "Plan", "Help & Product", "Integrations",
+  "Privacy & Data", "Plan", "Help & Product", "Integrations", "Membership & Plans",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -149,6 +151,8 @@ const PLAN_PAGE = 28;
 const HELP_PATH = "/studio/help";
 const HELP_PAGE = 29;
 const INTEGRATIONS_PATH = "/studio/integrations";
+const BILLING_PATH = "/studio/billing";
+const MEMBERSHIP_PLANS_PATH = "/studio/billing/plans";
 const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, notifications: NOTIFICATIONS_PAGE, personalization: PERSONALIZATION_PAGE, appearance: APPEARANCE_PAGE, privacy: PRIVACY_PAGE, plan: PLAN_PAGE, help: HELP_PAGE };
 const PROJECTS_PATH = "/studio/projects";
 const ARTIFACTS_PATH = "/studio/artifacts";
@@ -174,6 +178,8 @@ const PATH_TO_PAGE = {
   [ARTIFACTS_PATH]:   ARTIFACTS_PAGE,
   [EXPLORE_PATH]:     EXPLORE_PAGE,
   [INTEGRATIONS_PATH]: INTEGRATIONS_PAGE,
+  [BILLING_PATH]: 12,
+  [MEMBERSHIP_PLANS_PATH]: MEMBERSHIP_PLANS_PAGE,
 };
 const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([path, page]) => [page, path]));
 const KNOWN_PAGE_PATHS = Object.keys(PATH_TO_PAGE);
@@ -389,7 +395,7 @@ export default function App() {
     <Jobs         />,
     null, // 10 — retired IDE Services slot; keep later page indices stable
     <RoleManagement currentUser={currentUser} />,
-    <Billing currentUser={currentUser} />,
+    <Billing currentUser={currentUser} onMembershipPlans={() => handleNavClick(MEMBERSHIP_PLANS_PAGE)} />,
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={(url, label, plugin) => setService({ url, label, source: "workbench", pluginSlug: plugin?.slug || null })} />,
     <Developer currentUser={currentUser} />,
@@ -424,12 +430,13 @@ export default function App() {
       <AccountPrivacy />
     </AccountLayout>,
     <AccountLayout activeSection="plan" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
-      <AccountPlan currentUser={currentUser} />
+      <AccountPlan currentUser={currentUser} onMembershipPlans={() => handleNavClick(MEMBERSHIP_PLANS_PAGE)} />
     </AccountLayout>,
     <AccountLayout activeSection="help" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountHelp />
     </AccountLayout>,
     <Integrations onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} />,
+    <MembershipPlans currentUser={currentUser} onBillingOverview={() => handleNavClick(12)} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");

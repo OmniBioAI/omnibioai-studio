@@ -67,6 +67,13 @@ describe("Billing page gating", () => {
     render(<Billing currentUser={{ email: "u@test", permissions: [], orgId: null }} />);
     expect(screen.getByText("No organization context")).toBeInTheDocument();
   });
+
+  it("provides a Membership & Plans entry point without changing billing state", () => {
+    const onMembershipPlans = vi.fn();
+    render(<Billing currentUser={{ email: "u@test", permissions: [], orgId: null }} onMembershipPlans={onMembershipPlans} />);
+    fireEvent.click(screen.getByRole("button", { name: "Membership & Plans" }));
+    expect(onMembershipPlans).toHaveBeenCalledOnce();
+  });
 });
 
 describe("Billing page platform-admin org picker", () => {
