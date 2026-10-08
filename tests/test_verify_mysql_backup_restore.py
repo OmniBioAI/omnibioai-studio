@@ -10,9 +10,73 @@ non-mocked restore-proof run against an actual backup artifact).
 Developer:
     Manish Kumar <manish@omnibioai.org>
 """
+import gzip
+import os
+import subprocess
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "verify-mysql-backup-restore.sh"
+
+
+def _run_before_docker(artifact: Path, tmp_path: Path):
+    """Run an early verifier path with a Docker call log."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    marker = tmp_path / "docker-called"
+    docker = bin_dir / "docker"
+    docker.write_text(f'#!/usr/bin/env bash\necho "$*" >> "{marker}"\nexit 99\n', encoding="utf-8")
+    docker.chmod(0o755)
+    env = os.environ.copy()
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env["BACKUP_HEALTH_FILE"] = str(tmp_path / "health.env")
+    result = subprocess.run(
+        ["bash", str(SCRIPT), str(artifact)], capture_output=True, text=True,
+        timeout=20, env=env,
+    )
+    return result, marker
+
+
+def test_portable_gzip_decompression_accepts_valid_archive(tmp_path):
+    """The portable command used by the verifier expands a normal gzip on macOS/Linux."""
+    archive = tmp_path / "valid.sql.gz"
+    expected = b"CREATE DATABASE `restore_test`;\nCREATE TABLE t (id INT);\n"
+    with gzip.open(archive, "wb") as stream:
+        stream.write(expected)
+    result = subprocess.run(["gzip", "-dc", str(archive)], capture_output=True)
+    assert result.returncode == 0
+    assert result.stdout == expected
+
+
+def test_missing_backup_fails_before_docker_and_cleans_scratch(tmp_path):
+    before = set(Path("/tmp").glob("omnibioai-mysql-restore-verify.*"))
+    result, marker = _run_before_docker(tmp_path / "missing.sql.gz", tmp_path)
+    after = set(Path("/tmp").glob("omnibioai-mysql-restore-verify.*"))
+    assert result.returncode != 0
+    assert "backup artifact not found" in result.stderr
+    assert not marker.exists()
+    assert after == before
+
+
+def test_invalid_gzip_fails_explicitly_before_docker_and_cleans_scratch(tmp_path):
+    archive = tmp_path / "invalid.sql.gz"
+    archive.write_bytes(b"not gzip")
+    before = set(Path("/tmp").glob("omnibioai-mysql-restore-verify.*"))
+    result, marker = _run_before_docker(archive, tmp_path)
+    after = set(Path("/tmp").glob("omnibioai-mysql-restore-verify.*"))
+    assert result.returncode != 0
+    assert "gzip integrity check failed" in result.stderr
+    # The EXIT trap must run even on this early failure. It may invoke only
+    # cleanup, never create a restore target after integrity has failed.
+    calls = marker.read_text(encoding="utf-8").splitlines()
+    assert len(calls) == 1 and calls[0].startswith("rm -f ")
+    assert after == before
+
+
+def test_decompression_is_portable_explicit_and_fail_closed():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert 'if ! gzip -dc "${GZ_ARTIFACT}" > "${DECOMPRESSED}"; then' in text
+    assert 'fail "gzip decompression failed' in text
+    assert 'zcat "${GZ_ARTIFACT}"' not in text
 
 
 def test_restore_target_is_network_isolated_and_disposable():
@@ -55,6 +119,16 @@ def test_row_content_is_never_selected_only_counts():
     text = SCRIPT.read_text(encoding="utf-8")
     assert "SELECT COUNT(*)" in text
     assert "SELECT *" not in text
+
+
+def test_representative_counts_cover_organization_and_storage_records():
+    text = SCRIPT.read_text(encoding="utf-8")
+    for table in (
+        "omnibioai.organizations", "omnibioai.organization_memberships",
+        "omnibioai.artifact_manager_artifact", "omnibioai.storage_ledger_allocation",
+        "omnibioai.storage_ledger_organizationstorage",
+    ):
+        assert table in text
 
 
 # ============================================================

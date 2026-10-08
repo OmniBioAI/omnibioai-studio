@@ -111,7 +111,10 @@ fi
 # ── Integrity of the (now-plaintext) compressed dump ─────────────
 gzip -t "${GZ_ARTIFACT}" || fail "gzip integrity check failed on ${GZ_ARTIFACT}"
 
-zcat "${GZ_ARTIFACT}" > "${DECOMPRESSED}"
+if ! gzip -dc "${GZ_ARTIFACT}" > "${DECOMPRESSED}"; then
+  rm -f "${DECOMPRESSED}"
+  fail "gzip decompression failed for ${GZ_ARTIFACT}"
+fi
 [[ -s "${DECOMPRESSED}" ]] || fail "decompressed dump is empty"
 
 # ── Expected structure, derived from the dump itself (deterministic —
@@ -197,7 +200,14 @@ done
 # ── Representative aggregate row counts (safe — counts only, no
 #    content) for the highest-value tables: the audit ledger and the
 #    auth ledger, if present. ────────────────────────────────────
-for probe in "omnibioai_audit.audit_events" "omnibioai.audit_events"; do
+for probe in \
+  "omnibioai_audit.audit_events" \
+  "omnibioai.audit_events" \
+  "omnibioai.organizations" \
+  "omnibioai.organization_memberships" \
+  "omnibioai.artifact_manager_artifact" \
+  "omnibioai.storage_ledger_allocation" \
+  "omnibioai.storage_ledger_organizationstorage"; do
   db="${probe%%.*}"; tbl="${probe#*.}"
   exists="$(docker exec "${TARGET}" mysql -N -B -uroot -e \
     "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${db}' AND table_name='${tbl}'" 2>/dev/null || echo 0)"
