@@ -11,17 +11,17 @@ import { resolveWorkbenchComponent } from "../../src/ui/components/workbench/com
 const source = process.env.WORKBENCH_SOURCE;
 const enabled = Boolean(source);
 describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
-  it("validates 232 v1 native descriptors, seven v2 queries, and legacy fallbacks", () => {
+  it("validates 236 v1 native descriptors, seven v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 239, legacy: 262 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 243, legacy: 258 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(232);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(236);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
       "clinicaltrials_gov", "disease_ontology", "ensembl", "hgnc", "medgen", "mondo", "rcsb_pdb",
     ]);
@@ -29,7 +29,8 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "async_analysis").map(plugin => plugin.slug).sort()).toEqual([
       "atlassian", "aws_healthomics", "benchling", "chembl_search", "cloud_integration",
       "dnanexus", "dvc", "elabftw", "figshare", "ga4gh_interoperability", "jupyterhub",
-      "knime", "labkey", "pubmed_search",
+      "knime", "labkey", "lims_integration", "microsoft_graph", "openspecimen",
+      "pubmed_search", "s3_integration",
     ]);
     for (const entry of catalog.plugins) {
       const descriptor = validatePluginDescriptor(entry.descriptor, entry.slug);
