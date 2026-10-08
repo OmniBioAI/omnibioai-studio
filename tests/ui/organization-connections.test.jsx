@@ -35,6 +35,14 @@ beforeEach(() => { localStorage.setItem("omnibioai_access_token", "test-token");
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("Organization Connections", () => {
+  it("keeps all three cards visible while connection state is loading", () => {
+    const fetcher = setup(); fetcher.mockImplementationOnce(() => new Promise(() => {}));
+    render(<OrganizationConnections currentUser={user} />);
+    expect(document.querySelectorAll("[data-connection-card]")).toHaveLength(3);
+    expect(screen.getAllByText("Checking status")).toHaveLength(3);
+    expect(screen.getAllByText("Execution status pending")).toHaveLength(2);
+    expect(screen.queryByText("Not configured")).toBeNull();
+  });
   it("loads the disconnected shared slot without fabricated metadata", async () => {
     const fetcher = setup(); render(<OrganizationConnections currentUser={user} />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading");
@@ -131,6 +139,11 @@ describe("Organization Connections", () => {
     if (status === "network") fetcher.mockRejectedValueOnce(new Error(secret)); else fetcher.mockResolvedValueOnce(response({ detail: secret }, status));
     render(<OrganizationConnections currentUser={user} />); const alert = await screen.findByRole("alert"); assertSecretAbsent();
     expect(alert).toHaveTextContent([401, 403].includes(status) ? "You do not have permission" : "Connections are unavailable");
+    expect(document.querySelectorAll("[data-connection-card]")).toHaveLength(3);
+    expect(screen.getAllByText("Status unavailable")).toHaveLength(2);
+    expect(screen.getAllByText("Execution unavailable")).toHaveLength(2);
+    expect(screen.queryByText("Not configured")).toBeNull();
+    expect(screen.getByText(/No credential status has been inferred/)).toBeVisible();
     expect(screen.queryByRole("button", { name: "Connect provider" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Retry connection" })); await screen.findByText("No organization AI provider connected.");
     expect(fetcher).toHaveBeenCalledTimes(2);
@@ -144,7 +157,9 @@ describe("Organization Connections", () => {
     fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(screen.getByRole("button", { name: "Confirm replacement" }));
     fetcher.mockResolvedValue(response(metadata("claude")));
     rerender(<OrganizationConnections currentUser={{ ...user, orgId: 22 }} />);
-    expect(screen.queryByText("OpenAI")).toBeNull(); expect(screen.queryByRole("dialog")).toBeNull(); assertSecretAbsent();
+    expect(within(document.querySelector('[data-connection-card="shared"]')).queryByText("Credential stored securely")).toBeNull();
+    expect(document.querySelectorAll("[data-connection-card]")).toHaveLength(3);
+    expect(screen.queryByRole("dialog")).toBeNull(); assertSecretAbsent();
     await screen.findByText("Anthropic");
     await act(async () => finish(response({ detail: secret }, 403)));
     expect(screen.queryByRole("alert")).toBeNull(); expect(screen.getByText("Anthropic")).toBeVisible();

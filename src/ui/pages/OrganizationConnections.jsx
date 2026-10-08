@@ -39,38 +39,44 @@ function ConnectionSession({ orgId }) {
   function saved() { close(); setNotice("Organization connection updated."); reload(); document.getElementById("connections-heading")?.focus(); }
   return <>
     {notice && <p role="status">{notice}</p>}
-    {error ? <div className="connections-card"><p role="alert">{error}</p><button onClick={reload}>Retry connection</button></div>
-      : !data ? <p role="status">Loading organization connection…</p>
-        : <div className="connections-grid" aria-label="Organization AI connections">
-          <ProviderShowcase provider="openai" name="OpenAI" data={data} />
-          <ProviderShowcase provider="claude" name="Anthropic Claude" data={data} />
-          <div className="connections-card connections-shared-card" data-connection-card="shared">
-            <div className="connections-card-heading"><h2>AI provider</h2><span className="connections-status">{data.configured ? "Connected" : "Not connected"}</span></div>
+    <div className="connections-grid" aria-label="Organization AI connections" aria-busy={!data && !error}>
+      <ProviderShowcase provider="openai" name="OpenAI" data={data} unavailable={!!error} />
+      <ProviderShowcase provider="claude" name="Anthropic Claude" data={data} unavailable={!!error} />
+      <div className="connections-card connections-shared-card" data-connection-card="shared">
+        <div className="connections-card-heading"><h2>AI provider</h2><span className="connections-status">{error ? "Unavailable" : !data ? "Checking status" : data.configured ? "Connected" : "Not connected"}</span></div>
+        {error ? <>
+          <p role="alert">{error}</p><button onClick={reload}>Retry connection</button>
+          <p className="connections-note">Connection state could not be confirmed. No credential status has been inferred.</p>
+        </> : !data ? <p role="status">Loading organization connection…</p>
+          : <>
             {data.configured ? <>
-              <h3>{LABELS[data.provider]}</h3><p>Provided by your organization.</p>
-              <dl><div><dt>Scope</dt><dd>Organization</dd></div><div><dt>Available to</dt><dd>Authorized organization members</dd></div><div><dt>Credential</dt><dd>Credential stored securely</dd></div></dl>
-            </> : <><h3>No organization AI provider connected.</h3><p>Connect OpenAI or Anthropic to make the provider available to authorized organization workloads.</p></>}
+                <h3>{LABELS[data.provider]}</h3><p>Provided by your organization.</p>
+                <dl><div><dt>Scope</dt><dd>Organization</dd></div><div><dt>Available to</dt><dd>Authorized organization members</dd></div><div><dt>Credential</dt><dd>Credential stored securely</dd></div></dl>
+              </> : <><h3>No organization AI provider connected.</h3><p>Connect OpenAI or Anthropic to make the provider available to authorized organization workloads.</p></>}
             <p className="connections-note">One shared AI provider connection per organization: OpenAI or Anthropic.</p>
             <div className="connections-actions">
               {data.canReplace && <button className="connections-primary" onClick={event => open("write", event)}>{data.configured ? "Replace credential or switch provider" : "Connect provider"}</button>}
               {data.configured && data.canRemove && <button onClick={event => open("remove", event)}>Remove connection</button>}
             </div>
             {!data.canReplace && !data.canRemove && <p className="connections-note">Contact an organization administrator to manage this connection.</p>}
-          </div>
-        </div>}
+          </>}
+      </div>
+    </div>
     {dialog && data && <ConnectionDialog orgId={orgId} data={data} kind={dialog} onClose={close} onSaved={saved} />}
   </>;
 }
 
-function ProviderShowcase({ provider, name, data }) {
-  const connected = data.configured && data.provider === provider;
+function ProviderShowcase({ provider, name, data, unavailable }) {
+  const connected = !!data?.configured && data.provider === provider;
+  const status = unavailable ? "Status unavailable" : !data ? "Checking status" : connected ? "Connected" : "Not configured";
+  const execution = unavailable ? "Execution unavailable" : !data ? "Execution status pending" : connected ? "Available to authorized workloads" : "Execution disabled";
   return <article className="connections-card connections-showcase-card" data-connection-card={provider}>
     <div className="connections-card-heading">
       <h2><span className="connections-provider-icon" aria-hidden="true">◈</span>{name}</h2>
-      <span className="connections-status">{connected ? "Connected" : "Not configured"}</span>
+      <span className="connections-status">{status}</span>
     </div>
     <p>Organization API connection</p>
-    <p className={`connections-execution${connected ? " is-connected" : ""}`}>{connected ? "Available to authorized workloads" : "Execution disabled"}</p>
+    <p className={`connections-execution${connected ? " is-connected" : ""}`}>{execution}</p>
   </article>;
 }
 
