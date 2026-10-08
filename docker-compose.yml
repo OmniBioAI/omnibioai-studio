@@ -781,6 +781,10 @@ services:
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       ORCHESTRATOR_MAX_RETRIES: "10"
       JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      # Shared internal authentication for Auth provider-policy lookup and
+      # Workbench credential-reference resolution. Required, independent of
+      # browser JWTs, provider credentials, and CONFIG_ENCRYPTION_KEY.
+      INTEGRATION_CREDENTIAL_SERVICE_SECRET: ${INTEGRATION_CREDENTIAL_SERVICE_SECRET:?INTEGRATION_CREDENTIAL_SERVICE_SECRET must be set}
       RAG_BASE_URL: http://rag:8096
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -1597,6 +1601,11 @@ services:
       # encryption key, defeating the point. Generate one with:
       #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
       CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:-}
+
+      # Must exactly match Workbench. Auth compares this value in constant
+      # time on its internal resolver and supplies it to Workbench's internal
+      # provider-policy endpoint; neither endpoint permits an empty value.
+      INTEGRATION_CREDENTIAL_SERVICE_SECRET: ${INTEGRATION_CREDENTIAL_SERVICE_SECRET:?INTEGRATION_CREDENTIAL_SERVICE_SECRET must be set}
 
       # OAuth2 SSO — optional; empty values keep SSO disabled without blocking startup.
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
