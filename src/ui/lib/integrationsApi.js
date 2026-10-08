@@ -110,6 +110,24 @@ function normalizeField(value) {
   return Object.freeze({ name, label, secret: value.secret, required: value.required });
 }
 
+function normalizePlugin(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new IntegrationsApiError("invalid");
+  const pluginId = safeId(value.plugin_id);
+  const pluginName = text(value.plugin_name, 128);
+  const category = safeId(value.category);
+  const description = text(value.description, 2000);
+  if (!pluginName || !description || !Number.isInteger(value.capability_count) || value.capability_count < 0) throw new IntegrationsApiError("invalid");
+  if (!Array.isArray(value.capabilities) || value.capabilities.some(item => typeof item !== "string")) throw new IntegrationsApiError("invalid");
+  return Object.freeze({
+    pluginId, pluginName, category, description,
+    capabilityCount: value.capability_count,
+    capabilities: Object.freeze(value.capabilities.map(item => item.trim()).filter(Boolean)),
+    runtimeAvailable: value.runtime_available === true,
+    implementationStatus: text(value.implementation_status, 64) || "unknown",
+    documentationUrl: value.documentation_url === "UNKNOWN" ? null : text(value.documentation_url, 1000) || null,
+  });
+}
+
 export function normalizeProvider(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new IntegrationsApiError("invalid");
   const providerId = safeId(value.provider_id);
@@ -129,9 +147,14 @@ export function normalizeProvider(value) {
   if (!Array.isArray(auth.resolution_policy) || auth.resolution_policy.some(scope => !RESOLUTION_SCOPES.has(scope))) {
     throw new IntegrationsApiError("invalid");
   }
+  if (!Array.isArray(value.plugins) || value.plugins.length !== value.plugin_slugs.length) throw new IntegrationsApiError("invalid");
+  const plugins = Object.freeze(value.plugins.map(normalizePlugin));
   return Object.freeze({
     providerId, displayName, category, description, setupState,
     pluginSlugs: Object.freeze([...value.plugin_slugs]),
+    plugins,
+    pluginCount: Number.isInteger(value.plugin_count) ? value.plugin_count : plugins.length,
+    capabilityCount: Number.isInteger(value.capability_count) ? value.capability_count : value.capabilities.length,
     capabilities: Object.freeze(value.capabilities.map(capability => capability.trim())),
     connectionTestSupported: value.connection_test_supported === true,
     authentication: Object.freeze({

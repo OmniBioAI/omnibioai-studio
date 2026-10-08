@@ -9,6 +9,8 @@ import Integrations from "../../src/ui/pages/Integrations";
 const base = {
   providerId: "github", displayName: "GitHub", category: "source_control", description: "GitHub source control, Actions, and registry capabilities.", setupState: "free_account",
   pluginSlugs: ["git_hosting", "github_actions", "ghcr"], capabilities: ["source_control", "actions", "container_registry"], connectionTestSupported: false,
+  pluginCount: 3, capabilityCount: 12,
+  plugins: ["git_hosting", "github_actions", "ghcr"].map(pluginId => ({ pluginId, pluginName: pluginId.replaceAll("_", " "), category: "integration", description: `${pluginId} capabilities.`, capabilityCount: 4, capabilities: ["search", "metadata", "execute", "status"], runtimeAvailable: true, implementationStatus: "implemented", documentationUrl: null })),
   authentication: { type: "token", allowedScopes: ["user", "organization"], anonymousAccess: false, resolutionPolicy: ["user", "organization"], fields: [{ name: "token", label: "Personal access token", secret: true, required: true }] },
   effectiveStatus: "NOT_CONFIGURED", effectiveScope: null, personalCredential: null,
 };
@@ -31,12 +33,16 @@ describe("Integrations page", () => {
   it("renders the provider-level catalog, aggregation, loading state, and canonical capabilities", async () => {
     render(<Integrations />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading integrations");
-    expect(await screen.findByRole("heading", { name: "GitHub" })).toBeVisible();
-    expect(screen.getByText("3", { selector: "dd" })).toBeVisible();
+    const githubHeading = await screen.findByRole("heading", { name: "GitHub" });
+    expect(githubHeading).toBeVisible();
+    const githubCard = githubHeading.closest("article");
+    expect(within(githubCard).getByText("3", { selector: "dd" })).toBeVisible();
+    expect(within(githubCard).getByText("12", { selector: "dd" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "View GitHub" }));
     const dialog = await screen.findByRole("dialog");
     expect(api.getIntegrationProvider).toHaveBeenCalledWith("github");
     for (const label of ["Source Control", "Actions", "Container Registry"]) expect(within(dialog).getAllByText(label).some(node => node.tagName === "LI")).toBe(true);
+    expect(within(dialog).getByText("git hosting")).toBeVisible();
     expect(within(dialog).getByRole("button", { name: "Test connection unavailable" })).toBeDisabled();
   });
 

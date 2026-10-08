@@ -22,6 +22,12 @@ import {
 const provider = {
   provider_id: "github", display_name: "GitHub", category: "source_control", description: "GitHub capabilities.",
   setup_state: "free_account", plugin_slugs: ["git_hosting", "github_actions", "ghcr"], capabilities: ["source_control", "actions"],
+  plugin_count: 3, capability_count: 12,
+  plugins: ["git_hosting", "github_actions", "ghcr"].map(plugin_id => ({
+    plugin_id, plugin_name: plugin_id.replaceAll("_", " "), category: "integration", description: `${plugin_id} capabilities.`,
+    capability_count: 4, capabilities: ["search", "metadata", "execute", "status"], runtime_available: true,
+    implementation_status: "implemented", documentation_url: "UNKNOWN",
+  })),
   connection_test_supported: false,
   authentication: { type: "token", allowed_scopes: ["user", "organization"], anonymous_access: false, resolution_policy: ["user", "organization"],
     fields: [{ name: "token", label: "Personal access token", secret: true, required: true }, { name: "username", label: "Username", secret: false, required: false }] },
@@ -34,7 +40,7 @@ beforeEach(() => { session.token = "session-token"; session.version = 9; session
 describe("Integrations API", () => {
   it("loads and validates the canonical provider catalog through Workbench", async () => {
     const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ providers: [provider], count: 1 }));
-    await expect(listIntegrationProviders()).resolves.toEqual([expect.objectContaining({ providerId: "github", displayName: "GitHub", pluginSlugs: ["git_hosting", "github_actions", "ghcr"] })]);
+    await expect(listIntegrationProviders()).resolves.toEqual([expect.objectContaining({ providerId: "github", displayName: "GitHub", pluginSlugs: ["git_hosting", "github_actions", "ghcr"], pluginCount: 3, capabilityCount: 12 })]);
     expect(fetcher).toHaveBeenCalledWith("/_svc/workbench/plugins/integration_connections/providers/", expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer session-token" }), credentials: "same-origin" }));
   });
 

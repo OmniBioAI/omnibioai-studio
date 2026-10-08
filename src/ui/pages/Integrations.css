@@ -18,6 +18,7 @@
 .integration-status { display: inline-flex; padding: 4px 8px; border: 1px solid var(--border2); border-radius: 999px; font: 600 var(--font-size-xs)/1.3 var(--font); white-space: nowrap; }
 .integration-status-connected, .integration-status-ready { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 .integration-status-setup { color: var(--color-text-muted); }
+.integration-status-restricted, .integration-status-unavailable { color: var(--color-text-muted); border-style: dashed; }
 .integration-card dl { display: flex; gap: 20px; margin: auto 0 0; }
 .integration-card dl div { display: grid; gap: 3px; }
 .integration-card dt { color: var(--color-text-muted); font-size: var(--font-size-xs); }
@@ -37,6 +38,10 @@
 .integrations-dialog form { display: grid; gap: 14px; }
 .integration-capabilities { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }
 .integration-capabilities li { padding: 5px 9px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; font-size: var(--font-size-sm); }
+.integration-plugin-list { display: grid; gap: 8px; padding: 0; list-style: none; }
+.integration-plugin-list li { display: flex; justify-content: space-between; gap: 16px; padding: 9px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.integration-plugin-list li span:first-child { display: grid; gap: 2px; }
+.integration-plugin-list small { color: var(--color-text-muted); font-family: var(--mono); }
 .integration-managed { padding: 10px 12px; border-left: 3px solid var(--accent2); background: color-mix(in srgb, var(--accent2) 7%, transparent); }
 .integration-test-note { font-size: var(--font-size-sm); }
 .integrations-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 22px; }

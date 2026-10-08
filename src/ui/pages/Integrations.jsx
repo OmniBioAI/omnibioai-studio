@@ -14,13 +14,16 @@ const FILTERS = [
 ];
 
 const pretty = value => String(value || "").split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
-const searchable = provider => [provider.displayName, provider.description, provider.category, ...provider.capabilities, ...provider.pluginSlugs].join(" ").toLowerCase();
+const searchable = provider => [provider.displayName, provider.description, provider.category, ...provider.capabilities,
+  ...provider.pluginSlugs, ...provider.plugins.map(plugin => plugin.pluginName)].join(" ").toLowerCase();
 
 function statusInfo(provider) {
   if (provider.effectiveStatus === "CONNECTED_USER") return ["Connected — Personal", "connected"];
   if (provider.effectiveStatus === "CONNECTED_ORGANIZATION") return ["Connected — Organization", "connected"];
   if (provider.effectiveStatus === "CONNECTED_PLATFORM") return ["Connected — Platform", "connected"];
   if (provider.effectiveStatus === "READY_NO_CREDENTIALS") return ["Ready — No setup required", "ready"];
+  if (provider.setupState === "license_required") return ["License required", "restricted"];
+  if (provider.setupState === "unsupported_auth") return ["Setup not yet supported", "unavailable"];
   return ["Not configured", "setup"];
 }
 
@@ -127,7 +130,8 @@ export default function Integrations({ onOrganizationConnections }) {
               <div className="integration-card-top"><span className="integration-category">{pretty(provider.category)}</span><span className={`integration-status integration-status-${tone}`}>{label}</span></div>
               <h2>{provider.displayName}</h2><p>{provider.description}</p>
               <dl><div><dt>Authentication</dt><dd>{pretty(provider.authentication.type)}</dd></div>
-                <div><dt>Capabilities</dt><dd>{provider.capabilities.length}</dd></div></dl>
+                <div><dt>Plugins</dt><dd>{provider.pluginCount}</dd></div>
+                <div><dt>Capabilities</dt><dd>{provider.capabilityCount}</dd></div></dl>
               <button type="button" className="integration-primary" disabled={detailLoading} onClick={() => openProvider(provider)}>View {provider.displayName}</button>
             </article></PanelBody></Panel>;
           })}</div>}
@@ -197,6 +201,11 @@ function ProviderDialog({ provider, onClose, onChanged }) {
         {provider.effectiveStatus === "CONNECTED_ORGANIZATION" && <p className="integration-managed">Managed by your organization. Organization credentials are never displayed here.</p>}
         {provider.effectiveStatus === "CONNECTED_PLATFORM" && <p className="integration-managed">Managed by the OmniBioAI platform.</p>}
         {provider.authentication.anonymousAccess && <p>Public capabilities remain available without a credential.</p>}
+        {provider.setupState === "unsupported_auth" && <p className="integration-managed">This provider's authentication flow is catalogued but is not yet supported by Studio. No credential is requested.</p>}
+        {provider.setupState === "license_required" && <p className="integration-managed">This provider requires an external license or subscription. Studio does not claim access or request credentials.</p>}
+        <h3>Workbench plugins</h3><ul className="integration-plugin-list">{provider.plugins.map(plugin => <li key={plugin.pluginId}>
+          <span><strong>{plugin.pluginName}</strong><small>{plugin.pluginId}</small></span><span>{plugin.capabilityCount} capabilities</span>
+        </li>)}</ul>
         <h3>Workbench capabilities</h3><ul className="integration-capabilities">{provider.capabilities.map(capability => <li key={capability}>{pretty(capability)}</li>)}</ul>
         <h3>Credential scopes</h3><p>{provider.authentication.allowedScopes.map(pretty).join(", ") || "No credentials required"}</p>
         <p className="integration-test-note">Connection testing is unavailable for this provider. Saving a credential configures it but does not externally verify it.</p>
