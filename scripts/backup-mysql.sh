@@ -123,6 +123,39 @@ record_health() {
   mv -f "${HEALTH_FILE}.tmp" "$HEALTH_FILE"
 }
 
+# Return the exact size of a non-empty regular file in bytes. GNU and BSD
+# stat deliberately use different flags, so probe both syntaxes instead of
+# inferring the host OS. Diagnostics go to stderr so command substitution
+# captures only the validated integer.
+file_size_bytes() {
+  local file="$1" size=""
+  if [[ ! -f "$file" ]]; then
+    echo "backup artifact missing during size verification: ${file}" >&2
+    return 1
+  fi
+  if [[ ! -s "$file" ]]; then
+    echo "backup artifact empty during size verification: ${file}" >&2
+    return 1
+  fi
+  if size="$(stat -c%s -- "$file" 2>/dev/null)"; then
+    : # GNU coreutils
+  elif size="$(stat -f%z "$file" 2>/dev/null)"; then
+    : # BSD/macOS
+  else
+    echo "no supported stat file-size syntax is available" >&2
+    return 1
+  fi
+  if [[ ! "$size" =~ ^[0-9]+$ ]]; then
+    echo "stat returned an invalid file size" >&2
+    return 1
+  fi
+  if [[ "$size" == "0" ]]; then
+    echo "backup artifact became empty during size verification: ${file}" >&2
+    return 1
+  fi
+  printf '%s\n' "$size"
+}
+
 # fail(): the single exit path for every anticipated failure. Records
 # health, removes any partial artifact -- plaintext AND any partial
 # ciphertext (never publish a partial dump, encrypted or not, and never
@@ -133,6 +166,11 @@ fail() {
   echo "[ERROR] $(date -Iseconds) ${msg} (stage: ${STAGE})" >&2
   record_health "failure"
   rm -f "${DUMP_TMP}" "${DUMP_TMP}.gpg" "${TMP_FILE}" 2>/dev/null || true
+  # A failure after the atomic rename must not leave a final-looking artifact
+  # or checksum from a run whose metadata/health publication never completed.
+  if [[ "$STAGE" == "publish" && -n "$OUT_FILE" ]]; then
+    rm -f -- "$OUT_FILE" "${OUT_FILE}.sha256" 2>/dev/null || true
+  fi
   # Track E4 (breadth pass): a distinct condition for the encrypt stage
   # specifically (backup_encryption_failed) vs. every other stage
   # (backup_failed) -- an operator alerting on "encryption is broken"
@@ -256,7 +294,9 @@ ARTIFACT_SHA256="$(sha256sum "${TMP_FILE}" | cut -d' ' -f1)"
 STAGE="publish"
 mv -f "${TMP_FILE}" "${OUT_FILE}"
 echo "${ARTIFACT_SHA256}  $(basename "${OUT_FILE}")" > "${OUT_FILE}.sha256"
-ARTIFACT_SIZE_BYTES="$(stat -c%s "${OUT_FILE}")"
+if ! ARTIFACT_SIZE_BYTES="$(file_size_bytes "${OUT_FILE}")"; then
+  fail "backup artifact size verification failed"
+fi
 
 SIZE="$(du -sh "${OUT_FILE}" | cut -f1)"
 echo "[INFO] $(date -Iseconds) Backup complete — ${SIZE} written to ${OUT_FILE} (encrypted: ${ENCRYPTED}, sha256 ${ARTIFACT_SHA256:0:12}...)"

@@ -62,7 +62,8 @@ class Sandbox:
     daemon), with configurable container state, mysqldump exit code and mysqldump
     output."""
     def __init__(self, tmp_path: Path, *, container_running=True, mysqldump_exit=0,
-                 mysqldump_output="-- fake sql dump\\nSELECT 1;\\n", env_content="MYSQL_ROOT_PASSWORD=test-password-not-real\\n"):
+                 mysqldump_output="-- fake sql dump\\nSELECT 1;\\n", env_content="MYSQL_ROOT_PASSWORD=test-password-not-real\\n",
+                 stat_mode="gnu"):
         self.tmp_path = tmp_path
         self.bin_dir = tmp_path / "bin"
         self.bin_dir.mkdir()
@@ -83,6 +84,18 @@ class Sandbox:
         fake_docker = self.bin_dir / "docker"
         fake_docker.write_text(docker_script, encoding="utf-8")
         fake_docker.chmod(fake_docker.stat().st_mode | stat.S_IEXEC)
+
+        stat_behaviors = {
+            "gnu": '[[ "$1" == "-c%s" ]] || exit 1; shift; [[ "$1" == "--" ]] && shift; wc -c < "$1" | tr -d " "',
+            "bsd": '[[ "$1" == "-f%z" ]] || exit 1; wc -c < "$2" | tr -d " "',
+            "unsupported": 'exit 1',
+            "invalid": 'echo not-a-size; exit 0',
+            "missing": 'file="${@: -1}"; rm -f -- "$file"; exit 1',
+            "empty": 'file="${@: -1}"; : > "$file"; [[ "$1" == "-c%s" ]] && echo 0 || exit 1',
+        }
+        fake_stat = self.bin_dir / "stat"
+        fake_stat.write_text(f'#!/usr/bin/env bash\n{stat_behaviors[stat_mode]}\n', encoding="utf-8")
+        fake_stat.chmod(fake_stat.stat().st_mode | stat.S_IEXEC)
 
     def run(self, extra_env: dict | None = None) -> subprocess.CompletedProcess:
         """Runs backup-mysql.sh as a subprocess with PATH, OMNIBIOAI_ENV_FILE,
@@ -204,6 +217,52 @@ def test_successful_run_produces_completed_checksummed_artifact(tmp_path):
     sidecar = artifacts[0].with_suffix(artifacts[0].suffix + ".sha256")
     assert sidecar.exists()
     assert artifacts[0].stat().st_size > 0
+
+
+@pytest.mark.parametrize("stat_mode", ["gnu", "bsd"])
+def test_portable_stat_syntax_records_exact_artifact_size(tmp_path, stat_mode):
+    """Both supported stat dialects publish the same validated byte metadata."""
+    sb = Sandbox(tmp_path, stat_mode=stat_mode)
+    result = sb.run()
+    assert result.returncode == 0, result.stderr
+    artifact = sb.artifacts()[0]
+    health = sb.health()
+    assert health["LAST_RESULT"] == "success"
+    assert health["LAST_ARTIFACT_SIZE_BYTES"] == str(artifact.stat().st_size)
+
+
+@pytest.mark.parametrize("stat_mode, diagnostic", [
+    ("unsupported", "no supported stat"),
+    ("invalid", "invalid file size"),
+    ("missing", "size verification failed"),
+    ("empty", "became empty"),
+])
+def test_size_verification_failure_does_not_publish_artifact(tmp_path, stat_mode, diagnostic):
+    """Unsupported, invalid, missing, or emptied artifacts fail the publish stage closed."""
+    sb = Sandbox(tmp_path, stat_mode=stat_mode)
+    result = sb.run()
+    assert result.returncode != 0
+    assert diagnostic in result.stderr
+    assert not sb.artifacts()
+    assert not sb.encrypted_artifacts()
+    assert not list(sb.backup_dir.glob("*.sha256"))
+    health = sb.health()
+    assert health["LAST_RESULT"] == "failure"
+    assert health["LAST_STAGE"] == "publish"
+
+
+def test_backup_metadata_contains_checksum_size_and_published_path(tmp_path):
+    """Successful publication retains the established health metadata contract."""
+    sb = Sandbox(tmp_path, stat_mode="gnu")
+    result = sb.run()
+    assert result.returncode == 0, result.stderr
+    artifact = sb.artifacts()[0]
+    health = sb.health()
+    assert health["LAST_ARTIFACT"] == str(artifact)
+    assert health["LAST_ARTIFACT_SIZE_BYTES"].isdigit()
+    assert int(health["LAST_ARTIFACT_SIZE_BYTES"]) > 0
+    assert len(health["LAST_ARTIFACT_SHA256"]) == 64
+    assert health["LAST_ARTIFACT_ENCRYPTED"] == "false"
 
 
 # 12. last-success state updates only after actual successful backup
