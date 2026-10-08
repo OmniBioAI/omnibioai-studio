@@ -24,6 +24,8 @@
 .membership-card-action button { width: 100%; min-height: 40px; padding: 8px 12px; color: var(--text); background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; }
 .membership-card-action button:disabled { cursor: not-allowed; opacity: .62; }
 .membership-action-note { margin: 7px 0 0; font-size: var(--font-size-xs); }
+.membership-manage { display: flex; justify-content: flex-end; }
+.membership-manage button { min-height: 40px; padding: 8px 13px; color: var(--text); background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; cursor: pointer; }
 .membership-table-wrap { max-width: 100%; overflow-x: auto; }
 .membership-table { width: 100%; min-width: 780px; border-collapse: collapse; text-align: left; }
 .membership-table th, .membership-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.45; }

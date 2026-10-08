@@ -352,6 +352,10 @@ services:
       # Signs/verifies POST /billing/stripe/webhook deliveries (see the
       # unauthenticated exact-match location in docker/nginx-router.conf).
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # USER membership checkout. Empty leaves the corresponding paid plan
+      # unavailable; these must be pre-created recurring monthly Stripe Prices.
+      STRIPE_PLUS_PRICE_ID: ${STRIPE_PLUS_PRICE_ID:-}
+      STRIPE_PRO_PRICE_ID: ${STRIPE_PRO_PRICE_ID:-}
       # Base URL billing-service uses to build Stripe Checkout/Portal
       # success_url/cancel_url/return_url server-side -- never supplied by
       # the client. e.g. https://webstudio.omnibioai.org

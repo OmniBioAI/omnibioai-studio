@@ -6,38 +6,45 @@ proposed personal storage allowances come from
 
 ## Verified service boundaries
 
-- Current Billing APIs are organization-scoped under
-  `/billing/organizations/{organization_id}`. They provide organization
-  subscription status, dates, entitlements, usage, summary, payment-method
-  state, and a permission-gated Stripe portal.
+- Organization Billing APIs remain scoped under
+  `/billing/organizations/{organization_id}`. USER membership is separately
+  exposed under `/billing/me/*`; its owner comes only from the verified JWT.
 - The existing subscription checkout accepts no plan selection and resolves
   one organization Pay-as-you-go Stripe price. It is not valid for individual
   Plus or Pro enrollment.
 - IAM's Studio session projection contains user identity, roles, permissions,
-  and an optional organization ID. It contains no authoritative individual
-  membership record.
+  and an optional organization ID. Billing uses that verified identity to
+  resolve the authoritative personal membership; IAM does not invent plans.
 - No approved sales destination was found in Studio configuration.
-- No API currently returns personal storage quota enforcement or organization
-  storage-provider health to Studio. Organization AI Connections are a
-  separate workflow and remain unchanged.
+- Billing returns personal storage allowances with enforcement explicitly
+  false. No API currently returns organization storage-provider health to
+  Studio. Organization AI Connections are a separate workflow and unchanged.
 
-Consequently, v1 never infers Free after a billing failure, never enables
-Plus/Pro checkout, never treats a checkout return as payment confirmation, and
-does not expose a Contact Sales link. Annual billing is also unavailable.
+The USER membership backend now resolves Free deterministically from verified
+identity and exposes Plus/Pro checkout only when the corresponding server-side
+Stripe configuration exists. Studio still never infers Free after a billing
+failure, never treats a checkout return as payment confirmation, and does not
+expose a Contact Sales link. Annual billing remains unavailable.
 
-## Backend work required to enable paid individual plans
+Upgrade controls remain disabled on the annual view and when Billing reports
+the plan ineligible. A Billing 401 is rendered as an unauthenticated state;
+other service failures retain the explicit unknown/unavailable state rather
+than being converted to Free.
 
-1. Add an authenticated, server-authoritative USER-scoped membership read API
-   with explicit loading, absent, pending, active, canceled, and error states.
-2. Add server-owned Plus and Pro monthly price mappings and an idempotent
-   checkout endpoint that rejects duplicate active subscriptions. Add annual
-   mappings only when actual annual Stripe prices exist.
-3. Update membership only from verified Stripe webhook processing. The return
-   URL must remain informational.
-4. Add a USER-scoped storage quota/read API and enforcement in the storage
-   service for 1 GB, 20 GB, and 100 GB. UI display is not enforcement.
-5. Preserve USER and ORGANIZATION ownership as distinct authorization scopes;
-   a USER Pro record must never authorize Enterprise operations.
+## Implemented backend contract
+
+1. `/billing/me/membership` and `/billing/me/entitlements` derive ownership
+   only from the verified bearer token.
+2. `/billing/me/checkout` resolves server-owned Plus/Pro Price IDs, validates
+   their monthly USD amounts, and rejects duplicate/conflicting checkout.
+3. Signed Stripe webhooks are the only paid-entitlement activation path; return
+   URLs remain informational.
+4. `/billing/me/portal` reuses the hosted Stripe management workflow.
+5. USER and ORGANIZATION records, customers, audits, and authorization remain
+   structurally separate.
+
+Storage enforcement is still future work. Billing returns authoritative byte
+allowances with `storage_quota_enforced: false`.
 
 ## Enterprise and organization storage
 

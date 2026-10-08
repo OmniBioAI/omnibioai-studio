@@ -14,15 +14,17 @@
 // alias matches.
 import { getToken, getSessionVersion, clearSession } from "../lib/session";
 
-async function request(path, method = "GET") {
+async function request(path, method = "GET", body) {
   const token = getToken();
   const version = getSessionVersion();
   const res = await fetch(path, {
     method,
     headers: {
       Accept: "application/json",
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 
   if (res.status === 401 && token === getToken() && version === getSessionVersion()) {
@@ -48,7 +50,14 @@ async function request(path, method = "GET") {
 }
 
 const get = (path) => request(path, "GET");
-const post = (path) => request(path, "POST");
+const post = (path, body) => request(path, "POST", body);
+
+// USER-scoped membership. Identity is derived by Billing from the bearer
+// token; no user id is ever sent by Studio.
+export const getCurrentMembership = () => get("/billing/me/membership");
+export const getCurrentMembershipEntitlements = () => get("/billing/me/entitlements");
+export const createUserMembershipCheckout = (plan) => post("/billing/me/checkout", { plan });
+export const createUserMembershipPortal = () => post("/billing/me/portal");
 
 // GET /billing/organizations/{orgId}/payment-method
 //   -> { stripe_enabled, can_manage, has_payment_method,

@@ -18,6 +18,10 @@ import {
   getSubscription,
   getUsageLimits,
   getUsageSummary,
+  getCurrentMembership,
+  getCurrentMembershipEntitlements,
+  createUserMembershipCheckout,
+  createUserMembershipPortal,
 } from "../../src/ui/lib/billingApi";
 
 beforeEach(() => {
@@ -117,6 +121,24 @@ describe("billing API client", () => {
 
     await expect(createPaymentSetupSession("org-1")).rejects.toMatchObject({ message: "expired token", status: 401 });
     expect(session.clearSession).toHaveBeenCalledOnce();
+  });
+
+  it("uses USER-scoped membership routes without sending a user id", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ owner_type: "USER" }), {
+      status: 200, headers: { "content-type": "application/json" },
+    })));
+    vi.stubGlobal("fetch", fetchMock);
+    await getCurrentMembership();
+    await getCurrentMembershipEntitlements();
+    await createUserMembershipCheckout("plus");
+    await createUserMembershipPortal();
+    expect(fetchMock.mock.calls.map(call => call[0])).toEqual([
+      "/billing/me/membership", "/billing/me/entitlements", "/billing/me/checkout", "/billing/me/portal",
+    ]);
+    expect(fetchMock.mock.calls[2][1]).toEqual(expect.objectContaining({
+      method: "POST", body: JSON.stringify({ plan: "plus" }),
+      headers: expect.objectContaining({ "Content-Type": "application/json", Authorization: "Bearer token-123" }),
+    }));
   });
 
   it("clears the session and reports JSON error details for 401 responses", async () => {

@@ -39,7 +39,7 @@ export const MEMBERSHIP_PLANS = [
 
 export const MEMBERSHIP_FEATURES = [
   { label: "Price", values: ["$0/month", "$19/month", "$49/month", "Custom"] },
-  { label: "Personal storage", values: ["1 GB (planned)", "20 GB (planned)", "100 GB (planned)", "Separate organization scope"] },
+  { label: "Personal storage", values: ["1 GB allowance", "20 GB allowance", "100 GB allowance", "Separate organization scope"] },
   { label: "Workflow access", values: ["Public workflows", "Public workflows; higher access planned", "Eligible catalog; full access planned", "Contract-defined"] },
   { label: "Execution limits", values: ["Basic (planned)", "Higher limits (planned)", "Highest individual limits (planned)", "Contract-defined"] },
   { label: "Private projects", values: ["Limited (planned)", "Included (planned)", "Included (planned)", "Contract-defined"] },
@@ -56,7 +56,7 @@ export function normalizeMembershipState(state) {
   // Only a trusted USER-scoped record may mark an individual plan current.
   // An organization subscription must never grant a personal tier.
   const plan = String(state.plan || "").toLowerCase();
-  if (state.scope !== "USER" || !["free", "plus", "pro"].includes(plan)) {
+  if ((state.scope || state.owner_type) !== "USER" || !["free", "plus", "pro"].includes(plan)) {
     return { status: "unavailable", reason: "No authoritative individual membership record is available." };
   }
   return { ...state, plan };
