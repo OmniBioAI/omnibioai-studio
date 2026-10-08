@@ -39,6 +39,13 @@ describe("Organization Connections", () => {
     const fetcher = setup(); render(<OrganizationConnections currentUser={user} />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading");
     expect(await screen.findByText("No organization AI provider connected.")).toBeVisible();
+    const cards = document.querySelectorAll("[data-connection-card]");
+    expect(cards).toHaveLength(3);
+    expect(within(cards[0]).getByRole("heading", { name: "OpenAI" })).toBeVisible();
+    expect(within(cards[1]).getByRole("heading", { name: "Anthropic Claude" })).toBeVisible();
+    expect(within(cards[2]).getByRole("heading", { name: "AI provider" })).toBeVisible();
+    expect(screen.getAllByText("Not configured")).toHaveLength(2);
+    expect(screen.getAllByText("Execution disabled")).toHaveLength(2);
     expect(screen.getByText(/One shared AI provider/)).toBeVisible();
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher).toHaveBeenCalledWith(expect.stringMatching(/\/orgs\/11\/provider-keys$/), expect.objectContaining({
@@ -50,8 +57,15 @@ describe("Organization Connections", () => {
     setup(provider); render(<OrganizationConnections currentUser={user} />);
     expect(await screen.findByText("Credential stored securely")).toBeVisible();
     expect(screen.getByText("Provided by your organization.")).toBeVisible();
-    expect(screen.getByText("Connected")).toBeVisible();
+    expect(within(document.querySelector('[data-connection-card="shared"]')).getByText("Connected")).toBeVisible();
     expect(screen.getByRole("button", { name: "Replace credential or switch provider" })).toBeVisible();
+    const active = document.querySelector(`[data-connection-card="${provider}"]`);
+    const inactive = document.querySelector(`[data-connection-card="${provider === "openai" ? "claude" : "openai"}"]`);
+    expect(within(active).getByText("Connected")).toBeVisible();
+    expect(within(active).getByText("Available to authorized workloads")).toBeVisible();
+    expect(within(inactive).getByText("Not configured")).toBeVisible();
+    expect(within(inactive).getByText("Execution disabled")).toBeVisible();
+    expect(document.querySelectorAll("[data-connection-card]")).toHaveLength(3);
     expect(document.body.textContent).not.toContain("internal-version");
   });
   it.each(["openai", "claude"])("connects %s with no persisted or displayed secret", async provider => {
@@ -108,7 +122,9 @@ describe("Organization Connections", () => {
     const fetcher = setup("claude"); render(<OrganizationConnections currentUser={user} />);
     fireEvent.click(await screen.findByRole("button", { name: "Remove connection" }));
     fetcher.mockRejectedValueOnce(new Error(secret)); fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
-    await screen.findByRole("alert"); expect(screen.getByText("Connected")).toBeVisible(); assertSecretAbsent();
+    await screen.findByRole("alert");
+    expect(within(document.querySelector('[data-connection-card="shared"]')).getByText("Connected")).toBeVisible();
+    assertSecretAbsent();
   });
   it.each([401, 403, 405, 503, "network"])("handles loading failure %s and retries", async status => {
     const fetcher = setup();
@@ -139,7 +155,8 @@ describe("Organization Connections", () => {
     fetcher.mockResolvedValue(response(metadata(null)));
     rerender(<OrganizationConnections currentUser={{ userId: 8, orgId: 22 }} />);
     await screen.findByText("No organization AI provider connected.");
-    await act(async () => resolveA(response(metadata("openai")))); expect(screen.queryByText("OpenAI")).toBeNull();
+    await act(async () => resolveA(response(metadata("openai"))));
+    expect(within(document.querySelector('[data-connection-card="shared"]')).queryByText("OpenAI")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Connect provider" })); enter();
     act(() => setSession("new-token")); expect(screen.queryByRole("dialog")).toBeNull(); assertSecretAbsent();
     await screen.findByText("No organization AI provider connected.");

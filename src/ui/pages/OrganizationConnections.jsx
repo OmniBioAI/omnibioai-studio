@@ -41,21 +41,37 @@ function ConnectionSession({ orgId }) {
     {notice && <p role="status">{notice}</p>}
     {error ? <div className="connections-card"><p role="alert">{error}</p><button onClick={reload}>Retry connection</button></div>
       : !data ? <p role="status">Loading organization connection…</p>
-        : <div className="connections-card">
-          <div className="connections-card-heading"><h2>AI provider</h2><span className="connections-status">{data.configured ? "Connected" : "Not connected"}</span></div>
-          {data.configured ? <>
-            <h3>{LABELS[data.provider]}</h3><p>Provided by your organization.</p>
-            <dl><div><dt>Scope</dt><dd>Organization</dd></div><div><dt>Available to</dt><dd>Authorized organization members</dd></div><div><dt>Credential</dt><dd>Credential stored securely</dd></div></dl>
-          </> : <><h3>No organization AI provider connected.</h3><p>Connect OpenAI or Anthropic to make the provider available to authorized organization workloads.</p></>}
-          <p className="connections-note">One shared AI provider connection per organization: OpenAI or Anthropic.</p>
-          <div className="connections-actions">
-            {data.canReplace && <button className="connections-primary" onClick={event => open("write", event)}>{data.configured ? "Replace credential or switch provider" : "Connect provider"}</button>}
-            {data.configured && data.canRemove && <button onClick={event => open("remove", event)}>Remove connection</button>}
+        : <div className="connections-grid" aria-label="Organization AI connections">
+          <ProviderShowcase provider="openai" name="OpenAI" data={data} />
+          <ProviderShowcase provider="claude" name="Anthropic Claude" data={data} />
+          <div className="connections-card connections-shared-card" data-connection-card="shared">
+            <div className="connections-card-heading"><h2>AI provider</h2><span className="connections-status">{data.configured ? "Connected" : "Not connected"}</span></div>
+            {data.configured ? <>
+              <h3>{LABELS[data.provider]}</h3><p>Provided by your organization.</p>
+              <dl><div><dt>Scope</dt><dd>Organization</dd></div><div><dt>Available to</dt><dd>Authorized organization members</dd></div><div><dt>Credential</dt><dd>Credential stored securely</dd></div></dl>
+            </> : <><h3>No organization AI provider connected.</h3><p>Connect OpenAI or Anthropic to make the provider available to authorized organization workloads.</p></>}
+            <p className="connections-note">One shared AI provider connection per organization: OpenAI or Anthropic.</p>
+            <div className="connections-actions">
+              {data.canReplace && <button className="connections-primary" onClick={event => open("write", event)}>{data.configured ? "Replace credential or switch provider" : "Connect provider"}</button>}
+              {data.configured && data.canRemove && <button onClick={event => open("remove", event)}>Remove connection</button>}
+            </div>
+            {!data.canReplace && !data.canRemove && <p className="connections-note">Contact an organization administrator to manage this connection.</p>}
           </div>
-          {!data.canReplace && !data.canRemove && <p className="connections-note">Contact an organization administrator to manage this connection.</p>}
         </div>}
     {dialog && data && <ConnectionDialog orgId={orgId} data={data} kind={dialog} onClose={close} onSaved={saved} />}
   </>;
+}
+
+function ProviderShowcase({ provider, name, data }) {
+  const connected = data.configured && data.provider === provider;
+  return <article className="connections-card connections-showcase-card" data-connection-card={provider}>
+    <div className="connections-card-heading">
+      <h2><span className="connections-provider-icon" aria-hidden="true">◈</span>{name}</h2>
+      <span className="connections-status">{connected ? "Connected" : "Not configured"}</span>
+    </div>
+    <p>Organization API connection</p>
+    <p className={`connections-execution${connected ? " is-connected" : ""}`}>{connected ? "Available to authorized workloads" : "Execution disabled"}</p>
+  </article>;
 }
 
 function ConnectionDialog({ orgId, data, kind, onClose, onSaved }) {
