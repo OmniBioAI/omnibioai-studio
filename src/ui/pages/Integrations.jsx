@@ -36,6 +36,8 @@ function messageFor(error) {
   if (error?.code === "forbidden") return "You do not have permission to perform this action.";
   if (error?.code === "not_found") return "This integration is no longer available.";
   if (error?.code === "invalid") return "The integration service returned an invalid response.";
+  if (error?.code === "network_error") return "Unable to reach the integration services. Check your connection and retry.";
+  if (error?.code === "server_error") return "The integration service encountered an error. Please retry.";
   return "Integrations are unavailable right now. Please retry.";
 }
 

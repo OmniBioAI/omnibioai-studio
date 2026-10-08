@@ -23,7 +23,7 @@ const provider = {
   provider_id: "github", display_name: "GitHub", category: "source_control", description: "GitHub capabilities.",
   setup_state: "free_account", plugin_slugs: ["git_hosting", "github_actions", "ghcr"], capabilities: ["source_control", "actions"],
   connection_test_supported: false,
-  authentication: { type: "token", allowed_scopes: ["user", "organization"], anonymous_access: false,
+  authentication: { type: "token", allowed_scopes: ["user", "organization"], anonymous_access: false, resolution_policy: ["user", "organization"],
     fields: [{ name: "token", label: "Personal access token", secret: true, required: true }, { name: "username", label: "Username", secret: false, required: false }] },
 };
 const metadata = { provider_id: "github", scope: "user", configured: true, status: "active", masked_hint: "••••1234", display_metadata: null, created_at: "2026-10-07T01:00:00", updated_at: "2026-10-07T01:00:00" };
@@ -56,9 +56,22 @@ describe("Integrations API", () => {
   it("aggregates provider definitions with effective status and personal metadata", async () => {
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(response({ providers: [provider], count: 1 }))
-      .mockResolvedValueOnce(response([metadata]))
-      .mockResolvedValueOnce(response({ provider_id: "github", status: "CONNECTED_USER", scope: "user" }));
+      .mockResolvedValueOnce(response([metadata]));
     await expect(loadIntegrationCatalog()).resolves.toEqual([expect.objectContaining({ providerId: "github", effectiveStatus: "CONNECTED_USER", personalCredential: expect.objectContaining({ scope: "user" }) })]);
+  });
+
+  it("derives organization and anonymous statuses without per-provider request fan-out", async () => {
+    const ncbi = { ...provider, provider_id: "ncbi", authentication: { ...provider.authentication,
+      allowed_scopes: ["user", "organization", "platform"], anonymous_access: true,
+      resolution_policy: ["user", "organization", "platform", "anonymous"] } };
+    const fetcher = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(response({ providers: [provider, ncbi], count: 2 }))
+      .mockResolvedValueOnce(response([{ ...metadata, scope: "organization" }]));
+    await expect(loadIntegrationCatalog()).resolves.toEqual([
+      expect.objectContaining({ providerId: "github", effectiveStatus: "CONNECTED_ORGANIZATION", effectiveScope: "organization" }),
+      expect.objectContaining({ providerId: "ncbi", effectiveStatus: "READY_NO_CREDENTIALS", effectiveScope: "anonymous" }),
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   it("creates and replaces personal credentials with a metadata-defined narrow body", async () => {
@@ -89,9 +102,9 @@ describe("Integrations API", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("maps authorization failures without parsing backend details and rejects stale responses", async () => {
+  it("maps authorization and service failures without parsing backend details and rejects stale responses", async () => {
     const fetcher = vi.spyOn(globalThis, "fetch");
-    for (const [status, code] of [[401, "unauthorized"], [403, "forbidden"], [404, "not_found"]]) {
+    for (const [status, code] of [[401, "unauthorized"], [403, "forbidden"], [404, "not_found"], [500, "server_error"]]) {
       const denied = response({ detail: "private ownership data" }, status);
       fetcher.mockResolvedValueOnce(denied);
       await expect(getIntegrationStatus("github")).rejects.toMatchObject({ code });
@@ -104,6 +117,18 @@ describe("Integrations API", () => {
     await vi.waitFor(() => expect(release).toBeTypeOf("function"));
     session.version += 1; release(provider);
     await expect(pending).rejects.toMatchObject({ code: "stale" });
+  });
+
+  it("bounds unreachable requests and reports a network error", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(globalThis, "fetch").mockImplementation((_url, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+    }));
+    const pending = listIntegrationProviders();
+    const rejection = expect(pending).rejects.toMatchObject({ code: "network_error" });
+    await vi.advanceTimersByTimeAsync(10000);
+    await rejection;
+    vi.useRealTimers();
   });
 });
 

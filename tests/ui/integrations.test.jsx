@@ -9,11 +9,11 @@ import Integrations from "../../src/ui/pages/Integrations";
 const base = {
   providerId: "github", displayName: "GitHub", category: "source_control", description: "GitHub source control, Actions, and registry capabilities.", setupState: "free_account",
   pluginSlugs: ["git_hosting", "github_actions", "ghcr"], capabilities: ["source_control", "actions", "container_registry"], connectionTestSupported: false,
-  authentication: { type: "token", allowedScopes: ["user", "organization"], anonymousAccess: false, fields: [{ name: "token", label: "Personal access token", secret: true, required: true }] },
+  authentication: { type: "token", allowedScopes: ["user", "organization"], anonymousAccess: false, resolutionPolicy: ["user", "organization"], fields: [{ name: "token", label: "Personal access token", secret: true, required: true }] },
   effectiveStatus: "NOT_CONFIGURED", effectiveScope: null, personalCredential: null,
 };
 const org = { ...base, providerId: "gitlab", displayName: "GitLab", pluginSlugs: ["git_hosting", "gitlab"], capabilities: ["source_control", "continuous_integration"], effectiveStatus: "CONNECTED_ORGANIZATION", effectiveScope: "organization" };
-const ncbi = { ...base, providerId: "ncbi", displayName: "NCBI", category: "reference_database", description: "Public biomedical databases.", pluginSlugs: ["ncbi", "sra"], capabilities: ["entrez", "sra"], authentication: { type: "optional_api_key", allowedScopes: ["user", "organization", "platform"], anonymousAccess: true, fields: [{ name: "api_key", label: "NCBI API key", secret: true, required: false }] }, effectiveStatus: "READY_NO_CREDENTIALS", effectiveScope: "anonymous" };
+const ncbi = { ...base, providerId: "ncbi", displayName: "NCBI", category: "reference_database", description: "Public biomedical databases.", pluginSlugs: ["ncbi", "sra"], capabilities: ["entrez", "sra"], authentication: { type: "optional_api_key", allowedScopes: ["user", "organization", "platform"], anonymousAccess: true, resolutionPolicy: ["user", "organization", "platform", "anonymous"], fields: [{ name: "api_key", label: "NCBI API key", secret: true, required: false }] }, effectiveStatus: "READY_NO_CREDENTIALS", effectiveScope: "anonymous" };
 function detail(provider) {
   const { effectiveStatus, effectiveScope, personalCredential, ...definition } = provider;
   return definition;
@@ -125,6 +125,18 @@ describe("Integrations page", () => {
     expect(screen.queryByText("raw private detail")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByRole("heading", { name: "GitHub" })).toBeVisible();
+  });
+
+  it.each([
+    ["unauthorized", "Sign in to manage integrations."],
+    ["network_error", "Unable to reach the integration services."],
+    ["server_error", "The integration service encountered an error."],
+  ])("terminates loading with the %s state", async (code, message) => {
+    api.loadIntegrationCatalog.mockRejectedValueOnce({ code });
+    render(<Integrations />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.queryByText(/Loading integrations/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeVisible();
   });
 
   it("does not expose plaintext backend response fields or platform administration", async () => {

@@ -1,4 +1,7 @@
-import { authUrl, getSessionVersion, getToken, isElectron } from "./session";
+// Keep the literal `lib/session` segment so Vite's web-build alias swaps in
+// the same-origin session transport. The shorter sibling import (`./session`)
+// bypasses that alias and bakes the Electron/LAN Auth URL into the web bundle.
+import { authUrl, getSessionVersion, getToken, isElectron } from "../lib/session";
 
 const WORKBENCH_PREFIX = "/_svc/workbench";
 const PROVIDERS_PATH = "/plugins/integration_connections/providers/";
@@ -6,10 +9,12 @@ const AUTH_PATH = "/integrations/credentials";
 const IDENTIFIER = /^[a-z0-9_]{1,64}$/;
 const AUTH_TYPES = new Set(["none", "api_key", "optional_api_key", "token", "oauth2", "custom"]);
 const SCOPES = new Set(["user", "organization", "platform"]);
+const RESOLUTION_SCOPES = new Set([...SCOPES, "anonymous"]);
 const STATUSES = new Set([
   "NOT_CONFIGURED", "READY_NO_CREDENTIALS", "CONNECTED_USER",
   "CONNECTED_ORGANIZATION", "CONNECTED_PLATFORM",
 ]);
+const REQUEST_TIMEOUT_MS = 10000;
 
 export class IntegrationsApiError extends Error {
   constructor(code) {
@@ -34,18 +39,40 @@ function codeFor(status) {
   if (status === 403) return "forbidden";
   if (status === 404) return "not_found";
   if (status === 400 || status === 422) return "invalid";
+  if (status >= 500) return "server_error";
   return "unavailable";
+}
+
+function boundedSignal(parentSignal) {
+  const controller = new AbortController();
+  let timedOut = false;
+  const abortFromParent = () => controller.abort(parentSignal?.reason);
+  if (parentSignal?.aborted) abortFromParent();
+  else parentSignal?.addEventListener("abort", abortFromParent, { once: true });
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT_MS);
+  return {
+    signal: controller.signal,
+    timedOut: () => timedOut,
+    cleanup() {
+      clearTimeout(timer);
+      parentSignal?.removeEventListener("abort", abortFromParent);
+    },
+  };
 }
 
 async function request(url, { method = "GET", body, signal } = {}) {
   const token = getToken();
   const version = getSessionVersion();
   if (!token) throw new IntegrationsApiError("unauthorized");
+  const bounded = boundedSignal(signal);
   let response;
   try {
     response = await fetch(url, {
       method,
-      signal,
+      signal: bounded.signal,
       cache: "no-store",
       credentials: url.startsWith(WORKBENCH_PREFIX) || url.startsWith("http://localhost") ? "same-origin" : "omit",
       headers: {
@@ -56,8 +83,10 @@ async function request(url, { method = "GET", body, signal } = {}) {
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
   } catch (error) {
-    if (error?.name === "AbortError") throw error;
-    throw new IntegrationsApiError("unavailable");
+    if (signal?.aborted && !bounded.timedOut()) throw error;
+    throw new IntegrationsApiError("network_error");
+  } finally {
+    bounded.cleanup();
   }
   if (token !== getToken() || version !== getSessionVersion()) throw new IntegrationsApiError("stale");
   if (!response.ok) throw new IntegrationsApiError(codeFor(response.status));
@@ -97,6 +126,9 @@ export function normalizeProvider(value) {
   if (!Array.isArray(auth.allowed_scopes) || auth.allowed_scopes.some(scope => !SCOPES.has(scope)) || typeof auth.anonymous_access !== "boolean" || !Array.isArray(auth.fields)) {
     throw new IntegrationsApiError("invalid");
   }
+  if (!Array.isArray(auth.resolution_policy) || auth.resolution_policy.some(scope => !RESOLUTION_SCOPES.has(scope))) {
+    throw new IntegrationsApiError("invalid");
+  }
   return Object.freeze({
     providerId, displayName, category, description, setupState,
     pluginSlugs: Object.freeze([...value.plugin_slugs]),
@@ -106,6 +138,7 @@ export function normalizeProvider(value) {
       type: auth.type,
       allowedScopes: Object.freeze([...auth.allowed_scopes]),
       anonymousAccess: auth.anonymous_access,
+      resolutionPolicy: Object.freeze([...auth.resolution_policy]),
       fields: Object.freeze(auth.fields.map(normalizeField)),
     }),
   });
@@ -153,13 +186,24 @@ export async function loadIntegrationCatalog({ signal } = {}) {
   const [providers, metadata] = await Promise.all([
     listIntegrationProviders({ signal }), listCredentialMetadata({ signal }),
   ]);
-  const statuses = await Promise.all(providers.map(provider => getIntegrationStatus(provider.providerId, { signal })));
-  return Object.freeze(providers.map((provider, index) => Object.freeze({
-    ...provider,
-    effectiveStatus: statuses[index].status,
-    effectiveScope: statuses[index].scope,
-    personalCredential: metadata.find(item => item.providerId === provider.providerId && item.scope === "user") || null,
-  })));
+  return Object.freeze(providers.map(provider => {
+    const available = metadata.filter(item => item.providerId === provider.providerId);
+    let effectiveStatus = "NOT_CONFIGURED";
+    let effectiveScope = null;
+    for (const scope of provider.authentication.resolutionPolicy) {
+      if (scope === "anonymous" && provider.authentication.anonymousAccess) {
+        effectiveStatus = "READY_NO_CREDENTIALS"; effectiveScope = "anonymous"; break;
+      }
+      if (scope === "platform") continue; // Platform credentials are intentionally not browser-visible.
+      if (available.some(item => item.scope === scope)) {
+        effectiveStatus = `CONNECTED_${scope.toUpperCase()}`; effectiveScope = scope; break;
+      }
+    }
+    return Object.freeze({
+      ...provider, effectiveStatus, effectiveScope,
+      personalCredential: available.find(item => item.scope === "user") || null,
+    });
+  }));
 }
 
 function credentialPayload(provider, values) {

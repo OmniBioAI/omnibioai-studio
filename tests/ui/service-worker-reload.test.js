@@ -23,17 +23,20 @@ function loadWorkerScript({ clients, location = { origin: "https://webstudio.omn
 }
 
 describe("service worker client reload hook", () => {
-  it("refreshes only already-controlled Studio root clients on activation", async () => {
+  it("refreshes only already-controlled Studio shell clients on activation", async () => {
     const navigated = [];
     const clients = {
       matchAll: async (options) => {
         expect(options).toEqual({ type: "window" });
         return [
           { url: "https://webstudio.omnibioai.org/", navigate: async (url) => navigated.push(url) },
+          { url: "https://webstudio.omnibioai.org/studio/integrations", navigate: async (url) => navigated.push(url) },
+          { url: "https://webstudio.omnibioai.org/studio/projects", navigate: async (url) => navigated.push(url) },
+          { url: "https://webstudio.omnibioai.org/workbench", navigate: async (url) => navigated.push(url) },
           { url: "https://webstudio.omnibioai.org/_svc/videos/videos.json", navigate: async (url) => navigated.push(url) },
+          { url: "https://webstudio.omnibioai.org/integrations/credentials", navigate: async (url) => navigated.push(url) },
           { url: "https://example.test/", navigate: async (url) => navigated.push(url) },
           { url: "not a url", navigate: async (url) => navigated.push(url) },
-          { url: "https://webstudio.omnibioai.org/workbench" },
         ];
       },
     };
@@ -43,7 +46,12 @@ describe("service worker client reload hook", () => {
     listeners.get("activate")({ waitUntil: (promise) => waits.push(promise) });
     await Promise.all(waits);
 
-    expect(navigated).toEqual(["https://webstudio.omnibioai.org/"]);
+    expect(navigated).toEqual([
+      "https://webstudio.omnibioai.org/",
+      "https://webstudio.omnibioai.org/studio/integrations",
+      "https://webstudio.omnibioai.org/studio/projects",
+      "https://webstudio.omnibioai.org/workbench",
+    ]);
   });
 
   it("does not fail activation when clients are unavailable", async () => {
