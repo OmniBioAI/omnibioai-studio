@@ -58,6 +58,7 @@ vi.mock("../../src/ui/pages/AccountPlan", () => ({ default: () => <div>Account P
 vi.mock("../../src/ui/pages/AccountHelp", () => ({ default: () => <div>Account Help page</div> }));
 
 vi.mock("../../src/ui/pages/OrganizationConnections", () => ({ default: () => <div>Organization Connections page</div> }));
+vi.mock("../../src/ui/pages/Integrations", () => ({ default: () => <div>Integrations page</div> }));
 
 import App from "../../src/ui/App";
 
@@ -133,6 +134,20 @@ describe("App shell — Studio landing", () => {
     expect(document.querySelector("[data-nav-item='Storage']")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Mode", { selector: "div" }));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
+  });
+
+  it("opens Integrations from Discover and supports its canonical direct URL", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    render(<App />);
+    await screen.findByText("Studio page");
+    fireEvent.click(screen.getByText("Integrations", { selector: "div" }));
+    expect(await screen.findByText("Integrations page")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/studio/integrations");
+    expect(document.querySelector('[data-nav-item="Integrations"]')).toBeInTheDocument();
+    cleanup();
+    window.history.replaceState({}, "", "/studio/integrations");
+    render(<App />);
+    expect(await screen.findByText("Integrations page")).toBeInTheDocument();
   });
 
   it("returns to the canonical /studio path when Studio is selected", async () => {
@@ -481,10 +496,10 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     ]);
 
     const discoverSection = sectionEls[sectionNames.indexOf("Discover")];
-    expect([...discoverSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual(["Explore"]);
+    expect([...discoverSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual(["Explore", "Integrations"]);
 
     const allItems = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-item]")].map(el => el.getAttribute("data-nav-item"));
-    for (const name of ["Code", "Workflows", "Jobs", "Projects", "Artifacts", "Explore", "Ask OmniBioAI"]) {
+    for (const name of ["Code", "Workflows", "Jobs", "Projects", "Artifacts", "Explore", "Integrations", "Ask OmniBioAI"]) {
       expect(allItems.filter(n => n === name)).toHaveLength(1);
     }
   });
