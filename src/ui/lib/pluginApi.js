@@ -229,40 +229,105 @@ function rejectExecutableMetadata(value, depth = 0) {
   }
 }
 
-function validateBatchQueryDescriptor(data) {
-  if (!hasOnlyKeys(data, ["schema_version", "plugin", "renderer", "native_supported", "inputs", "outputs", "capabilities", "endpoints", "result", "pagination", "detail", "filters"],
-    ["schema_version", "plugin", "renderer", "native_supported", "inputs", "outputs", "capabilities", "endpoints", "result"]) ||
-    data.renderer !== "query" || data.native_supported !== true ||
-    !hasOnlyKeys(data.plugin, ["slug", "name", "version", "description", "category"], ["slug", "name", "version", "description", "category"]) ||
-    !Array.isArray(data.inputs) || !data.inputs.length || !data.inputs.every(validBatchField) ||
-    new Set(data.inputs.map(input => input.id)).size !== data.inputs.length ||
-    !Array.isArray(data.outputs) || data.outputs.length !== 0) {
+const MAX_OPERATIONS = 32;
+const OPERATION_ID = /^[a-z][a-z0-9_]*$/;
+
+// Validate one operation's inputs/result/detail/filters/pagination. Shared
+// by the single-operation (legacy) descriptor shape and each entry of a
+// bounded multi-operation `operations` collection -- mirrors the backend's
+// _validate_operation_body in plugins/shared/query_ui.py exactly, so both
+// sides of the contract agree. Returns whether this body declares a detail
+// presentation (its `result` carries a `detail_key`).
+function validateOperationBody(body, pluginSlug) {
+  if (!Array.isArray(body.inputs) || !body.inputs.length || !body.inputs.every(validBatchField) ||
+      body.inputs.some(input => input.id === "operation") ||
+      new Set(body.inputs.map(input => input.id)).size !== body.inputs.length) {
     throw new PluginDescriptorError("Invalid batch query descriptor.");
   }
-  if (!hasOnlyKeys(data.capabilities, QUERY_CAPABILITIES, ["query"]) || data.capabilities.query !== true ||
-    (data.capabilities.detail !== undefined && data.capabilities.detail !== true)) throw new PluginDescriptorError("Invalid query capability schema.");
-  const detail = data.capabilities.detail === true;
-  const endpointKeys = detail ? ["query", "detail"] : ["query"];
-  if (!hasOnlyKeys(data.endpoints, endpointKeys, endpointKeys) ||
-    data.endpoints.query !== `/plugins/${data.plugin.slug}/api/ui-query/` ||
-    (detail && data.endpoints.detail !== `/plugins/${data.plugin.slug}/api/ui-detail/{detail_id}/`)) {
-    throw new PluginDescriptorError("Invalid batch query endpoints.");
+  if (!hasOnlyKeys(body.result, ["presentation", "rows_path", "row_key", "columns", "detail_key"],
+      ["presentation", "rows_path", "row_key", "columns"]) ||
+      body.result.presentation !== "table" || body.result.rows_path !== "results" ||
+      !validColumns(body.result.columns) || !isDataPath(body.result.row_key) ||
+      body.result.columns.some(column => column.key.includes(".")) ||
+      !body.result.columns.some(column => column.key === body.result.row_key) ||
+      (body.result.detail_key !== undefined && !body.result.columns.some(column => column.key === body.result.detail_key))) {
+    throw new PluginDescriptorError("Invalid query result schema.");
   }
-  if (!hasOnlyKeys(data.result, ["presentation", "rows_path", "row_key", "columns", ...(detail ? ["detail_key"] : [])],
-    ["presentation", "rows_path", "row_key", "columns", ...(detail ? ["detail_key"] : [])]) ||
-    data.result.presentation !== "table" || data.result.rows_path !== "results" ||
-    !validColumns(data.result.columns) || !isDataPath(data.result.row_key) ||
-    data.result.columns.some(column => column.key.includes(".")) ||
-    !data.result.columns.some(column => column.key === data.result.row_key) ||
-    (detail && !data.result.columns.some(column => column.key === data.result.detail_key))) throw new PluginDescriptorError("Invalid query result schema.");
-  if (data.pagination !== undefined && (!validPaginationDescriptor(data.pagination) ||
-    data.inputs.some(input => input.id === "page") ||
-    !data.inputs.some(input => input.id === "page_size" && input.component === "number" && input.format === "integer"))) throw new PluginDescriptorError("Invalid pagination descriptor.");
-  if (data.detail !== undefined && (!detail || !validDetailDescriptor(data.detail, scientificReferenceTypesForPlugin(data.plugin.slug)))) {
+  const hasDetail = body.result.detail_key !== undefined;
+  if (body.pagination !== undefined && (!validPaginationDescriptor(body.pagination) ||
+      body.inputs.some(input => input.id === "page") ||
+      !body.inputs.some(input => input.id === "page_size" && input.component === "number" && input.format === "integer"))) {
+    throw new PluginDescriptorError("Invalid pagination descriptor.");
+  }
+  if (body.detail !== undefined && (!hasDetail || !validDetailDescriptor(body.detail, scientificReferenceTypesForPlugin(pluginSlug)))) {
     throw new PluginDescriptorError("Invalid detail presentation descriptor.");
   }
-  if (data.filters !== undefined && !validFilterDescriptor(data.filters, data.inputs)) {
+  if (body.filters !== undefined && !validFilterDescriptor(body.filters, body.inputs)) {
     throw new PluginDescriptorError("Invalid filter presentation descriptor.");
+  }
+  return hasDetail;
+}
+
+// A schema-v2 query descriptor declares exactly one of: a single operation
+// body (`inputs`/`result`/optional `detail`/`filters`/`pagination` directly
+// on the descriptor -- the original shape, validated identically to
+// before) or a bounded `operations` collection plus `default_operation`,
+// each entry validated by validateOperationBody above. Mirrors the
+// backend's validate_query_descriptor branch-for-branch.
+function validateBatchQueryDescriptor(data) {
+  const hasOperations = Object.hasOwn(data, "operations");
+  if (hasOperations !== Object.hasOwn(data, "default_operation")) {
+    throw new PluginDescriptorError("Invalid batch query descriptor.");
+  }
+  const hasSingle = Object.hasOwn(data, "inputs") || Object.hasOwn(data, "result");
+  if (hasOperations === hasSingle) {
+    throw new PluginDescriptorError("Invalid batch query descriptor.");
+  }
+
+  const base = ["schema_version", "plugin", "renderer", "native_supported", "outputs", "capabilities", "endpoints"];
+  const allowedKeys = hasOperations ? [...base, "operations", "default_operation"] : [...base, "inputs", "result", "pagination", "detail", "filters"];
+  const requiredKeys = hasOperations ? [...base, "operations", "default_operation"] : [...base, "inputs", "result"];
+  if (!hasOnlyKeys(data, allowedKeys, requiredKeys) ||
+      data.renderer !== "query" || data.native_supported !== true ||
+      !hasOnlyKeys(data.plugin, ["slug", "name", "version", "description", "category"], ["slug", "name", "version", "description", "category"]) ||
+      !Array.isArray(data.outputs) || data.outputs.length !== 0) {
+    throw new PluginDescriptorError("Invalid batch query descriptor.");
+  }
+
+  let hasDetail;
+  if (!hasOperations) {
+    hasDetail = validateOperationBody(data, data.plugin.slug);
+  } else {
+    const operations = data.operations;
+    if (!Array.isArray(operations) || operations.length < 1 || operations.length > MAX_OPERATIONS) {
+      throw new PluginDescriptorError("Invalid operations collection.");
+    }
+    const seenIds = new Set();
+    hasDetail = false;
+    operations.forEach(op => {
+      if (!isRecord(op) || !hasOnlyKeys(op, ["id", "label", "inputs", "result", "detail", "filters", "pagination"], ["id", "label", "inputs", "result"]) ||
+          typeof op.id !== "string" || !OPERATION_ID.test(op.id) || op.id === "operation" || seenIds.has(op.id) ||
+          typeof op.label !== "string" || !op.label.trim()) {
+        throw new PluginDescriptorError("Invalid operation descriptor.");
+      }
+      seenIds.add(op.id);
+      hasDetail = validateOperationBody(op, data.plugin.slug) || hasDetail;
+    });
+    if (typeof data.default_operation !== "string" || !seenIds.has(data.default_operation)) {
+      throw new PluginDescriptorError("Unknown default operation.");
+    }
+  }
+
+  if (!hasOnlyKeys(data.capabilities, QUERY_CAPABILITIES, ["query"]) || data.capabilities.query !== true ||
+      (data.capabilities.detail !== undefined && data.capabilities.detail !== true) ||
+      (data.capabilities.detail === true) !== hasDetail) {
+    throw new PluginDescriptorError("Invalid query capability schema.");
+  }
+  const endpointKeys = hasDetail ? ["query", "detail"] : ["query"];
+  if (!hasOnlyKeys(data.endpoints, endpointKeys, endpointKeys) ||
+      data.endpoints.query !== `/plugins/${data.plugin.slug}/api/ui-query/` ||
+      (hasDetail && data.endpoints.detail !== `/plugins/${data.plugin.slug}/api/ui-detail/{detail_id}/`)) {
+    throw new PluginDescriptorError("Invalid batch query endpoints.");
   }
 }
 

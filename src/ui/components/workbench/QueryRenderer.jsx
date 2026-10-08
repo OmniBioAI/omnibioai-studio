@@ -6,8 +6,21 @@ import { ResultsTableRow } from "./results/ResultsTable";
 import { rowKeys, scalarText, valueAt } from "../../lib/pluginUiContracts";
 import { queryDetail, queryPlugin } from "../../lib/pluginQueryApi";
 
+// A legacy single-operation descriptor has no `operations` collection --
+// `activeOperation` is then the descriptor itself, so every read below
+// behaves exactly as before. A multi-operation descriptor resolves to the
+// currently-selected entry of `descriptor.operations`, defaulting to the
+// server's own `default_operation` (never a client invention).
+function resolveOperation(descriptor, operationId) {
+  if (!descriptor.operations) return descriptor;
+  return descriptor.operations.find(op => op.id === operationId)
+    ?? descriptor.operations.find(op => op.id === descriptor.default_operation);
+}
+
 export default function QueryRenderer({ descriptor }) {
-  const [values, setValues] = useState(() => Object.fromEntries(descriptor.inputs.map(input => [input.id, input.default ?? ""])));
+  const [operationId, setOperationId] = useState(() => descriptor.operations ? descriptor.default_operation : undefined);
+  const activeOperation = resolveOperation(descriptor, operationId);
+  const [values, setValues] = useState(() => Object.fromEntries(activeOperation.inputs.map(input => [input.id, input.default ?? ""])));
   const [payload, setPayload] = useState(null);
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState("");
@@ -19,12 +32,28 @@ export default function QueryRenderer({ descriptor }) {
   const detailRequest = useRef(null);
   const detailHeading = useRef(null);
 
-  useEffect(() => {
-    setValues(Object.fromEntries(descriptor.inputs.map(input => [input.id, input.default ?? ""])));
+  function resetResultState(nextInputs) {
+    setValues(Object.fromEntries(nextInputs.map(input => [input.id, input.default ?? ""])));
     setPayload(null); setDetail(null); setError(""); setDetailError("");
     setLoading(false); setDetailLoading(false); submittedValues.current = null;
+  }
+
+  useEffect(() => {
+    setOperationId(descriptor.operations ? descriptor.default_operation : undefined);
+    resetResultState(resolveOperation(descriptor, descriptor.default_operation).inputs);
     return () => { queryRequest.current?.abort(); detailRequest.current?.abort(); };
   }, [descriptor]);
+
+  function selectOperation(nextId) {
+    // Defense in depth only: the dropdown already offers nothing but
+    // server-defined ids. The real enforcement is server-side
+    // (select_operation in plugins/shared/query_ui.py never trusts the
+    // frontend's own allowlisting).
+    if (!descriptor.operations?.some(op => op.id === nextId) || nextId === operationId) return;
+    queryRequest.current?.abort(); detailRequest.current?.abort();
+    setOperationId(nextId);
+    resetResultState(resolveOperation(descriptor, nextId).inputs);
+  }
 
   useEffect(() => { if (detail && !detailLoading) detailHeading.current?.focus(); }, [detail, detailLoading]);
 
@@ -36,7 +65,9 @@ export default function QueryRenderer({ descriptor }) {
     // Navigation uses committed query parameters, not unsubmitted field edits.
     if (page === undefined) setPayload(null);
     try {
-      const next = await queryPlugin(descriptor, nextValues, { page, signal: controller.signal });
+      const next = await queryPlugin(descriptor, nextValues, {
+        page, operation: activeOperation, operationId: descriptor.operations ? operationId : undefined, signal: controller.signal,
+      });
       if (!controller.signal.aborted) {
         submittedValues.current = nextValues;
         setPayload(next);
@@ -64,35 +95,48 @@ export default function QueryRenderer({ descriptor }) {
     detailRequest.current = controller;
     setDetailLoading(true); setDetailError(""); setDetail(null);
     try {
-      const next = await queryDetail(descriptor, id, { signal: controller.signal });
+      const next = await queryDetail(descriptor, id, {
+        operation: activeOperation, operationId: descriptor.operations ? operationId : undefined, signal: controller.signal,
+      });
       if (!controller.signal.aborted) setDetail(next);
     } catch (detailFailure) {
       if (!controller.signal.aborted) setDetailError(detailFailure.message || "Detail lookup failed.");
     } finally { if (!controller.signal.aborted) setDetailLoading(false); }
   }
 
-  const result = descriptor.result;
+  const result = activeOperation.result;
   const rows = payload?.[result.rows_path] ?? [];
   // V1 detail identities already existed; use them when unique, preserving
   // index fallback for older responses that never promised stable identity.
   const rowKey = result.row_key ?? (result.detail_key && rowKeys(rows, result.detail_key) !== null ? result.detail_key : undefined);
   const keys = rowKeys(rows, rowKey);
-  const detailEnabled = descriptor.capabilities.detail === true;
+  // Detail is a per-operation capability -- descriptor.capabilities.detail
+  // only says "some operation supports detail", not this one.
+  const detailEnabled = result.detail_key !== undefined;
   const Table = resolveWorkbenchComponent(result.presentation);
-  const Pagination = descriptor.pagination ? resolveWorkbenchComponent(descriptor.pagination.component) : null;
-  const Filters = descriptor.filters ? resolveWorkbenchComponent(descriptor.filters.component) : null;
-  const Detail = detailEnabled ? resolveWorkbenchComponent(descriptor.detail?.component || "detail") : null;
-  const detailFields = descriptor.detail?.fields ?? (!descriptor.detail?.sections && detail ? Object.keys(detail)
+  const Pagination = activeOperation.pagination ? resolveWorkbenchComponent(activeOperation.pagination.component) : null;
+  const Filters = activeOperation.filters ? resolveWorkbenchComponent(activeOperation.filters.component) : null;
+  const Detail = detailEnabled ? resolveWorkbenchComponent(activeOperation.detail?.component || "detail") : null;
+  const detailFields = activeOperation.detail?.fields ?? (!activeOperation.detail?.sections && detail ? Object.keys(detail)
     .filter(key => ["string", "number", "boolean"].includes(typeof detail[key]))
     .map(key => ({ key, label: key.replaceAll("_", " ") })) : []);
-  if (!Table || (descriptor.pagination && !Pagination) || (descriptor.filters && !Filters) || (detailEnabled && !Detail)) {
+  const OperationSelect = descriptor.operations ? resolveWorkbenchComponent("select") : null;
+  if (!Table || (activeOperation.pagination && !Pagination) || (activeOperation.filters && !Filters) || (detailEnabled && !Detail) ||
+      (descriptor.operations && !OperationSelect)) {
     return <p role="alert" className="plugin-error">Unsupported query presentation.</p>;
   }
 
   return <div className="native-plugin-page">
     <Panel><PanelHeader title="Query" /><PanelBody>
-      <PluginForm inputs={descriptor.inputs} values={values} onValueChange={(id, value) => setValues(previous => ({ ...previous, [id]: value }))}
-        onSubmit={submit} submitting={loading} submitLabel="Search" filters={descriptor.filters} FilterComponent={Filters} />
+      {descriptor.operations && <div className="plugin-field" data-field-id="operation">
+        <label htmlFor="plugin-operation">Operation</label>
+        <OperationSelect
+          input={{ id: "operation", choices: descriptor.operations.map(op => op.id), required: true }}
+          value={operationId} controlId="plugin-operation" disabled={loading}
+          onChange={selectOperation} />
+      </div>}
+      <PluginForm inputs={activeOperation.inputs} values={values} onValueChange={(id, value) => setValues(previous => ({ ...previous, [id]: value }))}
+        onSubmit={submit} submitting={loading} submitLabel="Search" filters={activeOperation.filters} FilterComponent={Filters} />
     </PanelBody></Panel>
     {(loading || error || payload) && <Panel><PanelHeader title="Results" /><PanelBody>
       <Table columns={result.columns} rows={rows} rowKey={rowKey} loading={loading} error={error}
@@ -110,8 +154,8 @@ export default function QueryRenderer({ descriptor }) {
       </Table>
       {Pagination && payload && <Pagination pagination={payload.pagination} loading={loading} onNavigate={navigate} />}
     </PanelBody></Panel>}
-    {(detailLoading || detailError || detail) && <Detail title={descriptor.detail?.title || "Detail"} fields={detailFields}
-      sections={descriptor.detail?.sections}
+    {(detailLoading || detailError || detail) && <Detail title={activeOperation.detail?.title || "Detail"} fields={detailFields}
+      sections={activeOperation.detail?.sections}
       record={detail} loading={detailLoading} error={detailError} headingRef={detailHeading}
       pluginSlug={descriptor.plugin.slug} />}
   </div>;

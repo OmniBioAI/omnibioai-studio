@@ -1,9 +1,15 @@
 import { pluginEndpoint } from "./pluginApi";
 import { isDataPath, isRecord, rowKeys, validPagination, validScalarRecord, validStructuredDetailRecord } from "./pluginUiContracts";
 
-export function queryRequestUrl(descriptor, values, page) {
+// `operation` (optional) is the active operation body -- just `descriptor`
+// itself for a legacy single-operation descriptor, or the selected entry of
+// `descriptor.operations` for a multi-operation one. `operationId` (optional)
+// is appended as the reserved `operation` query parameter only when the
+// descriptor declares an `operations` collection; omitted entirely for every
+// existing single-operation descriptor, so legacy callers are unaffected.
+export function queryRequestUrl(descriptor, values, page, operation = descriptor, operationId) {
   const url = new URL(pluginEndpoint(descriptor.endpoints.query), window.location.origin);
-  for (const input of descriptor.inputs) {
+  for (const input of operation.inputs) {
     const value = values[input.id] ?? input.default ?? "";
     if (!["string", "number"].includes(typeof value)) throw new Error("Invalid query value.");
     const text = String(value).trim();
@@ -11,8 +17,12 @@ export function queryRequestUrl(descriptor, values, page) {
     if (!isDataPath(key) || key.includes(".")) throw new Error("Invalid query parameter.");
     if (text) url.searchParams.set(key, text);
   }
+  if (operationId !== undefined) {
+    if (typeof operationId !== "string" || !isDataPath(operationId) || operationId.includes(".")) throw new Error("Invalid operation id.");
+    url.searchParams.set("operation", operationId);
+  }
   if (page !== undefined) {
-    if (!descriptor.pagination || !Number.isSafeInteger(page) || page < 1) throw new Error("Invalid query page.");
+    if (!operation.pagination || !Number.isSafeInteger(page) || page < 1) throw new Error("Invalid query page.");
     url.searchParams.set("page", String(page));
   }
   return `${url.origin === window.location.origin ? "" : url.origin}${url.pathname}${url.search}`;
@@ -26,27 +36,33 @@ async function readResponse(response, failure) {
   return payload;
 }
 
-export async function queryPlugin(descriptor, values, { page, signal } = {}) {
-  const response = await fetch(queryRequestUrl(descriptor, values, page), {
+export async function queryPlugin(descriptor, values, { page, operation = descriptor, operationId, signal } = {}) {
+  const response = await fetch(queryRequestUrl(descriptor, values, page, operation, operationId), {
     credentials: "same-origin", headers: { Accept: "application/json" }, signal,
   });
   const payload = await readResponse(response, "Query failed");
-  const rows = payload[descriptor.result.rows_path];
-  if (rowKeys(rows, descriptor.result.row_key) === null ||
-      (descriptor.pagination && !validPagination(payload.pagination))) throw new Error("Query failed: invalid result data.");
+  const rows = payload[operation.result.rows_path];
+  if (rowKeys(rows, operation.result.row_key) === null ||
+      (operation.pagination && !validPagination(payload.pagination))) throw new Error("Query failed: invalid result data.");
   return payload;
 }
 
-export async function queryDetail(descriptor, id, { signal } = {}) {
+export async function queryDetail(descriptor, id, { operation = descriptor, operationId, signal } = {}) {
   if (descriptor.capabilities.detail !== true || !["string", "number"].includes(typeof id) || String(id).length === 0) {
     throw new Error("Invalid detail identifier.");
   }
   const path = descriptor.endpoints.detail.replace("{detail_id}", encodeURIComponent(id));
-  const response = await fetch(pluginEndpoint(path), { credentials: "same-origin", headers: { Accept: "application/json" }, signal });
+  const url = new URL(pluginEndpoint(path), window.location.origin);
+  if (operationId !== undefined) {
+    if (typeof operationId !== "string" || !isDataPath(operationId) || operationId.includes(".")) throw new Error("Invalid operation id.");
+    url.searchParams.set("operation", operationId);
+  }
+  const requestUrl = `${url.origin === window.location.origin ? "" : url.origin}${url.pathname}${url.search}`;
+  const response = await fetch(requestUrl, { credentials: "same-origin", headers: { Accept: "application/json" }, signal });
   const payload = await readResponse(response, "Detail lookup failed");
-  const validDetail = !descriptor.detail || (descriptor.detail.sections
-    ? validStructuredDetailRecord(payload, descriptor.detail.sections, { strict: true })
-    : validScalarRecord(payload, descriptor.detail.fields, { strict: true }));
+  const validDetail = !operation.detail || (operation.detail.sections
+    ? validStructuredDetailRecord(payload, operation.detail.sections, { strict: true })
+    : validScalarRecord(payload, operation.detail.fields, { strict: true }));
   if (!validDetail) {
     throw new Error("Detail lookup failed: invalid response.");
   }
