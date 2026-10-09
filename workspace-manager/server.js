@@ -5,11 +5,14 @@ const net = require('node:net');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { Readable } = require('node:stream');
 const { DockerControlPlane } = require('./docker-control');
 
 const PORT = Number(process.env.PORT || 5191);
+const LISTEN_HOST = process.env.LISTEN_HOST || '127.0.0.1';
 const DB_PATH = process.env.WORKSPACE_DB_PATH || path.join(process.cwd(), 'workspaces.json');
 const IAM_URL = process.env.IAM_URL || 'http://auth-service:8001';
+const UPSTREAM_HOST = process.env.WORKSPACE_UPSTREAM_HOST || '127.0.0.1';
 const MAX_CPU = Number(process.env.WORKSPACE_MAX_CPU || 8);
 const MAX_MEMORY = Number(process.env.WORKSPACE_MAX_MEMORY_BYTES || 8 * 1024 ** 3);
 const SESSION_TTL_MS = 15 * 60 * 1000;
@@ -104,16 +107,17 @@ function freePort() {
   });
 }
 
-function waitForPort(port, timeoutMs = 30000) {
+async function waitForWorkspace(port, token, timeoutMs = 30000) {
   const started = Date.now();
-  return new Promise((resolve, reject) => {
-    const probe = () => {
-      const socket = net.connect({ host: '127.0.0.1', port });
-      socket.once('connect', () => { socket.destroy(); resolve(); });
-      socket.once('error', () => { socket.destroy(); if (Date.now() - started >= timeoutMs) reject(new Error('workspace endpoint did not become ready')); else setTimeout(probe, 250); });
-    };
-    probe();
-  });
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const response = await fetch(`http://${UPSTREAM_HOST}:${port}/lab?token=${encodeURIComponent(token)}`, { signal: AbortSignal.timeout(2000) });
+      if (response.status < 500) { response.body?.cancel(); return; }
+      response.body?.cancel();
+    } catch {}
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  throw new Error('workspace endpoint did not become ready');
 }
 
 async function inspectRuntime(workspace) {
@@ -128,7 +132,7 @@ async function createRuntime(workspace) {
   await control.createContainer(workspace, { token, hostPort }); workspace.jupyter_token = token;
   const started = await control.start(workspace);
   if (![204, 304].includes(started.status)) throw new Error('workspace container start failed');
-  await waitForPort(hostPort);
+  await waitForWorkspace(hostPort, token);
 }
 
 async function removeRuntime(workspace) {
@@ -178,7 +182,7 @@ async function route(req, res) {
       workspace.updated_at = new Date().toISOString(); await persist(); return json(res, 200, publicWorkspace(workspace));
     }
     if (parts.length === 3 && req.method === 'DELETE') { await removeRuntime(workspace); workspace.deleted_at = new Date().toISOString(); workspace.state = 'deleted'; await persist(); return json(res, 200, { deleted: true, workspace_id: workspace.id }); }
-    if (parts.length === 4 && parts[3] === 'start' && req.method === 'POST') { const result = await control.start(workspace); if (![204, 304].includes(result.status)) return error(res, 502, 'workspace start failed'); await waitForPort(workspace.host_port); workspace.state = 'running'; workspace.updated_at = new Date().toISOString(); await persist(); return json(res, 200, publicWorkspace(workspace)); }
+    if (parts.length === 4 && parts[3] === 'start' && req.method === 'POST') { const result = await control.start(workspace); if (![204, 304].includes(result.status)) return error(res, 502, 'workspace start failed'); await waitForWorkspace(workspace.host_port, workspace.jupyter_token); workspace.state = 'running'; workspace.updated_at = new Date().toISOString(); await persist(); return json(res, 200, publicWorkspace(workspace)); }
     if (parts.length === 4 && parts[3] === 'stop' && req.method === 'POST') { const result = await control.stop(workspace); if (![204, 304].includes(result.status)) return error(res, 502, 'workspace stop failed'); workspace.state = 'stopped'; workspace.updated_at = new Date().toISOString(); await persist(); return json(res, 200, publicWorkspace(workspace)); }
     if (parts.length === 4 && parts[3] === 'sessions' && req.method === 'POST') { if (workspace.state !== 'running') return error(res, 409, 'workspace is not running'); const raw = crypto.randomBytes(32).toString('base64url'); const session = { workspace_id: workspace.id, owner_key: ownerKey(owner), expires_at: Date.now() + SESSION_TTL_MS }; state.sessions[sessionDigest(raw)] = session; await persist(); return json(res, 201, { workspace_id: workspace.id, token: raw, expires_at: new Date(session.expires_at).toISOString(), proxy_path: `/workspace/${workspace.id}/` }); }
     return error(res, 404, 'not found');
@@ -193,8 +197,16 @@ async function proxy(req, res, owner, workspaceIdValue) {
   if (!hostPort) return error(res, 503, 'workspace endpoint unavailable');
   const input = new URL(req.url, 'http://proxy'); input.searchParams.delete('session'); input.searchParams.set('token', workspace.jupyter_token);
   const prefix = `/workspace/${workspace.id}`; const upstreamPath = input.pathname.startsWith(prefix) ? (input.pathname.slice(prefix.length) || '/') : '/';
-  const upstream = http.request({ hostname: '127.0.0.1', port: hostPort, method: req.method, path: upstreamPath + input.search,
-    headers: { host: `127.0.0.1:${hostPort}`, connection: 'close', ...(req.headers.accept ? { accept: req.headers.accept } : {}) }, agent: false }, response => { res.writeHead(response.statusCode, response.headers); response.pipe(res); });
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    let upstreamResponse;
+    try { upstreamResponse = await fetch(`http://${UPSTREAM_HOST}:${hostPort}${upstreamPath}${input.search}`, { headers: { ...(req.headers.accept ? { accept: req.headers.accept } : {}) }, signal: AbortSignal.timeout(30000) }); }
+    catch { return error(res, 502, 'workspace proxy unavailable'); }
+    const responseHeaders = {}; for (const [key, value] of upstreamResponse.headers) responseHeaders[key] = value;
+    res.writeHead(upstreamResponse.status, responseHeaders); if (req.method === 'HEAD' || !upstreamResponse.body) return res.end();
+    return Readable.fromWeb(upstreamResponse.body).pipe(res);
+  }
+  const upstream = http.request({ hostname: UPSTREAM_HOST, port: hostPort, method: req.method, path: upstreamPath + input.search,
+    headers: { host: `${UPSTREAM_HOST}:${hostPort}`, connection: 'close', ...(req.headers.accept ? { accept: req.headers.accept } : {}) }, agent: false }, response => { res.writeHead(response.statusCode, response.headers); response.pipe(res); });
   upstream.on('error', () => error(res, 502, 'workspace proxy unavailable'));
   if (req.method === 'GET' || req.method === 'HEAD') upstream.end(); else req.pipe(upstream);
 }
@@ -204,6 +216,32 @@ const server = http.createServer(async (req, res) => {
   return route(req, res);
 });
 
-if (require.main === module) server.listen(PORT, '127.0.0.1', async () => { await reconcile(); console.log(`workspace manager listening on 127.0.0.1:${server.address().port}`); });
+function rejectUpgrade(socket, status) {
+  socket.write(`HTTP/1.1 ${status} ${status === 404 ? 'Not Found' : 'Bad Gateway'}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
+  socket.destroy();
+}
+
+server.on('upgrade', async (req, socket, head) => {
+  try {
+    const owner = await identity(req); const url = new URL(req.url, 'http://proxy'); const match = /^\/workspace\/([^/]+)(\/.*)?$/.exec(url.pathname);
+    const workspace = match && state.workspaces[match[1]]; const raw = url.searchParams.get('session'); const session = raw && state.sessions[sessionDigest(raw)];
+    if (!workspace || workspace.deleted_at || !ownerMatches(workspace, owner) || !session || session.workspace_id !== workspace.id || session.owner_key !== ownerKey(owner) || session.expires_at < Date.now()) return rejectUpgrade(socket, 404);
+    if (workspace.state !== 'running') return rejectUpgrade(socket, 409);
+    const inspected = await inspectRuntime(workspace); const hostPort = workspace.host_port || inspected.body?.NetworkSettings?.Ports?.['8888/tcp']?.[0]?.HostPort;
+    if (!hostPort) return rejectUpgrade(socket, 502);
+    url.searchParams.delete('session'); url.searchParams.set('token', workspace.jupyter_token);
+    const prefix = `/workspace/${workspace.id}`; const pathToUpstream = (url.pathname.startsWith(prefix) ? (url.pathname.slice(prefix.length) || '/') : '/') + url.search;
+    const upstream = net.connect({ host: UPSTREAM_HOST, port: hostPort });
+    const fail = () => { if (!socket.destroyed) rejectUpgrade(socket, 502); };
+    upstream.once('error', fail); upstream.once('connect', () => {
+      const allowed = ['host', 'upgrade', 'connection', 'sec-websocket-key', 'sec-websocket-version', 'sec-websocket-protocol', 'sec-websocket-extensions'];
+      const headers = allowed.filter(name => req.headers[name]).map(name => `${name}: ${name === 'host' ? `${UPSTREAM_HOST}:${hostPort}` : req.headers[name]}`).join('\r\n');
+      upstream.write(`${req.method} ${pathToUpstream} HTTP/1.1\r\n${headers}\r\n\r\n`); if (head?.length) upstream.write(head); socket.pipe(upstream); upstream.pipe(socket);
+    });
+    socket.on('error', () => upstream.destroy()); upstream.on('close', () => socket.destroy());
+  } catch { rejectUpgrade(socket, 404); }
+});
+
+if (require.main === module) server.listen(PORT, LISTEN_HOST, async () => { await reconcile(); console.log(`workspace manager listening on ${LISTEN_HOST}:${server.address().port}`); });
 
 module.exports = { allocation, loadState, ownerKey, publicWorkspace, server, state };

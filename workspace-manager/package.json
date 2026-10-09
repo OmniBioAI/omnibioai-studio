@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Disposable local-Docker per-user workspace manager vertical slice",
   "scripts": {
-    "test": "node --test test/workspace-manager.test.js"
+    "test": "node --test test/workspace-manager.test.js",
+    "test:transport": "node --test test/transport-container.test.js"
   }
 }

@@ -243,6 +243,78 @@ WORKTREE_CLEAN=YES in the isolated clone at `/private/tmp/omnibioai-per-user-wor
 PUSH_PERFORMED=NO  
 DEPLOYMENT_PERFORMED=NO
 
+## Workspace Manager Proxy Transport V2 qualification
+
+This scoped follow-up was run from the independent clone at
+`/private/tmp/omnibioai-per-user-workspace-isolation-v1`, based on `8d8293b`.
+
+### Confirmed transport root cause
+
+The `UND_ERR_SOCKET`/`ECONNRESET` symptom was a readiness race. Docker's
+published port accepted TCP before JupyterLab had finished starting its HTTP
+server. Direct probes performed after startup succeeded, while the manager's
+immediate request reset. The manager now waits for an authenticated `/lab`
+HTTP response, rather than treating a TCP connect as readiness. The proxy uses
+server-resolved host/port metadata, `fetch` plus `Readable.fromWeb()` for
+GET/HEAD response streaming, and a bounded request timeout. Public upstream
+errors remain sanitized as 502 responses.
+
+### Routing and WebSocket boundary
+
+HTTP and WebSocket routes validate IAM, owner organization/user, workspace
+state, and an expiring workspace-bound session before contacting Jupyter.
+Clients cannot supply an upstream URL, container ID, host, or port. The
+WebSocket upgrade forwards only the required upgrade headers and the manager's
+server-generated Jupyter token; IAM bearer tokens and browser cookies are not
+forwarded. The raw WebSocket transport was qualified against a live Jupyter
+kernel channel, including a ping/pong exchange and cross-user upgrade denial.
+
+### Control-plane boundary and limitation
+
+The test runs the manager as a private, disposable trusted control-plane
+container with a loopback-only published manager port. Workspace containers
+receive neither the Docker socket nor control-plane access. The manager API has
+no arbitrary Docker-path passthrough: image, container configuration, names,
+labels, volume, network, mounts, and resource requests are server-derived.
+Every inspected or deleted resource must have the expected UUID-derived name
+and ownership labels. Host mounts, privileged mode, host networking, devices,
+GPU requests, and user-selected images are rejected by the fixed runtime
+configuration.
+
+This is not a claim that a generic Docker socket mount is a complete tenant
+boundary. The shared OmniBioAI socket proxy remains unchanged and still denies
+`POST /networks/create` and `POST /volumes/create`. A production deployment
+requires a separate private control-plane sidecar/proxy that authenticates the
+manager and enforces the same operation and managed-label allowlist at the
+Docker API boundary. It must not be exposed to Studio browsers or workspace
+containers. That deployment was not attached to the live stack.
+
+### V2 runtime evidence
+
+Commands executed in the isolated clone:
+
+```text
+node --check server.js
+npm test
+  1 passed, 0 failed — real two-owner Docker lifecycle/resource regression
+npm run test:transport
+  1 passed, 0 failed — containerized manager, two live Jupyter runtimes,
+  authorized HTTP, request body/status propagation, proxied kernel listing,
+  WebSocket kernel-channel ping/pong, cross-user HTTP/WS denial, cleanup
+```
+
+The Docker engine was 29.8.1 on ARM64. Existing shared services remained at
+44 running containers before and after qualification; no shared container was
+restarted or reconfigured. Disposable `obws-*` containers, networks, and
+volumes were removed and verified absent after each run. Pytest was not
+available in the environment, so no pytest count is claimed.
+
+Streaming is implemented without buffering GET/HEAD response bodies, and the
+live kernel-list response was exercised through the manager. Chunked,
+long-running, cancellation, and upstream-disconnect stress cases remain
+unqualified; WebSocket reconnect and full Studio/Launcher routing remain
+outside this workstream.
+
 ## Safety record
 
 - No shared Studio service was started, stopped, restarted, or recreated.
