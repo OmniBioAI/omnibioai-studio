@@ -11,28 +11,30 @@ import { resolveWorkbenchComponent } from "../../src/ui/components/workbench/com
 const source = process.env.WORKBENCH_SOURCE;
 const enabled = Boolean(source);
 describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
-  it("validates 269 v1 native descriptors, seven v2 queries, and legacy fallbacks", () => {
+  it("validates 274 v1 native descriptors, seven v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 276, legacy: 225 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 281, legacy: 220 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(269);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(274);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
       "clinicaltrials_gov", "disease_ontology", "ensembl", "hgnc", "medgen", "mondo", "rcsb_pdb",
     ]);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "query")).toHaveLength(9);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "async_analysis").map(plugin => plugin.slug).sort()).toEqual([
-      "atlassian", "aws_healthomics", "benchling", "chembl_search", "cloud_integration",
+      "admet_prediction", "atlassian", "aws_healthomics", "benchling", "chembl_search",
+      "cloud_integration",
       "dnanexus", "dvc", "elabftw", "exome_analysis", "figshare", "ga4gh_interoperability",
       "jupyterhub", "knime", "labkey", "lims_integration", "manhattan_qq_plot",
       "microsoft_graph", "ml_eval_plots", "msa_conservation_viewer",
-      "omics_data_qc_harmonizer", "openspecimen", "pubmed_search", "s3_integration",
-      "seven_bridges", "terra", "zenodo",
+      "omics_data_qc_harmonizer", "omics_qc_metrics_extractor", "omics_qc_report_generator",
+      "openspecimen", "pubmed_search", "s3_integration", "sashimi_plot", "seven_bridges",
+      "terra", "venn_upset_plot", "zenodo",
     ]);
     for (const entry of catalog.plugins) {
       const descriptor = validatePluginDescriptor(entry.descriptor, entry.slug);
