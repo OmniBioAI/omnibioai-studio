@@ -1,0 +1,121 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const http = require('node:http');
+const net = require('node:net');
+const os = require('node:os');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+const test = require('node:test');
+
+const root = path.resolve(__dirname, '..');
+const socket = process.env.DOCKER_SOCKET_PATH || path.join(os.homedir(), '.docker/run/docker.sock');
+const managerName = `obws-control-test-${crypto.randomUUID()}`;
+const controlPlaneName = `obws-control-plane-test-${crypto.randomUUID()}`;
+const controlNetwork = `obws-control-network-${crypto.randomUUID()}`;
+const controlSecret = crypto.randomBytes(32).toString('hex');
+const stateDir = fs.mkdtempSync('/private/tmp/obws-control-state-');
+const auditDir = fs.mkdtempSync('/private/tmp/obws-control-audit-');
+let iam;
+let iamPort;
+let managerPort;
+let unmanagedName;
+let retainedVolume;
+const identities = {
+  user_a: { valid: true, user_id: 301, org_id: 9, permissions: ['workspace.launch'] },
+  user_b: { valid: true, user_id: 302, org_id: 9, permissions: ['workspace.launch'] },
+  user_c: { valid: true, user_id: 303, org_id: 10, permissions: ['workspace.launch'] },
+};
+
+function docker(args) { return execFileSync('docker', args, { encoding: 'utf8' }).trim(); }
+function api(token, method, url, payload) { return fetch(`http://127.0.0.1:${managerPort}${url}`, { method, headers: { authorization: `Bearer ${token}`, ...(payload ? { 'content-type': 'application/json' } : {}) }, body: payload && JSON.stringify(payload) }); }
+function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function abortProxyRequest(workspaceId, sessionToken) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(`http://127.0.0.1:${managerPort}/workspace/${workspaceId}/files/work/transport-stream.bin?session=${encodeURIComponent(sessionToken)}`, { headers: { authorization: 'Bearer user_a' } }, response => {
+      response.once('data', () => { request.destroy(); }); response.once('close', resolve); response.once('error', () => {});
+    }); request.once('error', error => { if (!['ECONNRESET', 'ERR_STREAM_PREMATURE_CLOSE'].includes(error.code)) reject(error); }); request.end();
+  });
+}
+function websocketHandshake(token, workspaceId, sessionToken, sessionId) {
+  return new Promise((resolve, reject) => {
+    const socket = net.connect( managerPort, '127.0.0.1'); let raw = Buffer.alloc(0); let settled = false;
+    const finish = (fn, value) => { if (settled) return; settled = true; fn(value); };
+    socket.setTimeout(10000, () => { socket.destroy(); finish(reject, new Error('websocket handshake timeout')); });
+    socket.on('error', error => finish(reject, error));
+    socket.on('data', chunk => { raw = Buffer.concat([raw, chunk]); const end = raw.indexOf('\r\n\r\n'); if (end < 0) return; const header = raw.subarray(0, end).toString(); const status = Number(header.split('\r\n')[0].split(' ')[1]); if (status === 101) finish(resolve, { socket, head: raw.subarray(end + 4) }); else { socket.destroy(); finish(resolve, { status }); } });
+    socket.once('connect', () => {
+      const key = crypto.randomBytes(16).toString('base64'); const pathName = `/workspace/${workspaceId}/api/kernels/${sessionId}/channels?session_id=${sessionId}&session=${encodeURIComponent(sessionToken)}`;
+      socket.write(`GET ${pathName} HTTP/1.1\r\nHost: 127.0.0.1:${managerPort}\r\nAuthorization: Bearer ${token}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`);
+    });
+  });
+}
+
+test.before(async () => {
+  iam = http.createServer(async (req, res) => {
+    const chunks = []; for await (const chunk of req) chunks.push(chunk);
+    const input = JSON.parse(Buffer.concat(chunks).toString() || '{}'); res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(identities[input.token] || { valid: false }));
+  });
+  iam.listen(0, '0.0.0.0'); await new Promise(resolve => iam.once('listening', resolve)); iamPort = iam.address().port;
+  managerPort = 43000 + Math.floor(Math.random() * 1000);
+  docker(['network', 'create', controlNetwork]);
+  docker(['run', '-d', '--name', controlPlaneName, '--network', controlNetwork, '--network-alias', 'control-plane', '-e', 'CONTROL_PLANE_HOST=0.0.0.0', '-e', 'CONTROL_PLANE_PORT=5192', '-e', 'CONTROL_PLANE_SERVICE_ID=workspace-manager', '-e', 'CONTROL_PLANE_SERVICE_KEY_ID=active', '-e', `CONTROL_PLANE_SERVICE_SECRET=${controlSecret}`, '-e', 'CONTROL_PLANE_AUDIT_PATH=/audit/audit.jsonl', '-e', 'DOCKER_SOCKET_PATH=/var/run/docker.sock', '-v', `${root}:/app:ro`, '-v', `${auditDir}:/audit`, '-v', `${socket}:/var/run/docker.sock`, 'node:20-bookworm-slim', 'node', '/app/control-plane.js']);
+  docker(['run', '-d', '--name', managerName, '--network', controlNetwork, '--add-host', 'host.docker.internal:host-gateway', '-p', `127.0.0.1:${managerPort}:${managerPort}`, '-e', `PORT=${managerPort}`, '-e', 'LISTEN_HOST=0.0.0.0', '-e', `IAM_URL=http://host.docker.internal:${iamPort}`, '-e', 'WORKSPACE_UPSTREAM_HOST=host.docker.internal', '-e', 'CONTROL_PLANE_URL=http://control-plane:5192', '-e', 'CONTROL_PLANE_SERVICE_ID=workspace-manager', '-e', `CONTROL_PLANE_SERVICE_SECRET=${controlSecret}`, '-e', 'WORKSPACE_DB_PATH=/state/workspaces.json', '-e', 'WORKSPACE_MAX_CPU=2', '-e', `WORKSPACE_MAX_MEMORY_BYTES=${2 * 1024 ** 3}`, '-v', `${root}:/app:ro`, '-v', `${stateDir}:/state`, 'node:20-bookworm-slim', 'node', '/app/server.js']);
+  const managerMounts = JSON.parse(docker(['inspect', '--format', '{{json .Mounts}}', managerName])); assert.equal(managerMounts.some(mount => mount.Destination === '/var/run/docker.sock'), false);
+  for (let i = 0; i < 60; i += 1) { try { const response = await fetch(`http://127.0.0.1:${managerPort}/health`); if (response.status < 500) return; } catch {} await wait(250); }
+  throw new Error(docker(['logs', managerName]));
+});
+
+test.after(async () => {
+  try { docker(['rm', '-f', managerName]); } catch {}
+  try { docker(['rm', '-f', controlPlaneName]); } catch {}
+  if (unmanagedName) { try { docker(['rm', '-f', unmanagedName]); } catch {} }
+  if (retainedVolume) { try { docker(['volume', 'rm', retainedVolume]); } catch {} }
+  try { docker(['network', 'rm', controlNetwork]); } catch {}
+  if (iam) iam.close(); await fs.promises.rm(stateDir, { recursive: true, force: true });
+  await fs.promises.rm(auditDir, { recursive: true, force: true });
+});
+
+function controlPlaneCall(operation, record) {
+  const payload = JSON.stringify({ record }); const timestamp = String(Date.now()); const nonce = crypto.randomBytes(16).toString('hex'); const signature = crypto.createHmac('sha256', controlSecret).update(`${timestamp}.${nonce}.${payload}`).digest('hex');
+  const headers = { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload), 'x-service-id': 'workspace-manager', 'x-service-key-id': 'active', 'x-request-timestamp': timestamp, 'x-request-nonce': nonce, 'x-request-signature': signature };
+  const script = `const http=require('node:http');const req=http.request({host:'127.0.0.1',port:5192,path:'/v1/workspaces/${record.id}/${operation}',method:'POST',headers:${JSON.stringify(headers)}},res=>{let b='';res.on('data',c=>b+=c);res.on('end',()=>console.log(JSON.stringify({status:res.statusCode,body:b})))});req.end(${JSON.stringify(payload)});`;
+  return JSON.parse(execFileSync('docker', ['exec', controlPlaneName, 'node', '-e', script], { encoding: 'utf8' }).trim());
+}
+
+test('containerized trusted control plane routes an authorized live HTTP request', { timeout: 180000 }, async () => {
+  let response = await api('user_a', 'POST', '/api/workspaces', { resources: { cpu: 0.25, memory_bytes: 512 * 1024 ** 2 } }); const aliceText = await response.text(); assert.equal(response.status, 201, aliceText); const alice = JSON.parse(aliceText);
+  response = await api('user_b', 'POST', '/api/workspaces', { resources: { cpu: 0.25, memory_bytes: 512 * 1024 ** 2 } }); const bobText = await response.text(); assert.equal(response.status, 201, bobText); const bob = JSON.parse(bobText);
+  const persisted = JSON.parse(await fs.promises.readFile(path.join(stateDir, 'workspaces.json'), 'utf8')).workspaces[alice.id];
+  const direct = await fetch(`http://127.0.0.1:${persisted.host_port}/lab?token=${encodeURIComponent(persisted.jupyter_token)}`); assert.equal(direct.status, 200);
+  response = await api('user_a', 'POST', `/api/workspaces/${alice.id}/sessions`, {}); assert.equal(response.status, 201); const session = await response.json();
+  response = await api('user_a', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); const page = await response.text(); assert.equal(response.status, 200, page); assert.match(page, /Jupyter/);
+  response = await api('user_a', 'POST', `/workspace/${alice.id}/api/kernels?session=${encodeURIComponent(session.token)}`, { name: 'python3' }); assert.equal(response.status, 201); const kernel = await response.json();
+  response = await api('user_a', 'GET', `/workspace/${alice.id}/api/kernels?session=${encodeURIComponent(session.token)}`); const kernelsBody = await response.text(); assert.equal(response.status, 200, kernelsBody); assert.ok(JSON.parse(kernelsBody).some(item => item.id === kernel.id));
+  const ws = await websocketHandshake('user_a', alice.id, session.token, kernel.id); assert.equal(ws.status, undefined); ws.socket.write(Buffer.from([0x89, 0])); const pong = await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('websocket pong timeout')), 10000); ws.socket.once('data', data => { clearTimeout(timer); resolve(data); }); }); assert.equal(pong[0] & 0x0f, 0x0a); ws.socket.end();
+  const reconnect = await websocketHandshake('user_a', alice.id, session.token, kernel.id); assert.equal(reconnect.status, undefined); reconnect.socket.end();
+  const deniedWs = await websocketHandshake('user_b', alice.id, session.token, kernel.id); assert.equal(deniedWs.status, 404);
+  response = await api('user_a', 'DELETE', `/workspace/${alice.id}/api/kernels/${kernel.id}?session=${encodeURIComponent(session.token)}`); assert.ok([204, 404].includes(response.status));
+  response = await api('user_b', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404); assert.notEqual(alice.runtime_name, bob.runtime_name);
+  response = await api('user_a', 'GET', `/workspace/${bob.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404);
+  response = await api('user_c', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404);
+  response = await api('', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 401);
+  const concurrentStops = await Promise.all([api('user_a', 'POST', `/api/workspaces/${alice.id}/stop`, {}), api('user_a', 'POST', `/api/workspaces/${alice.id}/stop`, {})]); assert.deepEqual(concurrentStops.map(item => item.status), [200, 200]);
+  const concurrentStarts = await Promise.all([api('user_a', 'POST', `/api/workspaces/${alice.id}/start`, {}), api('user_a', 'POST', `/api/workspaces/${alice.id}/start`, {})]); assert.deepEqual(concurrentStarts.map(item => item.status), [200, 200]);
+  docker(['restart', controlPlaneName]); for (let i = 0; i < 30; i += 1) { try { docker(['exec', controlPlaneName, 'node', '-e', "fetch('http://127.0.0.1:5192/healthz').then(r=>{if(!r.ok)process.exit(1)})"]); break; } catch {} await wait(250); }
+  response = await api('user_a', 'GET', `/api/workspaces/${alice.id}`); assert.equal(response.status, 200); assert.equal((await response.json()).state, 'running');
+  docker(['exec', alice.runtime_name, 'sh', '-c', 'dd if=/dev/zero of=/home/jovyan/work/transport-stream.bin bs=1M count=32 status=none']);
+  const streamed = await fetch(`http://127.0.0.1:${managerPort}/workspace/${alice.id}/files/work/transport-stream.bin?session=${encodeURIComponent(session.token)}`, { headers: { authorization: 'Bearer user_a' } }); assert.equal(streamed.status, 200); let streamedBytes = 0; let streamedChunks = 0; const reader = streamed.body.getReader(); for (;;) { const chunk = await reader.read(); if (chunk.done) break; streamedBytes += chunk.value.byteLength; streamedChunks += 1; } assert.equal(streamedBytes, 32 * 1024 ** 2); assert.ok(streamedChunks > 1);
+  await abortProxyRequest(alice.id, session.token);
+  await wait(500);
+  unmanagedName = `obws-unmanaged-${crypto.randomUUID()}`; docker(['run', '-d', '--name', unmanagedName, '--network', 'none', 'node:20-bookworm-slim', 'sleep', '60']);
+  const unmanagedRecord = { id: crypto.randomUUID(), owner_user_id: 301, organization_id: 9, runtime_id: unmanagedName };
+  assert.equal(controlPlaneCall('inspect', unmanagedRecord).status, 409); assert.equal(controlPlaneCall('remove', unmanagedRecord).status, 409);
+  assert.equal((await api('user_a', 'DELETE', `/api/workspaces/${alice.id}`, { purge_data: true })).status, 200); assert.equal((await api('user_b', 'DELETE', `/api/workspaces/${bob.id}`, { purge_data: true })).status, 200);
+  response = await api('user_a', 'POST', '/api/workspaces', { resources: { cpu: 0.25, memory_bytes: 512 * 1024 ** 2 } }); assert.equal(response.status, 201); const retained = await response.json(); retainedVolume = retained.volume_name;
+  response = await api('user_a', 'DELETE', `/api/workspaces/${retained.id}`); const retainedResult = await response.json(); assert.equal(response.status, 200); assert.equal(retainedResult.data_retained, true); assert.equal(JSON.parse(docker(['volume', 'inspect', retained.volume_name])).length, 1);
+  docker(['volume', 'rm', retained.volume_name]); retainedVolume = null;
+  await wait(250); const audit = await fs.promises.readFile(path.join(auditDir, 'audit.jsonl'), 'utf8'); assert.ok(audit.split('\n').filter(Boolean).length >= 4); assert.equal(audit.includes(controlSecret), false); assert.equal(audit.includes(session.token), false);
+});

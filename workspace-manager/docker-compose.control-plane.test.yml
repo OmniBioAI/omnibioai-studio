@@ -1,0 +1,42 @@
+services:
+  workspace-control-plane:
+    build:
+      context: .
+      dockerfile: Dockerfile.control-plane
+    command: ["node", "control-plane.js"]
+    user: "0:0"
+    environment:
+      CONTROL_PLANE_HOST: 0.0.0.0
+      CONTROL_PLANE_PORT: 5192
+      CONTROL_PLANE_SERVICE_ID: workspace-manager
+      CONTROL_PLANE_SERVICE_KEY_ID: active
+      CONTROL_PLANE_SERVICE_SECRET: ${CONTROL_PLANE_SERVICE_SECRET:?set a disposable secret}
+      CONTROL_PLANE_AUDIT_PATH: /state/audit.jsonl
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+    networks: [workspace-control-plane]
+    expose: ["5192"]
+    group_add: ["${DOCKER_SOCKET_GID:-0}"]
+    read_only: true
+    tmpfs: [/tmp]
+    cpus: 1
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5192/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+    volumes:
+      - type: volume
+        source: workspace-control-plane-state
+        target: /state
+      - type: bind
+        source: ${DOCKER_SOCKET_PATH:?set a host Docker socket path}
+        target: /var/run/docker.sock
+        read_only: true
+
+networks:
+  workspace-control-plane:
+    internal: true
+
+volumes:
+  workspace-control-plane-state:
