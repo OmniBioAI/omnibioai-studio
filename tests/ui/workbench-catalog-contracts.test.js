@@ -30,17 +30,17 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
   // reference_registry, resource_cost_estimator, run_inspector, and
   // voice_command). spatial_imaging_io stays legacy because its image input
   // is required for two of three operations, which schema v1 cannot express.
-  it("validates 342 v1 native descriptors, 92 v2 queries, and legacy fallbacks", () => {
+  it("validates 343 v1 native descriptors, 92 v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 434, legacy: 67 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 435, legacy: 66 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(342);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(343);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
       "all_of_us", "api_analytics", "artifact_manager", "bindingdb", "biogrid", "bioportal", "brenda",
       "catalog", "cbioportal", "ccle", "cell_ontology", "chebi", "civic", "clingen",
@@ -60,7 +60,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "query")).toHaveLength(9);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "async_analysis").map(plugin => plugin.slug).sort()).toEqual([
       "admet_prediction", "agentic_pymol", "alphafold", "anomaly_detection_omics", "atlassian",
-      "auto_ml_biomarker_discovery", "aws_healthomics", "benchling", "cell_comm_visualization",
+      "auto_ml_biomarker_discovery", "aws_healthomics", "benchling", "bionemo", "cell_comm_visualization",
       "celltype_classification_sc", "chembl_search", "chemoinfo_intelligence",
       "chipseq_differential_binding", "chipseq_motif_analysis", "chipseq_peak_annotation",
       "chipseq_peakset_ops", "chipseq_qc_metrics", "chipseq_report_generator", "chipseq_signal_plots",
