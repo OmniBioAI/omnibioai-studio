@@ -30,30 +30,30 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
   // reference_registry, resource_cost_estimator, run_inspector, and
   // voice_command). spatial_imaging_io stays legacy because its image input
   // is required for two of three operations, which schema v1 cannot express.
-  it("validates 368 v1 native descriptors, 99 v2 queries, and legacy fallbacks", () => {
+  it("validates 369 v1 native descriptors, 102 v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 467, legacy: 34 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 471, legacy: 30 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(368);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(369);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
       "alerting", "all_of_us", "api_analytics", "artifact_manager", "audit_log", "bindingdb", "bio_agent", "biogrid", "bioportal", "brenda",
-      "catalog", "cbioportal", "ccle", "cell_ontology", "chebi", "civic", "clingen",
+      "catalog", "cbioportal", "ccle", "cell_ontology", "cellchat", "chebi", "civic", "clingen",
       "clinicaltrials_gov", "cpic", "dataset_catalog", "dbgap", "dbnsfp", "dbsnp", "depmap", "dgidb", "disease_ontology",
       "disgenet", "drug_target_intelligence", "drugcentral", "drugsatfda", "ega", "eggnog", "ena", "encode", "ensembl",
-      "expression_atlas", "fhir_hl7", "format_converter", "gdc", "gene_ontology", "genereviews",
+      "environment_manager", "expression_atlas", "fhir_hl7", "format_converter", "gdc", "gene_ontology", "genereviews",
       "gnomad", "gtex", "hgmd", "hgnc", "histopathology_cv", "hpa", "icgc", "infra_ai_copilot", "intact", "integration_connections",
       "interpro", "job_monitor", "job_queue_manager", "kegg", "lipidmaps", "lovd", "marrvel", "mastermind",
       "mavedb", "medgen", "metabolights", "mondo", "msigdb", "ncbi",
       "notification_center", "object_registry_explorer", "omim", "omniml_studio", "opentargets", "orphanet",
       "panglaodb", "panther",
       "pdb_redo", "pdbe", "pharmvar", "pharos", "phegeni", "pride",
-      "proteomexchange", "pubchem", "rcsb_pdb", "rfam", "rxnorm", "sgd",
+      "proteomexchange", "pubchem", "rcsb_pdb", "rfam", "rxnorm", "schema_registry", "sgd",
       "snpedia", "sra", "storage_quota_manager", "string_db", "swisslipids", "targetscan",
       "tcga", "thousand_genomes", "topmed", "ucsc", "uk_biobank", "uniprot", "wikipathways", "wormbase",
     ]);
@@ -74,7 +74,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       "multi_omics_integration_ai",
       "omics_data_qc_harmonizer", "omics_qc_metrics_extractor", "omics_qc_report_generator", "omninotebook_ai", "onboardai",
       "openspecimen", "pathway_mapping", "plugin_manager", "ppi_network_plot", "proteomics", "provenance", "pubmed_search", "qc_plots", "resource_monitoring",
-      "s3_integration", "sashimi_plot", "scanpy_clustering", "scanpy_markers", "scanpy_qc_metrics",
+      "rnaseq_analysis", "s3_integration", "sashimi_plot", "scanpy_clustering", "scanpy_markers", "scanpy_qc_metrics",
       "seven_bridges", "single_cell_analysis", "single_cell_annotation", "single_cell_loom_viewer",
       "single_cell_omics_intelligence", "single_cell_trajectory_inference", "spatial_analysis", "spatial_clustering", "spatial_marker_identification",
       "spatial_report_generation", "target_prediction", "terra", "threshold_recommendation", "toxicity_prediction",
@@ -94,7 +94,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       }
     }
     expect(native.filter(plugin => plugin.renderer === "informational")).toHaveLength(138);
-    for (const held of ["environment_manager", "multiqc_wrapper", "spatial_imaging_io"]) {
+    for (const held of ["multiqc_wrapper", "security_dashboard", "spatial_imaging_io"]) {
       expect(catalog.plugins.find(entry => entry.slug === held).descriptor.native_supported).toBe(false);
     }
   }, 60000);
