@@ -438,6 +438,28 @@ centralized audit retention/alerting, and backup/recovery remain operational
 requirements. No production deployment or Studio/Launcher integration was
 performed.
 
+## Workspace Transport and Fault Recovery P0 V1
+
+The proxy now propagates downstream request aborts to the upstream fetch,
+cleans abort listeners after normal completion, and handles upstream stream
+errors by destroying an already-started response instead of attempting a
+second HTTP status. This prevents the manager process from terminating during
+client cancellation. The live disposable Jupyter test transfers a 32 MiB
+workspace file incrementally across multiple chunks and then aborts a second
+request; the manager remains available and all resources are cleaned.
+
+A 256 MiB transfer was attempted against the same real workspace route. It
+failed after 7,914 bytes with `UND_ERR_SOCKET`/peer close. The 32 MiB run
+passed after the targeted fix, but the required 256 MiB acceptance target and
+bounded-memory/backpressure measurements are therefore not passed.
+
+The existing per-workspace single-writer lock and control-plane restart test
+remain active. Full delayed-stream fixture coverage, slow/stalled-client
+backpressure, ten-run cancellation/disconnect repetition, Docker fault
+injection, ambiguous-operation reconciliation, and exact manager-plus-control-
+plane Compose lifecycle execution remain unqualified. No shared service was
+changed; the live inventory remains 44 running shared containers.
+
 ## Workspace Runtime Reliability Acceptance V1
 
 Mutating operations for one workspace now serialize through a single-writer

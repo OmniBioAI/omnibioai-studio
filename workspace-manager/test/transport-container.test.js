@@ -32,6 +32,13 @@ const identities = {
 function docker(args) { return execFileSync('docker', args, { encoding: 'utf8' }).trim(); }
 function api(token, method, url, payload) { return fetch(`http://127.0.0.1:${managerPort}${url}`, { method, headers: { authorization: `Bearer ${token}`, ...(payload ? { 'content-type': 'application/json' } : {}) }, body: payload && JSON.stringify(payload) }); }
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function abortProxyRequest(workspaceId, sessionToken) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(`http://127.0.0.1:${managerPort}/workspace/${workspaceId}/files/work/transport-stream.bin?session=${encodeURIComponent(sessionToken)}`, { headers: { authorization: 'Bearer user_a' } }, response => {
+      response.once('data', () => { request.destroy(); }); response.once('close', resolve); response.once('error', () => {});
+    }); request.once('error', error => { if (!['ECONNRESET', 'ERR_STREAM_PREMATURE_CLOSE'].includes(error.code)) reject(error); }); request.end();
+  });
+}
 function websocketHandshake(token, workspaceId, sessionToken, sessionId) {
   return new Promise((resolve, reject) => {
     const socket = net.connect( managerPort, '127.0.0.1'); let raw = Buffer.alloc(0); let settled = false;
@@ -90,6 +97,7 @@ test('containerized trusted control plane routes an authorized live HTTP request
   const ws = await websocketHandshake('user_a', alice.id, session.token, kernel.id); assert.equal(ws.status, undefined); ws.socket.write(Buffer.from([0x89, 0])); const pong = await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('websocket pong timeout')), 10000); ws.socket.once('data', data => { clearTimeout(timer); resolve(data); }); }); assert.equal(pong[0] & 0x0f, 0x0a); ws.socket.end();
   const reconnect = await websocketHandshake('user_a', alice.id, session.token, kernel.id); assert.equal(reconnect.status, undefined); reconnect.socket.end();
   const deniedWs = await websocketHandshake('user_b', alice.id, session.token, kernel.id); assert.equal(deniedWs.status, 404);
+  response = await api('user_a', 'DELETE', `/workspace/${alice.id}/api/kernels/${kernel.id}?session=${encodeURIComponent(session.token)}`); assert.ok([204, 404].includes(response.status));
   response = await api('user_b', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404); assert.notEqual(alice.runtime_name, bob.runtime_name);
   response = await api('user_a', 'GET', `/workspace/${bob.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404);
   response = await api('user_c', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404);
@@ -98,10 +106,13 @@ test('containerized trusted control plane routes an authorized live HTTP request
   const concurrentStarts = await Promise.all([api('user_a', 'POST', `/api/workspaces/${alice.id}/start`, {}), api('user_a', 'POST', `/api/workspaces/${alice.id}/start`, {})]); assert.deepEqual(concurrentStarts.map(item => item.status), [200, 200]);
   docker(['restart', controlPlaneName]); for (let i = 0; i < 30; i += 1) { try { docker(['exec', controlPlaneName, 'node', '-e', "fetch('http://127.0.0.1:5192/healthz').then(r=>{if(!r.ok)process.exit(1)})"]); break; } catch {} await wait(250); }
   response = await api('user_a', 'GET', `/api/workspaces/${alice.id}`); assert.equal(response.status, 200); assert.equal((await response.json()).state, 'running');
+  docker(['exec', alice.runtime_name, 'sh', '-c', 'dd if=/dev/zero of=/home/jovyan/work/transport-stream.bin bs=1M count=32 status=none']);
+  const streamed = await fetch(`http://127.0.0.1:${managerPort}/workspace/${alice.id}/files/work/transport-stream.bin?session=${encodeURIComponent(session.token)}`, { headers: { authorization: 'Bearer user_a' } }); assert.equal(streamed.status, 200); let streamedBytes = 0; let streamedChunks = 0; const reader = streamed.body.getReader(); for (;;) { const chunk = await reader.read(); if (chunk.done) break; streamedBytes += chunk.value.byteLength; streamedChunks += 1; } assert.equal(streamedBytes, 32 * 1024 ** 2); assert.ok(streamedChunks > 1);
+  await abortProxyRequest(alice.id, session.token);
+  await wait(500);
   unmanagedName = `obws-unmanaged-${crypto.randomUUID()}`; docker(['run', '-d', '--name', unmanagedName, '--network', 'none', 'node:20-bookworm-slim', 'sleep', '60']);
   const unmanagedRecord = { id: crypto.randomUUID(), owner_user_id: 301, organization_id: 9, runtime_id: unmanagedName };
   assert.equal(controlPlaneCall('inspect', unmanagedRecord).status, 409); assert.equal(controlPlaneCall('remove', unmanagedRecord).status, 409);
-  response = await api('user_a', 'DELETE', `/workspace/${alice.id}/api/kernels/${kernel.id}?session=${encodeURIComponent(session.token)}`); assert.ok([204, 404].includes(response.status));
   assert.equal((await api('user_a', 'DELETE', `/api/workspaces/${alice.id}`, { purge_data: true })).status, 200); assert.equal((await api('user_b', 'DELETE', `/api/workspaces/${bob.id}`, { purge_data: true })).status, 200);
   response = await api('user_a', 'POST', '/api/workspaces', { resources: { cpu: 0.25, memory_bytes: 512 * 1024 ** 2 } }); assert.equal(response.status, 201); const retained = await response.json(); retainedVolume = retained.volume_name;
   response = await api('user_a', 'DELETE', `/api/workspaces/${retained.id}`); const retainedResult = await response.json(); assert.equal(response.status, 200); assert.equal(retainedResult.data_retained, true); assert.equal(JSON.parse(docker(['volume', 'inspect', retained.volume_name])).length, 1);

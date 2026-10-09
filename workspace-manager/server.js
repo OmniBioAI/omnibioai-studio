@@ -212,15 +212,17 @@ async function proxy(req, res, owner, workspaceIdValue) {
   const prefix = `/workspace/${workspace.id}`; const upstreamPath = input.pathname.startsWith(prefix) ? (input.pathname.slice(prefix.length) || '/') : '/';
   if (req.method === 'GET' || req.method === 'HEAD') {
     let upstreamResponse;
-    try { upstreamResponse = await fetch(`http://${UPSTREAM_HOST}:${hostPort}${upstreamPath}${input.search}`, { headers: { ...(req.headers.accept ? { accept: req.headers.accept } : {}) }, signal: AbortSignal.timeout(30000) }); }
+    const controller = new AbortController(); const abortUpstream = () => controller.abort(); req.once('aborted', abortUpstream); res.once('close', abortUpstream);
+    try { upstreamResponse = await fetch(`http://${UPSTREAM_HOST}:${hostPort}${upstreamPath}${input.search}`, { headers: { ...(req.headers.accept ? { accept: req.headers.accept } : {}) }, signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)]) }); }
     catch { return error(res, 502, 'workspace proxy unavailable'); }
     const responseHeaders = {}; for (const [key, value] of upstreamResponse.headers) responseHeaders[key] = value;
     res.writeHead(upstreamResponse.status, responseHeaders); if (req.method === 'HEAD' || !upstreamResponse.body) return res.end();
-    return Readable.fromWeb(upstreamResponse.body).pipe(res);
+    const stream = Readable.fromWeb(upstreamResponse.body); stream.on('error', () => { if (res.headersSent) res.destroy(); else error(res, 502, 'workspace proxy unavailable'); }); stream.once('close', () => { req.off('aborted', abortUpstream); res.off('close', abortUpstream); }); return stream.pipe(res);
   }
   const upstream = http.request({ hostname: UPSTREAM_HOST, port: hostPort, method: req.method, path: upstreamPath + input.search,
     headers: { host: `${UPSTREAM_HOST}:${hostPort}`, connection: 'close', ...(req.headers.accept ? { accept: req.headers.accept } : {}) }, agent: false }, response => { res.writeHead(response.statusCode, response.headers); response.pipe(res); });
   upstream.on('error', () => error(res, 502, 'workspace proxy unavailable'));
+  let responseFinished = false; res.once('finish', () => { responseFinished = true; }); req.on('aborted', () => upstream.destroy()); res.once('close', () => { if (!responseFinished) upstream.destroy(); });
   if (req.method === 'GET' || req.method === 'HEAD') upstream.end(); else req.pipe(upstream);
 }
 
