@@ -11,17 +11,17 @@ import { resolveWorkbenchComponent } from "../../src/ui/components/workbench/com
 const source = process.env.WORKBENCH_SOURCE;
 const enabled = Boolean(source);
 describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
-  it("validates 284 v1 native descriptors, seven v2 queries, and legacy fallbacks", () => {
+  it("validates 289 v1 native descriptors, seven v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 291, legacy: 210 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 296, legacy: 205 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(284);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(289);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
       "clinicaltrials_gov", "disease_ontology", "ensembl", "hgnc", "medgen", "mondo", "rcsb_pdb",
     ]);
@@ -31,11 +31,12 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       "chembl_search", "chemoinfo_intelligence", "cloud_integration", "clustering", "dnanexus", "drug_report_generator",
       "druglikeness_scoring", "dvc", "elabftw", "exome_analysis", "figshare", "ga4gh_interoperability",
       "jupyterhub", "knime", "labkey", "lims_integration", "manhattan_qq_plot",
-      "mechanism_analysis", "microsoft_graph", "ml_eval_plots", "molecular_descriptors",
+      "marker_identification", "mechanism_analysis", "microsoft_graph", "ml_eval_plots", "molecular_descriptors",
       "msa_conservation_viewer",
       "omics_data_qc_harmonizer", "omics_qc_metrics_extractor", "omics_qc_report_generator",
       "openspecimen", "pathway_mapping", "pubmed_search", "s3_integration", "sashimi_plot",
-      "seven_bridges", "target_prediction", "terra", "toxicity_prediction", "venn_upset_plot", "zenodo",
+      "scanpy_clustering", "scanpy_markers", "seven_bridges", "single_cell_analysis",
+      "single_cell_annotation", "target_prediction", "terra", "toxicity_prediction", "venn_upset_plot", "zenodo",
     ]);
     for (const entry of catalog.plugins) {
       const descriptor = validatePluginDescriptor(entry.descriptor, entry.slug);
