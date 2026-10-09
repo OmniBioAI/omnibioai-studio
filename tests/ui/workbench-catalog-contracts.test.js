@@ -11,23 +11,44 @@ import { resolveWorkbenchComponent } from "../../src/ui/components/workbench/com
 const source = process.env.WORKBENCH_SOURCE;
 const enabled = Boolean(source);
 describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
-  it("validates 220 v1 native descriptors, seven v2 queries, and legacy fallbacks", () => {
+  it("validates 289 v1 native descriptors, 78 v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 227, legacy: 274 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 367, legacy: 134 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(220);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(289);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
-      "clinicaltrials_gov", "disease_ontology", "ensembl", "hgnc", "medgen", "mondo", "rcsb_pdb",
+      "all_of_us", "api_analytics", "bindingdb", "biogrid", "bioportal", "brenda",
+      "cbioportal", "ccle", "cell_ontology", "chebi", "civic", "clingen",
+      "clinicaltrials_gov", "cpic", "dbgap", "depmap", "dgidb", "disease_ontology",
+      "disgenet", "drugcentral", "drugsatfda", "ena", "encode", "ensembl",
+      "expression_atlas", "gdc", "gene_ontology", "genereviews", "gnomad", "gtex",
+      "hgmd", "hgnc", "hpa", "icgc", "intact", "integration_connections",
+      "interpro", "job_queue_manager", "kegg", "lipidmaps", "lovd", "mastermind",
+      "mavedb", "medgen", "metabolights", "mondo", "msigdb", "ncbi",
+      "notification_center", "omim", "opentargets", "orphanet", "panglaodb", "panther",
+      "pdb_redo", "pdbe", "pharmvar", "pharos", "phegeni", "pride",
+      "proteomexchange", "pubchem", "rcsb_pdb", "rfam", "rxnorm", "sgd",
+      "snpedia", "sra", "storage_quota_manager", "string_db", "swisslipids", "targetscan",
+      "tcga", "topmed", "ucsc", "uniprot", "wikipathways", "wormbase",
     ]);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "query")).toHaveLength(9);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "async_analysis").map(plugin => plugin.slug).sort()).toEqual([
-      "chembl_search", "pubmed_search",
+      "admet_prediction", "atlassian", "aws_healthomics", "benchling", "cell_comm_visualization",
+      "chembl_search", "chemoinfo_intelligence", "cloud_integration", "clustering", "dnanexus", "drug_report_generator",
+      "druglikeness_scoring", "dvc", "elabftw", "exome_analysis", "figshare", "ga4gh_interoperability",
+      "jupyterhub", "knime", "labkey", "lims_integration", "manhattan_qq_plot",
+      "marker_identification", "mechanism_analysis", "microsoft_graph", "ml_eval_plots", "molecular_descriptors",
+      "msa_conservation_viewer",
+      "omics_data_qc_harmonizer", "omics_qc_metrics_extractor", "omics_qc_report_generator",
+      "openspecimen", "pathway_mapping", "pubmed_search", "s3_integration", "sashimi_plot",
+      "scanpy_clustering", "scanpy_markers", "seven_bridges", "single_cell_analysis",
+      "single_cell_annotation", "target_prediction", "terra", "toxicity_prediction", "venn_upset_plot", "zenodo",
     ]);
     for (const entry of catalog.plugins) {
       const descriptor = validatePluginDescriptor(entry.descriptor, entry.slug);
@@ -43,7 +64,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       }
     }
     expect(native.filter(plugin => plugin.renderer === "informational")).toHaveLength(138);
-    for (const held of ["bindingdb", "intact", "dbsnp", "dvc", "format_converter"]) {
+    for (const held of ["dbsnp", "environment_manager", "format_converter", "multiqc_wrapper"]) {
       expect(catalog.plugins.find(entry => entry.slug === held).descriptor.native_supported).toBe(false);
     }
   }, 60000);
