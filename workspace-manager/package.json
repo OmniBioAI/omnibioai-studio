@@ -1,0 +1,9 @@
+{
+  "name": "omnibioai-workspace-manager-local",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Disposable local-Docker per-user workspace manager vertical slice",
+  "scripts": {
+    "test": "node --test test/workspace-manager.test.js"
+  }
+}

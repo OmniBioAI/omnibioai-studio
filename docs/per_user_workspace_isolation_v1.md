@@ -16,6 +16,24 @@ omnibioai-vscode   -> fixed container and fixed host port 8083
 
 The current v1 API validates identity and bounds, but it applies those bounds to a shared container and keeps its manifest in a process-local `Map`. It is therefore a security foundation, not a qualified isolation implementation. The existing warning must remain until the vertical slice below is delivered in the launcher repository and wired into Studio.
 
+## Resumed implementation and runtime evidence
+
+This resume added a disposable local manager under `workspace-manager/`. It uses a durable `0600` JSON record store, IAM `/auth/validate` ownership, UUID-derived runtime/volume/network names, non-root Jupyter execution, server-side CPU and memory ceilings, Docker `NanoCpus`/`Memory` enforcement, owner-scoped lifecycle routes, expiring owner-bound sessions, and deletion cleanup. Workspace containers receive no Docker socket and no shared host directory.
+
+The disposable test passed from the isolated clone with Docker access granted only to the trusted test process:
+
+```text
+DOCKER_SOCKET_PATH=/Users/manishkumar/.docker/run/docker.sock npm test
+✔ two IAM owners receive isolated Jupyter runtimes and lifecycle enforcement (1238.627ms)
+tests 1, pass 1, fail 0
+```
+
+It verified distinct IAM-owned containers, volumes, networks, persisted records, actual Docker CPU/memory limits (`NanoCpus=250000000`, `Memory=536870912`), non-privileged execution, cross-user denial, running resource-change denial, stopped update, stop/resume, and deletion cleanup.
+
+The owner-success HTTP proxy request could not be qualified from this isolated host process: Docker Desktop's loopback-published runtime connection resets inside the manager process (`UND_ERR_SOCKET`), although a direct read-only Node probe to the same disposable port succeeds. This is recorded as a proxy qualification blocker, not treated as a pass.
+
+The existing `docker-socket-proxy` also cannot yet be used by this manager for production lifecycle creation: `/networks/*` and `/volumes/*` are explicitly denied, and named-volume creation is not allowed. Its policy was not weakened. The qualified test therefore used a trusted manager process with daemon access; that is not a production deployment claim.
+
 ## Architecture audit
 
 ### Studio
@@ -160,21 +178,21 @@ The UI must display the manager's state (`Creating`, `Starting`, `Running`, `Sto
 
 ## Requested report fields
 
-WORKSPACE_MANAGER=Existing `omnibioai-launcher` is the current manager boundary, but its v1 workspace API is still a shared-container controller. A new per-workspace manager or a replacement implementation in that repository is required.
+WORKSPACE_MANAGER=The disposable `workspace-manager/` is a qualified local slice only; the deployed `omnibioai-launcher` remains a shared-container controller and must own the production implementation.
 
 IAM_OWNERSHIP=PARTIAL. IAM validation and permission checks exist; owner and organization checks exist for manifests. They are not yet applied to runtime IDs, proxy sessions, durable records, and cleanup because those resources do not exist.
 
-PERSISTENCE=FAIL. Workspace manifests are stored in a process-local JavaScript `Map` and are lost on restart.
+PERSISTENCE=PARTIAL. The disposable slice persists owner-scoped records atomically in a `0600` JSON store; the deployed Launcher still uses its process-local JavaScript `Map`.
 
-LOCAL_DOCKER_BACKEND=NOT QUALIFIED. The existing path inspects/updates/starts fixed containers. It has not qualified per-user Docker create, named volumes, networks, failure recovery, cleanup, or concurrent launch behavior.
+LOCAL_DOCKER_BACKEND=PARTIAL. The disposable manager created and cleaned real per-user ARM64 Jupyter runtimes, volumes, and networks with inspected CPU/memory limits. Production qualification remains blocked by the existing socket proxy and the isolated manager-process loopback reset.
 
-PER_USER_ISOLATION=FAIL. Fixed container names, fixed ports, shared host mounts, and static routes remain.
+PER_USER_ISOLATION=PARTIAL. The disposable slice creates UUID-derived containers, named volumes, separate networks, and non-root runtimes with no socket mount; Studio and deployed Launcher still retain the fixed shared topology.
 
-RESOURCE_ENFORCEMENT=PARTIAL. Server-side CPU/memory bounds, Docker update translation, architecture inspection, and explicit GPU checks exist. They apply to shared containers and do not yet implement per-workspace create/recreate semantics.
+RESOURCE_ENFORCEMENT=PASS for the disposable local slice; PARTIAL overall. Actual Docker limits were inspected and running changes were denied; production proxy/Launcher integration remains incomplete.
 
-WORKSPACE_PROXY=FAIL. Static reverse-proxy routes are not workspace/session scoped.
+WORKSPACE_PROXY=PARTIAL. The manager has owner-bound expiring session routing and cross-user denial; owner-success upstream routing was not qualified because the isolated loopback transport resets, and Studio/nginx integration is not wired.
 
-JUPYTERLAB=PARTIAL. Existing shared service only; no isolated runtime qualification.
+JUPYTERLAB=PARTIAL. Two isolated ARM64 Jupyter runtimes qualified in disposable Docker; Studio still opens the shared service.
 
 RSTUDIO=PARTIAL. Existing shared service only; no isolated runtime qualification.
 
@@ -182,15 +200,15 @@ VSCODE=PARTIAL. Existing shared service only; no isolated runtime qualification.
 
 TERMINAL=PARTIAL. It aliases the shared VS Code Server integrated terminal and is not an isolated terminal runtime.
 
-MULTI_USER_E2E=FAIL. Not run because the required backend is not implemented and the safety request forbids restarting shared Studio services.
+MULTI_USER_E2E=PARTIAL. Real two-user disposable Docker creation, resource inspection, denial, lifecycle, and cleanup passed. Owner-success proxy and Studio integration remain unqualified.
 
-SECURITY_TESTS=PARTIAL. Existing launcher unit tests cover IAM fail-closed behavior, owner/org manifest lookup, request validation, image architecture, GPU inspection, and resource translation. They do not cover per-workspace Docker or proxy isolation.
+SECURITY_TESTS=PARTIAL. Existing Launcher security tests remain passing by audit, and the live test verifies IAM owner scoping, cross-user denial, non-privileged runtimes, no socket mount, and actual limits. Proxy owner-success and session expiry/revocation still need qualification.
 
-REGRESSION_TESTS=PASS for the read-only audit; existing Studio tests were not modified or run against live shared services. Full qualification remains blocked on the new backend.
+REGRESSION_TESTS=PASS for the disposable manager test and read-only shared-service audit; existing Studio services were not restarted or modified. Full Studio regression remains blocked on integration wiring.
 
 ROOT_CAUSE_SHARED_CONTAINER=The legacy Launcher owns three Compose services with hard-coded container names, host ports, shared host mounts, and static proxy routes. The v1 API added identity and validation around that topology but did not replace the topology.
 
-REMAINING_BLOCKERS=Implement and wire the durable per-workspace manager in `omnibioai-launcher`; extend the socket proxy allowlist with a constrained create/inspect/start/stop/update/remove policy; add workspace-scoped proxy/session routing; integrate authorized Artifact/Project attachment contracts; add disposable Docker integration tests; and only then replace the Studio Code UI's legacy shared-service flow.
+REMAINING_BLOCKERS=Move the manager into the Launcher service boundary; provide a separate constrained Docker proxy that securely authorizes per-workspace network/volume lifecycle operations without weakening the shared proxy; resolve the isolated host-process loopback reset and qualify owner-success proxy routing; add durable restart recovery, session revocation, concurrent-capacity, failure-recovery, architecture, and IAM-revocation tests; integrate Artifact/Project authorization; preserve shared legacy routes; and wire Studio Code to the new API without restarting shared services.
 
 WORKTREE_CLEAN=YES in the isolated clone at `/private/tmp/omnibioai-per-user-workspace-isolation-v1`; the source checkout contains only the mirrored deliverable plus its pre-existing `omnibioai-cli/` change.
 
