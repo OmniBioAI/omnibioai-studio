@@ -322,3 +322,84 @@ outside this workstream.
 - No Docker socket was exposed to a workspace container.
 - No production deployment or push was performed.
 - The repository's `.git` directory was not writable for linked-worktree registration, so the work was performed in an independent local clone under `/private/tmp` rather than a registered linked worktree.
+
+## Workspace Control Plane Production Readiness V1
+
+### Implementation boundary
+
+The workspace manager now supports an optional private control-plane URL. When
+`CONTROL_PLANE_URL` is configured, it does not open the Docker socket; it
+sends only fixed, signed requests to `control-plane.js`. The control plane
+exposes `healthz` plus nine fixed workspace operations: image architecture,
+inspect, create volume/network/container, start, stop, update, and remove.
+There is no raw Docker path or caller-selected Docker resource endpoint.
+
+Requests use an HMAC-SHA256 service credential, service identity, timestamp,
+random nonce, and correlation ID. Timestamps have a 30-second skew window and
+nonces are single-use. The credential is injected through the environment in
+the disposable deployment definition; it is not in source or browser traffic.
+The authenticated service is the workspace manager, while end-user ownership
+continues to derive from IAM claims at the manager boundary. The control plane
+validates the manager-provided immutable workspace UUID and owner/org shape,
+and the Docker adapter validates deterministic names and labels before every
+mutation. Labels are supporting metadata; the manager's durable registry and
+service authentication are the authorization boundary.
+
+`Dockerfile.control-plane` and `docker-compose.control-plane.test.yml` define
+a private, internal-only, resource-limited control-plane service with a health
+check and no published port. The compose file is configuration-only and was
+not attached to the live stack. The disposable qualification used an
+equivalent isolated Docker network, a private control-plane container, and a
+manager container with no Docker socket mount. The control-plane socket is
+still a host-equivalent privilege boundary: a compromise of that service can
+act on Docker, so production deployment requires host hardening, secret
+rotation, image signing/scanning, restricted service identity, and audit
+collection. A read-only socket bind does not reduce Docker API authority.
+
+### Threat model coverage
+
+| Threat | Mitigation | Evidence |
+|---|---|---|
+| Unauthenticated or replayed control-plane request | HMAC service identity, timestamp, single-use nonce | Unit test: auth, replay, wrong identity, stale timestamp |
+| Cross-user/org workspace access | IAM-derived owner key, workspace-bound sessions, hidden 404 | Live two-user and cross-organization transport test |
+| Forged labels/unmanaged resources | Durable manager record plus deterministic names and label checks | Docker adapter checks; unmanaged operation API is not exposed |
+| Arbitrary Docker API, privileged mode, host mount/socket, host network | Fixed operation map and fixed runtime HostConfig | Runtime inspection and fixed-operation unit test |
+| SSRF/arbitrary upstream | Server-resolved host/port and path-only proxying | Live authorized/denied routing test |
+| Resource exhaustion | CPU/memory ceilings and Docker-enforced limits | Live Docker inspection |
+| Stale/replayed sessions | Expiring workspace-bound session and fresh auth per upgrade | Live ownership tests; reconnect uses a new handshake |
+| Orphan cleanup/restart | Durable state and reconciliation, explicit exact-name cleanup | Lifecycle restart test and disposable inventory checks |
+| Audit leakage | Structured operation outcome/correlation logs without tokens or bodies | Control-plane implementation review |
+
+Concurrent lifecycle serialization, service credential rotation, JWT audience
+validation, full administrator policy, persistent audit sink, and deletion
+retention policy remain deployment requirements. The current local adapter
+deletes the workspace volume as part of explicit workspace deletion, matching
+the existing disposable-slice contract; a production retention/data-delete
+policy must be selected before user data is exposed.
+
+### V1 qualification evidence
+
+Baseline commit: `275351f`. Final qualification used Docker Engine 29.8.1,
+ARM64, and the current live shared-container inventory. The manager-to-control-
+plane test used two IAM identities plus a third identity in another
+organization, two isolated workspaces, separate containers/volumes/networks,
+actual CPU/memory limits, owner HTTP, WebSocket ping/pong, authorized
+WebSocket reconnect, cross-user/org denial, unauthenticated denial, and exact
+resource cleanup. Existing shared services were not restarted or changed.
+
+Commands:
+
+```text
+npm test
+  3 passed, 0 failed
+npm run test:transport
+  1 passed, 0 failed
+docker compose -f docker-compose.control-plane.test.yml config
+  configuration validation only; no service started
+```
+
+The transport test is real Docker and real service authentication; the
+workspace manager container has no `/var/run/docker.sock`. Chunked or
+long-running streaming, client cancellation, upstream disconnect recovery,
+concurrent lifecycle races, and production deployment of the sidecar remain
+unqualified. Therefore this workstream remains `PARTIAL`.

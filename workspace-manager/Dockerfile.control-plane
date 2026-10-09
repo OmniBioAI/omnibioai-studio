@@ -1,0 +1,6 @@
+FROM node:20-bookworm-slim
+WORKDIR /app
+COPY docker-control.js control-plane.js ./
+USER node
+HEALTHCHECK --interval=5s --timeout=2s --retries=12 CMD node -e "fetch('http://127.0.0.1:5192/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+ENTRYPOINT ["node", "control-plane.js"]

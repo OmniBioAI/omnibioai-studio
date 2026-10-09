@@ -7,6 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Readable } = require('node:stream');
 const { DockerControlPlane } = require('./docker-control');
+const { ControlPlaneClient } = require('./control-plane-client');
 
 const PORT = Number(process.env.PORT || 5191);
 const LISTEN_HOST = process.env.LISTEN_HOST || '127.0.0.1';
@@ -18,7 +19,7 @@ const MAX_MEMORY = Number(process.env.WORKSPACE_MAX_MEMORY_BYTES || 8 * 1024 ** 
 const SESSION_TTL_MS = 15 * 60 * 1000;
 
 const state = loadState();
-const control = new DockerControlPlane();
+const control = process.env.CONTROL_PLANE_URL ? new ControlPlaneClient() : new DockerControlPlane();
 let writeChain = Promise.resolve();
 
 function loadState() {
