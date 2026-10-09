@@ -437,3 +437,25 @@ Compose operational acceptance. Production key storage/rotation persistence,
 centralized audit retention/alerting, and backup/recovery remain operational
 requirements. No production deployment or Studio/Launcher integration was
 performed.
+
+## Workspace Runtime Reliability Acceptance V1
+
+Mutating operations for one workspace now serialize through a single-writer
+in-process lock. Duplicate stop/start requests are therefore deterministic
+within one manager instance. Distributed locking and multi-manager registry
+coordination are not implemented; deployment remains single-writer.
+
+The real Docker transport test now restarts the private control plane, issues
+concurrent stop/stop and start/start requests, verifies registry recovery,
+denies disposable unmanaged-resource inspect/remove operations, and checks
+audit persistence, retained-volume deletion, explicit purge, and cleanup. It
+passed after the targeted lifecycle-lock change. Shared infrastructure stayed
+at 44 running containers.
+
+Still unqualified are delayed/long-running streaming with measurable
+backpressure and memory bounds, cancellation during an active stream, upstream
+socket failure recovery, Docker timeout/partial-operation fault injection,
+20-run concurrency repetition, and the exact manager-plus-control-plane
+Compose lifecycle. Normal live Jupyter proxy responses are not claimed as
+evidence for those stress cases; this reliability workstream remains
+`PARTIAL`.

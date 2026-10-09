@@ -21,6 +21,16 @@ const SESSION_TTL_MS = 15 * 60 * 1000;
 const state = loadState();
 const control = process.env.CONTROL_PLANE_URL ? new ControlPlaneClient() : new DockerControlPlane();
 let writeChain = Promise.resolve();
+const workspaceLocks = new Map();
+
+function withWorkspaceLock(id, operation) {
+  const previous = workspaceLocks.get(id) || Promise.resolve();
+  let release;
+  const current = new Promise(resolve => { release = resolve; });
+  const queued = previous.then(() => current);
+  workspaceLocks.set(id, queued);
+  return previous.then(operation).finally(() => { release(); if (workspaceLocks.get(id) === queued) workspaceLocks.delete(id); });
+}
 
 function loadState() {
   try {
@@ -175,6 +185,8 @@ async function route(req, res) {
     if (parts[0] !== 'api' || parts[1] !== 'workspaces' || !workspaceId(parts[2])) return error(res, 404, 'not found');
     const workspace = state.workspaces[parts[2]];
     if (!workspace || workspace.deleted_at || !ownerMatches(workspace, owner)) return error(res, 404, 'workspace not found');
+    const mutating = req.method === 'PATCH' || req.method === 'DELETE' || (req.method === 'POST' && ['start', 'stop', 'sessions'].includes(parts[3]));
+    if (mutating && !req.workspaceLockHeld) { req.workspaceLockHeld = true; return withWorkspaceLock(workspace.id, () => route(req, res)); }
     if (parts.length === 3 && req.method === 'GET') return json(res, 200, publicWorkspace(workspace));
     if (parts.length === 3 && req.method === 'PATCH') {
       if (workspace.state === 'running') return error(res, 409, 'Stop this workspace to change its CPU or memory allocation.');

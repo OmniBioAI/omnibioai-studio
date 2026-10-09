@@ -94,6 +94,10 @@ test('containerized trusted control plane routes an authorized live HTTP request
   response = await api('user_a', 'GET', `/workspace/${bob.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404);
   response = await api('user_c', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404);
   response = await api('', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 401);
+  const concurrentStops = await Promise.all([api('user_a', 'POST', `/api/workspaces/${alice.id}/stop`, {}), api('user_a', 'POST', `/api/workspaces/${alice.id}/stop`, {})]); assert.deepEqual(concurrentStops.map(item => item.status), [200, 200]);
+  const concurrentStarts = await Promise.all([api('user_a', 'POST', `/api/workspaces/${alice.id}/start`, {}), api('user_a', 'POST', `/api/workspaces/${alice.id}/start`, {})]); assert.deepEqual(concurrentStarts.map(item => item.status), [200, 200]);
+  docker(['restart', controlPlaneName]); for (let i = 0; i < 30; i += 1) { try { docker(['exec', controlPlaneName, 'node', '-e', "fetch('http://127.0.0.1:5192/healthz').then(r=>{if(!r.ok)process.exit(1)})"]); break; } catch {} await wait(250); }
+  response = await api('user_a', 'GET', `/api/workspaces/${alice.id}`); assert.equal(response.status, 200); assert.equal((await response.json()).state, 'running');
   unmanagedName = `obws-unmanaged-${crypto.randomUUID()}`; docker(['run', '-d', '--name', unmanagedName, '--network', 'none', 'node:20-bookworm-slim', 'sleep', '60']);
   const unmanagedRecord = { id: crypto.randomUUID(), owner_user_id: 301, organization_id: 9, runtime_id: unmanagedName };
   assert.equal(controlPlaneCall('inspect', unmanagedRecord).status, 409); assert.equal(controlPlaneCall('remove', unmanagedRecord).status, 409);
