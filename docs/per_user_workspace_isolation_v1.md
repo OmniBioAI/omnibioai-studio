@@ -34,6 +34,34 @@ The owner-success HTTP proxy request could not be qualified from this isolated h
 
 The existing `docker-socket-proxy` also cannot yet be used by this manager for production lifecycle creation: `/networks/*` and `/volumes/*` are explicitly denied, and named-volume creation is not allowed. Its policy was not weakened. The qualified test therefore used a trusted manager process with daemon access; that is not a production deployment claim.
 
+### Docker API permission matrix
+
+The deployed shared socket proxy currently permits the container lifecycle read/create/start/stop/delete subset, but explicitly denies network and volume categories. The manager's new control plane exposes no arbitrary Docker path; each operation is fixed and every managed resource is checked by deterministic name and ownership labels before mutation.
+
+| Operation | Docker API | Shared proxy | Manager control plane | Lifecycle need | Security boundary |
+|---|---|---:|---:|---|---|
+| Create container | `POST /containers/create` | Allowed with body policy | Allowed, fixed Jupyter image/config | Create | UUID name, fixed image, labels, non-root, no privileged/socket/host mount |
+| Inspect container | `GET /containers/{id}/json` | Allowed | Allowed after label/name verification | Recovery/status | Runtime ID is never accepted as owner proof |
+| Start/stop | `POST /containers/{id}/start|stop` | Allowed | Allowed after managed-resource verification | Lifecycle | Owner record plus labels |
+| Update | `POST /containers/{id}/update` | Not used by shared Launcher path | Allowed with server allocation only | Stopped resource change | CPU/memory only, GPU zero |
+| Delete container | `DELETE /containers/{id}` | Allowed | Allowed after verification | Delete | No arbitrary IDs or names |
+| Create/inspect/delete network | `POST/GET/DELETE /networks...` | Denied category | Allowed only for `obws-network-{uuid}` | Per-workspace network | Dedicated manager boundary; no client passthrough |
+| Create/inspect/delete volume | `POST/GET/DELETE /volumes...` | Denied category | Allowed only for `obws-volume-{uuid}` | Persistent workspace storage | Dedicated manager boundary; no client passthrough |
+| Network attach/detach | `/networks/{id}/connect|disconnect` | Denied category | Not exposed; container is created on its server-selected network | Not required | Avoids arbitrary cross-network attachment |
+
+The shared proxy cannot safely be widened in place: it serves unrelated workbench/TES consumers and its category-level rules do not express “only this workspace UUID and these labels.” The trusted control plane is therefore intentionally narrow in code, but production deployment still needs a separate socket-proxy instance or equivalent policy-enforcing sidecar with the same per-resource restrictions. The raw daemon socket is never exposed to users or workspace containers.
+
+### Threat model and routing failure handling
+
+- Cross-user access: IAM identity and owner organization/user key are required on every API and session route; mismatches return `404`.
+- Docker privilege escalation: no privileged mode, host networking, arbitrary mounts, devices, Docker socket, or client-selected image/configuration.
+- Arbitrary host mounts: only one server-created Docker named volume is mounted at `/home/jovyan/work`.
+- SSRF: upstream host and port come only from server-created runtime metadata; clients supply neither URL nor container ID.
+- Container breakout exposure: Jupyter runs as `1000:1000` with `no-new-privileges`; the workspace has no daemon control plane access.
+- Resource exhaustion: server ceilings and actual Docker `NanoCpus`/`Memory` values are enforced; GPU is always zero in this slice.
+- Stale routing: sessions expire, deleted/stopped workspaces are rejected, and missing runtimes become `failed` during recovery.
+- `UND_ERR_SOCKET`/`ECONNRESET`: readiness and direct Node probes succeed, private container IPs are unreachable from the host, and the manager's host-process request to Docker Desktop's loopback-published port resets. The error is returned as `502 workspace proxy unavailable`; it is not retried or hidden. This remains an environment/control-plane integration blocker.
+
 ## Architecture audit
 
 ### Studio

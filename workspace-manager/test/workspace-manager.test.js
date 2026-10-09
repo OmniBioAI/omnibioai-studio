@@ -63,7 +63,7 @@ test.after(async () => {
 });
 
 test('two IAM owners receive isolated Jupyter runtimes and lifecycle enforcement', { timeout: 180000 }, async () => {
-  const create = async token => { const response = await request(0, token, 'POST', '/api/workspaces', { resources: { cpu: 0.25, memory_bytes: 512 * 1024 ** 2 } }); assert.equal(response.status, 201); return response.json(); };
+  const create = async token => { const response = await request(0, token, 'POST', '/api/workspaces', { resources: { cpu: 0.25, memory_bytes: 512 * 1024 ** 2 } }); const text = await response.text(); assert.equal(response.status, 201, text); return JSON.parse(text); };
   const alice = await create('alice'); const bob = await create('bob');
   assert.notEqual(alice.id, bob.id); assert.notEqual(alice.runtime_name, bob.runtime_name); assert.notEqual(alice.volume_name, bob.volume_name); assert.equal(alice.state, 'running'); assert.equal(bob.state, 'running');
   const inspectedAlice = JSON.parse(execFileSync('docker', ['inspect', alice.runtime_name], { encoding: 'utf8' }))[0];
