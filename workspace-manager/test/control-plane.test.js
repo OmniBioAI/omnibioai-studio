@@ -5,10 +5,12 @@ const crypto = require('node:crypto');
 const test = require('node:test');
 process.env.CONTROL_PLANE_SERVICE_SECRET = 'test-control-plane-secret';
 process.env.CONTROL_PLANE_SERVICE_ID = 'workspace-manager';
+process.env.CONTROL_PLANE_PREVIOUS_SERVICE_SECRET = 'previous-control-plane-secret';
+process.env.CONTROL_PLANE_PREVIOUS_SERVICE_KEY_ID = 'previous';
 const { authenticate, operations } = require('../control-plane');
 
-function signed(raw, timestamp = Date.now(), nonce = crypto.randomBytes(16).toString('hex')) {
-  return { 'x-service-id': 'workspace-manager', 'x-request-timestamp': String(timestamp), 'x-request-nonce': nonce, 'x-request-signature': crypto.createHmac('sha256', process.env.CONTROL_PLANE_SERVICE_SECRET).update(`${timestamp}.${nonce}.${raw}`).digest('hex') };
+function signed(raw, timestamp = Date.now(), nonce = crypto.randomBytes(16).toString('hex'), secret = process.env.CONTROL_PLANE_SERVICE_SECRET, keyId = 'active') {
+  return { 'x-service-id': 'workspace-manager', 'x-service-key-id': keyId, 'x-request-timestamp': String(timestamp), 'x-request-nonce': nonce, 'x-request-signature': crypto.createHmac('sha256', secret).update(`${timestamp}.${nonce}.${raw}`).digest('hex') };
 }
 
 test('control plane requires the configured service identity and rejects replay', () => {
@@ -17,6 +19,7 @@ test('control plane requires the configured service identity and rejects replay'
   assert.equal(authenticate(req, raw), false);
   assert.equal(authenticate({ headers: { ...headers, 'x-service-id': 'browser' } }, raw), false);
   assert.equal(authenticate({ headers: signed(raw, Date.now() - 60000) }, raw), false);
+  assert.equal(authenticate({ headers: signed(raw, Date.now(), crypto.randomBytes(16).toString('hex'), process.env.CONTROL_PLANE_PREVIOUS_SERVICE_SECRET, 'previous') }, raw), true);
 });
 
 test('control plane exposes only fixed managed operations', () => {

@@ -403,3 +403,37 @@ workspace manager container has no `/var/run/docker.sock`. Chunked or
 long-running streaming, client cancellation, upstream disconnect recovery,
 concurrent lifecycle races, and production deployment of the sidecar remain
 unqualified. Therefore this workstream remains `PARTIAL`.
+
+## Workspace Control Plane Final Qualification V1
+
+The final qualification added explicit HMAC key IDs with active/previous-key
+rotation overlap, persistent sanitized JSONL audit events, and separate
+runtime deletion from persistent-data deletion. Workspace deletion retains
+the volume by default; `purge_data: true` is the explicit destructive path.
+
+Real Docker evidence included:
+
+```text
+npm test
+  3 passed, 0 failed — lifecycle and HMAC/replay/rotation tests
+npm run test:transport
+  1 passed, 0 failed — private manager/control-plane network, HTTP,
+  WebSocket/reconnect, cross-user/org denial, unmanaged inspect/remove denial,
+  audit persistence, retained volume, explicit purge, cleanup
+docker compose -f docker-compose.control-plane.test.yml config --quiet
+  passed — configuration validation only
+```
+
+The current inventory remained 44 shared containers before and after. No
+shared container was restarted, stopped, recreated, or reconfigured. No
+`obws-*` disposable resource remained after cleanup.
+
+Still unqualified are delayed/chunked/binary long-running streaming with
+bounded-memory/backpressure measurements, cancellation during an active
+stream, upstream disconnect recovery, concurrent lifecycle races, Docker API
+partial-failure injection, and a complete manager-plus-control-plane Compose
+lifecycle run. The isolated Docker-network test is not claimed as full
+Compose operational acceptance. Production key storage/rotation persistence,
+centralized audit retention/alerting, and backup/recovery remain operational
+requirements. No production deployment or Studio/Launcher integration was
+performed.

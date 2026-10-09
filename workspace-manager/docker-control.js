@@ -89,9 +89,9 @@ class DockerControlPlane {
   async stop(record) { const result = await this.inspectContainer(record); if (result.status === 404) return result; return request('POST', `/containers/${encodeURIComponent(record.runtime_id)}/stop`, { t: 5 }); }
   async update(record, allocation) { const result = await this.inspectContainer(record); if (result.status === 404) throw new Error('managed workspace container not found'); return request('POST', `/containers/${encodeURIComponent(record.runtime_id)}/update`, { NanoCpus: Math.round(allocation.cpu * 1e9), Memory: allocation.memory_bytes, DeviceRequests: [] }); }
 
-  async remove(record) {
+  async remove(record, { purgeData = false } = {}) {
     if (record.runtime_id) { const inspected = await this.inspectContainer(record); if (inspected.status !== 404) await request('DELETE', `/containers/${encodeURIComponent(record.runtime_id)}?force=true`); }
-    const n = names(record); const volume = await request('GET', `/volumes/${encodeURIComponent(n.volume)}`); if (volume.status === 200) { assertManaged(record, volume.body, n.volume); await request('DELETE', `/volumes/${encodeURIComponent(n.volume)}`); }
+    const n = names(record); const volume = await request('GET', `/volumes/${encodeURIComponent(n.volume)}`); if (purgeData && volume.status === 200) { assertManaged(record, volume.body, n.volume); await request('DELETE', `/volumes/${encodeURIComponent(n.volume)}`); }
     const network = await request('GET', `/networks/${encodeURIComponent(n.network)}`); if (network.status === 200) { assertManaged(record, network.body, n.network); await request('DELETE', `/networks/${encodeURIComponent(n.network)}`); }
   }
 }

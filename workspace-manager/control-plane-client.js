@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const URL_BASE = process.env.CONTROL_PLANE_URL;
 const SERVICE_ID = process.env.CONTROL_PLANE_SERVICE_ID || 'workspace-manager';
 const SERVICE_SECRET = process.env.CONTROL_PLANE_SERVICE_SECRET;
+const SERVICE_KEY_ID = process.env.CONTROL_PLANE_SERVICE_KEY_ID || 'active';
 
 function clientRequest(operation, record, extra = {}) {
   if (!URL_BASE || !SERVICE_SECRET) throw new Error('control-plane service authentication is not configured');
@@ -15,7 +16,7 @@ function clientRequest(operation, record, extra = {}) {
   const correlationId = crypto.randomUUID();
   return fetch(`${URL_BASE}/v1/workspaces/${encodeURIComponent(record.id)}/${operation}`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-service-id': SERVICE_ID, 'x-request-timestamp': timestamp, 'x-request-nonce': nonce, 'x-request-signature': signature, 'x-correlation-id': correlationId },
+    headers: { 'content-type': 'application/json', 'x-service-id': SERVICE_ID, 'x-service-key-id': SERVICE_KEY_ID, 'x-request-timestamp': timestamp, 'x-request-nonce': nonce, 'x-request-signature': signature, 'x-correlation-id': correlationId },
     body: payload,
     signal: AbortSignal.timeout(30000),
   }).then(async response => ({ status: response.status, body: await response.json().catch(() => ({})) }));
@@ -30,7 +31,7 @@ class ControlPlaneClient {
   start(record) { return clientRequest('start', record); }
   stop(record) { return clientRequest('stop', record); }
   update(record, allocation) { return clientRequest('update', record, { allocation }); }
-  remove(record) { return clientRequest('remove', record); }
+  remove(record, options = {}) { return clientRequest('remove', record, options); }
 }
 
 module.exports = { ControlPlaneClient };

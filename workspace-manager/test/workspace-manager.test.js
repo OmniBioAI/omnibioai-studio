@@ -90,6 +90,6 @@ test('two IAM owners receive isolated Jupyter runtimes and lifecycle enforcement
   const db = JSON.parse(await fs.promises.readFile(dbPath, 'utf8')); assert.equal(db.workspaces[alice.id].owner_key, '7\u0000101'); assert.equal(db.workspaces[bob.id].owner_key, '7\u0000202');
   manager.kill('SIGTERM'); await once(manager, 'exit'); base = null; await startManager();
   response = await request(0, 'alice', 'GET', `/api/workspaces/${alice.id}`); assert.equal(response.status, 200); assert.equal((await response.json()).state, 'running');
-  response = await request(0, 'alice', 'DELETE', `/api/workspaces/${alice.id}`); assert.equal(response.status, 200);
-  response = await request(0, 'bob', 'DELETE', `/api/workspaces/${bob.id}`); assert.equal(response.status, 200);
+  response = await request(0, 'alice', 'DELETE', `/api/workspaces/${alice.id}`, { purge_data: true }); assert.equal(response.status, 200);
+  response = await request(0, 'bob', 'DELETE', `/api/workspaces/${bob.id}`, { purge_data: true }); assert.equal(response.status, 200);
 });

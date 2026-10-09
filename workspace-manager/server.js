@@ -136,8 +136,8 @@ async function createRuntime(workspace) {
   await waitForWorkspace(hostPort, token);
 }
 
-async function removeRuntime(workspace) {
-  if (workspace.runtime_id) await control.remove(workspace);
+async function removeRuntime(workspace, options = {}) {
+  if (workspace.runtime_id) await control.remove(workspace, options);
 }
 
 function publicWorkspace(workspace) {
@@ -182,7 +182,7 @@ async function route(req, res) {
       if (updated.status < 200 || updated.status >= 300) return error(res, 502, 'workspace resource update failed');
       workspace.updated_at = new Date().toISOString(); await persist(); return json(res, 200, publicWorkspace(workspace));
     }
-    if (parts.length === 3 && req.method === 'DELETE') { await removeRuntime(workspace); workspace.deleted_at = new Date().toISOString(); workspace.state = 'deleted'; await persist(); return json(res, 200, { deleted: true, workspace_id: workspace.id }); }
+    if (parts.length === 3 && req.method === 'DELETE') { const input = await body(req); if (input.purge_data !== undefined && input.purge_data !== true) return error(res, 400, 'purge_data must be true when provided'); await removeRuntime(workspace, { purgeData: input.purge_data === true }); workspace.deleted_at = new Date().toISOString(); workspace.state = 'deleted'; workspace.data_retained = input.purge_data !== true; await persist(); return json(res, 200, { deleted: true, workspace_id: workspace.id, data_retained: workspace.data_retained }); }
     if (parts.length === 4 && parts[3] === 'start' && req.method === 'POST') { const result = await control.start(workspace); if (![204, 304].includes(result.status)) return error(res, 502, 'workspace start failed'); await waitForWorkspace(workspace.host_port, workspace.jupyter_token); workspace.state = 'running'; workspace.updated_at = new Date().toISOString(); await persist(); return json(res, 200, publicWorkspace(workspace)); }
     if (parts.length === 4 && parts[3] === 'stop' && req.method === 'POST') { const result = await control.stop(workspace); if (![204, 304].includes(result.status)) return error(res, 502, 'workspace stop failed'); workspace.state = 'stopped'; workspace.updated_at = new Date().toISOString(); await persist(); return json(res, 200, publicWorkspace(workspace)); }
     if (parts.length === 4 && parts[3] === 'sessions' && req.method === 'POST') { if (workspace.state !== 'running') return error(res, 409, 'workspace is not running'); const raw = crypto.randomBytes(32).toString('base64url'); const session = { workspace_id: workspace.id, owner_key: ownerKey(owner), expires_at: Date.now() + SESSION_TTL_MS }; state.sessions[sessionDigest(raw)] = session; await persist(); return json(res, 201, { workspace_id: workspace.id, token: raw, expires_at: new Date(session.expires_at).toISOString(), proxy_path: `/workspace/${workspace.id}/` }); }

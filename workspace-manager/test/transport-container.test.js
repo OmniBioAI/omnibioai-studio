@@ -17,9 +17,12 @@ const controlPlaneName = `obws-control-plane-test-${crypto.randomUUID()}`;
 const controlNetwork = `obws-control-network-${crypto.randomUUID()}`;
 const controlSecret = crypto.randomBytes(32).toString('hex');
 const stateDir = fs.mkdtempSync('/private/tmp/obws-control-state-');
+const auditDir = fs.mkdtempSync('/private/tmp/obws-control-audit-');
 let iam;
 let iamPort;
 let managerPort;
+let unmanagedName;
+let retainedVolume;
 const identities = {
   user_a: { valid: true, user_id: 301, org_id: 9, permissions: ['workspace.launch'] },
   user_b: { valid: true, user_id: 302, org_id: 9, permissions: ['workspace.launch'] },
@@ -51,7 +54,7 @@ test.before(async () => {
   iam.listen(0, '0.0.0.0'); await new Promise(resolve => iam.once('listening', resolve)); iamPort = iam.address().port;
   managerPort = 43000 + Math.floor(Math.random() * 1000);
   docker(['network', 'create', controlNetwork]);
-  docker(['run', '-d', '--name', controlPlaneName, '--network', controlNetwork, '--network-alias', 'control-plane', '-e', 'CONTROL_PLANE_HOST=0.0.0.0', '-e', 'CONTROL_PLANE_PORT=5192', '-e', 'CONTROL_PLANE_SERVICE_ID=workspace-manager', '-e', `CONTROL_PLANE_SERVICE_SECRET=${controlSecret}`, '-e', 'DOCKER_SOCKET_PATH=/var/run/docker.sock', '-v', `${root}:/app:ro`, '-v', `${socket}:/var/run/docker.sock`, 'node:20-bookworm-slim', 'node', '/app/control-plane.js']);
+  docker(['run', '-d', '--name', controlPlaneName, '--network', controlNetwork, '--network-alias', 'control-plane', '-e', 'CONTROL_PLANE_HOST=0.0.0.0', '-e', 'CONTROL_PLANE_PORT=5192', '-e', 'CONTROL_PLANE_SERVICE_ID=workspace-manager', '-e', 'CONTROL_PLANE_SERVICE_KEY_ID=active', '-e', `CONTROL_PLANE_SERVICE_SECRET=${controlSecret}`, '-e', 'CONTROL_PLANE_AUDIT_PATH=/audit/audit.jsonl', '-e', 'DOCKER_SOCKET_PATH=/var/run/docker.sock', '-v', `${root}:/app:ro`, '-v', `${auditDir}:/audit`, '-v', `${socket}:/var/run/docker.sock`, 'node:20-bookworm-slim', 'node', '/app/control-plane.js']);
   docker(['run', '-d', '--name', managerName, '--network', controlNetwork, '--add-host', 'host.docker.internal:host-gateway', '-p', `127.0.0.1:${managerPort}:${managerPort}`, '-e', `PORT=${managerPort}`, '-e', 'LISTEN_HOST=0.0.0.0', '-e', `IAM_URL=http://host.docker.internal:${iamPort}`, '-e', 'WORKSPACE_UPSTREAM_HOST=host.docker.internal', '-e', 'CONTROL_PLANE_URL=http://control-plane:5192', '-e', 'CONTROL_PLANE_SERVICE_ID=workspace-manager', '-e', `CONTROL_PLANE_SERVICE_SECRET=${controlSecret}`, '-e', 'WORKSPACE_DB_PATH=/state/workspaces.json', '-e', 'WORKSPACE_MAX_CPU=2', '-e', `WORKSPACE_MAX_MEMORY_BYTES=${2 * 1024 ** 3}`, '-v', `${root}:/app:ro`, '-v', `${stateDir}:/state`, 'node:20-bookworm-slim', 'node', '/app/server.js']);
   const managerMounts = JSON.parse(docker(['inspect', '--format', '{{json .Mounts}}', managerName])); assert.equal(managerMounts.some(mount => mount.Destination === '/var/run/docker.sock'), false);
   for (let i = 0; i < 60; i += 1) { try { const response = await fetch(`http://127.0.0.1:${managerPort}/health`); if (response.status < 500) return; } catch {} await wait(250); }
@@ -61,9 +64,19 @@ test.before(async () => {
 test.after(async () => {
   try { docker(['rm', '-f', managerName]); } catch {}
   try { docker(['rm', '-f', controlPlaneName]); } catch {}
+  if (unmanagedName) { try { docker(['rm', '-f', unmanagedName]); } catch {} }
+  if (retainedVolume) { try { docker(['volume', 'rm', retainedVolume]); } catch {} }
   try { docker(['network', 'rm', controlNetwork]); } catch {}
   if (iam) iam.close(); await fs.promises.rm(stateDir, { recursive: true, force: true });
+  await fs.promises.rm(auditDir, { recursive: true, force: true });
 });
+
+function controlPlaneCall(operation, record) {
+  const payload = JSON.stringify({ record }); const timestamp = String(Date.now()); const nonce = crypto.randomBytes(16).toString('hex'); const signature = crypto.createHmac('sha256', controlSecret).update(`${timestamp}.${nonce}.${payload}`).digest('hex');
+  const headers = { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload), 'x-service-id': 'workspace-manager', 'x-service-key-id': 'active', 'x-request-timestamp': timestamp, 'x-request-nonce': nonce, 'x-request-signature': signature };
+  const script = `const http=require('node:http');const req=http.request({host:'127.0.0.1',port:5192,path:'/v1/workspaces/${record.id}/${operation}',method:'POST',headers:${JSON.stringify(headers)}},res=>{let b='';res.on('data',c=>b+=c);res.on('end',()=>console.log(JSON.stringify({status:res.statusCode,body:b})))});req.end(${JSON.stringify(payload)});`;
+  return JSON.parse(execFileSync('docker', ['exec', controlPlaneName, 'node', '-e', script], { encoding: 'utf8' }).trim());
+}
 
 test('containerized trusted control plane routes an authorized live HTTP request', { timeout: 180000 }, async () => {
   let response = await api('user_a', 'POST', '/api/workspaces', { resources: { cpu: 0.25, memory_bytes: 512 * 1024 ** 2 } }); const aliceText = await response.text(); assert.equal(response.status, 201, aliceText); const alice = JSON.parse(aliceText);
@@ -81,6 +94,13 @@ test('containerized trusted control plane routes an authorized live HTTP request
   response = await api('user_a', 'GET', `/workspace/${bob.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404);
   response = await api('user_c', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 404);
   response = await api('', 'GET', `/workspace/${alice.id}/lab?session=${encodeURIComponent(session.token)}`); assert.equal(response.status, 401);
+  unmanagedName = `obws-unmanaged-${crypto.randomUUID()}`; docker(['run', '-d', '--name', unmanagedName, '--network', 'none', 'node:20-bookworm-slim', 'sleep', '60']);
+  const unmanagedRecord = { id: crypto.randomUUID(), owner_user_id: 301, organization_id: 9, runtime_id: unmanagedName };
+  assert.equal(controlPlaneCall('inspect', unmanagedRecord).status, 409); assert.equal(controlPlaneCall('remove', unmanagedRecord).status, 409);
   response = await api('user_a', 'DELETE', `/workspace/${alice.id}/api/kernels/${kernel.id}?session=${encodeURIComponent(session.token)}`); assert.ok([204, 404].includes(response.status));
-  assert.equal((await api('user_a', 'DELETE', `/api/workspaces/${alice.id}`)).status, 200); assert.equal((await api('user_b', 'DELETE', `/api/workspaces/${bob.id}`)).status, 200);
+  assert.equal((await api('user_a', 'DELETE', `/api/workspaces/${alice.id}`, { purge_data: true })).status, 200); assert.equal((await api('user_b', 'DELETE', `/api/workspaces/${bob.id}`, { purge_data: true })).status, 200);
+  response = await api('user_a', 'POST', '/api/workspaces', { resources: { cpu: 0.25, memory_bytes: 512 * 1024 ** 2 } }); assert.equal(response.status, 201); const retained = await response.json(); retainedVolume = retained.volume_name;
+  response = await api('user_a', 'DELETE', `/api/workspaces/${retained.id}`); const retainedResult = await response.json(); assert.equal(response.status, 200); assert.equal(retainedResult.data_retained, true); assert.equal(JSON.parse(docker(['volume', 'inspect', retained.volume_name])).length, 1);
+  docker(['volume', 'rm', retained.volume_name]); retainedVolume = null;
+  await wait(250); const audit = await fs.promises.readFile(path.join(auditDir, 'audit.jsonl'), 'utf8'); assert.ok(audit.split('\n').filter(Boolean).length >= 4); assert.equal(audit.includes(controlSecret), false); assert.equal(audit.includes(session.token), false);
 });
