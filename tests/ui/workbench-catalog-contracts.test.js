@@ -18,27 +18,40 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
   // itself Workbench's original Batch 5 commit 26ab2ac0 cherry-picked onto
   // fresh main since that branch's earlier Batches 1-4 are already present
   // here via the Claude+Codex integration merge).
-  it("validates 289 v1 native descriptors, 84 v2 queries, and legacy fallbacks", () => {
+  // Wave A (native-ui-501 campaign) adds 23 native plugins on top of that:
+  // 5 QUERY_COMPONENT_PILOTS (artifact_manager, catalog, fhir_hl7,
+  // format_converter, object_registry_explorer -- format_converter was a
+  // held test anchor, now migrated), 4 ASYNC_ANALYSIS_PILOTS (agentic_pymol,
+  // alphafold, docking_pose_viewer, ppi_network_plot), and 14
+  // NATIVE_GENERIC_RUNNER_PILOTS (clinical_consent_manager,
+  // clinical_data_quality_validator, clinical_db_mapping,
+  // clinical_report_generator, clinical_trial_matching, collaboration,
+  // dataset_ingest, fair_data_packager, privacy_deidentification, redcap,
+  // reference_registry, resource_cost_estimator, run_inspector, and
+  // voice_command). spatial_imaging_io stays legacy because its image input
+  // is required for two of three operations, which schema v1 cannot express.
+  it("validates 342 v1 native descriptors, 92 v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 373, legacy: 128 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 434, legacy: 67 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(289);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(342);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
-      "all_of_us", "api_analytics", "bindingdb", "biogrid", "bioportal", "brenda",
-      "cbioportal", "ccle", "cell_ontology", "chebi", "civic", "clingen",
+      "all_of_us", "api_analytics", "artifact_manager", "bindingdb", "biogrid", "bioportal", "brenda",
+      "catalog", "cbioportal", "ccle", "cell_ontology", "chebi", "civic", "clingen",
       "clinicaltrials_gov", "cpic", "dbgap", "dbnsfp", "depmap", "dgidb", "disease_ontology",
-      "disgenet", "drugcentral", "drugsatfda", "ega", "eggnog", "ena", "encode", "ensembl",
-      "expression_atlas", "gdc", "gene_ontology", "genereviews", "gnomad", "gtex",
-      "hgmd", "hgnc", "hpa", "icgc", "intact", "integration_connections",
+      "disgenet", "drug_target_intelligence", "drugcentral", "drugsatfda", "ega", "eggnog", "ena", "encode", "ensembl",
+      "expression_atlas", "fhir_hl7", "format_converter", "gdc", "gene_ontology", "genereviews",
+      "gnomad", "gtex", "hgmd", "hgnc", "histopathology_cv", "hpa", "icgc", "intact", "integration_connections",
       "interpro", "job_queue_manager", "kegg", "lipidmaps", "lovd", "marrvel", "mastermind",
       "mavedb", "medgen", "metabolights", "mondo", "msigdb", "ncbi",
-      "notification_center", "omim", "opentargets", "orphanet", "panglaodb", "panther",
+      "notification_center", "object_registry_explorer", "omim", "omniml_studio", "opentargets", "orphanet",
+      "panglaodb", "panther",
       "pdb_redo", "pdbe", "pharmvar", "pharos", "phegeni", "pride",
       "proteomexchange", "pubchem", "rcsb_pdb", "rfam", "rxnorm", "sgd",
       "snpedia", "sra", "storage_quota_manager", "string_db", "swisslipids", "targetscan",
@@ -46,16 +59,25 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
     ]);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "query")).toHaveLength(9);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "async_analysis").map(plugin => plugin.slug).sort()).toEqual([
-      "admet_prediction", "atlassian", "aws_healthomics", "benchling", "cell_comm_visualization",
-      "chembl_search", "chemoinfo_intelligence", "cloud_integration", "clustering", "dnanexus", "drug_report_generator",
-      "druglikeness_scoring", "dvc", "elabftw", "exome_analysis", "figshare", "ga4gh_interoperability",
+      "admet_prediction", "agentic_pymol", "alphafold", "anomaly_detection_omics", "atlassian",
+      "auto_ml_biomarker_discovery", "aws_healthomics", "benchling", "cell_comm_visualization",
+      "celltype_classification_sc", "chembl_search", "chemoinfo_intelligence",
+      "chipseq_differential_binding", "chipseq_motif_analysis", "chipseq_peak_annotation",
+      "chipseq_peakset_ops", "chipseq_qc_metrics", "chipseq_report_generator", "chipseq_signal_plots",
+      "cloud_integration", "clustering", "deep_learning_variant_classifier", "dnanexus",
+      "docking_pose_viewer", "drug_report_generator", "drug_response_predictor",
+      "druglikeness_scoring", "dvc", "elabftw", "exome_analysis", "explainable_ai_interpreter",
+      "figshare", "ga4gh_interoperability", "gene_expression_regulatory_ai",
       "jupyterhub", "knime", "labkey", "lims_integration", "manhattan_qq_plot",
-      "marker_identification", "mechanism_analysis", "microsoft_graph", "ml_eval_plots", "molecular_descriptors",
-      "msa_conservation_viewer",
+      "marker_identification", "mechanism_analysis",
+      "microsoft_graph", "ml_eval_plots", "molecular_descriptors",
+      "msa_conservation_viewer", "multi_omics_integration_ai",
       "omics_data_qc_harmonizer", "omics_qc_metrics_extractor", "omics_qc_report_generator",
-      "openspecimen", "pathway_mapping", "pubmed_search", "s3_integration", "sashimi_plot",
-      "scanpy_clustering", "scanpy_markers", "seven_bridges", "single_cell_analysis",
-      "single_cell_annotation", "target_prediction", "terra", "toxicity_prediction", "venn_upset_plot", "zenodo",
+      "openspecimen", "pathway_mapping", "ppi_network_plot", "proteomics", "pubmed_search",
+      "s3_integration", "sashimi_plot", "scanpy_clustering", "scanpy_markers", "scanpy_qc_metrics",
+      "seven_bridges", "single_cell_analysis", "single_cell_annotation", "single_cell_loom_viewer",
+      "single_cell_omics_intelligence", "single_cell_trajectory_inference", "target_prediction", "terra",
+      "toxicity_prediction", "variant_effect_intelligence", "venn_upset_plot", "zenodo",
     ]);
     for (const entry of catalog.plugins) {
       const descriptor = validatePluginDescriptor(entry.descriptor, entry.slug);
@@ -71,7 +93,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       }
     }
     expect(native.filter(plugin => plugin.renderer === "informational")).toHaveLength(138);
-    for (const held of ["dbsnp", "environment_manager", "format_converter", "multiqc_wrapper"]) {
+    for (const held of ["dbsnp", "environment_manager", "multiqc_wrapper", "spatial_imaging_io"]) {
       expect(catalog.plugins.find(entry => entry.slug === held).descriptor.native_supported).toBe(false);
     }
   }, 60000);
