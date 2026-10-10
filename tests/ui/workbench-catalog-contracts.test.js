@@ -42,23 +42,24 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
   // through a new plugin-local ui_query.py adapter that only projects the
   // response into the shared scalar table envelope -- no new renderer, no
   // new endpoint, no broadened scope.
-  it("validates 371 v1 native descriptors, 116 v2 queries, and legacy fallbacks", () => {
+  // Wave S3 adds workflow_runner after qualifying its authenticated lifecycle.
+  it("validates integrated native descriptors and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 487, legacy: 14 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 488, legacy: 13 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(371);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(373);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
       "alerting", "all_of_us", "api_analytics", "artifact_manager", "audit_log",
       "bindingdb", "bio_agent", "biogrid", "bioportal", "brenda",
       "catalog", "cbioportal", "ccle", "cell_ontology", "cellchat",
       "chebi", "checksum_integrity_manager", "civic", "clingen", "clinicaltrials_gov",
-      "cpic", "data_lineage_tracker", "data_manager", "dataset_catalog", "dbgap", "dbmts",
+      "cpic", "data_lineage_tracker", "dataset_catalog", "dbgap", "dbmts",
       "dbnsfp", "dbsnp", "depmap", "dgidb", "dip",
       "disease_ontology", "disgenet", "drug_target_intelligence", "drugcentral", "drugsatfda",
       "ega", "eggnog", "ena", "encode", "ensembl",
@@ -99,7 +100,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       "seven_bridges", "single_cell_analysis", "single_cell_annotation", "single_cell_loom_viewer",
       "single_cell_omics_intelligence", "single_cell_trajectory_inference", "spatial_analysis", "spatial_clustering", "spatial_imaging_io", "spatial_marker_identification",
       "spatial_report_generation", "target_prediction", "terra", "threshold_recommendation", "toxicity_prediction",
-      "variant_effect_intelligence", "venn_upset_plot", "workflow_scheduler", "zenodo",
+      "variant_effect_intelligence", "venn_upset_plot", "workflow_runner", "workflow_scheduler", "zenodo",
     ]);
     for (const entry of catalog.plugins) {
       const descriptor = validatePluginDescriptor(entry.descriptor, entry.slug);
@@ -115,7 +116,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       }
     }
     expect(native.filter(plugin => plugin.renderer === "informational")).toHaveLength(138);
-    for (const held of ["workflow_builder", "workflow_compiler", "workflow_explorer", "workflow_registry_admin", "workflow_runner"]) {
+    for (const held of ["workflow_builder", "workflow_compiler", "workflow_explorer", "workflow_registry_admin"]) {
       expect(catalog.plugins.find(entry => entry.slug === held).descriptor.native_supported).toBe(false);
     }
   }, 60000);
