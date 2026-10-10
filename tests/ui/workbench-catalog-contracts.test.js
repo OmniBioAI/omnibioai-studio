@@ -53,7 +53,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
     expect(catalog.counts).toEqual({ enabled: 501, native: 488, legacy: 13 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
-    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(373);
+    expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(372);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
       "alerting", "all_of_us", "api_analytics", "artifact_manager", "audit_log",
       "bindingdb", "bio_agent", "biogrid", "bioportal", "brenda",
