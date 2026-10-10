@@ -59,7 +59,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       "bindingdb", "bio_agent", "biogrid", "bioportal", "brenda",
       "catalog", "cbioportal", "ccle", "cell_ontology", "cellchat",
       "chebi", "checksum_integrity_manager", "civic", "clingen", "clinicaltrials_gov",
-      "cpic", "data_lineage_tracker", "dataset_catalog", "dbgap", "dbmts",
+      "cpic", "data_lineage_tracker", "data_manager", "dataset_catalog", "dbgap", "dbmts",
       "dbnsfp", "dbsnp", "depmap", "dgidb", "dip",
       "disease_ontology", "disgenet", "drug_target_intelligence", "drugcentral", "drugsatfda",
       "ega", "eggnog", "ena", "encode", "ensembl",
