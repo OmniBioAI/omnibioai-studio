@@ -42,32 +42,32 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
   // through a new plugin-local ui_query.py adapter that only projects the
   // response into the shared scalar table envelope -- no new renderer, no
   // new endpoint, no broadened scope.
-  it("validates 371 v1 native descriptors, 104 v2 queries, and legacy fallbacks", () => {
+  it("validates 371 v1 native descriptors, 109 v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 475, legacy: 26 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 480, legacy: 21 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
     expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(371);
     expect(native.filter(plugin => plugin.schema_version === 2).map(plugin => plugin.slug).sort()).toEqual([
       "alerting", "all_of_us", "api_analytics", "artifact_manager", "audit_log", "bindingdb", "bio_agent", "biogrid", "bioportal", "brenda",
       "catalog", "cbioportal", "ccle", "cell_ontology", "cellchat", "chebi", "civic", "clingen",
-      "clinicaltrials_gov", "cpic", "dataset_catalog", "dbgap", "dbnsfp", "dbsnp", "depmap", "dgidb", "disease_ontology",
-      "disgenet", "drug_target_intelligence", "drugcentral", "drugsatfda", "ega", "eggnog", "ena", "encode", "ensembl",
+      "clinicaltrials_gov", "cpic", "dataset_catalog", "dbgap", "dbmts", "dbnsfp", "dbsnp", "depmap", "dgidb",
+      "dip", "disease_ontology", "disgenet", "drug_target_intelligence", "drugcentral", "drugsatfda", "ega", "eggnog", "ena", "encode", "ensembl",
       "environment_manager", "expression_atlas", "fhir_hl7", "format_converter", "gdc", "gene_ontology", "genereviews",
-      "gnomad", "gtex", "hgmd", "hgnc", "histopathology_cv", "hpa", "icgc", "infra_ai_copilot", "intact", "integration_connections",
+      "gnomad", "gtex", "hgmd", "hgnc", "histopathology_cv", "hmdb", "hpa", "icgc", "infra_ai_copilot", "intact", "integration_connections",
       "interpro", "job_monitor", "job_queue_manager", "kegg", "lipidmaps", "lovd", "marrvel", "mastermind",
       "mavedb", "medgen", "metabolights", "mondo", "msigdb", "ncbi",
       "notification_center", "object_registry_explorer", "omim", "omniml_studio", "opentargets", "orphanet",
       "panglaodb", "panther",
-      "pdb_redo", "pdbe", "pharmvar", "pharos", "phegeni", "pipeline_dashboard", "pride",
+      "pdb_redo", "pdbe", "pdbsum", "pharmvar", "pharos", "phegeni", "pipeline_dashboard", "pride",
       "proteomexchange", "pubchem", "rcsb_pdb", "rfam", "rxnorm", "schema_registry", "security_dashboard", "sgd",
-      "snpedia", "sra", "storage_quota_manager", "string_db", "swisslipids", "targetscan",
-      "tcga", "thousand_genomes", "topmed", "ucsc", "uk_biobank", "uniprot", "wikipathways", "wormbase",
+      "snpedia", "sra", "storage_quota_manager", "string_db", "swisslipids",
+      "t3db", "targetscan", "tcga", "thousand_genomes", "topmed", "ucsc", "uk_biobank", "uniprot", "wikipathways", "wormbase",
     ]);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "query")).toHaveLength(9);
     expect(native.filter(plugin => plugin.schema_version === 1 && plugin.renderer === "async_analysis").map(plugin => plugin.slug).sort()).toEqual([
@@ -106,7 +106,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       }
     }
     expect(native.filter(plugin => plugin.renderer === "informational")).toHaveLength(138);
-    for (const held of ["multiqc_wrapper", "dbmts"]) {
+    for (const held of ["multiqc_wrapper"]) {
       expect(catalog.plugins.find(entry => entry.slug === held).descriptor.native_supported).toBe(false);
     }
   }, 60000);

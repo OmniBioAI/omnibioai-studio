@@ -241,7 +241,9 @@ const OPERATION_ID = /^[a-z][a-z0-9_]*$/;
 // sides of the contract agree. Returns whether this body declares a detail
 // presentation (its `result` carries a `detail_key`).
 function validateOperationBody(body, pluginSlug) {
-  if (!Array.isArray(body.inputs) || !body.inputs.length || !body.inputs.every(validBatchField) ||
+  // Informational status/metadata operations may have no user inputs.  Keep
+  // the array typed and validate every declared field when present.
+  if (!Array.isArray(body.inputs) || !body.inputs.every(validBatchField) ||
       body.inputs.some(input => input.id === "operation") ||
       new Set(body.inputs.map(input => input.id)).size !== body.inputs.length) {
     throw new PluginDescriptorError("Invalid batch query descriptor.");
