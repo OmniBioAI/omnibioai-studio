@@ -5,7 +5,7 @@ const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
 const FIELD_ID = /^[a-z][a-z0-9_]*$/;
 const FORBIDDEN_FIELD_IDS = new Set(["constructor", "prototype", "__proto__", "password", "token", "secret", "api_key", "credentials"]);
-const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-run|ui-status|ui-log|ui-query|ui-detail|ui-reference|ui-artifacts|ui-resources)\/(?:[A-Za-z0-9_.:{}-]+\/){0,3}(?:\?[^#]*)?$/;
+const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|status|log|artifacts|file|render|search|studies|experiments|variants|pathways|genes|ui-run|ui-status|ui-log|ui-query|ui-detail|ui-download|ui-reference|ui-artifacts|ui-resources)\/(?:[A-Za-z0-9_.:{}-]+\/){0,3}(?:\?[^#]*)?$/;
 const RUN_ID = /^[A-Za-z0-9_.:-]+$/;
 const RESOURCE_TYPES = new Set(["run"]);
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
@@ -13,8 +13,8 @@ const ASYNC_REQUIRED_CAPABILITIES = ["submit", "status", "logs", "artifacts", "d
 const ASYNC_CAPABILITIES = [...ASYNC_REQUIRED_CAPABILITIES, "render"];
 const ASYNC_REQUIRED_ENDPOINTS = ["submit", "status", "logs", "artifacts", "download"];
 const ASYNC_ENDPOINTS = [...ASYNC_REQUIRED_ENDPOINTS, "render"];
-const QUERY_CAPABILITIES = ["query", "detail"];
-const QUERY_ENDPOINTS = ["query", "detail"];
+const QUERY_CAPABILITIES = ["query", "detail", "download"];
+const QUERY_ENDPOINTS = ["query", "detail", "download"];
 
 export class PluginDescriptorError extends Error {
   constructor(message, status = 0) {
@@ -248,13 +248,14 @@ function validateOperationBody(body, pluginSlug) {
       new Set(body.inputs.map(input => input.id)).size !== body.inputs.length) {
     throw new PluginDescriptorError("Invalid batch query descriptor.");
   }
-  if (!hasOnlyKeys(body.result, ["presentation", "rows_path", "row_key", "columns", "detail_key"],
+  if (!hasOnlyKeys(body.result, ["presentation", "rows_path", "row_key", "columns", "detail_key", "download_key"],
       ["presentation", "rows_path", "row_key", "columns"]) ||
       body.result.presentation !== "table" || body.result.rows_path !== "results" ||
       !validColumns(body.result.columns) || !isDataPath(body.result.row_key) ||
       body.result.columns.some(column => column.key.includes(".")) ||
       !body.result.columns.some(column => column.key === body.result.row_key) ||
-      (body.result.detail_key !== undefined && !body.result.columns.some(column => column.key === body.result.detail_key))) {
+      (body.result.detail_key !== undefined && !body.result.columns.some(column => column.key === body.result.detail_key)) ||
+      (body.result.download_key !== undefined && !body.result.columns.some(column => column.key === body.result.download_key))) {
     throw new PluginDescriptorError("Invalid query result schema.");
   }
   const hasDetail = body.result.detail_key !== undefined;
@@ -299,8 +300,10 @@ function validateBatchQueryDescriptor(data) {
   }
 
   let hasDetail;
+  let hasDownload;
   if (!hasOperations) {
     hasDetail = validateOperationBody(data, data.plugin.slug);
+    hasDownload = data.result.download_key !== undefined;
   } else {
     const operations = data.operations;
     if (!Array.isArray(operations) || operations.length < 1 || operations.length > MAX_OPERATIONS) {
@@ -308,6 +311,7 @@ function validateBatchQueryDescriptor(data) {
     }
     const seenIds = new Set();
     hasDetail = false;
+    hasDownload = false;
     operations.forEach(op => {
       if (!isRecord(op) || !hasOnlyKeys(op, ["id", "label", "inputs", "result", "detail", "filters", "pagination"], ["id", "label", "inputs", "result"]) ||
           typeof op.id !== "string" || !OPERATION_ID.test(op.id) || op.id === "operation" || seenIds.has(op.id) ||
@@ -316,6 +320,7 @@ function validateBatchQueryDescriptor(data) {
       }
       seenIds.add(op.id);
       hasDetail = validateOperationBody(op, data.plugin.slug) || hasDetail;
+      hasDownload = op.result.download_key !== undefined || hasDownload;
     });
     if (typeof data.default_operation !== "string" || !seenIds.has(data.default_operation)) {
       throw new PluginDescriptorError("Unknown default operation.");
@@ -324,13 +329,16 @@ function validateBatchQueryDescriptor(data) {
 
   if (!hasOnlyKeys(data.capabilities, QUERY_CAPABILITIES, ["query"]) || data.capabilities.query !== true ||
       (data.capabilities.detail !== undefined && data.capabilities.detail !== true) ||
-      (data.capabilities.detail === true) !== hasDetail) {
+      (data.capabilities.download !== undefined && data.capabilities.download !== true) ||
+      (data.capabilities.detail === true) !== hasDetail ||
+      (data.capabilities.download === true) !== hasDownload) {
     throw new PluginDescriptorError("Invalid query capability schema.");
   }
-  const endpointKeys = hasDetail ? ["query", "detail"] : ["query"];
+  const endpointKeys = ["query", ...(hasDetail ? ["detail"] : []), ...(hasDownload ? ["download"] : [])];
   if (!hasOnlyKeys(data.endpoints, endpointKeys, endpointKeys) ||
       data.endpoints.query !== `/plugins/${data.plugin.slug}/api/ui-query/` ||
-      (hasDetail && data.endpoints.detail !== `/plugins/${data.plugin.slug}/api/ui-detail/{detail_id}/`)) {
+      (hasDetail && data.endpoints.detail !== `/plugins/${data.plugin.slug}/api/ui-detail/{detail_id}/`) ||
+      (hasDownload && data.endpoints.download !== `/plugins/${data.plugin.slug}/api/ui-download/{download_id}/`)) {
     throw new PluginDescriptorError("Invalid batch query endpoints.");
   }
 }

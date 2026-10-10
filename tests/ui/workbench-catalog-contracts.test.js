@@ -42,14 +42,14 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
   // through a new plugin-local ui_query.py adapter that only projects the
   // response into the shared scalar table envelope -- no new renderer, no
   // new endpoint, no broadened scope.
-  it("validates 371 v1 native descriptors, 115 v2 queries, and legacy fallbacks", () => {
+  it("validates 371 v1 native descriptors, 116 v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 486, legacy: 15 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 487, legacy: 14 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
     expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(371);
@@ -58,7 +58,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       "bindingdb", "bio_agent", "biogrid", "bioportal", "brenda",
       "catalog", "cbioportal", "ccle", "cell_ontology", "cellchat",
       "chebi", "checksum_integrity_manager", "civic", "clingen", "clinicaltrials_gov",
-      "cpic", "data_lineage_tracker", "dataset_catalog", "dbgap", "dbmts",
+      "cpic", "data_lineage_tracker", "data_manager", "dataset_catalog", "dbgap", "dbmts",
       "dbnsfp", "dbsnp", "depmap", "dgidb", "dip",
       "disease_ontology", "disgenet", "drug_target_intelligence", "drugcentral", "drugsatfda",
       "ega", "eggnog", "ena", "encode", "ensembl",
@@ -115,7 +115,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       }
     }
     expect(native.filter(plugin => plugin.renderer === "informational")).toHaveLength(138);
-    for (const held of ["data_manager", "workflow_builder", "workflow_compiler", "workflow_explorer", "workflow_registry_admin", "workflow_runner"]) {
+    for (const held of ["workflow_builder", "workflow_compiler", "workflow_explorer", "workflow_registry_admin", "workflow_runner"]) {
       expect(catalog.plugins.find(entry => entry.slug === held).descriptor.native_supported).toBe(false);
     }
   }, 60000);

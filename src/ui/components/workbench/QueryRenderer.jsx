@@ -4,7 +4,7 @@ import PluginForm from "./PluginForm";
 import { resolveWorkbenchComponent } from "./componentRegistry";
 import { ResultsTableRow } from "./results/ResultsTable";
 import { rowKeys, scalarText, valueAt } from "../../lib/pluginUiContracts";
-import { queryDetail, queryPlugin } from "../../lib/pluginQueryApi";
+import { downloadQueryResult, queryDetail, queryPlugin } from "../../lib/pluginQueryApi";
 
 // A legacy single-operation descriptor has no `operations` collection --
 // `activeOperation` is then the descriptor itself, so every read below
@@ -27,6 +27,8 @@ export default function QueryRenderer({ descriptor }) {
   const [detailError, setDetailError] = useState("");
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [downloadId, setDownloadId] = useState("");
+  const [downloadError, setDownloadError] = useState("");
   const submittedValues = useRef(null);
   const queryRequest = useRef(null);
   const detailRequest = useRef(null);
@@ -35,7 +37,7 @@ export default function QueryRenderer({ descriptor }) {
   function resetResultState(nextInputs) {
     setValues(Object.fromEntries(nextInputs.map(input => [input.id, input.default ?? ""])));
     setPayload(null); setDetail(null); setError(""); setDetailError("");
-    setLoading(false); setDetailLoading(false); submittedValues.current = null;
+    setLoading(false); setDetailLoading(false); setDownloadId(""); setDownloadError(""); submittedValues.current = null;
   }
 
   useEffect(() => {
@@ -104,6 +106,19 @@ export default function QueryRenderer({ descriptor }) {
     } finally { if (!controller.signal.aborted) setDetailLoading(false); }
   }
 
+  async function download(id) {
+    setDownloadError(""); setDownloadId(String(id));
+    try {
+      const response = await downloadQueryResult(descriptor, String(id));
+      const blobUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = blobUrl; link.download = String(id); link.hidden = true;
+      document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(blobUrl);
+    } catch (failure) {
+      setDownloadError(failure.message || "Download failed.");
+    } finally { setDownloadId(""); }
+  }
+
   const result = activeOperation.result;
   const rows = payload?.[result.rows_path] ?? [];
   // V1 detail identities already existed; use them when unique, preserving
@@ -113,6 +128,7 @@ export default function QueryRenderer({ descriptor }) {
   // Detail is a per-operation capability -- descriptor.capabilities.detail
   // only says "some operation supports detail", not this one.
   const detailEnabled = result.detail_key !== undefined;
+  const downloadEnabled = result.download_key !== undefined;
   const Table = resolveWorkbenchComponent(result.presentation);
   const Pagination = activeOperation.pagination ? resolveWorkbenchComponent(activeOperation.pagination.component) : null;
   const Filters = activeOperation.filters ? resolveWorkbenchComponent(activeOperation.filters.component) : null;
@@ -139,16 +155,24 @@ export default function QueryRenderer({ descriptor }) {
         onSubmit={submit} submitting={loading} submitLabel="Search" filters={activeOperation.filters} FilterComponent={Filters} />
     </PanelBody></Panel>
     {(loading || error || payload) && <Panel><PanelHeader title="Results" /><PanelBody>
+      {downloadError && <p role="alert" className="plugin-error">{downloadError}</p>}
       <Table columns={result.columns} rows={rows} rowKey={rowKey} loading={loading} error={error}
-        trailingHeading={detailEnabled ? "Detail" : undefined}>
-        {detailEnabled && keys ? rows.map((row, index) => {
+        trailingHeading={detailEnabled || downloadEnabled ? "Actions" : undefined}>
+        {(detailEnabled || downloadEnabled) && keys ? rows.map((row, index) => {
           const id = valueAt(row, result.detail_key);
           const validId = ["string", "number"].includes(typeof id) && String(id).length > 0;
+          const objectId = valueAt(row, result.download_key);
+          const validDownloadId = typeof objectId === "string" && objectId.length > 0;
           return <ResultsTableRow key={keys[index]} columns={result.columns} row={row}>
-            <td><button type="button" className="omni-btn omni-btn--secondary omni-btn--md"
+            <td>{detailEnabled && <button type="button" className="omni-btn omni-btn--secondary omni-btn--md"
               disabled={!validId || loading || detailLoading} onClick={() => loadDetail(id)}>
               View{" "}<span className="workbench-sr-only">details for {scalarText(id)}</span>
-            </button></td>
+            </button>}{downloadEnabled && <button type="button" className="omni-btn omni-btn--secondary omni-btn--md"
+              disabled={!validDownloadId || loading || Boolean(downloadId) || row.downloadable !== true}
+              onClick={() => download(objectId)}>
+              {downloadId === String(objectId) ? "Downloading…" : "Download"}
+              <span className="workbench-sr-only"> {scalarText(objectId)}</span>
+            </button>}</td>
           </ResultsTableRow>;
         }) : undefined}
       </Table>

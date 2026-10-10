@@ -68,3 +68,19 @@ export async function queryDetail(descriptor, id, { operation = descriptor, oper
   }
   return payload;
 }
+
+export async function downloadQueryResult(descriptor, id, { signal } = {}) {
+  if (descriptor.capabilities.download !== true || typeof id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(id) || id.includes("..")) {
+    throw new Error("Invalid download identifier.");
+  }
+  const path = descriptor.endpoints.download.replace("{download_id}", encodeURIComponent(id));
+  const response = await fetch(pluginEndpoint(path), {
+    credentials: "same-origin", headers: { Accept: "application/octet-stream, application/json" }, signal,
+  });
+  if (!response.ok) {
+    let payload;
+    try { payload = await response.json(); } catch { payload = null; }
+    throw new Error(typeof payload?.error === "string" ? payload.error : `Download failed (${response.status}).`);
+  }
+  return response;
+}
