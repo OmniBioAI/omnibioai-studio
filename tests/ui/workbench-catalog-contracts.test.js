@@ -36,17 +36,20 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
   // spatial_imaging_io + workflow_scheduler (schema-v1 async_analysis, now
   // that shared condition-any field support exists for spatial_imaging_io's
   // image-required-for-either-operation shape, and server-owned actor
-  // injection exists for workflow_scheduler). pipeline_dashboard stays
-  // legacy: its backend was hardened by Wave I but no native adapter exists
-  // yet for its dashboard/read-only shape.
-  it("validates 371 v1 native descriptors, 103 v2 queries, and legacy fallbacks", () => {
+  // injection exists for workflow_scheduler).
+  // Wave L adds pipeline_dashboard (schema-v2 query): its existing
+  // authenticated, owner-filtered api_dashboard view is reused verbatim
+  // through a new plugin-local ui_query.py adapter that only projects the
+  // response into the shared scalar table envelope -- no new renderer, no
+  // new endpoint, no broadened scope.
+  it("validates 371 v1 native descriptors, 104 v2 queries, and legacy fallbacks", () => {
     const exporter = path.join(source, "scripts/export_workbench_ui_compatibility.py");
     expect(existsSync(exporter)).toBe(true);
     const catalog = JSON.parse(execFileSync(process.env.PYTHON || "python3", ["-B", exporter], {
       cwd: source, encoding: "utf8", maxBuffer: 8 * 1024 * 1024,
       env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", DJANGO_DEBUG: "true", DJANGO_SETTINGS_MODULE: "omnibioai.settings_test" },
     }));
-    expect(catalog.counts).toEqual({ enabled: 501, native: 474, legacy: 27 });
+    expect(catalog.counts).toEqual({ enabled: 501, native: 475, legacy: 26 });
     expect(catalog.plugins).toHaveLength(501);
     const native = catalog.plugins.filter(plugin => plugin.descriptor.native_supported);
     expect(native.filter(plugin => plugin.schema_version === 1)).toHaveLength(371);
@@ -61,7 +64,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       "mavedb", "medgen", "metabolights", "mondo", "msigdb", "ncbi",
       "notification_center", "object_registry_explorer", "omim", "omniml_studio", "opentargets", "orphanet",
       "panglaodb", "panther",
-      "pdb_redo", "pdbe", "pharmvar", "pharos", "phegeni", "pride",
+      "pdb_redo", "pdbe", "pharmvar", "pharos", "phegeni", "pipeline_dashboard", "pride",
       "proteomexchange", "pubchem", "rcsb_pdb", "rfam", "rxnorm", "schema_registry", "security_dashboard", "sgd",
       "snpedia", "sra", "storage_quota_manager", "string_db", "swisslipids", "targetscan",
       "tcga", "thousand_genomes", "topmed", "ucsc", "uk_biobank", "uniprot", "wikipathways", "wormbase",
@@ -103,7 +106,7 @@ describe.skipIf(!enabled)("generated Workbench catalog compatibility", () => {
       }
     }
     expect(native.filter(plugin => plugin.renderer === "informational")).toHaveLength(138);
-    for (const held of ["multiqc_wrapper", "pipeline_dashboard"]) {
+    for (const held of ["multiqc_wrapper", "dbmts"]) {
       expect(catalog.plugins.find(entry => entry.slug === held).descriptor.native_supported).toBe(false);
     }
   }, 60000);
