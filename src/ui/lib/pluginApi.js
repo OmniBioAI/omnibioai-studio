@@ -128,8 +128,10 @@ function validateConditionalInputs(inputs) {
       if ((controllerField.component ?? controllerField.widget) !== "select") {
         throw new PluginDescriptorError("Conditional controller must be a select.");
       }
-      if (operator !== "equals") throw new PluginDescriptorError("Unsupported conditional operator.");
-      if (typeof value !== "string" || !value || !controllerField.choices.includes(value)) {
+      if (operator !== "equals" && operator !== "in") throw new PluginDescriptorError("Unsupported conditional operator.");
+      const values = operator === "equals" ? [value] : value;
+      if (!Array.isArray(values) || values.length === 0 || new Set(values).size !== values.length ||
+          values.some(item => typeof item !== "string" || !item || !controllerField.choices.includes(item))) {
         throw new PluginDescriptorError("Invalid conditional choice.");
       }
       if (effect !== "visible" && effect !== "required") {

@@ -31,8 +31,10 @@ export function validateConditionalInputs(inputs) {
       const controller = fields.get(condition.controller);
       if (!controller || condition.controller === input.id) throw new Error("Invalid conditional controller.");
       if ((controller.component ?? controller.widget) !== "select") throw new Error("Invalid conditional controller.");
-      if (condition.operator !== "equals") throw new Error("Unsupported conditional operator.");
-      if (typeof condition.value !== "string" || !controller.choices?.includes(condition.value)) throw new Error("Invalid conditional choice.");
+      if (condition.operator !== "equals" && condition.operator !== "in") throw new Error("Unsupported conditional operator.");
+      const values = condition.operator === "equals" ? [condition.value] : condition.value;
+      if (!Array.isArray(values) || values.length === 0 || new Set(values).size !== values.length ||
+          values.some(value => typeof value !== "string" || !controller.choices?.includes(value))) throw new Error("Invalid conditional choice.");
       if (condition.effect !== "visible" && condition.effect !== "required") throw new Error("Unsupported conditional effect.");
       if (effects.has(condition.effect) || controller.conditions !== undefined) throw new Error("Invalid conditional dependency.");
       effects.add(condition.effect);
@@ -46,7 +48,10 @@ function fieldState(input, values, fields) {
   let required = Boolean(input.required);
   const conditions = input.conditions || [];
   conditions.forEach(condition => {
-    const active = currentValue(fields.get(condition.controller) || { id: condition.controller, default: "" }, values) === condition.value;
+    const controllerValue = currentValue(fields.get(condition.controller) || { id: condition.controller, default: "" }, values);
+    const active = condition.operator === "in"
+      ? condition.value.includes(controllerValue)
+      : controllerValue === condition.value;
     if (condition.effect === "visible") visible = active;
     if (condition.effect === "required") required = active;
   });

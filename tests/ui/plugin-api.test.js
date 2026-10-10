@@ -123,6 +123,20 @@ describe("plugin descriptor API boundary", () => {
     }
   });
 
+  it("accepts finite condition-any choices and rejects malformed alternatives", () => {
+    const controller = { id: "operation", label: "Operation", description: "Operation", required: true, format: "text", widget: "select", choices: ["metadata", "inspect", "conversion_plan"], default: "metadata" };
+    const conditional = { ...descriptor, inputs: [controller, { ...descriptor.inputs[0], conditions: [
+      { controller: "operation", operator: "in", value: ["inspect", "conversion_plan"], effect: "required" },
+    ] }] };
+    expect(validatePluginDescriptor(conditional, "deseq2_analysis").inputs[1].conditions[0].value).toEqual(["inspect", "conversion_plan"]);
+    for (const value of [[], ["inspect", "inspect"], ["inspect", "unknown"], "inspect"]) {
+      const invalid = { ...conditional, inputs: [controller, { ...conditional.inputs[1], conditions: [
+        { controller: "operation", operator: "in", value, effect: "required" },
+      ] }] };
+      expect(() => validatePluginDescriptor(invalid, "deseq2_analysis")).toThrow();
+    }
+  });
+
   it("accepts the formal async renderer contract and rejects unsafe capabilities/endpoints", () => {
     expect(validatePluginDescriptor({ ...descriptor, renderer: "async_analysis" }, "deseq2_analysis").renderer).toBe("async_analysis");
     expect(() => validatePluginDescriptor({ ...descriptor, capabilities: { ...descriptor.capabilities, search: true } }, "deseq2_analysis"))

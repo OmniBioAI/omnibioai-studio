@@ -120,6 +120,25 @@ describe("PluginForm composition", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("applies condition-any visibility and requiredness to every listed operation", () => {
+    const onSubmit = vi.fn();
+    const conditionalInputs = [
+      { id: "operation", label: "Operation", description: "Operation", required: true, format: "text", widget: "select", choices: ["metadata", "inspect", "conversion_plan"], default: "metadata" },
+      { id: "image", label: "Image", description: "Metadata", required: false, format: "json", widget: "textarea", conditions: [
+        { controller: "operation", operator: "in", value: ["inspect", "conversion_plan"], effect: "visible" },
+        { controller: "operation", operator: "in", value: ["inspect", "conversion_plan"], effect: "required" },
+      ] },
+    ];
+    const { rerender } = render(<PluginForm inputs={conditionalInputs} values={{ operation: "metadata" }} onSubmit={onSubmit} />);
+    expect(screen.queryByLabelText("Image")).not.toBeInTheDocument();
+    rerender(<PluginForm inputs={conditionalInputs} values={{ operation: "inspect" }} onSubmit={onSubmit} />);
+    expect(screen.getByLabelText(/Image/)).toBeRequired();
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    expect(screen.getByRole("alert")).toHaveTextContent("Image is required.");
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(validateConditionalInputs(conditionalInputs)).toBe(true);
+  });
+
   it("fails safely for invalid condition metadata", () => {
     render(<PluginForm inputs={[input({ conditions: [{ controller: "missing", operator: "equals", value: "train", effect: "visible" }] })]} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Invalid conditional input metadata");
