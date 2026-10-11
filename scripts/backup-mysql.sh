@@ -13,7 +13,7 @@
 #   BACKUP_DIR=/mnt/nas/backups ./scripts/backup-mysql.sh
 #
 # Cron (daily at 4am):
-#   0 4 * * * /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-mysql.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-backup.log 2>&1
+#   0 4 * * * ${OMNIBIOAI_ROOT}/scripts/backup-mysql.sh >> ${WORK_DIR}/backups/omnibioai-backup.log 2>&1
 #
 # --- 2026-09-16 incident (read before touching the .env-loading logic) ---
 # The previous loader was `source <(grep -v '^#' "$ENV_FILE" | grep -v

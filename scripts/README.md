@@ -24,6 +24,15 @@ See `PR13-DEPLOYMENT-RUNBOOK.md` (this directory) for the full deployment
 procedure this script is step 7 of — backup, merge, migrate, restart,
 verify. Documented only; not yet executed as of PR13.
 
+## Portable root and Compose preflight
+
+Set `OMNIBIOAI_ROOT` to the ecosystem checkout when invoking scripts from cron
+or another working directory. If unset, scripts derive it from their own
+location. Set `WORK_DIR`, `DATA_DIR`, `DB_INIT_DIR`, `VIDEO_DIR`, and the Redis
+backup/credential variables explicitly for each host. Run
+`scripts/compose-preflight.sh` before Compose; it fails closed when required
+bind sources or configured external directories are missing.
+
 ## backup-mysql.sh
 Daily MySQL backup with 7-day retention.
 
@@ -32,7 +41,7 @@ Daily MySQL backup with 7-day retention.
 
 ### Schedule with cron (daily at 2am)
 Run `crontab -e` and add:
-0 2 * * * /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-mysql.sh >> /var/log/omnibioai-backup.log 2>&1
+0 2 * * * "${OMNIBIOAI_ROOT}/scripts/backup-mysql.sh" >> /var/log/omnibioai-backup.log 2>&1
 
 ### Configuration (via environment or .env)
 | Variable         | Default                    | Description              |

@@ -25,6 +25,7 @@ fi
 # the incident this same bug caused in backup-mysql.sh.
 # shellcheck source=./lib-env.sh
 source "${SCRIPT_DIR}/lib-env.sh"
+source "${SCRIPT_DIR}/lib-paths.sh"
 set -a
 load_env_file "$ENV_FILE"
 set +a
@@ -63,6 +64,10 @@ check_not_default "RSTUDIO_PASSWORD"     "omnibioai"
 check_not_default "VSCODE_PASSWORD"      "omnibioai"
 
 # Required paths — must be set
+if [[ ! -d "${OMNIBIOAI_ROOT}" ]]; then
+  echo "[ERROR] OMNIBIOAI_ROOT does not exist: ${OMNIBIOAI_ROOT}"
+  ERRORS=$((ERRORS + 1))
+fi
 check_not_default "MACHINE_DIR"   "/path/to/your/machine/dir"
 check_not_default "WORKSPACE_HOST" "/path/to/omnibioai"
 check_not_default "WORK_DIR"      "/path/to/omnibioai"

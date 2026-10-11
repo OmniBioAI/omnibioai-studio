@@ -1,2 +1,3 @@
 # Redis backup schedule: credentials come from the script's protected external files.
-*/5 * * * * cd /home/manish/Desktop/machine/omnibioai-studio && /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-redis.sh >> /home/manish/Desktop/machine/omnibioai-studio/work/backups/omnibioai-redis-backup.log 2>&1
+# Set OMNIBIOAI_ROOT and REDIS_BACKUP_* in the cron environment or wrapper.
+*/5 * * * * cd "${OMNIBIOAI_ROOT}" && "${OMNIBIOAI_ROOT}/scripts/backup-redis.sh" >> "${WORK_DIR}/backups/omnibioai-redis-backup.log" 2>&1

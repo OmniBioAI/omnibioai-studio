@@ -15,12 +15,14 @@
 #   ./scripts/build-multiarch.sh --no-push tes    # build one image, no push
 
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib-paths.sh"
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 REGISTRY="ghcr.io/omnibioai"
 PLATFORM="linux/amd64"
 BUILDER="omnibioai-multiarch"
-BASE="/home/manish/Desktop/machine"
+BASE="${OMNIBIOAI_ROOT}/.."
 
 # Each entry: "short-name|repo-dir|dockerfile|image-tag"
 IMAGES=(

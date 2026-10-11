@@ -12,18 +12,21 @@
 # credentials rather than just application data.
 #
 # Intended to be run from cron, e.g.:
-#   0 4 * * * /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-config.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-config-backup.log 2>&1
+#   0 4 * * * ${OMNIBIOAI_ROOT}/scripts/backup-config.sh >> ${WORK_DIR}/backups/omnibioai-config-backup.log 2>&1
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib-paths.sh"
 
 # Output is GPG-encrypted (AES256, symmetric) rather than just chmod 600,
 # because BACKUP_DIR lives on an exFAT mount (fmask=0000,dmask=0000) that
 # cannot enforce Unix permissions at all -- chmod silently no-ops there.
 # The passphrase file must live on a filesystem that DOES honor permissions
 # (e.g. ext4 under $HOME), never on the exFAT backup drive itself.
-STUDIO_DIR="/home/manish/Desktop/machine/omnibioai-studio"
-BACKUP_DIR="/home/manish/Desktop/machine/work/backups/config"
-PASSPHRASE_FILE="/home/manish/.omnibioai-config-backup-passphrase"
+STUDIO_DIR="${CONFIG_BACKUP_STUDIO_DIR:-${OMNIBIOAI_ROOT}}"
+BACKUP_DIR="${CONFIG_BACKUP_DIR:-${WORK_DIR}/backups/config}"
+PASSPHRASE_FILE="${CONFIG_BACKUP_PASSPHRASE_FILE:-${HOME}/.omnibioai-config-backup-passphrase}"
 RETENTION_DAYS=30
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 ARCHIVE_NAME="omnibioai-studio-config_${TIMESTAMP}.tar.gz.gpg"
@@ -41,6 +44,9 @@ if [ ! -f "$PASSPHRASE_FILE" ]; then
     err "Create it once with: umask 077 && openssl rand -base64 32 > ${PASSPHRASE_FILE}"
     err "Then chmod 600 ${PASSPHRASE_FILE} and store a copy of that passphrase somewhere safe (password manager) -- if this file is lost, existing backups become unrecoverable."
     exit 1
+fi
+if [ "$(stat -c '%a' "$PASSPHRASE_FILE" 2>/dev/null || stat -f '%Lp' "$PASSPHRASE_FILE")" != "600" ]; then
+    err "Passphrase file must have mode 0600: ${PASSPHRASE_FILE}"; exit 1
 fi
 
 mkdir -p "$BACKUP_DIR"

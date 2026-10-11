@@ -12,7 +12,7 @@
 # omnibioai-docs/security/mysql_backup_recovery_evidence.md) — this
 # script is the strongest available local signal until one exists.
 # Recommended: run independently on a schedule, e.g.
-#   0 */6 * * * /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-health-check.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-backup-health-check.log 2>&1
+#   0 */6 * * * ${OMNIBIOAI_ROOT}/scripts/backup-health-check.sh >> ${WORK_DIR}/backups/omnibioai-backup-health-check.log 2>&1
 # (this line is a recommendation, not installed by this script —
 # crontab changes are left to the operator to review and apply.)
 #
