@@ -2,9 +2,10 @@
 # Verify an encrypted Redis backup without restoring it.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib-paths.sh"
 source "${SCRIPT_DIR}/lib-alert.sh"
 ARTIFACT="${1:-}"
-KEY_FILE="${REDIS_BACKUP_ENCRYPTION_KEY_FILE:-/home/manish/redis-prod-credentials/redis_backup_encryption.pass}"
+KEY_FILE="${REDIS_BACKUP_ENCRYPTION_KEY_FILE:-${REDIS_CREDENTIAL_ROOT:-${HOME}/redis-prod-credentials}/redis_backup_encryption.pass}"
 [[ -n "$ARTIFACT" ]] || { echo "usage: verify-redis-backup.sh ARTIFACT.gpg" >&2; exit 2; }
 fail_verify() { emit_security_alert redis-backup restore_verification_failed critical "$1"; exit 1; }
 [[ -f "$ARTIFACT" && -s "$ARTIFACT" ]] || fail_verify "backup artifact missing"

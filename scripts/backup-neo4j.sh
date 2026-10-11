@@ -7,14 +7,17 @@
 # restarts the live service. Prunes dumps older than RETENTION_DAYS.
 #
 # Intended to be run from cron, e.g.:
-#   0 4 * * * /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-neo4j.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-neo4j-backup.log 2>&1
+#   0 4 * * * ${OMNIBIOAI_ROOT}/scripts/backup-neo4j.sh >> ${WORK_DIR}/backups/omnibioai-neo4j-backup.log 2>&1
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib-paths.sh"
 
 CONTAINER_NAME="omnibioai-studio-neo4j-1"
 VOLUME_NAME="omnibioai-studio_neo4j_data"
 NEO4J_IMAGE="neo4j:5.15"
-BACKUP_DIR="/home/manish/Desktop/machine/work/backups/neo4j"
+BACKUP_DIR="${BACKUP_DIR:-${WORK_DIR}/backups/neo4j}"
 RETENTION_DAYS=14
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DUMP_NAME="neo4j_${TIMESTAMP}.dump"
@@ -28,6 +31,8 @@ err() {
 }
 
 mkdir -p "$BACKUP_DIR"
+
+docker volume inspect "$VOLUME_NAME" >/dev/null 2>&1 || { err "Neo4j volume is unavailable: ${VOLUME_NAME}"; exit 1; }
 
 log "Starting Neo4j backup -> ${BACKUP_DIR}/${DUMP_NAME}"
 

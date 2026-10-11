@@ -12,14 +12,17 @@
 # instead, add --delete deliberately and understand the tradeoff.
 #
 # Intended to be run from cron, e.g.:
-#   0 1 * * * /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-nvme.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-nvme-backup.log 2>&1
+#   0 1 * * * ${OMNIBIOAI_ROOT}/scripts/backup-nvme.sh >> ${WORK_DIR}/backups/omnibioai-nvme-backup.log 2>&1
 
 set -euo pipefail
 
-SRC="/home/manish/Desktop/machine/data/"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib-paths.sh"
+
+SRC="${NVME_BACKUP_SOURCE:-${DATA_DIR}/}"
 DEST_MOUNT="/media/manish/omnibioai-data"
 DEST="${DEST_MOUNT}/data/"
-STATUS_FILE="/home/manish/Desktop/machine/work/backup_status.json"
+STATUS_FILE="${NVME_BACKUP_STATUS_FILE:-${WORK_DIR}/backup_status.json}"
 TARGET_NAME="omnibioai-data"
 
 log() {
@@ -35,6 +38,9 @@ err() {
 if ! mountpoint -q "$DEST_MOUNT"; then
     err "${DEST_MOUNT} is not mounted -- is the drive plugged in? Aborting without touching backup_status.json."
     exit 1
+fi
+if [[ ! -d "$SRC" ]]; then
+    err "Source directory is missing: ${SRC}"; exit 1
 fi
 
 log "Starting rsync: ${SRC} -> ${DEST}"
