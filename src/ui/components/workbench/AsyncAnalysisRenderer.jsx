@@ -8,7 +8,7 @@ import { descriptorComponent } from "./PluginField";
 import { csrfToken, pluginEndpoint } from "../../lib/pluginApi";
 import { validateArtifactPayload } from "../../lib/pluginUiContracts";
 
-const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR", "CANCELLED"]);
+const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR", "CANCELED", "CANCELLED"]);
 
 function inputName(input) {
   return ["text", "textarea", "checkbox", "multiselect", "resource_select"].includes(descriptorComponent(input))
@@ -34,6 +34,7 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
   const [renderedResult, setRenderedResult] = useState(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const inputs = descriptor.inputs || [];
   const endpoint = useMemo(() => key => descriptor.endpoints[key].replace("{run_id}", runId), [descriptor, runId]);
@@ -133,6 +134,21 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
     }
   }
 
+  async function cancelRun() {
+    if (!runId || !descriptor.endpoints.cancel || cancelling || TERMINAL.has(state)) return;
+    setCancelling(true); setError("");
+    try {
+      const response = await fetch(pluginEndpoint(endpoint("cancel")), {
+        method: "POST", credentials: "same-origin",
+        headers: { Accept: "application/json", "X-CSRFToken": csrfToken() },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.detail || payload.error || `Unable to cancel run (${response.status}).`);
+      setStatus(previous => ({ ...(previous || {}), state: payload.state || "CANCELLING", detail: payload.detail || "Cancellation requested." }));
+    } catch (cancelError) { setError(cancelError.message || "Unable to cancel run."); }
+    finally { setCancelling(false); }
+  }
+
   const state = status?.state || "";
   return (
     <div className="native-plugin-page">
@@ -156,6 +172,9 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
           <PanelHeader title="Run status" />
           <PanelBody>
             <RunStatus status={status} />
+            {descriptor.endpoints.cancel && !TERMINAL.has(state) ? <button type="button" className="omni-btn omni-btn--secondary omni-btn--md" onClick={cancelRun} disabled={cancelling}>
+              {cancelling ? "Cancelling…" : "Cancel run"}
+            </button> : null}
             <LogViewer lines={logs} />
             {state === "FAILED" || state === "ERROR" ? <p role="alert" className="plugin-error">{status?.detail || "The run failed."}</p> : null}
           </PanelBody>
