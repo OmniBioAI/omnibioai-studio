@@ -10,8 +10,8 @@ Runs once, as the `deploy-verify` one-shot service in docker-compose.yml,
 wired via `depends_on: deploy-verify: condition: service_completed_successfully`
 on every service this check covers -- so it runs automatically on every
 `docker compose up` (including `docker compose up -d <one-service>`), with
-no new command for anyone to learn or remember. Always exits 0: this is a
-loud warning system, not a startup gate -- a hard block would let a broken
+no new command for anyone to learn or remember. Stale findings exit 0: this is
+a loud warning system, not a startup gate -- a hard block would let a broken
 upstream CI (see toolserver) take down the entire stack for reasons that
 have nothing to do with today's deploy.
 
@@ -41,9 +41,10 @@ resolved config -- this container doesn't have the `docker compose` CLI
 available, just the Docker socket.
 
 Output goes to BOTH stdout (visible in `docker compose up`'s own combined
-output / `docker compose logs deploy-verify`) AND STALE_SERVICES.txt at
-this repo's root (overwritten every run) -- redundant channels so a
-staleness finding is harder to scroll past.
+output / `docker compose logs deploy-verify`) AND reports/STALE_SERVICES.txt
+(overwritten every run) -- redundant channels so a staleness finding is harder
+to scroll past. The reports directory is mounted as a directory so a missing
+report can never be replaced by Docker with a directory at a file mount path.
 """
 from __future__ import annotations
 
@@ -59,7 +60,8 @@ import yaml
 
 COMPOSE_FILE = Path("/workspace-config/docker-compose.yml")
 ENV_FILE = Path("/workspace-config/.env")
-OUT_FILE = Path("/workspace-config/STALE_SERVICES.txt")
+REPORT_DIR = Path("/workspace-config/reports")
+OUT_FILE = REPORT_DIR / "STALE_SERVICES.txt"
 REPOS_ROOT = Path("/repos")  # each covered repo's .git mounted read-only under here, see docker-compose.yml
 
 DEFAULT_MAX_AGE_DAYS = 14
@@ -82,6 +84,19 @@ COVERED_SERVICES = {
 
 def log(msg: str) -> None:
     print(msg, flush=True)
+
+
+def write_report(output: str) -> bool:
+    """Write the advisory report, returning False for an actual I/O failure."""
+    try:
+        REPORT_DIR.mkdir(parents=True, exist_ok=True)
+        if OUT_FILE.exists() and not OUT_FILE.is_file():
+            raise IsADirectoryError(f"report path is a directory: {OUT_FILE}")
+        OUT_FILE.write_text(output + "\n", encoding="utf-8")
+    except OSError as exc:
+        log(f"ERROR: unable to write deploy verification report {OUT_FILE}: {exc}")
+        return False
+    return True
 
 
 def load_env_file(path: Path) -> dict:
@@ -304,9 +319,9 @@ def main() -> int:
 
     output = "\n".join(lines)
     log(output)
-    OUT_FILE.write_text(output + "\n")
-
-    return 0  # always -- see module docstring
+    # Stale-image findings remain advisory (exit 0); an inability to persist
+    # the report is an execution error and must be visible to Compose.
+    return 0 if write_report(output) else 1
 
 
 if __name__ == "__main__":

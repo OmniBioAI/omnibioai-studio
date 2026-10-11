@@ -83,7 +83,7 @@ services:
   # in one session: celery-worker's rename regression, workbench's DAG-
   # count regression, toolserver's 91-day-stale ghcr.io image). Runs once,
   # compares each covered service's built/pulled image against what it
-  # should reflect, writes findings to stdout + STALE_SERVICES.txt. Never
+  # should reflect, writes findings to stdout + reports/STALE_SERVICES.txt. Never
   # blocks startup -- see scripts/deploy_verify.py's own docstring for the
   # full design. Every service it covers depends on this one with
   # condition: service_completed_successfully below, so it runs
@@ -116,7 +116,14 @@ services:
       - ./docker-compose.yml:/workspace-config/docker-compose.yml:ro
       - ./.env:/workspace-config/.env:ro
       - ./scripts/deploy_verify.py:/workspace-config/scripts/deploy_verify.py:ro
-      - ./STALE_SERVICES.txt:/workspace-config/STALE_SERVICES.txt:rw
+      # Mount the reports directory, rather than an individual report file.
+      # This prevents Docker from silently creating a directory at a file
+      # mount target when a fresh checkout has no report yet.
+      - type: bind
+        source: ./reports
+        target: /workspace-config/reports
+        bind:
+          create_host_path: false
       - ${MACHINE_DIR}/omnibioai/.git:/repos/omnibioai:ro
       - ${MACHINE_DIR}/omnibioai-tes/.git:/repos/omnibioai-tes:ro
     restart: "no"
