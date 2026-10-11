@@ -283,8 +283,20 @@
     },
     "workspace": {
       "mode": "local_draft",
-      "fields": [],
-      "outputs": [],
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "DECIPHER local metadata/connectivity draft: metadata or health only. No clinical inputs or provider request.",
+          "required": true,
+          "format": "text",
+          "default": "metadata"
+        }
+      ],
+      "outputs": [
+        "result",
+        "provenance"
+      ],
       "execution_enabled": false
     }
   },
@@ -606,9 +618,51 @@
     },
     "workspace": {
       "mode": "local_draft",
-      "fields": [],
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "This local workspace prepares the documented MetaCyc search operation only. Enter search; execution remains unavailable.",
+          "required": true,
+          "format": "text",
+          "default": "search"
+        },
+        {
+          "id": "query",
+          "label": "Query",
+          "description": "MetaCyc search text: 1\u2013200 characters, no control characters. Local only.",
+          "required": true,
+          "format": "string",
+          "default": ""
+        },
+        {
+          "id": "resource_type",
+          "label": "Resource Type",
+          "description": "Resource type: pathway, reaction, compound, enzyme, gene, protein or organism.",
+          "required": false,
+          "format": "string",
+          "default": "pathway"
+        },
+        {
+          "id": "orgid",
+          "label": "Orgid",
+          "description": "BioCyc organism database identifier, e.g. META or ECOLI. No credentials.",
+          "required": false,
+          "format": "string",
+          "default": "META"
+        },
+        {
+          "id": "limit",
+          "label": "Limit",
+          "description": "Local search limit: integer from 1 to 100; runtime configuration may impose a lower limit.",
+          "required": false,
+          "format": "integer",
+          "default": "20"
+        }
+      ],
       "outputs": [
-        "result"
+        "result",
+        "provenance"
       ],
       "execution_enabled": false
     }

@@ -21,6 +21,16 @@ function LocalDraftWorkspace({ workspace, slug }) {
         } catch { next[field.id] = "Enter a JSON object for the workflow specification."; }
       }
     }
+    if (slug === "decipher" && values.action && !["metadata", "health"].includes(values.action)) {
+      next.action = "Use metadata or health; clinical/genomic queries are unsupported.";
+    }
+    if (slug === "metacyc") {
+      if (values.action && values.action !== "search") next.action = "This local workspace supports search drafts only.";
+      if (values.query && (values.query.length > 200 || /[\x00-\x1f]/.test(values.query))) next.query = "Use 1–200 characters without control characters.";
+      if (values.orgid && !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(values.orgid)) next.orgid = "Use a valid 1–64 character BioCyc database identifier.";
+      if (values.resource_type && !["pathway", "reaction", "compound", "enzyme", "gene", "protein", "organism"].includes(values.resource_type)) next.resource_type = "Use a documented MetaCyc resource type.";
+      if (values.limit && (!/^\d+$/.test(values.limit) || Number(values.limit) < 1 || Number(values.limit) > 100)) next.limit = "Use an integer from 1 to 100.";
+    }
     setErrors(next);
     setPreview(Object.keys(next).length ? null : values);
   }
@@ -29,7 +39,7 @@ function LocalDraftWorkspace({ workspace, slug }) {
     <nav aria-label="Workspace views">{["Inputs", "Draft", "Outputs"].map(name =>
       <button key={name} type="button" aria-pressed={tab === name} onClick={() => setTab(name)}>{name}</button>)}</nav>
     {tab === "Inputs" && <form onSubmit={validate} noValidate>
-      {workspace.fields.length === 0 && <p>No editable parameters are declared in this plugin contract. Registry administration remains unavailable.</p>}
+      {workspace.fields.length === 0 && <p>No editable parameters are declared in this plugin contract. Execution remains unavailable for {slug}.</p>}
       {workspace.fields.map(field => <div key={field.id}>
         <label htmlFor={`${slug}-${field.id}`}>{field.label}{field.required ? " (required)" : ""}</label>
         <textarea id={`${slug}-${field.id}`} value={values[field.id]} maxLength={65537}
