@@ -1,0 +1,1482 @@
+[
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "biocyc",
+      "name": "BioCyc Integration",
+      "version": "1.0.1",
+      "description": "Licensed, read-only integration with the BioCyc web services (SRI International): organism database list and KB versions, pathway/genome objects in ptools-xml (genes, proteins, reactions, pathways, compounds), the documented Pathway Tools API functions (e.g. genes-of-pathway, pathways-of-gene, reactions-of-compound), name search and foreign-ID mapping. Requires a BioCyc account (BIOCYC_EMAIL, BIOCYC_PASSWORD) with a subscription covering the queried databases; reports not_configured without it.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Pathways, reactions, genes and compounds from BioCyc (BioCyc account required).",
+      "sections": [
+        {
+          "heading": "License required",
+          "paragraphs": [
+            "Written SRI commercial/OEM terms must cover multi-tenant access, caching and display. No shared credentials or redistribution."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "One of health, metadata, kb_version, list_databases, get_object, api_function, genes_of_pathway, pathways_of_gene, reactions_of_compound, search_by_name, lookup_foreign_ids",
+          "required": true,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "orgid",
+          "label": "Orgid",
+          "description": "BioCyc organism database ID, e.g. ECOLI, META, HUMAN, BSUB",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "query",
+          "label": "Query",
+          "description": "Substring of orgid, species or strain",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "limit",
+          "label": "Limit",
+          "description": "Page size (default 25, max 500)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "offset",
+          "label": "Offset",
+          "description": "Page offset",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "object_id",
+          "label": "Object Id",
+          "description": "BioCyc object ID (case-sensitive), e.g. TRPSYN-PWY, EG11025",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "detail",
+          "label": "Detail",
+          "description": "Detail level",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "function",
+          "label": "Function",
+          "description": "e.g. enzymes-of-reaction, genes-regulated-by-gene",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "name",
+          "label": "Name",
+          "description": "Name or accession, e.g. trpA or b1234",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "object_class",
+          "label": "Object Class",
+          "description": "Class (default Genes)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "foreign_ids",
+          "label": "Foreign Ids",
+          "description": "DATABASE:ID values, e.g. UniProt:P0A877",
+          "required": false,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "result",
+        "provenance"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "cosmic",
+      "name": "COSMIC Integration",
+      "version": "1.0.1",
+      "description": "Read-only integration with COSMIC (Catalogue Of Somatic Mutations In Cancer, cancer.sanger.ac.uk), a licensed cancer-genomics resource curated by the Wellcome Sanger Institute. COSMIC has no public REST query API; the only officially documented programmatic mechanism is its authenticated scripted-download service. This connector uses that mechanism to expose two small, bounded, release-scoped reference products -- the Cancer Gene Census (gene-level cancer association: tier, role in cancer, mutation types, tumour types) and the tissue/histology classification vocabulary -- plus health and release/dataset metadata. Requires a COSMIC account (free academic registration, or a commercial license via QIAGEN) configured as COSMIC_EMAIL/COSMIC_PASSWORD for every action except get_release_info/list_datasets. Gene/mutation-level search, tumour-sample search, and publication search are explicitly NOT implemented -- COSMIC's own robots.txt disallows every page that would carry that data, and the only alternative (downloading COSMIC's full licensed bulk mutation export) is out of scope; see README.md's 'Supported vs. Unsupported Capabilities' section.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Cancer Gene Census and tissue/histology classification lookup from COSMIC's licensed scripted-download service.",
+      "sections": [
+        {
+          "heading": "License required",
+          "paragraphs": [
+            "QIAGEN/GRL commercial licensing and explicit AI-use permission are required. No scraping or bulk redistribution."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "One of: health, get_release_info, list_datasets, search_gene, get_gene, get_gene_cancer_summary, search_cancer_types, get_cancer_type, or one of the explicitly-unsupported stub actions documented in README.md (search_mutations, get_mutation, get_mutation_occurrences, get_mutation_summary, search_tumour_samples, search_publications, get_publication, raw_query, proxy, arbitrary_url, arbitrary_http, arbitrary_download)",
+          "required": true,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "query",
+          "label": "Query",
+          "description": "Free-text substring for search_gene (Cancer Gene Census) / search_cancer_types (classification.csv)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "gene_symbol",
+          "label": "Gene Symbol",
+          "description": "Exact HGNC-style gene symbol for get_gene / get_gene_cancer_summary",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "code",
+          "label": "Code",
+          "description": "Exact classification value for get_cancer_type",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "genome_build",
+          "label": "Genome Build",
+          "description": "GRCh37 or GRCh38 (default: GRCh38)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "max_results",
+          "label": "Max Results",
+          "description": "Maximum rows returned by search_gene/search_cancer_types (deployment-configured cap)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "health",
+        "get_release_info",
+        "list_datasets",
+        "search_gene",
+        "get_gene",
+        "get_gene_cancer_summary",
+        "search_cancer_types",
+        "get_cancer_type",
+        "provenance"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "decipher",
+      "name": "DECIPHER",
+      "version": "1.0.1",
+      "description": "Privacy-preserving DECIPHER integration exposing verified official-interface metadata and connectivity only; clinical/genomic lookup capabilities are explicitly unsupported because DECIPHER's documented API is agreement- and project-scoped for deposition workflows.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Official interface metadata and connectivity; no patient-level access.",
+      "sections": [
+        {
+          "heading": "License required",
+          "paragraphs": [
+            "DAA/project membership and commercial permission remain unresolved. Controlled clinical data must not be retrieved or cached."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [],
+      "outputs": [],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "drugbank",
+      "name": "DrugBank Integration",
+      "version": "1.0.1",
+      "description": "Licensed, read-only integration with DrugBank's Clinical API (api.drugbank.com) -- drug name/synonym/brand-name search, product lookup by NDC/DPD/EMA identifiers, drug-drug interaction checks, and DrugBank category/ATC classification data, for use in OmniBioAI agents and pharmacology/drug-repurposing workflows. Requires a negotiated commercial DrugBank license and a configured DRUGBANK_API_KEY for every action except drugbank.get_release_info. This connector implements only the four endpoints confirmed during implementation (drug_names, products, ddi, categories); target/enzyme/transporter/carrier/pathway/mechanism-of-action/pharmacokinetics/toxicity/full-chemistry tools are exposed for agent discovery but return a structured 'not yet documented' error rather than a fabricated schema -- see README.md's Documentation Coverage section.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Drug search, drug-drug interactions, and classification data from DrugBank's licensed Clinical API.",
+      "sections": [
+        {
+          "heading": "License required",
+          "paragraphs": [
+            "Commercial subscriber/OEM terms must cover SaaS display, caching and AI scope. No pooled API key or cross-tenant cache."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "One of: health, search_drug, get_products, resolve_identifier, get_drug_interactions, get_interaction, get_classification, get_external_identifiers, batch_query, get_release_info, or one of the not-yet-documented stub actions listed in README.md (get_drug, get_targets, get_enzymes, get_transporters, get_carriers, get_diseases, get_indications, get_mechanism, get_pharmacological_action, get_pathways, get_chemical_properties, get_pharmacokinetics, get_toxicity)",
+          "required": true,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "query",
+          "label": "Query",
+          "description": "Free-text drug name/synonym/brand name for search_drug (GET /v1/drug_names)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "identifier",
+          "label": "Identifier",
+          "description": "Identifier value for resolve_identifier",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "identifier_type",
+          "label": "Identifier Type",
+          "description": "One of: name/synonym/brand_name/generic_name/ndc/dpd_id/ema_product_id/ema_ma_number -- see README's Identifier Support section for what is NOT supported (CAS/PubChem/ChEBI/InChIKey/SMILES/formula/bare DrugBank ID lookup)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "ndc",
+          "label": "Ndc",
+          "description": "One or more National Drug Codes, comma-separated or as a list, for get_products/get_drug_interactions",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "dpd_id",
+          "label": "Dpd Id",
+          "description": "One or more Health Canada DPD identifiers for get_products",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "ema_product_id",
+          "label": "Ema Product Id",
+          "description": "One or more EMA Product IDs for get_products",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "ema_ma_number",
+          "label": "Ema Ma Number",
+          "description": "One or more EMA Marketing Authorization numbers for get_products",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "drugbank_ids",
+          "label": "Drugbank Ids",
+          "description": "One or more DrugBank IDs ('DB#####'), comma-separated or as a list, for get_drug_interactions (ddi's confirmed drugbank_id filter parameter -- not a general drug-lookup identifier)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "product_concept_ids",
+          "label": "Product Concept Ids",
+          "description": "One or more DrugBank product concept IDs ('DBPC#####') for get_drug_interactions",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "ndcs",
+          "label": "Ndcs",
+          "description": "One or more NDCs for get_drug_interactions",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "drug_a",
+          "label": "Drug A",
+          "description": "First drug identifier for get_interaction (kind declared by id_type)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "drug_b",
+          "label": "Drug B",
+          "description": "Second drug identifier for get_interaction",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "id_type",
+          "label": "Id Type",
+          "description": "For get_interaction: 'drugbank_id' (default) | 'product_concept_id' | 'ndc'",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "category_id",
+          "label": "Category Id",
+          "description": "DrugBank category ID ('DBCAT######') to filter get_classification/get_external_identifiers",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "name_contains",
+          "label": "Name Contains",
+          "description": "Local (connector-side) substring filter over category names for get_classification",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "atc_prefix",
+          "label": "Atc Prefix",
+          "description": "Local (connector-side) ATC-code prefix filter for get_classification",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "entity_type",
+          "label": "Entity Type",
+          "description": "For batch_query: drug_name | product_ndc | interaction_drugbank_id | interaction_product_concept_id | interaction_ndc",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "ids",
+          "label": "Ids",
+          "description": "Comma-separated string or list of identifiers/names for batch_query",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "chunk_size",
+          "label": "Chunk Size",
+          "description": "batch_query chunk size (default/deployment-configured max, see README)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "health",
+        "search_drug",
+        "get_products",
+        "resolve_identifier",
+        "get_drug_interactions",
+        "get_interaction",
+        "get_classification",
+        "get_external_identifiers",
+        "batch_query",
+        "get_release_info",
+        "provenance"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "gene_cards",
+      "name": "GeneCards Integration",
+      "version": "1.0.1",
+      "description": "GeneCards (Weizmann Institute / LifeMap Sciences) status connector: LICENSE_REQUIRED, no data actions. The GeneCards API is documented only to licensees and the GeneCards Suite Terms of Use prohibit automated scraping, third-party redistribution under academic licences and AI-model training without written permission, so no provider request is made. health and metadata report the blockers and the licence route; use the HGNC, NCBI, Ensembl or UniProt plugins for open gene information.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "GeneCards: licence required, not implemented (reports blockers only).",
+      "sections": [
+        {
+          "heading": "License required",
+          "paragraphs": [
+            "Commercial licensing and separate AI permission are required. No scraping or automated provider requests."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "One of health, metadata",
+          "required": true,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "result",
+        "provenance"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "metacyc",
+      "name": "MetaCyc",
+      "version": "1.0.1",
+      "description": "Read-only integration with the official MetaCyc metabolic pathway database and the BioCyc Web Services platform that serves it: bounded search, pathway/reaction/compound/enzyme/gene retrieval, pathway-to-reaction/compound/gene/organism relationships, and bounded pathway-hierarchy traversal. Requires an operator-configured BioCyc account (BioCyc's web services have no anonymous tier). Reverse pathway lookups (reaction->pathways, compound->pathways) and bulk flat-file downloads are typed unsupported_capability -- see README.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Search and retrieve official MetaCyc/BioCyc pathways, reactions, compounds, enzymes, and genes.",
+      "sections": [
+        {
+          "heading": "License required",
+          "paragraphs": [
+            "SRI terms and the BioCyc redistribution rider remain required. No redistribution or shared accounts."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [],
+      "outputs": [
+        "result"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "oncokb",
+      "name": "OncoKB Integration",
+      "version": "1.0.1",
+      "description": "Licensed, read-only integration with OncoKB's web API (Memorial Sloan Kettering precision oncology knowledge base): oncogenic effect, levels of evidence and treatment implications for mutations (protein change, genomic change, HGVSg), copy-number alterations and structural variants, plus the curated and cancer gene lists and the data version. Requires ONCOKB_API_TOKEN (Bearer token from a licensed OncoKB account); reports not_configured without it.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Cancer variant actionability and oncogenicity from OncoKB (licensed API token required).",
+      "sections": [
+        {
+          "heading": "License required",
+          "paragraphs": [
+            "MSK commercial product scope remains unresolved; AI/ML training is prohibited. No shared tokens or annotated bulk redistribution."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "One of health, metadata, data_version, get_levels, annotate_mutation, annotate_genomic_change, annotate_hgvsg, annotate_copy_number, annotate_structural_variant, search_curated_genes, get_curated_gene, list_cancer_genes",
+          "required": true,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "hugo_symbol",
+          "label": "Hugo Symbol",
+          "description": "HUGO gene symbol, e.g. BRAF",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "entrez_gene_id",
+          "label": "Entrez Gene Id",
+          "description": "Entrez gene ID (alternative to hugo_symbol)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "alteration",
+          "label": "Alteration",
+          "description": "Protein change, e.g. V600E",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "consequence",
+          "label": "Consequence",
+          "description": "Variant consequence (optional)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "protein_start",
+          "label": "Protein Start",
+          "description": "Protein start (optional)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "protein_end",
+          "label": "Protein End",
+          "description": "Protein end (optional)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "tumor_type",
+          "label": "Tumor Type",
+          "description": "OncoTree code, name or main type, e.g. MEL or Melanoma (optional)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "reference_genome",
+          "label": "Reference Genome",
+          "description": "Reference genome (default GRCh37)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "genomic_location",
+          "label": "Genomic Location",
+          "description": "chrom,start,end,ref,alt e.g. 7,140453136,140453136,A,T",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "hgvsg",
+          "label": "Hgvsg",
+          "description": "HGVSg e.g. 7:g.140453136A>T",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "copy_number_alteration_type",
+          "label": "Copy Number Alteration Type",
+          "description": "Copy-number alteration type",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "hugo_symbol_a",
+          "label": "Hugo Symbol A",
+          "description": "HUGO gene symbol, e.g. BRAF",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "entrez_gene_id_a",
+          "label": "Entrez Gene Id A",
+          "description": "Entrez gene ID (alternative to hugo_symbol)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "hugo_symbol_b",
+          "label": "Hugo Symbol B",
+          "description": "Partner gene (optional)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "entrez_gene_id_b",
+          "label": "Entrez Gene Id B",
+          "description": "Partner Entrez ID (optional)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "structural_variant_type",
+          "label": "Structural Variant Type",
+          "description": "Structural variant type",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "is_functional_fusion",
+          "label": "Is Functional Fusion",
+          "description": "Whether the fusion is functional",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "query",
+          "label": "Query",
+          "description": "Case-insensitive substring filter",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "limit",
+          "label": "Limit",
+          "description": "Page size (default 25, max 500)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "offset",
+          "label": "Offset",
+          "description": "Page offset",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "version",
+          "label": "Version",
+          "description": "OncoKB data version, e.g. v4.20 (default: latest)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "include_evidence",
+          "label": "Include Evidence",
+          "description": "Include gene summary/background (default false)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "result",
+        "provenance"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "varcards",
+      "name": "VarCards Integration",
+      "version": "1.0.1",
+      "description": "VarCards / VarCards2 (integrated genetic and clinical variant-interpretation databases) status connector. Status only: reports whether the VarCards2 site named in its 2024 publication is reachable and returns verified metadata; it retrieves no VarCards data. On 2026-09-26 the original VarCards host had no DNS record and the VarCards2 site was a JavaScript web application with no documented public API.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "VarCards availability status and verified metadata (status only; no data access).",
+      "sections": [
+        {
+          "heading": "Governance blocked",
+          "paragraphs": [
+            "WK-DEC-006 remains unresolved. Owner approval is required; no VarCards data access, scraping, substitution or undocumented endpoints are enabled."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "health or metadata",
+          "required": true,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "result"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "varsome",
+      "name": "VarSome Integration",
+      "version": "1.0.1",
+      "description": "Licensed, read-only integration with the VarSome API (Saphetor): aggregated variant annotation from 100+ databases with automated germline ACMG and somatic AMP classification, batch variant lookup, gene, transcript, liftover, CNV, fusion, genomic-region and phenotype lookups. Requires VARSOME_API_TOKEN (paid API subscription; one token per environment chosen by VARSOME_API_ENVIRONMENT); reports not_configured without it.",
+      "category": "reference_db"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Variant annotation and ACMG/AMP classification from VarSome (subscription token required).",
+      "sections": [
+        {
+          "heading": "License required",
+          "paragraphs": [
+            "A signed Saphetor OEM/platform agreement is required. No repackaging, resale or pooled credentials."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "action",
+          "label": "Action",
+          "description": "One of health, metadata, lookup_variant, batch_lookup_variants, lookup_gene, lookup_transcript, liftover_variant, lookup_cnv, lookup_fusion, region_variants, search_phenotypes, get_phenotype",
+          "required": true,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "query",
+          "label": "Query",
+          "description": "HGVS protein/DNA (BRAF:V600E, FTO:c.46-43098T>C), rsID, chrom-pos-ref-alt, or VarSome variant_id",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "ref_genome",
+          "label": "Ref Genome",
+          "description": "Reference genome (default hg19)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "add_acmg",
+          "label": "Add Acmg",
+          "description": "Include germline ACMG classification (plan-dependent)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "add_amp",
+          "label": "Add Amp",
+          "description": "Include somatic AMP classification (plan-dependent)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "source_databases",
+          "label": "Source Databases",
+          "description": "'all', 'none' or VarSome database names, e.g. ['ncbi-clinvar2']",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "add_region_databases",
+          "label": "Add Region Databases",
+          "description": "Include region databases",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "expand_pubmed_articles",
+          "label": "Expand Pubmed Articles",
+          "description": "Expand PubMed article details",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "include_publication_data",
+          "label": "Include Publication Data",
+          "description": "Include publication data",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "minimum_clinvar_stars",
+          "label": "Minimum Clinvar Stars",
+          "description": "Minimum ClinVar stars (0-4) for the germline verdict",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "override_transcript",
+          "label": "Override Transcript",
+          "description": "Transcript for germline annotation (requires add_acmg)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "sex",
+          "label": "Sex",
+          "description": "Sample sex for somatic matching (requires add_amp)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "age",
+          "label": "Age",
+          "description": "Sample age (requires add_amp)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "ethnicity",
+          "label": "Ethnicity",
+          "description": "Sample ethnicity (requires add_amp)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "cancer_type",
+          "label": "Cancer Type",
+          "description": "Sample cancer type (requires add_amp)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "tissue_type",
+          "label": "Tissue Type",
+          "description": "Sample tissue type (requires add_amp)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "variants",
+          "label": "Variants",
+          "description": "Variant notations as for lookup_variant",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "gene_symbol",
+          "label": "Gene Symbol",
+          "description": "Gene symbol, e.g. BRAF",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "transcript",
+          "label": "Transcript",
+          "description": "RefSeq (NM_/NR_) or Ensembl (ENST) transcript",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "gene_5prime",
+          "label": "Gene 5Prime",
+          "description": "5' gene",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "gene_3prime",
+          "label": "Gene 3Prime",
+          "description": "3' gene",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "breakpoint_5prime",
+          "label": "Breakpoint 5Prime",
+          "description": "5' breakpoint chrN:pos (optional)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "breakpoint_3prime",
+          "label": "Breakpoint 3Prime",
+          "description": "3' breakpoint chrN:pos (optional)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "chromosome",
+          "label": "Chromosome",
+          "description": "1-22, 23 = X, 24 = Y",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "position",
+          "label": "Position",
+          "description": "1-based start",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "length",
+          "label": "Length",
+          "description": "Region length in bp (max 100000)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "name",
+          "label": "Name",
+          "description": "Phenotype name",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "hpo_id",
+          "label": "Hpo Id",
+          "description": "HPO IDs",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "omim_id",
+          "label": "Omim Id",
+          "description": "OMIM IDs",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "mondo_id",
+          "label": "Mondo Id",
+          "description": "MONDO IDs",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "phenotypes_sources",
+          "label": "Phenotypes Sources",
+          "description": "Source filter",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "page",
+          "label": "Page",
+          "description": "Page number (1-based)",
+          "required": false,
+          "format": "json",
+          "default": ""
+        },
+        {
+          "id": "phenotype_id",
+          "label": "Phenotype Id",
+          "description": "VarSome phenotype ID",
+          "required": false,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "result",
+        "provenance"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "workflow_builder",
+      "name": "Workflow Builder",
+      "version": "1.0.1",
+      "description": "Canvas-based drag-and-drop workflow builder for authoring reproducible pipelines",
+      "category": "pipeline"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Canvas-based drag-and-drop workflow builder for authoring reproducible pipelines",
+      "sections": [
+        {
+          "heading": "Dependency unavailable",
+          "paragraphs": [
+            "Typed DAG editor, actor injection and acknowledged cancellation contracts require qualification. Owner/organization scope and audit must be preserved."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "workflow_spec",
+          "label": "Workflow Spec",
+          "description": "",
+          "required": false,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "workflow_result"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "workflow_compiler",
+      "name": "Workflow Compiler (SKILL.md \u2192 IR \u2192 DAG)",
+      "version": "1.0.1",
+      "description": "Compiles scientific SKILL.md protocols into structured IR and executable DAGs for OmniBioAI workflow engine",
+      "category": "pipeline"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Compiles scientific SKILL.md protocols into structured IR and executable DAGs for OmniBioAI workflow engine",
+      "sections": [
+        {
+          "heading": "Dependency unavailable",
+          "paragraphs": [
+            "Reviewed compile artifact persistence/publication policy requires an owner decision. Staff authorization and artifact access checks remain mandatory; unsupported polling is unavailable."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "workflow_spec",
+          "label": "Workflow Spec",
+          "description": "",
+          "required": false,
+          "format": "json",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "execution_plan",
+        "compiled_spec"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "workflow_explorer",
+      "name": "Visual Workflow Explorer",
+      "version": "1.0.1",
+      "description": "Interactive DAG-based explorer for WDL/Nextflow/Snakemake/CWL workflows",
+      "category": "pipeline"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Interactive DAG-based explorer for WDL/Nextflow/Snakemake/CWL workflows",
+      "sections": [
+        {
+          "heading": "Dependency unavailable",
+          "paragraphs": [
+            "External workflow-service owner/organization fields and authorized projections require qualification. Cross-owner and cross-tenant access must fail closed."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "enabled_only",
+          "label": "Enabled Only",
+          "description": "",
+          "required": false,
+          "format": "text",
+          "default": ""
+        },
+        {
+          "id": "search",
+          "label": "Search",
+          "description": "",
+          "required": false,
+          "format": "text",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "workflow_list"
+      ],
+      "execution_enabled": false
+    }
+  },
+  {
+    "schema_version": 1,
+    "plugin": {
+      "slug": "workflow_registry_admin",
+      "name": "Workflow Registry Admin",
+      "version": "1.0.1",
+      "description": "Admin UI for registering workflow bundles",
+      "category": "pipeline"
+    },
+    "renderer": "informational",
+    "native_supported": true,
+    "inputs": [],
+    "outputs": [],
+    "capabilities": {
+      "read_only": true
+    },
+    "content": {
+      "summary": "Admin UI for registering workflow bundles",
+      "sections": [
+        {
+          "heading": "Dependency unavailable",
+          "paragraphs": [
+            "Authorized bundle ingestion and atomic registry persistence require qualification. Staff authorization, ZIP traversal/bomb/symlink checks and tenant ownership remain mandatory."
+          ]
+        },
+        {
+          "heading": "Unavailable capabilities",
+          "paragraphs": [
+            "This native interface presents the existing capability gate only. It does not enable execution, administration, provider access or scientific results."
+          ]
+        },
+        {
+          "heading": "Configuration and approval",
+          "paragraphs": [
+            "Required configuration and permissions must be reviewed by the owning service or platform owner. Do not enter credentials or license keys in this interface. Native UI availability does not grant capability approval."
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "mode": "local_draft",
+      "fields": [
+        {
+          "id": "name",
+          "label": "Name",
+          "description": "Local registry filter draft; no server query is issued.",
+          "required": false,
+          "format": "text",
+          "default": ""
+        },
+        {
+          "id": "category",
+          "label": "Category",
+          "description": "Local registry filter draft; no server query is issued.",
+          "required": false,
+          "format": "text",
+          "default": ""
+        },
+        {
+          "id": "engine",
+          "label": "Engine",
+          "description": "Local registry filter draft; no server query is issued.",
+          "required": false,
+          "format": "text",
+          "default": ""
+        },
+        {
+          "id": "enabled",
+          "label": "Enabled",
+          "description": "Local registry filter draft; no server query is issued.",
+          "required": false,
+          "format": "text",
+          "default": ""
+        }
+      ],
+      "outputs": [
+        "workflow_registry"
+      ],
+      "execution_enabled": false
+    }
+  }
+]

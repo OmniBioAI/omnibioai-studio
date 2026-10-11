@@ -178,6 +178,20 @@ function validateQueryDescriptor(data) {
 }
 
 function validateInformationalDescriptor(data) {
+  if (data.workspace !== undefined) {
+    const workspace = data.workspace;
+    if (!hasOnlyKeys(workspace, ["mode", "fields", "outputs", "execution_enabled"], ["mode", "fields", "outputs", "execution_enabled"]) ||
+        workspace.mode !== "local_draft" || workspace.execution_enabled !== false ||
+        !Array.isArray(workspace.fields) || workspace.fields.length > 100 ||
+        !Array.isArray(workspace.outputs) || workspace.outputs.some(x => typeof x !== "string") ||
+        new Set(workspace.fields.map(x => x.id)).size !== workspace.fields.length ||
+        workspace.fields.some(x => !hasOnlyKeys(x, ["id", "label", "description", "required", "format", "default"], ["id", "label", "description", "required", "format", "default"]) ||
+          typeof x.id !== "string" || !FIELD_ID.test(x.id) || FORBIDDEN_FIELD_IDS.has(x.id) ||
+          typeof x.label !== "string" || typeof x.description !== "string" || typeof x.format !== "string" ||
+          typeof x.required !== "boolean" || typeof x.default !== "string")) {
+      throw new PluginDescriptorError("Invalid local draft workspace.");
+    }
+  }
   if (!Array.isArray(data.inputs) || data.inputs.length !== 0 ||
       !Array.isArray(data.outputs) || data.outputs.length !== 0 ||
       !data.capabilities || Object.keys(data.capabilities).join(",") !== "read_only" ||
