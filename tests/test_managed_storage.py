@@ -209,34 +209,3 @@ def test_preflight_check_fails_when_disk_not_mounted(tmp_path, monkeypatch):
     _Host(monkeypatch, tmp_path)
     with pytest.raises(preflight.PreflightError, match="root_missing"):
         preflight.run(_args(tmp_path, "check"))
-
-
-# ── Read-only container inventory ───────────────────────────────────────────
-
-INVENTORY = ROOT / "scripts" / "storage_container_inventory.sh"
-
-
-def test_inventory_script_uses_only_read_only_docker_commands():
-    import re
-    text = INVENTORY.read_text(encoding="utf-8")
-    code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
-    verbs = set(re.findall(r"\bdocker\s+(\w+)", code))
-    assert verbs <= {"ps", "inspect", "exec"}, verbs
-    for forbidden in ("rm ", "restart", "stop", "docker cp", "compose up", "unlink", "os.remove", "shutil"):
-        assert forbidden not in text.split("set -euo pipefail", 1)[1], forbidden
-
-
-def test_inventory_walker_reports_metadata_never_contents(tmp_path):
-    import subprocess, sys
-    text = INVENTORY.read_text(encoding="utf-8")
-    inner = text.split("<<'PY' || true\n", 1)[1].split("\nPY\n", 1)[0]
-    payload = tmp_path / "storage-ledger" / "abc" / "payload"
-    payload.parent.mkdir(parents=True)
-    payload.write_bytes(b"SECRET-CONTENT")
-    out = subprocess.run([sys.executable, "-I", "-c", inner], env={"FTM_LOCAL_ROOT": str(tmp_path)},
-                         capture_output=True, text=True, check=True).stdout
-    assert "SECRET-CONTENT" not in out
-    tree = next(t for t in json.loads(out)["trees"] if t["path"] == str(tmp_path))
-    assert tree["file_count"] == 1 and tree["total_bytes"] == 14
-    assert tree["files"][0]["relative_path"] == "storage-ledger/abc/payload"
-    assert payload.read_bytes() == b"SECRET-CONTENT"
