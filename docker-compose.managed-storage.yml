@@ -1,0 +1,47 @@
+# P0 managed artifact storage overlay (OMNIBIOAI_TENANT_STORAGE_P0).
+#
+# Opt-in on purpose: docker-compose.yml alone keeps today's behaviour, so
+# ordinary Compose operations never require the variables below and cannot
+# switch storage by accident. Cutover = run preflight, set the variables,
+# then include this file on EVERY command for this stack:
+#
+#   python3 scripts/managed_storage_preflight.py check --expected-mount <mountpoint>
+#   docker compose -f docker-compose.yml -f docker-compose.managed-storage.yml ...
+#
+# or persistently, so no later command can silently drop it:
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.managed-storage.yml   (in .env)
+#
+# Ledger payloads (storage-ledger/<allocation-uuid>/payload) then live on the
+# managed disk, never the container layer. Workbench's backend_guard verifies
+# filesystem identity and real free space before every admission; an image
+# with that guard started WITHOUT this overlay fails closed (503), it does not
+# fall back to container storage. Quota mode is deliberately not set here and
+# stays at the base file's audit default.
+
+x-managed-storage-environment: &managed-storage-environment
+  FTM_LOCAL_ROOT: /data/managed
+  STORAGE_BACKEND_IDENTITY_CHECKS: "true"
+  STORAGE_PHYSICAL_CAPACITY_CHECKS: "true"
+  STORAGE_EXPECTED_FS_UUID: ${MANAGED_STORAGE_FS_UUID:?MANAGED_STORAGE_FS_UUID must be set (run scripts/managed_storage_preflight.py)}
+  STORAGE_EXPECTED_FS_TYPE: ext4
+  STORAGE_SAFETY_RESERVE_PERCENT: ${MANAGED_STORAGE_SAFETY_RESERVE_PERCENT:-10}
+
+# create_host_path: false makes Compose refuse to start instead of creating an
+# empty stand-in on the NVMe when the disk is not mounted.
+x-managed-storage-volume: &managed-storage-volume
+  type: bind
+  source: ${MANAGED_STORAGE_ROOT:?MANAGED_STORAGE_ROOT must be set (run scripts/managed_storage_preflight.py)}
+  target: /data/managed
+  bind:
+    create_host_path: false
+
+services:
+  workbench:
+    environment: *managed-storage-environment
+    volumes:
+      - *managed-storage-volume
+  celery-worker:
+    environment: *managed-storage-environment
+    volumes:
+      - *managed-storage-volume

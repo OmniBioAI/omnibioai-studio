@@ -132,6 +132,16 @@ for entry in "${IMAGES[@]}"; do
     continue
   fi
 
+  # Packaged desktop installs run the release Compose files; never push an
+  # app image whose managed-storage guard those files cannot satisfy.
+  if [[ "$short_name" == "app" ]] && $PUSH; then
+    if ! python3 "${SCRIPT_DIR}/release_storage_gate.py" --workbench-src "$context"; then
+      err "Release storage compatibility BLOCKED: refusing to push $full_image"
+      FAILED+=("$short_name (release storage compatibility blocked)")
+      continue
+    fi
+  fi
+
   build_args=(
     buildx build
     --builder "$BUILDER"
