@@ -74,6 +74,22 @@ beforeEach(() => {
 });
 
 describe("App shell — Studio landing", () => {
+  it("opens the Storage route and preserves account navigation", async () => {
+    getCurrentUser.mockResolvedValue(admin);
+    window.history.replaceState({}, "", "/studio/storage");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 401 });
+    try {
+      render(<App />);
+      await screen.findByRole("heading", { name: "Storage", exact: true });
+      expect(screen.getByRole("button", { name: "Storage", exact: true })).toHaveAttribute("aria-current", "page");
+      fireEvent.click(screen.getByRole("button", { name: "Security", exact: true }));
+      await screen.findByText("Account Security page");
+      expect(location.pathname).toBe("/studio/security");
+      fireEvent.click(screen.getByRole("button", { name: "Storage", exact: true }));
+      await screen.findByRole("heading", { name: "Storage", exact: true });
+      expect(location.pathname).toBe("/studio/storage");
+    } finally { fetchSpy.mockRestore(); }
+  });
   it("removes IDE Services and resolves its retired internal index to Launch", async () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);

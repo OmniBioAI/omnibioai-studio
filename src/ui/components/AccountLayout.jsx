@@ -9,6 +9,7 @@ const IMPLEMENTED_SECTIONS = [
   { id: "notifications", label: "Notifications" },
   { id: "privacy", label: "Privacy & Data" },
   { id: "plan", label: "Plan" },
+  { id: "storage", label: "Storage" },
   { id: "help", label: "Help & Product" },
 ];
 
