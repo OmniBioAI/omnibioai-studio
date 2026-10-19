@@ -129,10 +129,9 @@ services:
     restart: "no"
 
   toolserver:
-    image: ghcr.io/omnibioai/omnibioai-toolserver:latest
+    image: omnibioai-toolserver:arm64
+    platform: linux/arm64
     restart: on-failure
-    ports:
-      - "${HOST_IP:-0.0.0.0}:9090:9090"
     environment:
       PYTHONUNBUFFERED: "1"
       IAM_URL: http://auth-service:8001
@@ -203,7 +202,7 @@ services:
       # TES IAM integration: HS256 fallback secret for the shared IAM
       # client's local decode -- same var name/value already wired into
       # every other JWT_SECRET consumer in this file.
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       POLICY_URL: http://policy-engine:8002
       HPC_POLICY_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
@@ -239,13 +238,43 @@ services:
       # service's own comment. :ro because TES only ever needs to
       # *connect to* this socket file, never write to it.
       - docker-proxy-socket:/var/run/proxy-socket:ro
-      - /usr/bin/docker:/usr/bin/docker:ro
-      - /usr/bin/singularity:/usr/bin/singularity:ro
+      - type: bind
+        source: /usr/bin/docker
+        target: /usr/bin/docker
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /usr/bin/singularity
+        target: /usr/bin/singularity
+        read_only: true
+        bind:
+          create_host_path: false
       - /etc/slurm:/etc/slurm:ro
-      - /usr/bin/unsquashfs:/usr/bin/unsquashfs:ro
-      - /usr/bin/squashfuse:/usr/bin/squashfuse:ro
-      - /usr/bin/fusermount:/usr/bin/fusermount:ro
-      - /usr/bin/fusermount3:/usr/bin/fusermount3:ro
+      - type: bind
+        source: /usr/bin/unsquashfs
+        target: /usr/bin/unsquashfs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /usr/bin/squashfuse
+        target: /usr/bin/squashfuse
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /usr/bin/fusermount
+        target: /usr/bin/fusermount
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /usr/bin/fusermount3
+        target: /usr/bin/fusermount3
+        read_only: true
+        bind:
+          create_host_path: false
       - /lib/aarch64-linux-gnu/libseccomp.so.2:/lib/aarch64-linux-gnu/libseccomp.so.2:ro
       - /lib/aarch64-linux-gnu/liblzo2.so.2:/lib/aarch64-linux-gnu/liblzo2.so.2:ro
       - /lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:ro
@@ -260,7 +289,12 @@ services:
       - ${MACHINE_DIR}/omnibioai-tool-images:${MACHINE_DIR}/omnibioai-tool-images:ro
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
       - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
-      - ${DATA_DIR}/tool-images/sif:/sif:ro
+      - type: bind
+        source: ${DATA_DIR}/tool-images/sif
+        target: /sif
+        read_only: true
+        bind:
+          create_host_path: false
     command:
       - bash
       - -lc
@@ -311,14 +345,19 @@ services:
       OMNIBIOAI_MODEL_REGISTRY_ROOT: /registry
       IAM_URL: http://auth-service:8001
       AUDIT_URL: http://security-audit:8004
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       AUTH_ENABLED: "true"
       HF_TOKEN: ${HF_TOKEN:-}
       HF_DEFAULT_NAMESPACE: ${HF_DEFAULT_NAMESPACE:-omnibioai}
 
     volumes:
       - ${MACHINE_DIR}/data/local_registry/model_registry:/registry
-      - ${WORK_DIR}/runs:/app/work/runs:ro
+      - type: bind
+        source: ${WORK_DIR}/runs
+        target: /app/work/runs
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       mysql:
         condition: service_healthy
@@ -348,7 +387,7 @@ services:
       # Redis P1-5 Stage 3: IAM-only migration, checked before REDIS_URL.
       IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
       IAM_URL: http://auth-service:8001
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       # Stripe-hosted payment-method management (billing admin "add card" /
       # "manage billing" on the Studio Billing page). Optional: empty
       # STRIPE_SECRET_KEY means billing-service reports stripe_enabled:
@@ -433,7 +472,7 @@ services:
       # from DJANGO_SECRET_KEY above, which only signs LIMS's own
       # self-issued cookie tokens (core/api/cookie_auth.py) and is NOT
       # interoperable with omnibioai-auth tokens.
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       # PR10: omnibioai-iam-client's base URL -- same var name/value already
       # wired into every other IAM_URL consumer in this compose file.
       # LIMS's authentication now goes through the IAM client (RS256/JWKS +
@@ -441,8 +480,9 @@ services:
       IAM_URL: http://auth-service:8001
       LIMS_SSO_CLIENT_ID: ${LIMS_SSO_CLIENT_ID:-omnibioai-lims}
       LIMS_SSO_CLIENT_SECRET: ${LIMS_SSO_CLIENT_SECRET}
-      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,*"
-      CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org"
+      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,lims-staging.omnibioai.org,*"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "https://lims-staging.omnibioai.org"
+      CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://lims-staging.omnibioai.org,https://omnibioai.org"
       # Redis P1-5 residual cutover: settings.py's CACHES["default"]
       # LOCATION reads this var directly (backs cache_page on 7
       # reference-data ReadOnlyModelViewSets + DRF's login/SSO
@@ -546,7 +586,7 @@ services:
       IAM_REDIS_URL: redis://redis_iam_shared:${REDIS_IAM_SHARED_PASSWORD}@redis:6379/0
       INTERACTION_REDIS_URL: redis://redis_interaction_producer:${REDIS_INTERACTION_PRODUCER_PASSWORD}@redis:6379
       AUDIT_REDIS_URL: redis://redis_audit_producer:${REDIS_AUDIT_PRODUCER_PASSWORD}@redis:6379
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       OLLAMA_BASE_URL: http://ollama:11434
       IAM_URL: http://auth-service:8001
       GATEWAY_URL: http://api-gateway:8080
@@ -577,8 +617,16 @@ services:
       RAG_CACHE_ENABLED: "true"
       RAG_CACHE_TTL: "3600"
     volumes:
-      - ${DATA_DIR}/PubMed:/workspace/data/PubMed
-      - ${DATA_DIR}/PubMed/Index:/workspace/data/Index
+      - type: bind
+        source: ${DATA_DIR}/PubMed
+        target: /workspace/data/PubMed
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${DATA_DIR}/PubMed/Index
+        target: /workspace/data/Index
+        bind:
+          create_host_path: false
     depends_on:
       ollama:
         condition: service_started
@@ -791,7 +839,7 @@ services:
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       ORCHESTRATOR_MAX_RETRIES: "10"
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       STORAGE_IAM_URL: http://auth-service:8001
       STORAGE_BILLING_URL: http://billing-service:8005
       STORAGE_QUOTA_MODE: ${STORAGE_QUOTA_MODE:-audit}
@@ -911,11 +959,31 @@ services:
       - ${MACHINE_DIR}/omnibioai-tes/configs:/workspace/omnibioai-tes/configs:ro
       - ${MACHINE_DIR}/omnibioai-docs:/workspace/omnibioai-docs:ro
       - ${MACHINE_DIR}/omnibioai-workflow-bundles:/workspace/omnibioai-workflow-bundles:ro
-      - ${WORK_DIR}/runs:/app/work/runs
-      - ${WORK_DIR}/objects:/app/work/objects
-      - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
-      - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
-      - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      - type: bind
+        source: ${WORK_DIR}/runs
+        target: /app/work/runs
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/objects
+        target: /app/work/objects
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/workflow_runner_exec
+        target: /app/work/workflow_runner_exec
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/workflow_runner_runs
+        target: /app/work/workflow_runner_runs
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/pathway_enrichment_runs
+        target: /app/work/pathway_enrichment_runs
+        bind:
+          create_host_path: false
       # #529: Workflow Planner's and BioQueryAI's async (Celery) modes write
       # their status.json/.ask_index here; this workbench container's own
       # planner_ask_status/BioQueryAI polling handlers read from the same
@@ -929,14 +997,27 @@ services:
       # genuinely completes and writes status.json inside celery-worker,
       # but workbench's filesystem never has the file, or even the parent
       # directory, at all).
-      - ${WORK_DIR}/planner:/app/work/planner
-      - ${WORK_DIR}/bioqueryai:/app/work/bioqueryai
+      - type: bind
+        source: ${WORK_DIR}/planner
+        target: /app/work/planner
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/bioqueryai
+        target: /app/work/bioqueryai
+        bind:
+          create_host_path: false
       # #265: proxy's exposed socket, not the raw host one -- see the
       # docker-socket-proxy service above and DOCKER_HOST in
       # environment: above. :ro because workbench only ever needs to
       # *connect to* this socket file, never write to it.
       - docker-proxy-socket:/var/run/proxy-socket:ro
-      - /usr/bin/docker:/usr/bin/docker:ro
+      - type: bind
+        source: /usr/bin/docker
+        target: /usr/bin/docker
+        read_only: true
+        bind:
+          create_host_path: false
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
       - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
       - /media:/media:ro
@@ -1072,22 +1153,55 @@ services:
       DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
       - ${WORKSPACE_HOST}:/workspace
-      - ${WORK_DIR}/runs:/app/work/runs
-      - ${WORK_DIR}/objects:/app/work/objects
-      - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
-      - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
-      - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      - type: bind
+        source: ${WORK_DIR}/runs
+        target: /app/work/runs
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/objects
+        target: /app/work/objects
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/workflow_runner_exec
+        target: /app/work/workflow_runner_exec
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/workflow_runner_runs
+        target: /app/work/workflow_runner_runs
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/pathway_enrichment_runs
+        target: /app/work/pathway_enrichment_runs
+        bind:
+          create_host_path: false
       # #529: this is where the Celery tasks that actually run in THIS
       # container write their status.json/.ask_index -- see the matching
       # comment on workbench's volumes: above for the full rationale.
-      - ${WORK_DIR}/planner:/app/work/planner
-      - ${WORK_DIR}/bioqueryai:/app/work/bioqueryai
+      - type: bind
+        source: ${WORK_DIR}/planner
+        target: /app/work/planner
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WORK_DIR}/bioqueryai
+        target: /app/work/bioqueryai
+        bind:
+          create_host_path: false
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_HOST in environment: above. :ro because celery-worker
       # only ever needs to *connect to* this socket file, never write
       # to it.
       - docker-proxy-socket:/var/run/proxy-socket:ro
-      - /usr/bin/docker:/usr/bin/docker:ro
+      - type: bind
+        source: /usr/bin/docker
+        target: /usr/bin/docker
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       docker-socket-proxy:
         condition: service_started
@@ -1164,7 +1278,7 @@ services:
       # Same shared secret already wired into workbench, api-gateway, and
       # model-registry -- lets require_admin() validate omnibioai-auth-issued
       # JWTs locally (HS256) without a network round trip.
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       # Same shared service secret already wired into rag and the gateway
       # blocks below. Without this, routes_rag_proxy.py's RAGBIO_API_KEY
       # env var is empty, so it sends /rag/studies and /rag/cache-stats to
@@ -1282,10 +1396,16 @@ services:
       - control-center
 
   dev-hub:
+    # Optional workload: only activate with --profile devhub. This allows
+    # unrelated Compose services to resolve without its credential; the
+    # hardened entrypoint still refuses an unauthenticated startup.
+    profiles:
+      - devhub
     build:
       context: ${MACHINE_DIR}/omnibioai-dev-hub
       dockerfile: Dockerfile
       target: backend
+    user: "10001:10001"
     ports:
       - "127.0.0.1:5173:5173"
       - "${HOST_IP:-0.0.0.0}:8082:8082"
@@ -1295,12 +1415,17 @@ services:
       OLLAMA_URL: http://ollama:11434/api
       OLLAMA_HOST: http://ollama:11434
       REPO_BASE: /repos
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-omnibioai-platform}
       JWT_ISSUER: ${JWT_ISSUER:-omnibioai-auth}
       AUTH_ENABLED: "true"
     volumes:
-      - ${MACHINE_DIR}/omnibioai-dev-hub/data:/app/data
+      - type: bind
+        source: ${MACHINE_DIR}/omnibioai-dev-hub/data/faiss_index
+        target: /app/data/faiss_index
+        read_only: true
+        bind:
+          create_host_path: false
       - ${MACHINE_DIR}/omnibioai:/repos/omnibioai:ro
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
       - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
@@ -1486,7 +1611,7 @@ services:
       # failed closed as 401 regardless of the token's real validity.
       # Same source of truth every other JWT_SECRET consumer in this
       # file already uses (tes, auth-service, control-center, rag, ...).
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       # Previously unset here too, so api/iam.py's AUTH_SERVICE_URL fell
       # back to its own hard-coded "http://auth:8000" -- no service
       # named "auth" exists on this network (the real one is
@@ -1580,7 +1705,7 @@ services:
       DB_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
       AUTH_AUDIT_INTEGRITY_KEY: ${AUTH_AUDIT_INTEGRITY_KEY:?AUTH_AUDIT_INTEGRITY_KEY must be set}
 
-      SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
+      SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
 
       # omni_sk_ API keys: shared with api-gateway, which trades a key for a
 
@@ -1668,7 +1793,7 @@ services:
       DB_NAME: omnibioai
       DB_USER: omnibioai_interaction_worker
       DB_PASSWORD: ${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}
-      SECRET_KEY: ${AUTH_SECRET_KEY:-change-me}
+      SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       # Redis P1-5 Stage 5: dedicated container (interaction_consumer.py
       # only), no coupling with auth-service's own REDIS_URL -- safe to
       # migrate independently of the auth-service (Stage 4) blocker.
@@ -1738,7 +1863,7 @@ services:
       # AuditConfig.EVENT_SIGNING_SECRET, audit-event signature
       # verification both silently fell back to the public literal
       # "change-me" instead of the real platform secret.
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       # PR-B0: previously unset here, so GET /audit/events
       # (api/routes_audit_events.py, Depends(get_db)) fell back to
       # audit/config.py's default mysql+pymysql://root:root@localhost:3306/
@@ -1787,7 +1912,7 @@ services:
       # fell back to "change-me" instead of the real platform secret --
       # harmless while no producer signs, but would misclassify a real
       # producer's valid signature as "invalid" once one does.
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
       # HIPAA-V2-003 application redeploy (2026-09-16): worker/main.py's
       # SessionLocal (db/session.py) binds to AUDIT_WRITER_DATABASE_URL
@@ -1822,7 +1947,7 @@ services:
       POLICY_URL: http://policy-engine:8002
       HPC_URL: http://hpc-policy-engine:8003
       AUDIT_URL: http://security-audit:8004
-      JWT_SECRET: ${AUTH_SECRET_KEY:-change-me}
+      JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
       # Same value as auth-service's: lets the gateway exchange omni_sk_ keys.
       API_KEY_EXCHANGE_SECRET: ${API_KEY_EXCHANGE_SECRET:-}
       # Billable /v1 usage events, via the existing usage-producer ACL user
@@ -2009,7 +2134,12 @@ services:
       REDIS_PASSWORD_FILE: /run/secrets/redis-exporter-passwords.json
       REDIS_EXPORTER_CONFIG_COMMAND: "-"
     volumes:
-      - /home/manish/redis-prod-credentials/redis_exporter_passwords.json:/run/secrets/redis-exporter-passwords.json:ro
+      - type: bind
+        source: /etc/omnibioai/redis-exporter/redis_exporter_passwords.json
+        target: /run/secrets/redis-exporter-passwords.json
+        read_only: true
+        bind:
+          create_host_path: false
     ports:
       - "9121:9121"
     depends_on:
@@ -2066,7 +2196,8 @@ services:
       - model-registry
       - workflow-bundles
       - tool-images
-      - dev-hub
+      # Dev Hub is an opt-in profile; its runtime-only routes return 502 while
+      # absent, but the shared router must remain available to Studio.
       - tes
       - toolserver
       - opa

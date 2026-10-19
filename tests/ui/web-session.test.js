@@ -125,18 +125,59 @@ describe("web session boundary", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ valid: false, reason: "revoked" }), { status: 400 }));
     await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("This license key has been revoked");
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ valid: false, error: "custom backend error" }), { status: 400 }));
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: false, error: "custom backend error" }), { status: 400 }));
     await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("custom backend error");
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("<html>gateway error</html>", { status: 502 }));
-    await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("License validation failed (502)");
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("<html>gateway error</html>", { status: 502 }));
+    await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("License activation failed (502)");
 
     vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, access_token: "t", refresh_token: "r" }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, user_id: 2, email: "c@d.test" }), { status: 200 }));
-    const user = await loginWithLicenseKey(" KEY ", "c@d.test", "desktop");
-    expect(user).toMatchObject({ userId: 2, email: "c@d.test", roles: [], permissions: [] });
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, tier: "developer" }), { status: 200 }));
+    await expect(loginWithLicenseKey(" KEY ", "c@d.test", "desktop")).resolves.toMatchObject({ valid: true });
+    expect(getToken()).toBeNull();
+  });
+
+  it("completes email OTP after password verification and starts a web session", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ mfa_required: true, challenge_token: "web-challenge", methods: ["totp"] }), { status: 200 }));
+    let challenge;
+    try {
+      await loginWithPassword("mfa@test", "password");
+    } catch (error) { challenge = error; }
+    expect(challenge).toMatchObject({ code: "mfa_required", challengeToken: "web-challenge", methods: ["totp"] });
+    expect(getToken()).toBeNull();
+
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "web-access", refresh_token: "web-refresh" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, user_id: 43, email: "mfa@test" }), { status: 200 }));
+    const { completePasswordLoginWithMfa } = await import("../../src/ui/lib/web/session");
+    const user = await completePasswordLoginWithMfa("web-challenge", "123456", "email");
+    expect(user).toMatchObject({ userId: 43, email: "mfa@test" });
+    expect(fetchMock.mock.calls[1][0]).toBe("/users/me/mfa/challenge");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).method).toBe("email");
+    expect(getToken()).toBe("web-access");
     clearSession();
+  });
+
+  it("keeps the session empty when MFA verification rejects a used challenge", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "Invalid or replayed MFA challenge" }), { status: 401 }));
+    const { completePasswordLoginWithMfa } = await import("../../src/ui/lib/web/session");
+    await expect(completePasswordLoginWithMfa("used-challenge", "123456", "email"))
+      .rejects.toThrow("Invalid or replayed MFA challenge");
+    expect(getToken()).toBeNull();
+  });
+
+  it("keeps the web session empty while email OTP advances to enrolled TOTP", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+      mfa_required: true, challenge_token: "web-totp-stage", methods: ["totp", "recovery_code"],
+    }), { status: 200 }));
+    const { completePasswordLoginWithMfa } = await import("../../src/ui/lib/web/session");
+    await expect(completePasswordLoginWithMfa("web-email-stage", "123456", "email"))
+      .rejects.toMatchObject({ code: "mfa_required", challengeToken: "web-totp-stage" });
+    expect(getToken()).toBeNull();
   });
 
   it("caches the current user and only refetches when forced or invalid", async () => {

@@ -7,7 +7,16 @@ const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig({
   root: repoRoot,
   plugins: [react()],
-  resolve: { dedupe: ["react", "react-dom"] },
+  // The app and the local @omnibioai/ui package each have an installed
+  // React copy.  Explicit aliases keep Testing Library and app components on
+  // the same dispatcher; `dedupe` alone does not collapse pnpm/npm symlinks.
+  resolve: {
+    dedupe: ["react", "react-dom"],
+    alias: {
+      react: fileURLToPath(new URL("packages/omnibioai-ui/node_modules/react", import.meta.url)),
+      "react-dom": fileURLToPath(new URL("packages/omnibioai-ui/node_modules/react-dom", import.meta.url)),
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",

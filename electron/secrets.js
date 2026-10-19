@@ -65,6 +65,7 @@ const REDIS_ACL_CREDENTIALS = Object.freeze({
 // entry below is `null`.
 const SECRET_DEFAULTS = {
   AUTH_SECRET_KEY: "change-me",
+  DEVHUB_INTERNAL_PROXY_SECRET: "change-me-in-production",
   MYSQL_ROOT_PASSWORD: "omnibioai",
   INTERACTION_DB_PASSWORD: "change-me-in-production",
   GF_ADMIN_PASSWORD: "omnibioai",

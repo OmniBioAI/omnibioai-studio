@@ -15,6 +15,22 @@
 const TOKEN_KEY = "omnibioai_access_token";
 const REFRESH_TOKEN_KEY = "omnibioai_refresh_token";
 const SESSION_EVENT = "omnibioai-session-changed";
+const LOGIN_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(input, init, timeoutMs = LOGIN_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Authentication timed out. Check your connection and try again.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
 
 export function authUrl(path) {
   return path;
@@ -157,15 +173,19 @@ export async function refresh() {
 }
 
 export async function loginWithPassword(email, password) {
-  const res = await fetch(authUrl("/auth/login"), {
+  const res = await fetchWithTimeout(authUrl("/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
+  const data = await readJson(res);
   if (!res.ok) {
-    throw new Error(res.status === 401 ? "Invalid email or password" : "Login failed");
+    throw new Error(res.status === 401
+      ? "Invalid email or password"
+      : data?.message || data?.detail || "Login failed");
   }
-  const data = await res.json();
+  if (data?.mfa_required) throw mfaRequiredError(data);
+  if (!data?.access_token) throw new Error("Login did not return an access token");
   setSession(data.access_token, data.refresh_token);
   return getCurrentUser({ force: true });
 }
@@ -179,27 +199,65 @@ const LICENSE_ERROR_MESSAGES = {
   email_mismatch: "This license key isn't registered to that email",
 };
 
-export async function loginWithLicenseKey(key, email, platform = "web") {
-  const res = await fetch(authUrl("/license/validate"), {
+function mfaRequiredError(result) {
+  const error = new Error(result.methods?.includes("email")
+    ? "Enter the six-digit code sent to your email"
+    : "Enter your authenticator or recovery code to continue");
+  error.code = "mfa_required";
+  error.challengeToken = result.challenge_token;
+  error.methods = result.methods || [];
+  return error;
+}
+
+export async function activateLicense(key, email, platform = "web") {
+  const res = await fetch(authUrl("/license/activate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key, email, platform }),
   });
   const data = await readJson(res);
   if (!res.ok || !data?.valid) {
-    // Preference order: a known `reason` code maps to its friendly message
-    // (unchanged from before); otherwise surface whatever message the
-    // backend actually sent (a real JSON error body auth-service returned,
-    // just not one of the LICENSE_ERROR_MESSAGES codes above); otherwise
-    // — the body wasn't JSON at all (nginx error page, SPA index.html
-    // fallback, empty body) — fall back to a plain, status-coded message
-    // instead of leaking the raw HTML/parse failure into the UI.
     const reasonMessage = data?.reason && LICENSE_ERROR_MESSAGES[data.reason];
     const backendMessage = data?.error || data?.message || data?.detail;
-    throw new Error(reasonMessage || backendMessage || `License validation failed (${res.status})`);
+    throw new Error(reasonMessage || backendMessage || `License activation failed (${res.status})`);
   }
-  setSession(data.access_token, data.refresh_token);
+  return data;
+}
+
+export async function loginWithLicenseKey(key, email, platform = "web") {
+  return activateLicense(key, email, platform);
+}
+
+export async function completePasswordLoginWithMfa(challengeToken, code, method) {
+  const response = await fetch(authUrl("/users/me/mfa/challenge"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ challenge_token: challengeToken, code, ...(method ? { method } : {}) }),
+  });
+  const session = await readJson(response);
+  if (response.ok && session?.mfa_required) throw mfaRequiredError(session);
+  if (!response.ok || !session?.access_token) {
+    const detail = session?.detail;
+    throw new Error(typeof detail === "string" ? detail : session?.message || "MFA verification failed");
+  }
+  setSession(session.access_token, session.refresh_token);
   return getCurrentUser({ force: true });
+}
+
+export async function resendPasswordEmailOtp(challengeToken) {
+  const response = await fetch(authUrl("/users/me/mfa/email/resend"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ challenge_token: challengeToken }),
+  });
+  const data = await readJson(response);
+  if (!response.ok) {
+    const error = new Error(data?.message || data?.detail || "Unable to resend verification code");
+    const retryAfter = Number.parseInt(response.headers.get("Retry-After") || "", 10);
+    error.retryAfterSeconds = Number.isFinite(retryAfter) ? retryAfter : null;
+    throw error;
+  }
+  return data?.cooldown_seconds ?? 60;
 }
 
 export async function getCurrentUser({ force = false } = {}) {

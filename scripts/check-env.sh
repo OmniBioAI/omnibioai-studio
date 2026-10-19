@@ -63,6 +63,36 @@ check_not_default "JUPYTER_TOKEN"        "omnibioai"
 check_not_default "RSTUDIO_PASSWORD"     "omnibioai"
 check_not_default "VSCODE_PASSWORD"      "omnibioai"
 
+# Dev Hub is an opt-in Compose profile. Its credential must not block
+# unrelated services, but an operator can request this explicit preflight
+# when preparing activation. The container entrypoint independently fails
+# closed even if this helper is bypassed.
+DEVHUB_REQUESTED="${DEVHUB_ENABLED:-false}"
+DEVHUB_REQUESTED="${DEVHUB_REQUESTED,,}"
+COMPOSE_PROFILE_LIST="${COMPOSE_PROFILES:-}"
+COMPOSE_PROFILE_LIST=",${COMPOSE_PROFILE_LIST//[[:space:]]/},"
+if [[ "$COMPOSE_PROFILE_LIST" == *",devhub,"* ]]; then
+  DEVHUB_REQUESTED="true"
+fi
+if [[ "$DEVHUB_REQUESTED" == "true" || "$DEVHUB_REQUESTED" == "1" || "$DEVHUB_REQUESTED" == "yes" ]]; then
+  check_not_default "DEVHUB_INTERNAL_PROXY_SECRET" "change-me-in-production"
+  if [[ -n "${DEVHUB_INTERNAL_PROXY_SECRET:-}" && "${AUTH_SECRET_KEY:-}" == "$DEVHUB_INTERNAL_PROXY_SECRET" ]]; then
+    echo "[ERROR] AUTH_SECRET_KEY and DEVHUB_INTERNAL_PROXY_SECRET must be independent values"
+    ERRORS=$((ERRORS + 1))
+  fi
+else
+  case "${DEVHUB_INTERNAL_PROXY_SECRET:-}" in
+    ""|change-me|change-me-in-production|omnibioai)
+      echo "[INFO] Dev Hub profile is inactive; no internal-proxy secret is required"
+      ;;
+    *)
+      if [[ "${AUTH_SECRET_KEY:-}" == "$DEVHUB_INTERNAL_PROXY_SECRET" ]]; then
+        echo "[WARN] Dev Hub is inactive and its configured proxy secret is not independent; it will fail closed if activated"
+      fi
+      ;;
+  esac
+fi
+
 # Required paths — must be set
 if [[ ! -d "${OMNIBIOAI_ROOT}" ]]; then
   echo "[ERROR] OMNIBIOAI_ROOT does not exist: ${OMNIBIOAI_ROOT}"

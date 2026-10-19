@@ -35,13 +35,13 @@ function getMachineId() {
   return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
 }
 
-async function validateLicense(key) {
+async function validateLicense(key, email) {
   const machineId = getMachineId();
   try {
-    const response = await fetch(`${LICENSE_SERVER}/license/validate`, {
+    const response = await fetch(`${LICENSE_SERVER}/license/activate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, machine_id: machineId })
+      body: JSON.stringify({ key, email: email || undefined, machine_id: machineId })
     });
     if (!response.ok) {
       const err = await response.json();
@@ -85,12 +85,12 @@ function loadCachedLicense() {
 // /validate doesn't return this credential (see routes_license.py's
 // /license/pull-token, Phase 1 PR4's cutover of the same split
 // license_server.py used).
-async function fetchPullToken(key, machineId) {
+async function fetchPullToken(key, email, machineId) {
   try {
     const response = await fetch(`${LICENSE_SERVER}/license/pull-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, machine_id: machineId })
+      body: JSON.stringify({ key, email, machine_id: machineId })
     });
     if (!response.ok) return '';
     const data = await response.json();
@@ -199,6 +199,7 @@ function writeEnvFile(input) {
     // generated key and crash-loop the LIMS container on next start.
     `LIMSX_FIELD_ENCRYPTION_KEY=${existing.LIMSX_FIELD_ENCRYPTION_KEY || ''}`,
     `AUTH_SECRET_KEY=${existing.AUTH_SECRET_KEY     || ''}`,
+    `DEVHUB_INTERNAL_PROXY_SECRET=${existing.DEVHUB_INTERNAL_PROXY_SECRET || ''}`,
     `RAG_PROVIDER_KEY_REVEAL_SECRET=${existing.RAG_PROVIDER_KEY_REVEAL_SECRET || ''}`,
     `GF_ADMIN_PASSWORD=${existing.GF_ADMIN_PASSWORD || ''}`,
     `GF_STUDIO_TOKEN=${existing.GF_STUDIO_TOKEN    || ''}`,
@@ -755,17 +756,16 @@ ipcMain.handle('grafana-login', async () => {
 });
 
 // ─── LICENSE ──────────────────────────────────────────────────────────────────
-ipcMain.handle('license-validate', async (event, key) => {
-  const result = await validateLicense(key);
+ipcMain.handle('license-validate', async (event, credentials) => {
+  const { key, email } = typeof credentials === 'string'
+    ? { key: credentials, email: '' }
+    : credentials;
+  const result = await validateLicense(key, email);
   if (result.valid) {
-    // Phase 1 PR4: /license/validate now also returns access_token/
-    // refresh_token (it doubles as an auth-service login). license.json is
-    // an offline-grace license cache on disk, not a credential store --
-    // never persist the JWTs there, only the license-shape fields the rest
-    // of this file and LicenseGate.jsx actually read.
+    // License activation never returns or persists an identity session.
     const { access_token, refresh_token, token_type, ...licenseFields } = result;
     saveLicense({ ...licenseFields, key });
-    const ghcrToken = await fetchPullToken(key, getMachineId());
+    const ghcrToken = await fetchPullToken(key, email, getMachineId());
     if (ghcrToken) {
       process.env.GHCR_TOKEN = ghcrToken;
     }

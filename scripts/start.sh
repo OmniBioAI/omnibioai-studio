@@ -53,9 +53,10 @@ if [ -n "$ENV_FILE" ]; then
   set +a
 else
   echo "[WARN] No .env found — using defaults (run the Studio app first to generate it)"
-  export DATA_DIR="${DATA_DIR:-$HOME/omnibioai/data}"
-  export WORK_DIR="${WORK_DIR:-$HOME/omnibioai/work}"
-  export WORKSPACE_HOST="${WORKSPACE_HOST:-$HOME/omnibioai/work}"
+  export MACHINE_DIR="${MACHINE_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd -P)}"
+  export DATA_DIR="${DATA_DIR:-$MACHINE_DIR/data}"
+  export WORK_DIR="${WORK_DIR:-$MACHINE_DIR/work}"
+  export WORKSPACE_HOST="${WORKSPACE_HOST:-$MACHINE_DIR}"
   export DB_INIT_DIR="$SCRIPT_DIR/../db-init"
   export VIDEO_DIR="$WORK_DIR/videos"
   # Deliberately NOT defaulted to the historical "omnibioai" literal here --

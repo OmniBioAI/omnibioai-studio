@@ -155,10 +155,14 @@ export async function loginWithPassword(email, password) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(res.status === 401 ? "Invalid email or password" : "Login failed");
+    throw new Error(res.status === 401
+      ? "Invalid email or password"
+      : data.message || data.detail || "Login failed");
   }
-  const data = await res.json();
+  if (data.mfa_required) throw mfaRequiredError(data);
+  if (!data.access_token) throw new Error("Login did not return an access token");
   setSession(data.access_token, data.refresh_token);
   return getCurrentUser({ force: true });
 }
@@ -172,18 +176,65 @@ const LICENSE_ERROR_MESSAGES = {
   email_mismatch: "This license key isn't registered to that email",
 };
 
-export async function loginWithLicenseKey(key, email, platform = "web") {
-  const res = await fetch(authUrl("/license/validate"), {
+function mfaRequiredError(result) {
+  const error = new Error(result.methods?.includes("email")
+    ? "Enter the six-digit code sent to your email"
+    : "Enter your authenticator or recovery code to continue");
+  error.code = "mfa_required";
+  error.challengeToken = result.challenge_token;
+  error.methods = result.methods || [];
+  return error;
+}
+
+export async function activateLicense(key, email, platform = "web") {
+  const res = await fetch(authUrl("/license/activate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key, email, platform }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.valid) {
-    throw new Error(LICENSE_ERROR_MESSAGES[data.reason] || "License validation failed");
+    throw new Error(LICENSE_ERROR_MESSAGES[data.reason] || data.detail || "License activation failed");
   }
-  setSession(data.access_token, data.refresh_token);
+  // Activation is an entitlement operation, never an authentication grant.
+  // Ignore any token-shaped fields from an older backend response rather
+  // than allowing license possession to establish an identity session.
+  return data;
+}
+
+export async function loginWithLicenseKey(key, email, platform = "web") {
+  return activateLicense(key, email, platform);
+}
+
+export async function completePasswordLoginWithMfa(challengeToken, code, method) {
+  const response = await fetch(authUrl("/users/me/mfa/challenge"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ challenge_token: challengeToken, code, ...(method ? { method } : {}) }),
+  });
+  const session = await response.json().catch(() => ({}));
+  if (response.ok && session.mfa_required) throw mfaRequiredError(session);
+  if (!response.ok || !session.access_token) {
+    throw new Error(session.detail || session.message || "MFA verification failed");
+  }
+  setSession(session.access_token, session.refresh_token);
   return getCurrentUser({ force: true });
+}
+
+export async function resendPasswordEmailOtp(challengeToken) {
+  const response = await fetch(authUrl("/users/me/mfa/email/resend"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ challenge_token: challengeToken }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.message || data.detail || "Unable to resend verification code");
+    const retryAfter = Number.parseInt(response.headers.get("Retry-After") || "", 10);
+    error.retryAfterSeconds = Number.isFinite(retryAfter) ? retryAfter : null;
+    throw error;
+  }
+  return data.cooldown_seconds ?? 60;
 }
 
 export async function getCurrentUser({ force = false } = {}) {

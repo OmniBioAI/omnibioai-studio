@@ -63,7 +63,8 @@ describe("session boundary", () => {
   });
 
   it("maps license failures and consumes OAuth redirects without replay", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ valid: false, reason: "expired" }), { status: 400 }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ valid: false, reason: "expired" }), { status: 400 }));
     await expect(loginWithLicenseKey(" K ", "a@b.test")).rejects.toThrow("This license key has expired");
 
     window.history.replaceState({}, "", "/?status=link_required&link_token=lt&provider=github&email=a%40b.test");
@@ -73,17 +74,60 @@ describe("session boundary", () => {
   });
 
   it("falls back to a generic license error for an unmapped reason", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({ valid: false, reason: "unknown_thing" }), { status: 400 }));
-    await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("License validation failed");
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ valid: false, reason: "unknown_thing" }), { status: 400 }));
+    await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("License activation failed");
   });
 
-  it("activates a valid license key and starts a session", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, access_token: "t", refresh_token: "r" }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, user_id: 4, email: "k@k.test" }), { status: 200 }));
-    const user = await loginWithLicenseKey(" KEY ", "k@k.test", "desktop");
-    expect(user).toMatchObject({ userId: 4, email: "k@k.test" });
+  it("activates a valid license without creating an authenticated session", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ valid: true, tier: "developer" }), { status: 200 }));
+    await expect(loginWithLicenseKey(" KEY ", "k@k.test", "desktop"))
+      .resolves.toMatchObject({ valid: true, tier: "developer" });
+    expect(fetchMock.mock.calls[0][0]).toContain("/license/activate");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ key: " KEY ", email: "k@k.test", platform: "desktop" });
+    expect(localStorage.getItem("omnibioai_access_token")).toBeNull();
+  });
+
+  it("requires and completes OTP after password verification", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ mfa_required: true, challenge_token: "challenge-token", methods: ["email", "totp"] }), { status: 200 }));
+    let challenge;
+    try {
+      await loginWithPassword("mfa@test", "password");
+    } catch (error) { challenge = error; }
+    expect(challenge).toMatchObject({ code: "mfa_required", challengeToken: "challenge-token", methods: ["email", "totp"] });
+    expect(localStorage.getItem("omnibioai_access_token")).toBeNull();
+
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "mfa-access", refresh_token: "mfa-refresh" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, user_id: 42, email: "mfa@test", roles: ["user"], org_id: 7 }), { status: 200 }));
+    const { completePasswordLoginWithMfa } = await import("../../src/ui/lib/session");
+    const user = await completePasswordLoginWithMfa("challenge-token", "123456", "email");
+    expect(user).toMatchObject({ userId: 42, email: "mfa@test" });
+    expect(fetchMock.mock.calls[1][0]).toContain("/users/me/mfa/challenge");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).method).toBe("email");
+    expect(localStorage.getItem("omnibioai_access_token")).toBe("mfa-access");
     clearSession();
+  });
+
+  it("does not establish a session after a failed or replayed MFA challenge", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "Invalid or replayed MFA challenge" }), { status: 401 }));
+    const { completePasswordLoginWithMfa } = await import("../../src/ui/lib/session");
+    await expect(completePasswordLoginWithMfa("used-challenge", "123456", "email"))
+      .rejects.toThrow("Invalid or replayed MFA challenge");
+    expect(localStorage.getItem("omnibioai_access_token")).toBeNull();
+  });
+
+  it("advances from mandatory email OTP to an enrolled authenticator without a session", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+      mfa_required: true, challenge_token: "totp-stage", methods: ["totp", "recovery_code"],
+    }), { status: 200 }));
+    const { completePasswordLoginWithMfa } = await import("../../src/ui/lib/session");
+    await expect(completePasswordLoginWithMfa("email-stage", "123456", "email"))
+      .rejects.toMatchObject({ code: "mfa_required", challengeToken: "totp-stage" });
+    expect(localStorage.getItem("omnibioai_access_token")).toBeNull();
   });
 
   it("falls back to a fixed LAN IP when no host is configured", () => {
