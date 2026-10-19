@@ -38,7 +38,7 @@ function getMachineId() {
 async function validateLicense(key, email) {
   const machineId = getMachineId();
   try {
-    const response = await fetch(`${LICENSE_SERVER}/license/activate`, {
+    const response = await fetch(`${LICENSE_SERVER}/license/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key, email: email || undefined, machine_id: machineId })

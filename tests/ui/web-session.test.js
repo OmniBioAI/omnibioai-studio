@@ -131,12 +131,20 @@ describe("web session boundary", () => {
 
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response("<html>gateway error</html>", { status: 502 }));
-    await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("License activation failed (502)");
+    await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("License validation failed (502)");
 
     vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, tier: "developer" }), { status: 200 }));
-    await expect(loginWithLicenseKey(" KEY ", "c@d.test", "desktop")).resolves.toMatchObject({ valid: true });
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, mfa_required: true, challenge_token: "c" }), { status: 200 }));
+    await expect(loginWithLicenseKey("KEY", "c@d.test")).rejects.toThrow("Sign in with your password instead");
     expect(getToken()).toBeNull();
+
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, access_token: "t", refresh_token: "r" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, user_id: 2, email: "c@d.test" }), { status: 200 }));
+    const user = await loginWithLicenseKey(" KEY ", "c@d.test", "desktop");
+    expect(user).toMatchObject({ userId: 2, email: "c@d.test", roles: [], permissions: [] });
+    expect(fetchMock.mock.calls.at(-2)[0]).toContain("/license/validate");
+    expect(getToken()).toBe("t");
   });
 
   it("completes email OTP after password verification and starts a web session", async () => {

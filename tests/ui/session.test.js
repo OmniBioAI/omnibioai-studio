@@ -76,16 +76,26 @@ describe("session boundary", () => {
   it("falls back to a generic license error for an unmapped reason", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify({ valid: false, reason: "unknown_thing" }), { status: 400 }));
-    await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("License activation failed");
+    await expect(loginWithLicenseKey("k", "a@b.test")).rejects.toThrow("License validation failed");
   });
 
-  it("activates a valid license without creating an authenticated session", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify({ valid: true, tier: "developer" }), { status: 200 }));
-    await expect(loginWithLicenseKey(" KEY ", "k@k.test", "desktop"))
-      .resolves.toMatchObject({ valid: true, tier: "developer" });
-    expect(fetchMock.mock.calls[0][0]).toContain("/license/activate");
+  it("validates a license key and starts a session", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, access_token: "t", refresh_token: "r" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, user_id: 4, email: "k@k.test" }), { status: 200 }));
+    const user = await loginWithLicenseKey(" KEY ", "k@k.test", "desktop");
+    expect(user).toMatchObject({ userId: 4, email: "k@k.test" });
+    expect(fetchMock.mock.calls[0][0]).toContain("/license/validate");
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ key: " KEY ", email: "k@k.test", platform: "desktop" });
+    expect(localStorage.getItem("omnibioai_access_token")).toBe("t");
+    clearSession();
+  });
+
+  it("does not start a session when a valid license key needs MFA", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+      valid: true, mfa_required: true, challenge_token: "c", methods: ["totp"],
+    }), { status: 200 }));
+    await expect(loginWithLicenseKey("KEY", "k@k.test")).rejects.toThrow("Sign in with your password instead");
     expect(localStorage.getItem("omnibioai_access_token")).toBeNull();
   });
 

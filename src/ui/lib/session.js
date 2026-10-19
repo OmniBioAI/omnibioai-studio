@@ -186,24 +186,22 @@ function mfaRequiredError(result) {
   return error;
 }
 
-export async function activateLicense(key, email, platform = "web") {
-  const res = await fetch(authUrl("/license/activate"), {
+export async function loginWithLicenseKey(key, email, platform = "web") {
+  const res = await fetch(authUrl("/license/validate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key, email, platform }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.valid) {
-    throw new Error(LICENSE_ERROR_MESSAGES[data.reason] || data.detail || "License activation failed");
+    throw new Error(LICENSE_ERROR_MESSAGES[data.reason] || data.detail || "License validation failed");
   }
-  // Activation is an entitlement operation, never an authentication grant.
-  // Ignore any token-shaped fields from an older backend response rather
-  // than allowing license possession to establish an identity session.
-  return data;
-}
-
-export async function loginWithLicenseKey(key, email, platform = "web") {
-  return activateLicense(key, email, platform);
+  // The license form has no OTP step; an MFA-protected account signs in by password instead.
+  if (data.mfa_required || !data.access_token) {
+    throw new Error("This account requires multi-factor sign-in. Sign in with your password instead.");
+  }
+  setSession(data.access_token, data.refresh_token);
+  return getCurrentUser({ force: true });
 }
 
 export async function completePasswordLoginWithMfa(challengeToken, code, method) {

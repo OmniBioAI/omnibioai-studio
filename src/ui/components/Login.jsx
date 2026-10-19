@@ -104,7 +104,6 @@ export default function Login({ title, description }) {
     try {
       if (mode === "license") {
         await loginWithLicenseKey(licenseKey.trim(), email.trim(), isElectron() ? "desktop" : "web");
-        setNotice("License activated. Sign in separately to start an authorized session.");
       } else {
         if (loginChallenge) {
           await completePasswordLoginWithMfa(
