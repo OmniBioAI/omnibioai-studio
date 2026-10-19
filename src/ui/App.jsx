@@ -802,7 +802,9 @@ export default function App() {
           fontFamily: "var(--mono)", fontSize: "var(--font-size-xs)",
           display: "flex", alignItems: "flex-start", gap: 10,
         }}>
-          <div style={{ flex: 1 }}>Sign-in failed: {oauthNotice.message}</div>
+          <div style={{ flex: 1 }}>
+            {oauthNotice.reason ? oauthNotice.message : `Sign-in failed: ${oauthNotice.message}`}
+          </div>
           <div style={{ cursor: "pointer" }} onClick={() => setOauthNotice(null)}>✕</div>
         </div>
       )}

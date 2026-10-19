@@ -223,6 +223,15 @@ describe("session boundary", () => {
     window.history.replaceState({}, "", "/?status=error&error=denied");
     expect(consumeOAuthRedirectParams()).toEqual({ type: "error", message: "denied" });
 
+    window.history.replaceState({}, "", "/?status=error&reason=not_approved&message=server+text");
+    expect(consumeOAuthRedirectParams()).toEqual({
+      type: "error", reason: "not_approved",
+      message: "This email isn't approved yet. Request beta access at omnibioai.org",
+    });
+    window.history.replaceState({}, "", "/?status=error&reason=unverified_email");
+    expect(consumeOAuthRedirectParams()).toMatchObject({ type: "error", reason: "unverified_email" });
+    expect(consumeOAuthRedirectParams()).toBeNull();
+
     window.history.replaceState({}, "", "/?status=success");
     expect(consumeOAuthRedirectParams()).toEqual({ type: "success" });
 

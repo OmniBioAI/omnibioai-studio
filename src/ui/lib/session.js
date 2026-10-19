@@ -359,6 +359,12 @@ export async function confirmOAuthLink(linkToken, password) {
 // there was nothing OAuth-related to process. Path-agnostic (keys off query
 // params, not pathname) since it's not yet settled which URL in production
 // the provider redirect actually lands the browser on.
+// Auth's SSO gate answers with a reason code; these read better than a generic failure.
+const OAUTH_ERROR_MESSAGES = {
+  not_approved: "This email isn't approved yet. Request beta access at omnibioai.org",
+  unverified_email: "Your sign-in provider hasn't verified this email address. Verify it with the provider, or sign in another way.",
+};
+
 export function consumeOAuthRedirectParams() {
   const url = new URL(window.location.href);
   const params = url.searchParams;
@@ -368,7 +374,12 @@ export function consumeOAuthRedirectParams() {
 
   let result;
   if (status === "error") {
-    result = { type: "error", message: params.get("error") || "Sign-in failed" };
+    const reason = params.get("reason");
+    result = {
+      type: "error",
+      message: OAUTH_ERROR_MESSAGES[reason] || params.get("message") || params.get("error") || "Sign-in failed",
+      ...(reason ? { reason } : {}),
+    };
   } else if (status === "link_required") {
     result = {
       type: "link_required",
