@@ -17,7 +17,7 @@ const statusLabel = {
   error:    "ERROR",
 };
 
-export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onAppearanceClick, isAppearanceActive = false, onPersonalizationClick, isPersonalizationActive = false, onNotificationsClick, isNotificationsActive, onPrivacyClick, isPrivacyActive = false, onPlanClick, isPlanActive = false, onHelpClick, isHelpActive = false, isProfileActive, isSecurityActive, isPreferencesActive }) {
+export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onAppearanceClick, isAppearanceActive = false, onPersonalizationClick, isPersonalizationActive = false, onNotificationsClick, isNotificationsActive, onPrivacyClick, isPrivacyActive = false, onPlanClick, isPlanActive = false, onStorageClick, isStorageActive = false, onHelpClick, isHelpActive = false, isProfileActive, isSecurityActive, isPreferencesActive }) {
   return (
     <div style={{
       width:200, height:"100%", background:"var(--bg2)",
@@ -131,6 +131,7 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
               onNotificationsClick={onNotificationsClick} isNotificationsActive={isNotificationsActive}
             onPrivacyClick={onPrivacyClick} isPrivacyActive={isPrivacyActive}
             onPlanClick={onPlanClick} isPlanActive={isPlanActive}
+            onStorageClick={onStorageClick} isStorageActive={isStorageActive}
             onHelpClick={onHelpClick} isHelpActive={isHelpActive}
             isProfileActive={isProfileActive} isSecurityActive={isSecurityActive} />
         </div>

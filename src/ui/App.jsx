@@ -561,6 +561,7 @@ export default function App() {
           onNotificationsClick={() => handleNavClick(NOTIFICATIONS_PAGE)} isNotificationsActive={!service && step === NOTIFICATIONS_PAGE}
           onPrivacyClick={() => handleNavClick(PRIVACY_PAGE)} isPrivacyActive={!service && step === PRIVACY_PAGE}
           onPlanClick={() => handleNavClick(PLAN_PAGE)} isPlanActive={!service && step === PLAN_PAGE}
+          onStorageClick={() => handleNavClick(STORAGE_PAGE)} isStorageActive={!service && step === STORAGE_PAGE}
           onHelpClick={() => handleNavClick(HELP_PAGE)} isHelpActive={!service && step === HELP_PAGE}
           isProfileActive={!service && step === PROFILE_PAGE} isSecurityActive={!service && step === SECURITY_PAGE}
         />
@@ -776,6 +777,7 @@ export default function App() {
         onNotificationsClick={() => handleNavClick(NOTIFICATIONS_PAGE)} isNotificationsActive={!service && step === NOTIFICATIONS_PAGE}
         onPrivacyClick={() => handleNavClick(PRIVACY_PAGE)} isPrivacyActive={!service && step === PRIVACY_PAGE}
         onPlanClick={() => handleNavClick(PLAN_PAGE)} isPlanActive={!service && step === PLAN_PAGE}
+        onStorageClick={() => handleNavClick(STORAGE_PAGE)} isStorageActive={!service && step === STORAGE_PAGE}
         onHelpClick={() => handleNavClick(HELP_PAGE)} isHelpActive={!service && step === HELP_PAGE}
         isProfileActive={!service && step === PROFILE_PAGE} isSecurityActive={!service && step === SECURITY_PAGE}
         open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}

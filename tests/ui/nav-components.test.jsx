@@ -121,6 +121,17 @@ describe("Sidebar", () => {
 });
 
 describe("MobileNav", () => {
+  it("opens Storage through the account menu and closes the drawer", () => {
+    const navigate = vi.fn(), close = vi.fn();
+    render(<MobileNav nav={nav} step={32} setStep={vi.fn()} currentUser={user} open onClose={close} onStorageClick={navigate} isStorageActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    const item = screen.getByRole("menuitem", { name: "Storage" });
+    expect(item).toHaveAttribute("aria-current", "page");
+    fireEvent.click(item);
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(close).toHaveBeenCalledOnce();
+  });
+
   it("opens Personalization and closes the drawer", () => {
     const navigate = vi.fn(), close = vi.fn();
     render(<MobileNav nav={nav} step={24} setStep={vi.fn()} currentUser={user} open onClose={close} onPersonalizationClick={navigate} isPersonalizationActive />);

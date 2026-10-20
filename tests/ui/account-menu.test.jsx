@@ -44,7 +44,8 @@ describe("AccountMenu", () => {
     expect(screen.getByRole("menuitem", { name: /Profile/ })).toHaveFocus();
     expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
-    expect(screen.queryByText(/Storage|Usage|Connections/)).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Storage" })).toBeInTheDocument();
+    expect(screen.queryByText(/Usage|Connections/)).not.toBeInTheDocument();
   });
 
   it("opens from the keyboard through its semantic trigger", async () => {
@@ -148,7 +149,7 @@ it.each([false, true])("opens Notifications and closes the account menu (mobile=
   if (mobile) expect(close).toHaveBeenCalledOnce();
 });
 
-it.each(["Appearance", "Notifications", "Privacy & Data", "Plan", "Help & Product"])("does not throw clicking %s with no handler provided", label => {
+it.each(["Appearance", "Notifications", "Privacy & Data", "Plan", "Storage", "Help & Product"])("does not throw clicking %s with no handler provided", label => {
   render(<AccountMenu currentUser={{ userId: 1, email: "test@example.org" }} />);
   fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
   expect(() => fireEvent.click(screen.getByRole("menuitem", { name: label }))).not.toThrow();
@@ -157,6 +158,7 @@ it.each(["Appearance", "Notifications", "Privacy & Data", "Plan", "Help & Produc
 it.each([
   ["Privacy & Data", "onPrivacyClick", "isPrivacyActive"],
   ["Plan", "onPlanClick", "isPlanActive"],
+  ["Storage", "onStorageClick", "isStorageActive"],
   ["Help & Product", "onHelpClick", "isHelpActive"],
 ])("opens %s and closes the account menu", (label, clickProp, activeProp) => {
   const navigate = vi.fn();
