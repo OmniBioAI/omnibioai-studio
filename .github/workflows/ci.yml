@@ -82,6 +82,8 @@ jobs:
           TES_TOOLSERVER_CLIENT_SECRET=citestoolserver
           TES_TOOLSERVER_REGISTRATION_CLIENT_ID=ci-tes-toolserver-registration
           TES_TOOLSERVER_REGISTRATION_CLIENT_SECRET=citestoolserverregistration
+          INTEGRATION_CREDENTIAL_SERVICE_SECRET=ciintegrationcredential
+          STORAGE_BILLING_URL=http://billing-service:8005
           ENVEOF
           # rag's env_file is gitignored and generated on real hosts; compose
           # config refuses to render when it is missing.
@@ -101,9 +103,10 @@ jobs:
         # full required-secret .env, and both must confirm they're
         # unpublishable without one -- see SECURITY-COMPOSE-HARDENING.md.
         run: |
+          # No `&&` here: a failing `config` must fail the step (an && list does not trip -e).
           for f in docker-compose.release.yml docker-compose-release.yml; do
-            docker compose -f "$f" config --quiet \
-              && echo "✅ $f valid with required secrets set"
+            docker compose -f "$f" config --quiet
+            echo "✅ $f valid with required secrets set"
           done
 
           # dev-only overlay must also merge cleanly on top of the release default
