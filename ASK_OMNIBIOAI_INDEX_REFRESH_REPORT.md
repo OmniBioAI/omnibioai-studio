@@ -22,7 +22,7 @@ The current public index contains RNA-seq catalog references, including
 execution instructions. Those instructions are in the authoritative
 workflow-bundles checkout at:
 
-`/home/manish/Desktop/machine/omnibioai-workflow-bundles/rnaseq_v1/README.md`
+`/home/manish/Desktop/omnibioai-ecosystem/omnibioai-workflow-bundles/rnaseq_v1/README.md`
 
 That README documents `cd rnaseq_v1`, `nextflow run workflow/main.nf`, the
 Docker profile, input JSON, and output behavior, so it is sufficient to answer
@@ -37,7 +37,7 @@ retrieval-threshold problem.
 
 ## Existing active index
 
-- Location: `/home/manish/Desktop/machine/omnibioai-dev-hub/data/faiss_index`
+- Location: `/home/manish/Desktop/omnibioai-ecosystem/omnibioai-dev-hub/data/faiss_index`
 - Vectors/chunks: 2,010
 - Documents: 132
 - Repository: `omnibioai-docs` only
