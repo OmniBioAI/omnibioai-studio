@@ -1,0 +1,291 @@
+{
+  "containers": [
+    {
+      "container": "omnibioai-studio-workbench-1",
+      "container_id": "7e11a260febbbd46a6edcdfc13008563fb04cab7401924d5c068168af46174c5",
+      "errors": [],
+      "mounts": [
+        {
+          "Destination": "/app/work/workflow_runner_exec",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/workflow_runner_exec",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/home/manish/Desktop/omnibioai-ecosystem/data",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/data",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/media",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/media",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/var/run/proxy-socket",
+          "Mode": "ro",
+          "Name": "docker-proxy-socket",
+          "Propagation": "",
+          "RW": false,
+          "Source": "/var/lib/docker/volumes/docker-proxy-socket/_data",
+          "Type": "volume"
+        },
+        {
+          "Destination": "/workspace/omnibioai-docs",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-docs",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/usr/bin/docker",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/usr/bin/docker",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/home/manish/Desktop/omnibioai-ecosystem/work",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/work",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/planner",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/planner",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/workspace/omnibioai-workflow-bundles",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-workflow-bundles",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/workspace/omnibioai-tes/configs",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-tes/configs",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/pathway_enrichment_runs",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/pathway_enrichment_runs",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/bioqueryai",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/bioqueryai",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/workflow_runner_runs",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/workflow_runner_runs",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/runs",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/runs",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/objects",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/objects",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/workspace/data/PubMed",
+          "Mode": "",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/data/PubMed",
+          "Type": "bind"
+        }
+      ],
+      "payload_inventory": {
+        "effective_ftm_local_root": "/app/work/file_transfer_manager/local",
+        "ftm_local_root_env_set": false,
+        "trees": [
+          {
+            "exists": false,
+            "file_count": 0,
+            "files": [],
+            "path": "/app/work/file_transfer_manager",
+            "total_bytes": 0
+          },
+          {
+            "exists": false,
+            "file_count": 0,
+            "files": [],
+            "path": "/app/work/file_transfer_manager/local",
+            "total_bytes": 0
+          }
+        ]
+      },
+      "project": "omnibioai-studio",
+      "service": "workbench",
+      "started_at": "2026-10-11T16:50:51.006583574Z",
+      "storage_env": {
+        "OMNI_OBJECT_STORAGE_DIR": "/app/work/objects",
+        "STORAGE_QUOTA_BASELINE_VERIFIED": "false",
+        "STORAGE_QUOTA_MODE": "audit"
+      }
+    },
+    {
+      "container": "omnibioai-studio-celery-worker-1",
+      "container_id": "22fc7adf0b41683e9c143e85accab56d3e4a3876059866c29d7ec9ce6905d788",
+      "errors": [],
+      "mounts": [
+        {
+          "Destination": "/app/work/bioqueryai",
+          "Mode": "rw",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/bioqueryai",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/usr/bin/docker",
+          "Mode": "ro",
+          "Propagation": "rprivate",
+          "RW": false,
+          "Source": "/usr/bin/docker",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/workspace",
+          "Mode": "rw",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/workflow_runner_runs",
+          "Mode": "rw",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/workflow_runner_runs",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/var/run/proxy-socket",
+          "Mode": "ro",
+          "Name": "docker-proxy-socket",
+          "Propagation": "",
+          "RW": false,
+          "Source": "/var/lib/docker/volumes/docker-proxy-socket/_data",
+          "Type": "volume"
+        },
+        {
+          "Destination": "/app/work/runs",
+          "Mode": "rw",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/runs",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/objects",
+          "Mode": "rw",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/objects",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/workflow_runner_exec",
+          "Mode": "rw",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/workflow_runner_exec",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/pathway_enrichment_runs",
+          "Mode": "rw",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/pathway_enrichment_runs",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/app/work/planner",
+          "Mode": "rw",
+          "Propagation": "rprivate",
+          "RW": true,
+          "Source": "/home/manish/Desktop/omnibioai-ecosystem/omnibioai-work/planner",
+          "Type": "bind"
+        }
+      ],
+      "payload_inventory": {
+        "effective_ftm_local_root": "/app/work/file_transfer_manager/local",
+        "ftm_local_root_env_set": false,
+        "trees": [
+          {
+            "exists": false,
+            "file_count": 0,
+            "files": [],
+            "path": "/app/work/file_transfer_manager",
+            "total_bytes": 0
+          },
+          {
+            "exists": false,
+            "file_count": 0,
+            "files": [],
+            "path": "/app/work/file_transfer_manager/local",
+            "total_bytes": 0
+          }
+        ]
+      },
+      "project": "omnibioai-studio",
+      "service": "celery-worker",
+      "started_at": "2026-10-11T14:00:44.825703572Z",
+      "storage_env": {}
+    }
+  ],
+  "errors": [],
+  "generated_at": "2026-10-12T03:52:32.166064+00:00",
+  "services": {
+    "celery-worker": {
+      "containers_found": 1
+    },
+    "workbench": {
+      "containers_found": 1
+    }
+  },
+  "status": "complete"
+}

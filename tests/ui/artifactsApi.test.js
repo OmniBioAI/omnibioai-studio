@@ -58,6 +58,13 @@ function response({ body, status = 200, headers = {}, blob } = {}) {
   };
 }
 
+const usageBody = Object.freeze({
+  owner_type: "USER", owner_id: "7", used_bytes: 240000000, reserved_bytes: 1000,
+  quota_bytes: 1000000000, available_bytes: 759999000, membership_plan: "free",
+  over_quota: false, quota_mode: "enforce", enforcement_active: true,
+  entitlement_status: "fresh", last_reconciled_at: null,
+});
+
 beforeEach(() => {
   session.token = "session-token";
   session.version = 4;
@@ -67,15 +74,49 @@ beforeEach(() => {
 
 describe("Artifacts API", () => {
   it("loads and validates personal managed-storage usage", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: usageBody }));
+    const usage = await getStorageUsage();
+    expect(fetchSpy.mock.calls[0][0]).toBe("/_svc/workbench/api/storage/me/usage");
+    expect(fetchSpy.mock.calls[0][1]).toMatchObject({
+      headers: { Accept: "application/json", Authorization: "Bearer session-token" },
+      credentials: "same-origin", cache: "no-store",
+    });
+    expect(usage).toMatchObject({ usedBytes: 240000000, reservedBytes: 1000,
+      quotaBytes: 1000000000, availableBytes: 759999000, plan: "free", enforcementActive: true });
+  });
+
+  it("does not send a caller-selected owner or tenant and preserves unknown allowance", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: {
-      owner_type: "USER", owner_id: "7", used_bytes: 240000000, reserved_bytes: 1000,
-      quota_bytes: 1000000000, available_bytes: 759999000, membership_plan: "free",
-      over_quota: false, quota_mode: "enforce", enforcement_active: true,
-      entitlement_status: "fresh", last_reconciled_at: null,
+      ...usageBody, quota_bytes: null, available_bytes: null, membership_plan: null,
+      entitlement_status: "cached_or_unavailable", enforcement_active: false,
     } }));
     const usage = await getStorageUsage();
     expect(fetchSpy.mock.calls[0][0]).toBe("/_svc/workbench/api/storage/me/usage");
-    expect(usage).toMatchObject({ usedBytes: 240000000, availableBytes: 759999000, plan: "free", enforcementActive: true });
+    expect(fetchSpy.mock.calls[0][1].body).toBeUndefined();
+    expect(usage).toMatchObject({ usedBytes: 240000000, quotaBytes: null,
+      availableBytes: null, plan: null });
+  });
+
+  it.each([
+    [401, "unauthorized"], [403, "forbidden"], [404, "not_found"],
+    [429, "rate_limited"], [502, "unavailable"],
+  ])("keeps storage HTTP %s distinct from zero usage", async (status, code) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ status, body: { detail: "private" } }));
+    await expect(getStorageUsage()).rejects.toMatchObject({ code });
+  });
+
+  it("reports a failed storage connection as unavailable without inventing usage", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("connection failed"));
+    await expect(getStorageUsage()).rejects.toMatchObject({ code: "unavailable" });
+  });
+
+  it.each([
+    null, {}, { ...usageBody, used_bytes: undefined },
+    { ...usageBody, used_bytes: "0" }, { ...usageBody, available_bytes: -1 },
+    { ...usageBody, owner_type: "ORGANIZATION" },
+  ])("rejects missing or malformed storage projections", async body => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body }));
+    await expect(getStorageUsage()).rejects.toMatchObject({ code: "invalid" });
   });
 
   it("lists through the Workbench browser proxy without client-controlled organization context", async () => {
@@ -164,6 +205,7 @@ describe("Artifacts API", () => {
     [404, "not_found"],
     [409, "conflict"],
     [413, "quota_exceeded"],
+    [429, "rate_limited"],
     [500, "unavailable"],
   ])("maps HTTP %s without parsing sensitive response details", async (status, code) => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(response({

@@ -1,0 +1,28 @@
+{
+  "workstream": "OMNIBIOAI_MYSQL_DISPOSABLE_REHEARSAL_V4",
+  "started_utc": "2026-10-11T21:17:06.614180+00:00",
+  "content_verification": "NOT_AUTHORIZED_NOT_PERFORMED",
+  "production_changes": false,
+  "root_free_bytes": 3687644680192,
+  "app_image": "sha256:1146170047354680383c7de8c9ece5460488983c74ab75c9635a6476f1b6a351",
+  "mysql_image": "sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b",
+  "isolation": "none",
+  "scratch_container_id": "fc1db55d9b0fdbbd2a4a600474b674de3589bea0b2720908f39988f06cf59d9d",
+  "source_restore_seconds": 0.939666,
+  "source_baseline_pass": true,
+  "queries_before": {
+    "list_scope": false,
+    "definition_scope": false,
+    "execution_scope": false
+  },
+  "status": "STOPPED_ON_UNEXPECTED_RESULT",
+  "error_type": "RuntimeError",
+  "failed_step": "migration_runner_failed",
+  "cleanup": [
+    {
+      "id": "fc1db55d9b0fdbbd2a4a600474b674de3589bea0b2720908f39988f06cf59d9d",
+      "removed": true
+    }
+  ],
+  "temporary_secret_deleted": true
+}

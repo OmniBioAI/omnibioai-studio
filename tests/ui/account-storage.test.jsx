@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ getStorageUsage: vi.fn() }));
@@ -41,4 +41,30 @@ describe("Account Storage", () => {
     expect(container.querySelector(".omni-progress-wrap")).toBeNull();
   });
 
+  it.each([
+    ["unauthorized", /Sign in again/],
+    ["forbidden", /Access to storage usage was denied/],
+    ["not_found", /storage usage endpoint was not found/],
+    ["rate_limited", /temporarily rate limited/],
+    ["unavailable", /Storage usage is unavailable right now/],
+  ])("shows a safe %s error and no fabricated zero", (code, message) => {
+    render(<StorageUsage state={{ status: "error", data: null, error: code }} />);
+    expect(screen.getByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("alert")).toHaveTextContent("No usage value has been assumed.");
+    expect(screen.queryByText("0 B")).not.toBeInTheDocument();
+  });
+
+  it("clears old usage while refreshing and displays the new backend projection", async () => {
+    let resolveRefresh;
+    api.getStorageUsage.mockResolvedValueOnce(usage).mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve; }));
+    render(<AccountStorage />);
+    expect(await screen.findByText("240 MB")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh usage" }));
+    expect(screen.getByText(/Loading personal storage usage/)).toBeInTheDocument();
+    expect(screen.queryByText("240 MB")).not.toBeInTheDocument();
+    resolveRefresh({ ...usage, usedBytes: 0, reservedBytes: 0, availableBytes: 1_000_000_000 });
+    expect(await screen.findAllByText("0 B")).toHaveLength(2);
+    expect(screen.getAllByText("1.0 GB")).toHaveLength(2);
+    await waitFor(() => expect(api.getStorageUsage).toHaveBeenCalledTimes(2));
+  });
 });

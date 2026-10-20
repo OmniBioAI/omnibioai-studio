@@ -101,7 +101,9 @@ export default function Artifacts() {
     getStorageUsage({ signal: controller.signal }).then(data => {
       if (!controller.signal.aborted) setUsage({ status: "success", data });
     }).catch(error => {
-      if (!controller.signal.aborted && error?.name !== "AbortError") setUsage({ status: "error", data: null });
+      if (!controller.signal.aborted && error?.name !== "AbortError") {
+        setUsage({ status: "error", data: null, error: error?.code || "unavailable" });
+      }
     });
     return () => controller.abort();
   }, []);
@@ -199,12 +201,19 @@ export default function Artifacts() {
   </section>;
 }
 
+const STORAGE_ERROR_MESSAGES = Object.freeze({
+  unauthorized: "Sign in again to view storage usage. No usage value has been assumed.",
+  forbidden: "Access to storage usage was denied. No usage value has been assumed.",
+  not_found: "The storage usage endpoint was not found. No usage value has been assumed.",
+  rate_limited: "Storage usage is temporarily rate limited. Please refresh later. No usage value has been assumed.",
+});
+
 export function StorageUsage({ state }) {
   if (state.status === "loading") return <section className="storage-usage" aria-busy="true">
     <p role="status"><Spinner size="sm" /> Loading personal storage usage…</p>
   </section>;
   if (state.status === "error") return <section className="storage-usage storage-usage--unavailable">
-    <h2>Personal managed storage</h2><p role="alert">Storage usage is unavailable right now. No usage value has been assumed.</p>
+    <h2>Personal managed storage</h2><p role="alert">{STORAGE_ERROR_MESSAGES[state.error] || "Storage usage is unavailable right now. No usage value has been assumed."}</p>
   </section>;
   const value = state.data;
   const percent = value.quotaBytes ? Math.min(100, ((value.usedBytes + value.reservedBytes) / value.quotaBytes) * 100) : 0;

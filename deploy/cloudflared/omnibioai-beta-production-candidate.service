@@ -1,0 +1,30 @@
+[Unit]
+Description=Cloudflare Tunnel connector for OmniBioAI production candidate
+Documentation=https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=manish
+Group=manish
+ExecStartPre=/usr/local/bin/cloudflared tunnel --config /home/manish/Desktop/omnibioai-ecosystem/omnibioai-studio/deploy/cloudflared/config.dgx-production.yml ingress validate
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate --config /home/manish/Desktop/omnibioai-ecosystem/omnibioai-studio/deploy/cloudflared/config.dgx-production.yml --metrics 127.0.0.1:20242 tunnel run omnibioai-beta
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=45s
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

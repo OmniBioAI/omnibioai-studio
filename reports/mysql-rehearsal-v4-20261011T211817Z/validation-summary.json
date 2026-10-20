@@ -1,0 +1,28 @@
+{
+  "row_count_changes": [
+    {
+      "table": "omnibioai.django_migrations",
+      "before": 97,
+      "after": 99
+    }
+  ],
+  "remaining_common_structural_differences_to_dgx": [
+    "omnibioai.job_queue_manager_jobdependency",
+    "omnibioai.job_queue_manager_jobevent",
+    "omnibioai.resource_monitoring_costrecord",
+    "omnibioai.resource_monitoring_resourceusage",
+    "omnibioai.tes_run_records",
+    "omnibioai.workflow_runs",
+    "omnibioai_billing.alembic_version",
+    "omnibioai_billing.organization_storage_policies",
+    "omnibioai_billing.user_billing_accounts",
+    "omnibioai_billing.user_membership_audit_events",
+    "omnibioai_billing.user_memberships"
+  ],
+  "foreign_key_definitions_unchanged": true,
+  "trigger_definitions_unchanged": true,
+  "workflow_table_ddl_matches_dgx": true,
+  "content_rows_read_or_hashed": false,
+  "temporary_credentials_deleted": true,
+  "all_owned_containers_removed": true
+}

@@ -39,6 +39,7 @@ EXPECTED_SECRET_WIRING = {
     "api-gateway": "JWT_SECRET",
     "control-center": "JWT_SECRET",
     "security-audit": "JWT_SECRET",
+    "dev-hub": "JWT_SECRET",
     # HIPAA remediation (model-registry release auth wiring): this service
     # was never in this dict despite being an AsyncIAMClient/JWT consumer
     # since its own Phase 2A-2E org-ownership series -- both release
@@ -69,7 +70,7 @@ EXPECTED_SECRET_WIRING = {
 # only) per its own instructions -- flagged for a dedicated follow-up
 # rather than silently fixed here. Add "dev-hub" to this set once that
 # follow-up lands.
-SERVICES_REQUIRING_AUTH_ENABLED = {"model-registry"}
+SERVICES_REQUIRING_AUTH_ENABLED = {"dev-hub", "model-registry"}
 
 
 @pytest.fixture(scope="module", params=COMPOSE_PATHS, ids=lambda p: p.name)
@@ -134,4 +135,31 @@ def test_service_has_auth_enabled_set_true_in_release(compose_config, service):
         f"{service}'s AUTH_ENABLED must be the literal string \"true\", "
         f"not {env['AUTH_ENABLED']!r} -- an env-var expression would let "
         f"an unset host variable silently fall back to disabled again"
+    )
+
+
+def test_devhub_uses_opt_in_profile_and_independent_optional_interpolation(compose_config):
+    service = compose_config["services"]["dev-hub"]
+    assert service["profiles"] == ["devhub"]
+    env = service["environment"]
+    assert "DEVHUB_INTERNAL_PROXY_SECRET" not in env
+    assert env["JWT_SECRET"] == "${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}"
+    assert service["user"] == "10001:10001"
+
+
+def test_devhub_release_mount_targets_only_the_read_only_production_index(compose_config):
+    service = compose_config["services"]["dev-hub"]
+    data_mount = next(volume for volume in service["volumes"] if volume.get("target") == "/app/data/faiss_index")
+    assert data_mount["type"] == "bind"
+    assert data_mount["source"] == "${MACHINE_DIR}/omnibioai-dev-hub/data/faiss_index"
+    assert data_mount["read_only"] is True
+    assert data_mount["bind"]["create_host_path"] is False
+
+
+def test_devhub_release_image_is_pinned_to_the_qualified_immutable_digest(compose_config):
+    image = compose_config["services"]["dev-hub"]["image"]
+    assert image.startswith("omnibioai-dev-hub@sha256:")
+    assert image == (
+        "omnibioai-dev-hub@sha256:"
+        "3a30f4f55ec5f5b8e4ced045bec2014e81efd6f130415f3160c016953648dc8a"
     )

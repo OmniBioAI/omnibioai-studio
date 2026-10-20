@@ -5,7 +5,7 @@ required, unlike tests/integration/ (which needs the full docker-compose
 stack and is not exercised by this file).
 
 pymysql.connect is patched before importing license_server, since that
-module calls init_db() (a real MySQL connection attempt) at import time.
+module validates the pre-provisioned license schema at import time.
 
 Developer:
     Manish Kumar <manish@omnibioai.org>
@@ -38,6 +38,33 @@ def _mock_response(status_code=200, json_data=None):
     resp.status_code = status_code
     resp.json.return_value = json_data or {}
     return resp
+
+
+def test_validate_db_schema_checks_preprovisioned_table_without_ddl(monkeypatch):
+    mock_cursor = MagicMock()
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    monkeypatch.setattr(license_server, "get_conn", lambda: mock_conn)
+
+    license_server.validate_db_schema()
+
+    query = mock_cursor.execute.call_args.args[0]
+    assert query.startswith("SELECT ")
+    assert " FROM licenses LIMIT 0" in query
+    assert "CREATE " not in query.upper()
+    mock_conn.close.assert_called_once_with()
+
+
+def test_validate_db_schema_fails_closed_when_table_is_missing(monkeypatch):
+    mock_cursor = MagicMock()
+    mock_cursor.execute.side_effect = RuntimeError("unknown table")
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    monkeypatch.setattr(license_server, "get_conn", lambda: mock_conn)
+
+    with pytest.raises(RuntimeError, match="unknown table"):
+        license_server.validate_db_schema()
+    mock_conn.close.assert_called_once_with()
 
 
 # ── _validate_token ──────────────────────────────────────────────────────────
@@ -147,9 +174,8 @@ def test_generate_without_manage_licenses_permission_returns_403(client, monkeyp
     assert resp.status_code == 403
 
 
-def test_generate_with_manage_licenses_permission_succeeds(client, monkeypatch):
-    """POST /api/license/generate with the manage_licenses permission returns 200 with
-    the requested email and a key; the database connection is mocked."""
+def test_generate_with_manage_licenses_permission_is_retired(client, monkeypatch):
+    """The compatibility service never independently issues new licenses."""
     monkeypatch.setattr(
         license_server, "_validate_token",
         lambda token: {"user_id": 1, "email": "admin@omnibioai.test", "permissions": ["manage_licenses"]},
@@ -163,9 +189,8 @@ def test_generate_with_manage_licenses_permission_succeeds(client, monkeypatch):
         "/api/license/generate", json={"email": "x@example.com", "days": 30, "tier": "beta"},
         headers={"Authorization": "Bearer sometoken"},
     )
-    assert resp.status_code == 200
-    assert resp.json()["email"] == "x@example.com"
-    assert "key" in resp.json()
+    assert resp.status_code == 410
+    mock_cursor.execute.assert_not_called()
 
 
 def test_generate_request_body_no_longer_accepts_admin_key_field():
@@ -204,6 +229,28 @@ def test_list_licenses_with_manage_licenses_permission_succeeds(client, monkeypa
     resp = client.get("/api/license/list", headers={"Authorization": "Bearer sometoken"})
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_list_licenses_masks_historical_plaintext_keys(client, monkeypatch):
+    monkeypatch.setattr(
+        license_server, "_validate_token",
+        lambda token: {"user_id": 1, "email": "admin@omnibioai.test", "permissions": ["manage_licenses"]},
+    )
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = [
+        ("OMNI-ABCD-EFGH-IJKL-MNOP", "user@example.com", "beta", "2099-01-01", 1),
+    ]
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    monkeypatch.setattr(license_server, "get_conn", lambda: mock_conn)
+
+    resp = client.get("/api/license/list", headers={"Authorization": "Bearer sometoken"})
+
+    assert resp.status_code == 200
+    item = resp.json()[0]
+    assert "key" not in item
+    assert item["key_prefix"] == "OMNI-ABCD"
+    assert "EFGH" not in item["masked_key"]
 
 
 # ── /api/license/validate and /pull-token stay unauthenticated ─────────────

@@ -50,3 +50,4 @@ docker-compose.mac-local.yml
 .env.redis-acl-backup-*
 
 coverage.json
+.env.bak

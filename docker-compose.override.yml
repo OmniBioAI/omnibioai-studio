@@ -1,0 +1,123 @@
+services:
+  auth-service:
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: omnibioai
+      DB_USER: omnibioai_dev_auth
+      DB_PASSWORD: ${DEV_AUTH_DB_PASSWORD:?DEV_AUTH_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  interaction-worker:
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: omnibioai
+      DB_USER: omnibioai_dev_interaction
+      DB_PASSWORD: ${DEV_INTERACTION_DB_PASSWORD:?DEV_INTERACTION_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  billing-service:
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8005"]
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: omnibioai_billing
+      DB_USER: omnibioai_dev_billing
+      DB_PASSWORD: ${DEV_BILLING_DB_PASSWORD:?DEV_BILLING_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  billing-worker:
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: omnibioai_billing
+      DB_USER: omnibioai_dev_billing_worker
+      DB_PASSWORD: ${DEV_BILLING_WORKER_DB_PASSWORD:?DEV_BILLING_WORKER_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  celery-worker:
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: omnibioai
+      DB_USER: omnibioai_dev_celery
+      DB_PASSWORD: ${DEV_CELERY_DB_PASSWORD:?DEV_CELERY_DB_PASSWORD is required}
+      OMNIBIOAI_MYSQL_PASSWORD: ${DEV_CELERY_DB_PASSWORD:?DEV_CELERY_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  control-center:
+    environment:
+      MYSQL_HOST: omnibioai-full-mac-dev-v1
+      MYSQL_USER: omnibioai_dev_control_center
+      MYSQL_PASSWORD: ${DEV_CONTROL_CENTER_DB_PASSWORD:?DEV_CONTROL_CENTER_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  hpc-policy-engine:
+    environment:
+      MYSQL_HOST: omnibioai-full-mac-dev-v1
+      MYSQL_DB: omnibioai
+      MYSQL_USER: omnibioai_dev_hpc_policy
+      MYSQL_PASSWORD: ${DEV_HPC_DB_PASSWORD:?DEV_HPC_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  license-server:
+    environment:
+      MYSQL_HOST: omnibioai-full-mac-dev-v1
+      MYSQL_DATABASE: omnibioai_licenses
+      MYSQL_USER: omnibioai_dev_license
+      MYSQL_PASSWORD: ${DEV_LICENSE_DB_PASSWORD:?DEV_LICENSE_DB_PASSWORD is required}
+    networks: [default, development_database]
+    volumes:
+      - ./backend/license_server.py:/app/license_server.py:ro
+
+  lims:
+    environment:
+      MYSQL_HOST: omnibioai-full-mac-dev-v1
+      MYSQL_DATABASE: limsdb
+      MYSQL_USER: omnibioai_dev_lims
+      MYSQL_PASSWORD: ${DEV_LIMS_DB_PASSWORD:?DEV_LIMS_DB_PASSWORD is required}
+    networks: [default, development_database]
+    volumes:
+      - ../omnibioai-lims/supervisord.conf:/etc/supervisor/conf.d/lims.conf:ro
+
+  model-registry:
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: model_registry
+      DB_USER: omnibioai_dev_model_registry
+      DB_PASSWORD: ${DEV_MODEL_REGISTRY_DB_PASSWORD:?DEV_MODEL_REGISTRY_DB_PASSWORD is required}
+    networks: [default, development_database]
+    volumes:
+      - ../omnibioai-model-registry/omnibioai_model_registry/db.py:/app/omnibioai_model_registry/db.py:ro
+
+  tes:
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: omnibioai
+      DB_USER: omnibioai_dev_tes
+      DB_PASSWORD: ${DEV_TES_DB_PASSWORD:?DEV_TES_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  workbench:
+    command: ["bash", "-lc", "python manage.py runserver 0.0.0.0:8000 --noreload"]
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: omnibioai
+      DB_USER: omnibioai_dev_workbench
+      DB_PASSWORD: ${DEV_WORKBENCH_DB_PASSWORD:?DEV_WORKBENCH_DB_PASSWORD is required}
+      OMNIBIOAI_MYSQL_HOST: omnibioai-full-mac-dev-v1
+      OMNIBIOAI_MYSQL_DB: omnibioai
+      OMNIBIOAI_MYSQL_USER: omnibioai_dev_workbench
+      OMNIBIOAI_MYSQL_PASSWORD: ${DEV_WORKBENCH_DB_PASSWORD:?DEV_WORKBENCH_DB_PASSWORD is required}
+    networks: [default, development_database]
+
+  workflow-bundles:
+    environment:
+      DB_HOST: omnibioai-full-mac-dev-v1
+      DB_NAME: omnibioai
+      DB_USER: omnibioai_dev_workflow
+      DB_PASSWORD: ${DEV_WORKFLOW_DB_PASSWORD:?DEV_WORKFLOW_DB_PASSWORD is required}
+    networks: [default, development_database]
+    volumes:
+      - ../omnibioai-workflow-bundles/api/run_store.py:/app/api/run_store.py:ro
+
+networks:
+  development_database:
+    external: true
+    name: omnibioai-full-mac-dev-v1-net

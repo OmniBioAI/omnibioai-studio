@@ -1,0 +1,4 @@
+services:
+  toolserver:
+    image: omnibioai-toolserver:arm64
+    platform: linux/arm64
