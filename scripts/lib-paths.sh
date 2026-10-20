@@ -17,7 +17,7 @@ omni_default_path() {
 omni_default_path MACHINE_DIR ..
 omni_default_path WORKSPACE_HOST ..
 omni_default_path WORK_DIR ../work
-omni_default_path DATA_DIR ../omnibioai-data
+omni_default_path DATA_DIR ../data
 omni_default_path DB_INIT_DIR db-init
 omni_default_path VIDEO_DIR ../omnibioai-videos/content
-omni_default_path REDIS_BACKUP_DESTINATION ../omnibioai-data/secure-backup
+omni_default_path REDIS_BACKUP_DESTINATION ../data/secure-backup
