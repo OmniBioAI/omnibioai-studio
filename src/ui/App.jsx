@@ -30,6 +30,7 @@ import AccountAppearance from "./pages/AccountAppearance";
 import AccountNotifications from "./pages/AccountNotifications";
 import AccountPrivacy from "./pages/AccountPrivacy";
 import AccountPlan from "./pages/AccountPlan";
+import AccountStorage from "./pages/AccountStorage";
 import AccountHelp from "./pages/AccountHelp";
 import Projects from "./pages/Projects";
 import Artifacts from "./pages/Artifacts";
@@ -119,7 +120,7 @@ const PAGE_NAMES = [
   "services","logs","studio","settings","jobs",null,"roles","billing","workbench","developer","profile","security","preferences",
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
   "projects","artifacts","explore","notifications","personalization","appearance","organization-connections",
-  "privacy","plan","help","integrations","membership-plans",
+  "privacy","plan","help","integrations","membership-plans","storage",
 ];
 
 const PAGE_LABELS = [
@@ -127,7 +128,7 @@ const PAGE_LABELS = [
   "Studio", "Settings", "Jobs", null, "Roles", "Billing", "Workbench", "Developer", "Profile", "Security", "Preferences",
   "Code", "Workflows",
   "Projects", "Artifacts", "Explore", "Notifications", "Personalization", "Appearance", "Connections",
-  "Privacy & Data", "Plan", "Help & Product", "Integrations", "Membership & Plans",
+  "Privacy & Data", "Plan", "Help & Product", "Integrations", "Membership & Plans", "Storage",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -148,12 +149,14 @@ const PRIVACY_PATH = "/studio/privacy";
 const PRIVACY_PAGE = 27;
 const PLAN_PATH = "/studio/plan";
 const PLAN_PAGE = 28;
+const STORAGE_PAGE = 32;
+const STORAGE_PATH = "/studio/storage";
 const HELP_PATH = "/studio/help";
 const HELP_PAGE = 29;
 const INTEGRATIONS_PATH = "/studio/integrations";
 const BILLING_PATH = "/studio/billing";
 const MEMBERSHIP_PLANS_PATH = "/studio/billing/plans";
-const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, notifications: NOTIFICATIONS_PAGE, personalization: PERSONALIZATION_PAGE, appearance: APPEARANCE_PAGE, privacy: PRIVACY_PAGE, plan: PLAN_PAGE, help: HELP_PAGE };
+const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, notifications: NOTIFICATIONS_PAGE, personalization: PERSONALIZATION_PAGE, appearance: APPEARANCE_PAGE, privacy: PRIVACY_PAGE, plan: PLAN_PAGE, storage: STORAGE_PAGE, help: HELP_PAGE };
 const PROJECTS_PATH = "/studio/projects";
 const ARTIFACTS_PATH = "/studio/artifacts";
 const EXPLORE_PATH = "/studio/explore";
@@ -173,6 +176,7 @@ const PATH_TO_PAGE = {
   [APPEARANCE_PATH]: APPEARANCE_PAGE,
   [PRIVACY_PATH]: PRIVACY_PAGE,
   [PLAN_PATH]: PLAN_PAGE,
+  [STORAGE_PATH]: STORAGE_PAGE,
   [HELP_PATH]: HELP_PAGE,
   [PROJECTS_PATH]:    PROJECTS_PAGE,
   [ARTIFACTS_PATH]:   ARTIFACTS_PAGE,
@@ -437,6 +441,9 @@ export default function App() {
     </AccountLayout>,
     <Integrations onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} />,
     <MembershipPlans currentUser={currentUser} onBillingOverview={() => handleNavClick(12)} />,
+    <AccountLayout activeSection="storage" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      <AccountStorage />
+    </AccountLayout>,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");

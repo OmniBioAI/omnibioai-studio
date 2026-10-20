@@ -199,7 +199,7 @@ export default function Artifacts() {
   </section>;
 }
 
-function StorageUsage({ state }) {
+export function StorageUsage({ state }) {
   if (state.status === "loading") return <section className="storage-usage" aria-busy="true">
     <p role="status"><Spinner size="sm" /> Loading personal storage usage…</p>
   </section>;
