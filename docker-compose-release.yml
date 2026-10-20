@@ -379,7 +379,7 @@ services:
       # pre-existing gap found while porting, NOT fixed here (separate,
       # real, unrelated to this proxy): ml_utils.py's
       # DEFAULT_MODEL_REGISTRY_ROOT is a hardcoded absolute dev-machine
-      # path ("/home/manish/Desktop/machine/data/local_registry/
+      # path ("/home/manish/Desktop/omnibioai-ecosystem/data/local_registry/
       # model_registry"), not derived from any env var a real end user's
       # install would set differently -- so that specific bind already
       # doesn't work correctly for any non-dev deployment regardless of

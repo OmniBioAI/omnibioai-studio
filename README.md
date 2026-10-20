@@ -653,9 +653,9 @@ unverified compliance/SSO claims has been superseded by this table.
 | `omnibioai-dev-hub/scripts/check_and_reindex.sh` | Rebuilds RAG FAISS index on new Studio release | Hourly (checks for new release tag) |
 
 ```cron
-0 4 * * * /home/manish/Desktop/machine/omnibioai-studio/scripts/backup-mysql.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-backup.log 2>&1
-0 2 * * * python3 /home/manish/Desktop/machine/omnibioai-control-center/scripts/run_coverage_host.py --root /home/manish/Desktop/machine >> /home/manish/Desktop/machine/work/backups/omnibioai-coverage.log 2>&1
-0 * * * * /home/manish/Desktop/machine/omnibioai-dev-hub/scripts/check_and_reindex.sh >> /home/manish/Desktop/machine/work/backups/omnibioai-reindex.log 2>&1
+0 4 * * * /home/manish/Desktop/omnibioai-ecosystem/omnibioai-studio/scripts/backup-mysql.sh >> /home/manish/Desktop/omnibioai-ecosystem/work/backups/omnibioai-backup.log 2>&1
+0 2 * * * python3 /home/manish/Desktop/omnibioai-ecosystem/omnibioai-control-center/scripts/run_coverage_host.py --root /home/manish/Desktop/omnibioai-ecosystem >> /home/manish/Desktop/omnibioai-ecosystem/work/backups/omnibioai-coverage.log 2>&1
+0 * * * * /home/manish/Desktop/omnibioai-ecosystem/omnibioai-dev-hub/scripts/check_and_reindex.sh >> /home/manish/Desktop/omnibioai-ecosystem/work/backups/omnibioai-reindex.log 2>&1
 ```
 
 ---

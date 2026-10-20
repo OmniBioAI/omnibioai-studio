@@ -20,7 +20,7 @@ This runbook is deploy-only; it does not re-run those suites.
 ## 1. Backup MySQL
 
 ```bash
-cd ~/Desktop/machine/omnibioai-studio
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-studio
 ./scripts/backup-mysql.sh
 ```
 
@@ -37,7 +37,7 @@ PR12 — auth's schema/JWT changes are the foundation everything else reads):
 ```bash
 for repo in omnibioai-auth omnibioai-policy-engine omnibioai-api-gateway \
             omnibioai-control-center omnibioai-docs omnibioai-studio; do
-  cd ~/Desktop/machine/$repo
+  cd ~/Desktop/omnibioai-ecosystem/$repo
   git checkout main
   git merge --no-ff feature/pr13-dynamic-rbac-activation
 done
@@ -53,7 +53,7 @@ locally — this step is a no-op in that case.
 ## 4. Run `alembic upgrade head`
 
 ```bash
-cd ~/Desktop/machine/omnibioai-auth
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-auth
 alembic current   # confirm it's NOT already 0016_role_org_scope (idempotency check)
 alembic upgrade head
 ```
@@ -81,7 +81,7 @@ fresh migration.
 ## 6. Restart services
 
 ```bash
-cd ~/Desktop/machine/omnibioai-studio
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-studio
 docker compose build auth-service policy-engine api-gateway control-center
 docker compose up -d --no-deps --force-recreate \
   auth-service policy-engine api-gateway control-center
@@ -94,14 +94,14 @@ build api-gateway` is a silent no-op. Build it manually first if this
 gap hasn't been closed by then:
 
 ```bash
-cd ~/Desktop/machine
+cd ~/Desktop/omnibioai-ecosystem
 docker build -t ghcr.io/omnibioai/omnibioai-api-gateway:latest -f omnibioai-api-gateway/Dockerfile .
 ```
 
 ## 7. Run `test-enterprise-security.sh`
 
 ```bash
-cd ~/Desktop/machine/omnibioai-studio
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-studio
 ./scripts/test-enterprise-security.sh
 ```
 
@@ -155,7 +155,7 @@ Trigger rollback if:
 ### Step 1 — Stop PR13 services
 
 ```bash
-cd ~/Desktop/machine/omnibioai-studio
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-studio
 docker compose stop \
   auth-service \
   policy-engine \
@@ -194,7 +194,7 @@ Expected:
 ### Step 3 — Downgrade migration (if DB restore unavailable)
 
 ```bash
-cd ~/Desktop/machine/omnibioai-auth
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-auth
 alembic downgrade 0015_refresh_token_length
 ```
 
@@ -230,18 +230,18 @@ merges were performed (each is the merge-base between `main` and
 ```bash
 git checkout main -- .   # or: git reset --hard <hash above>, per your repo's convention
 
-cd ~/Desktop/machine/omnibioai-auth               && git checkout d3a6cc1da68edacdc30792c618cfcb07208556e4
-cd ~/Desktop/machine/omnibioai-policy-engine       && git checkout 600f8940c4700c473b2ae3e5756b270a83dfb482
-cd ~/Desktop/machine/omnibioai-api-gateway         && git checkout 9903f9877c01fdff4b41a47d9f4ec52666bea1fc
-cd ~/Desktop/machine/omnibioai-control-center      && git checkout 6623239a1c47de2a04e4b616e29ebdbb6b18e522
-cd ~/Desktop/machine/omnibioai-studio              && git checkout 1d99ca3f53b33d7d66621e87d1c7313e909c3204
-cd ~/Desktop/machine/omnibioai-docs                && git checkout ec437871f65fe91e0ca7c6cd5daa47e0dd5d7501
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-auth               && git checkout d3a6cc1da68edacdc30792c618cfcb07208556e4
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-policy-engine       && git checkout 600f8940c4700c473b2ae3e5756b270a83dfb482
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-api-gateway         && git checkout 9903f9877c01fdff4b41a47d9f4ec52666bea1fc
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-control-center      && git checkout 6623239a1c47de2a04e4b616e29ebdbb6b18e522
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-studio              && git checkout 1d99ca3f53b33d7d66621e87d1c7313e909c3204
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-docs                && git checkout ec437871f65fe91e0ca7c6cd5daa47e0dd5d7501
 ```
 
 ### Step 5 — Rebuild previous images
 
 ```bash
-cd ~/Desktop/machine/omnibioai-studio
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-studio
 docker compose build \
   auth-service \
   policy-engine \

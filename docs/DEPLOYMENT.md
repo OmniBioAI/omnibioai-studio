@@ -114,11 +114,11 @@ NEO4J_PASSWORD=<strong-password>  # defaults to "omnibioai" if unset — overrid
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 HOST_IP=0.0.0.0                # or specific NIC IP
-WORKSPACE_HOST=/home/<user>/Desktop/machine
-WORK_DIR=/home/<user>/Desktop/machine/work
-DATA_DIR=/home/<user>/Desktop/machine/data
-VIDEO_DIR=/home/<user>/Desktop/machine/omnibioai-videos/content
-DB_INIT_DIR=/home/<user>/Desktop/machine/db-init
+WORKSPACE_HOST=/home/<user>/Desktop/omnibioai-ecosystem
+WORK_DIR=/home/<user>/Desktop/omnibioai-ecosystem/work
+DATA_DIR=/home/<user>/Desktop/omnibioai-ecosystem/data
+VIDEO_DIR=/home/<user>/Desktop/omnibioai-ecosystem/omnibioai-videos/content
+DB_INIT_DIR=/home/<user>/Desktop/omnibioai-ecosystem/db-init
 ```
 
 ### Key Generation Helpers
@@ -159,7 +159,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ### 1. Clone Repositories
 
 ```bash
-BASE=/home/$USER/Desktop/machine
+BASE=/home/$USER/Desktop/omnibioai-ecosystem
 mkdir -p $BASE && cd $BASE
 
 # Core services
@@ -233,7 +233,7 @@ docker compose exec lims python manage.py ensure_admin
 ```bash
 # LIMS sample data
 docker compose exec -T mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD limsdb \
-  < /home/$USER/Desktop/machine/omnibioai-lims/seed_lims_10samples.sql
+  < /home/$USER/Desktop/omnibioai-ecosystem/omnibioai-lims/seed_lims_10samples.sql
 ```
 
 ### 8. Start Studio Frontend
@@ -316,7 +316,7 @@ is deployed and reachable only indirectly through Control Center's own backend p
 git tag --sort=-version:refname | head -10
 
 # Roll back omnibioai-studio to a specific tag
-cd /home/$USER/Desktop/machine/omnibioai-studio
+cd /home/$USER/Desktop/omnibioai-ecosystem/omnibioai-studio
 git fetch --tags
 git checkout tags/v1.2.3
 
@@ -463,7 +463,7 @@ docker inspect omnibioai-rag | grep Architecture
 uname -m
 
 # Rebuild the RAG image for the correct arch
-cd /home/$USER/Desktop/machine/omnibioai-rag
+cd /home/$USER/Desktop/omnibioai-ecosystem/omnibioai-rag
 docker build --platform linux/$(uname -m) -f Dockerfile.new --target backend -t omnibioai-rag-local .
 # Then update docker-compose.yml to use the local image
 ```

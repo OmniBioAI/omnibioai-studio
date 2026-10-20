@@ -5,7 +5,7 @@
 # Runs all integration tests and reports pass/fail per suite.
 #
 # Usage:
-#   cd ~/Desktop/machine/omnibioai-studio
+#   cd ~/Desktop/omnibioai-ecosystem/omnibioai-studio
 #   chmod +x tests/integration/run_integration_tests.sh
 #   ./tests/integration/run_integration_tests.sh
 #

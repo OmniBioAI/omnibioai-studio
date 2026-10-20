@@ -239,7 +239,7 @@ function SettingsConsole({ config, setConfig }) {
                   ? "C:\\Users\\omnibioai"
                   : (settings.work_dir
                       ? settings.work_dir.split("/").slice(0,-1).join("/")
-                      : "/home/" + (window.api?.username || "user") + "/Desktop/machine/omnibioai");
+                      : "/home/" + (window.api?.username || "user") + "/Desktop/omnibioai-ecosystem/omnibioai");
                 set("data_dir", home + "/data");
                 set("work_dir", home + "/work");
               }}

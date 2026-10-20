@@ -30,7 +30,7 @@
 #
 # Requires: curl, python3 (for JWT payload decoding + a temporary
 #           mismatched-secret token in case 3), docker compose
-# Run from: ~/Desktop/machine/omnibioai-studio/
+# Run from: ~/Desktop/omnibioai-ecosystem/omnibioai-studio/
 # ============================================================
 
 set -uo pipefail
