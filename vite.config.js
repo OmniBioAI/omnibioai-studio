@@ -25,6 +25,9 @@ export default defineConfig(({ mode }) => {
             registerType: "autoUpdate",
             includeAssets: ["pwa-192x192.png", "pwa-512x512.png"],
             workbox: {
+              // Bump this when changing navigation handling so installed
+              // clients fetch and activate the updated service worker.
+              cacheId: "omnibioai-studio-web-v2",
               importScripts: ["sw-client-reload.js"],
               // generateSW's default SPA fallback registers a Workbox
               // NavigationRoute matching every same-origin navigation
@@ -42,6 +45,12 @@ export default defineConfig(({ mode }) => {
               // `/studio` is the canonical portal path and `/workbench` is a
               // legacy alias. Service paths remain network-only.
               navigateFallbackAllowlist: [/^\/(?:studio(?:\/(?:profile|security|preferences|notifications|personalization|appearance|integrations|organization\/connections))?|workbench)?$/],
+              // Keep OAuth and other router-owned navigations out of the
+              // cached app shell even if the SPA allowlist is broadened.
+              // Navigation fallback only decides from the pathname; when it
+              // declines a navigation, the browser sends the original URL,
+              // including url.search, directly to nginx.
+              navigateFallbackDenylist: [/^\/(?:auth(?:\/|$)|oauth-complete(?:\/|$)|license(?:\/|$)|_svc(?:\/|$))/],
             },
             manifest: {
               name: "OmniBioAI Studio",
