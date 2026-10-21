@@ -399,7 +399,7 @@ export default function App() {
     <Jobs         />,
     null, // 10 — retired IDE Services slot; keep later page indices stable
     <RoleManagement currentUser={currentUser} />,
-    <Billing currentUser={currentUser} onMembershipPlans={() => handleNavClick(MEMBERSHIP_PLANS_PAGE)} />,
+    <Billing currentUser={currentUser} onMembershipPlans={() => handleNavClick(MEMBERSHIP_PLANS_PAGE)} onStorage={() => handleNavClick(STORAGE_PAGE)} />,
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={(url, label, plugin) => setService({ url, label, source: "workbench", pluginSlug: plugin?.slug || null })} />,
     <Developer currentUser={currentUser} />,

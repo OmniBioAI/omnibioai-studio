@@ -105,6 +105,14 @@ export const getUsageLimits = (orgId) =>
 export const getBillingSummary = (orgId) =>
   get(`/billing/organizations/${orgId}/summary`);
 
+// GET /billing/organizations/{orgId}/invoices
+//   -> { organization_id, total_count, limit, offset,
+//        invoices: [{ id, invoice_number, billing_period_id, period_start,
+//          period_end, status, subtotal, total, currency, created_at }] }
+// The current API does not return a PDF URL or expose an invoice PDF route.
+export const getInvoices = (orgId, { limit = 50, offset = 0 } = {}) =>
+  get(`/billing/organizations/${orgId}/invoices?${qs({ limit, offset })}`);
+
 function qs(params) {
   return Object.entries(params)
     .filter(([, v]) => v != null)
