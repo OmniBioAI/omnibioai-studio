@@ -1,20 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { getStorageUsage } from "../lib/artifactsApi";
+import { onSessionChange } from "../lib/session";
 import { StorageUsage } from "./Artifacts";
 import "./Artifacts.css";
 
 export default function AccountStorage() {
   const [reload, setReload] = useState(0);
-  const [state, setState] = useState({ status: "loading", data: null, error: "" });
+  const [state, setState] = useState({ status: "loading", data: null });
+
+  useEffect(() => onSessionChange(() => {
+    setState({ status: "loading", data: null });
+    setReload(value => value + 1);
+  }), []);
 
   useEffect(() => {
     const controller = new AbortController();
-    setState({ status: "loading", data: null, error: "" });
+    setState({ status: "loading", data: null });
     getStorageUsage({ signal: controller.signal }).then(data => {
-      if (!controller.signal.aborted) setState({ status: "success", data, error: "" });
+      if (!controller.signal.aborted) setState({ status: "success", data });
     }).catch(error => {
       if (!controller.signal.aborted && error?.name !== "AbortError") {
-        setState({ status: "error", data: null, error: error?.code || "unavailable" });
+        setState({ status: "error", data: null });
       }
     });
     return () => controller.abort();

@@ -201,13 +201,6 @@ export default function Artifacts() {
   </section>;
 }
 
-const STORAGE_ERROR_MESSAGES = Object.freeze({
-  unauthorized: "Sign in again to view storage usage. No usage value has been assumed.",
-  forbidden: "Access to storage usage was denied. No usage value has been assumed.",
-  not_found: "The storage usage endpoint was not found. No usage value has been assumed.",
-  rate_limited: "Storage usage is temporarily rate limited. Please refresh later. No usage value has been assumed.",
-});
-
 export function StorageUsage({ state }) {
   if (state.status === "loading") return <section className="storage-usage" aria-busy="true">
     <p role="status"><Spinner size="sm" /> Loading personal storage usage…</p>
