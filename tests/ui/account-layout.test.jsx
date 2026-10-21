@@ -21,6 +21,7 @@ describe("AccountLayout", () => {
     expect(screen.getByRole("button", { name: "Plan" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Storage" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Help & Product" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Storage" })).toBeInTheDocument();
     expect(screen.queryByText(/Usage|Connections/)).not.toBeInTheDocument();
   });
 
@@ -52,7 +53,7 @@ describe("AccountLayout", () => {
   it("shows an honest empty state for no matches, and never exposes a hidden route", () => {
     render(<AccountLayout activeSection="profile" onNavigate={vi.fn()}>Content</AccountLayout>);
     const search = screen.getByRole("searchbox", { name: "Search account settings" });
-    fireEvent.change(search, { target: { value: "not-a-section" } });
+    fireEvent.change(search, { target: { value: "unavailable-setting" } });
     expect(screen.getByRole("status")).toHaveTextContent("No matching settings.");
     expect(screen.queryByRole("button", { name: /Storage/ })).not.toBeInTheDocument();
   });

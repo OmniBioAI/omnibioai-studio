@@ -83,6 +83,7 @@ jobs:
           TES_TOOLSERVER_REGISTRATION_CLIENT_ID=ci-tes-toolserver-registration
           TES_TOOLSERVER_REGISTRATION_CLIENT_SECRET=citestoolserverregistration
           INTEGRATION_CREDENTIAL_SERVICE_SECRET=ciintegrationcredential
+          STORAGE_BILLING_URL=http://billing-service:8005
           STORAGE_BILLING_URL=http://ci-storage-billing.invalid
           ENVEOF
           # rag's env_file is gitignored and generated on real hosts; compose
@@ -103,9 +104,10 @@ jobs:
         # full required-secret .env, and both must confirm they're
         # unpublishable without one -- see SECURITY-COMPOSE-HARDENING.md.
         run: |
+          # No `&&` here: a failing `config` must fail the step (an && list does not trip -e).
           for f in docker-compose.release.yml docker-compose-release.yml; do
-            docker compose -f "$f" config --quiet \
-              && echo "✅ $f valid with required secrets set"
+            docker compose -f "$f" config --quiet
+            echo "✅ $f valid with required secrets set"
           done
 
           # dev-only overlay must also merge cleanly on top of the release default
@@ -133,7 +135,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: rm -f package-lock.json && npm install
+      # Install exactly the committed lockfile. It records every platform's rolldown
+      # binding (incl. linux-x64-gnu), so the July workaround of deleting it is no longer
+      # needed -- and re-resolving from the registry now crashes npm 10.8 (edgesOut).
+      - run: npm ci
       - name: Build React UI
         run: npx cross-env OMNIBIOAI_DEV_MODE=false npm run build:ui
       - name: Verify dist

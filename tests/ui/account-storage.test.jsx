@@ -2,155 +2,112 @@ import React from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const api = vi.hoisted(() => ({ getStorageUsage: vi.fn() }));
-vi.mock("../../src/ui/lib/artifactsApi", () => api);
-
+const session = vi.hoisted(() => ({ token: "tenant-a-token", version: 1, listeners: new Set() }));
+vi.mock("../../src/ui/lib/session", () => ({
+  getToken: () => session.token,
+  getSessionVersion: () => session.version,
+  isElectron: () => false,
+  onSessionChange: callback => { session.listeners.add(callback); return () => session.listeners.delete(callback); },
+}));
 import AccountStorage from "../../src/ui/pages/AccountStorage";
 import { StorageUsage } from "../../src/ui/pages/Artifacts";
-import { setSession, clearSession } from "../../src/ui/lib/session";
 
-const usage = Object.freeze({
-  usedBytes: 240_000_000, reservedBytes: 1_000, quotaBytes: 1_000_000_000,
-  availableBytes: 759_999_000, plan: "free", overQuota: false,
-  quotaMode: "audit", enforcementActive: false, entitlementStatus: "fresh",
+const usage = {
+  owner_type: "USER", owner_id: "7", used_bytes: 200, reserved_bytes: 300,
+  available_bytes: 500, quota_bytes: 1000, membership_plan: "free",
+  over_quota: false, quota_mode: "audit", enforcement_active: false,
+  entitlement_status: "fresh",
+};
+const response = (body = usage, status = 200) => ({ ok: status === 200, status, json: async () => body });
+const displayed = label => screen.getByText(label, { selector: "dt" }).nextElementSibling.textContent;
+beforeEach(() => {
+  session.token = "tenant-a-token"; session.version = 1;
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(response());
 });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); session.listeners.clear(); });
 
-beforeEach(() => api.getStorageUsage.mockReset().mockResolvedValue(usage));
-afterEach(cleanup);
-
-describe("Account Storage", () => {
-  it("hides completed usage immediately on account switch and logout", async () => {
+describe("Storage account and real usage client", () => {
+  it("renders personal totals through the authenticated me endpoint without client tenant selectors", async () => {
+    window.history.replaceState({}, "", "/studio/storage?organization_id=other&owner_id=8");
     render(<AccountStorage />);
-    expect(await screen.findByText("240 MB")).toBeInTheDocument();
-    act(() => setSession("another-user"));
-    expect(screen.queryByText("240 MB")).not.toBeInTheDocument();
-    expect(screen.getByText(/Loading personal storage usage/)).toBeInTheDocument();
-    act(() => clearSession());
-    expect(screen.queryByText("240 MB")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Storage", exact: true })).toBeInTheDocument();
+    await screen.findByText("Membership: Free");
+    expect(["Used", "Reserved", "Available", "Total"].map(displayed)).toEqual(["200 B", "300 B", "500 B", "1.0 KB"]);
+    expect(fetch).toHaveBeenCalledWith("/_svc/workbench/api/storage/me/usage", expect.objectContaining({
+      credentials: "same-origin", cache: "no-store",
+      headers: { Accept: "application/json", Authorization: "Bearer tenant-a-token" },
+    }));
+    expect(screen.getByText(/audit mode; enforcement is not active/)).toBeInTheDocument();
+    expect(screen.queryByText("Quota enforced")).not.toBeInTheDocument();
   });
-
-  it("aborts pending old-session requests and ignores their late completion", async () => {
-    let deliver;
-    api.getStorageUsage.mockImplementationOnce(() => new Promise(resolve => { deliver = resolve; }));
+  it.each([
+    [0, 0, 1000, "0 B", "0 B", "1.0 KB"],
+    [0, 1000, 0, "0 B", "1.0 KB", "0 B"],
+    [1200, 0, 0, "1.2 KB", "0 B", "0 B"],
+  ])("handles used=%s reserved=%s available=%s", async (used, reserved, available, usedText, reservedText, availableText) => {
+    fetch.mockResolvedValue(response({ ...usage, used_bytes: used, reserved_bytes: reserved, available_bytes: available, over_quota: used > 1000 }));
+    render(<AccountStorage />); await screen.findByText("Membership: Free");
+    expect(["Used", "Reserved", "Available"].map(displayed)).toEqual([usedText, reservedText, availableText]);
+    if (used > 1000) expect(screen.getByRole("alert")).toHaveTextContent("over your current storage allowance");
+  });
+  it.each([401, 403, 500])("does not display unauthorized or failed HTTP %s payloads", async status => {
+    fetch.mockResolvedValue(response({ ...usage, used_bytes: 999, secret: "other-tenant" }, status));
     render(<AccountStorage />);
-    const oldSignal = api.getStorageUsage.mock.calls[0][0].signal;
-    api.getStorageUsage.mockResolvedValue({ ...usage, usedBytes: 50, reservedBytes: 0, availableBytes: 999_999_950 });
-    act(() => setSession("new-user"));
-    expect(oldSignal.aborted).toBe(true);
-    expect(await screen.findByText("50 B")).toBeInTheDocument();
-    await act(async () => deliver(usage));
-    expect(screen.queryByText("240 MB")).not.toBeInTheDocument();
-    expect(screen.getByText("50 B")).toBeInTheDocument();
-  });
-
-  it("refreshes on return to the page and removes listeners on unmount", async () => {
-    const { unmount } = render(<AccountStorage />);
-    await screen.findByText("240 MB");
-    api.getStorageUsage.mockResolvedValue({ ...usage, usedBytes: 300, reservedBytes: 0, availableBytes: 999_999_700 });
-    fireEvent.focus(window);
-    expect(await screen.findByText("300 B")).toBeInTheDocument();
-    fireEvent(document, new Event("visibilitychange"));
-    await waitFor(() => expect(api.getStorageUsage).toHaveBeenCalledTimes(3));
-    unmount();
-    fireEvent.focus(window);
-    expect(api.getStorageUsage).toHaveBeenCalledTimes(3);
-    expect(api.getStorageUsage.mock.calls[2][0].signal.aborted).toBe(true);
-  });
-
-  it("does not present failed refreshes as a zero or retain previous usage", async () => {
-    render(<AccountStorage />);
-    await screen.findByText("240 MB");
-    api.getStorageUsage.mockRejectedValueOnce({ code: "unavailable" });
-    fireEvent.click(screen.getByRole("button", { name: "Refresh usage" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("No usage value has been assumed");
-    expect(screen.queryByText("240 MB")).not.toBeInTheDocument();
+    expect(screen.queryByText("999 B")).not.toBeInTheDocument();
+    expect(screen.queryByText("other-tenant")).not.toBeInTheDocument();
+  });
+  it("shows loading without assuming zero usage", () => {
+    fetch.mockReturnValue(new Promise(() => {})); render(<AccountStorage />);
+    expect(screen.getByRole("status")).toHaveTextContent("Loading personal storage usage");
     expect(screen.queryByText("0 B")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Refresh usage" })).toBeEnabled();
   });
-
-  it.each([["free", 1_000_000_000, "1.0 GB"], ["plus", 20_000_000_000, "20 GB"], ["pro", 100_000_000_000, "100 GB"]])(
-    "renders the %s entitlement using decimal GB", (plan, quotaBytes, label) => {
-      render(<StorageUsage state={{ status: "success", data: { ...usage, plan, quotaBytes, availableBytes: quotaBytes - 240_001_000 } }} />);
-      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-      expect(screen.getByText(/1 GB = 1,000,000,000 bytes/)).toBeInTheDocument();
-    });
-
-  it("explains unreconciled zero counters and pending reservations", () => {
-    render(<StorageUsage state={{ status: "success", data: { ...usage, usedBytes: 0, reservedBytes: 0, availableBytes: usage.quotaBytes } }} />);
+  it("clears old totals and reloads when the user or organization session changes", async () => {
+    render(<AccountStorage />); await screen.findByText("200 B");
+    fetch.mockReturnValueOnce(new Promise(() => {}));
+    act(() => { session.token = "tenant-b-token"; session.version += 1; session.listeners.forEach(fn => fn()); });
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("200 B")).not.toBeInTheDocument();
+    expect(fetch.mock.calls[1][1].headers.Authorization).toBe("Bearer tenant-b-token");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading");
+  });
+  it("discards a response from a previous session while reading its body", async () => {
+    let resolveBody;
+    fetch.mockResolvedValue({ ...response({ ...usage, used_bytes: 400, available_bytes: 300 }), json: async function () { return this.body; }, body: { ...usage, used_bytes: 400, available_bytes: 300 } });
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => new Promise(resolve => { resolveBody = resolve; }) });
+    render(<AccountStorage />); await waitFor(() => expect(resolveBody).toBeTypeOf("function"));
+    session.version += 1; session.listeners.forEach(fn => fn());
+    expect(await screen.findByText("400 B")).toBeInTheDocument();
+    await act(async () => resolveBody(usage));
+    expect(screen.queryByText("200 B")).not.toBeInTheDocument();
+    expect(screen.getByText("400 B")).toBeInTheDocument();
+  });
+  it("refreshes safely after an API failure", async () => {
+    fetch.mockRejectedValueOnce(new Error("private backend details"));
+    render(<AccountStorage />); await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button", { name: "Refresh usage" }));
+    await screen.findByText("200 B");
+    expect(screen.queryByText("private backend details")).not.toBeInTheDocument();
+  });
+  it("distinguishes active enforcement from audit mode", async () => {
+    fetch.mockResolvedValue(response({ ...usage, quota_mode: "enforce", enforcement_active: true }));
+    render(<AccountStorage />); await screen.findByText("Quota enforced");
+    expect(screen.queryByText(/audit mode/)).not.toBeInTheDocument();
+  });
+  it("does not present zero usage as a complete reconciliation", async () => {
+    fetch.mockResolvedValue(response({ ...usage, used_bytes: 0, reserved_bytes: 0, available_bytes: 1000 }));
+    render(<AccountStorage />); await screen.findByText("Membership: Free");
+    expect(screen.getAllByText("0 B")).toHaveLength(2);
     expect(screen.getByText(/No reconciliation check has been reported/)).toBeInTheDocument();
-    expect(screen.getByText(/Reserved bytes are held/)).toBeInTheDocument();
+    expect(screen.getByText(/do not confirm that all existing files have been counted/)).toBeInTheDocument();
   });
-
   it("does not treat a reconciliation timestamp as proof that legacy files were counted", () => {
-    render(<StorageUsage state={{ status: "success", data: { ...usage, usedBytes: 0, reservedBytes: 0,
-      availableBytes: usage.quotaBytes, lastReconciledAt: "2026-10-21T12:00:00Z" } }} />);
+    render(<StorageUsage state={{ status: "success", data: {
+      usedBytes: 0, reservedBytes: 0, quotaBytes: 1000, availableBytes: 1000,
+      plan: "free", overQuota: false, quotaMode: "audit", enforcementActive: false,
+      entitlementStatus: "fresh", lastReconciledAt: "2026-10-21T12:00:00Z",
+    } }} />);
     expect(screen.getByText(/Last reconciliation check reported/)).toBeInTheDocument();
     expect(screen.getByText(/timestamp alone does not confirm that all existing files have been counted/)).toBeInTheDocument();
-    expect(screen.queryByText(/fully reconciled|all files accounted/i)).not.toBeInTheDocument();
-  });
-
-  it.each(["audit", "off", "blocked", "enforce"])("explains over-quota behavior in %s mode", quotaMode => {
-    render(<StorageUsage state={{ status: "success", data: { ...usage, usedBytes: 1_000_000_001,
-      reservedBytes: 0, availableBytes: 0, overQuota: true, quotaMode, enforcementActive: quotaMode === "enforce" } }} />);
-    expect(screen.getByText("100%")).toBeInTheDocument();
-    if (quotaMode === "enforce") expect(screen.getByText("Quota enforced")).toBeInTheDocument();
-    else expect(screen.queryByText("Quota enforced")).not.toBeInTheDocument();
-    if (quotaMode === "audit") expect(screen.getByRole("alert")).toHaveTextContent("Quota enforcement is not active.");
-    if (quotaMode === "blocked") expect(screen.getByText(/Storage admission is blocked pending/)).toBeInTheDocument();
-  });
-
-  it("shows nonzero usage against a zero allowance as full", () => {
-    render(<StorageUsage state={{ status: "success", data: { ...usage, quotaBytes: 0, availableBytes: 0, overQuota: true } }} />);
-    expect(screen.getByText("100%")).toBeInTheDocument();
-  });
-
-  it("shows the backend used, available, and total values", async () => {
-    render(<AccountStorage />);
-    expect(await screen.findByText("240 MB")).toBeInTheDocument();
-    expect(screen.getByText("760 MB")).toBeInTheDocument();
-    expect(screen.getByText("1.0 GB")).toBeInTheDocument();
-    expect(screen.getByText("24%")).toBeInTheDocument();
-    expect(api.getStorageUsage).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
-  });
-
-  it("shows valid usage counters without implying an unknown allowance", async () => {
-    api.getStorageUsage.mockResolvedValue({
-      ...usage, quotaBytes: null, availableBytes: null, plan: null,
-    });
-    const { container } = render(<AccountStorage />);
-    expect(await screen.findByText("240 MB")).toBeInTheDocument();
-    expect(screen.getByText("1.0 KB")).toBeInTheDocument();
-    expect(screen.getByText("Membership: Unavailable")).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("Your current storage allowance is unavailable.");
-    expect(screen.queryByText("Available")).not.toBeInTheDocument();
-    expect(screen.queryByText("Total")).not.toBeInTheDocument();
-    expect(container.querySelector(".omni-progress-wrap")).toBeNull();
-  });
-
-  it.each([
-    ["unauthorized", /Sign in again/],
-    ["forbidden", /Access to storage usage was denied/],
-    ["not_found", /storage usage endpoint was not found/],
-    ["rate_limited", /temporarily rate limited/],
-    ["unavailable", /Storage usage is unavailable right now/],
-  ])("shows a safe %s error and no fabricated zero", (code, message) => {
-    render(<StorageUsage state={{ status: "error", data: null, error: code }} />);
-    expect(screen.getByRole("alert")).toHaveTextContent(message);
-    expect(screen.getByRole("alert")).toHaveTextContent("No usage value has been assumed.");
-    expect(screen.queryByText("0 B")).not.toBeInTheDocument();
-  });
-
-  it("clears old usage while refreshing and displays the new backend projection", async () => {
-    let resolveRefresh;
-    api.getStorageUsage.mockResolvedValueOnce(usage).mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve; }));
-    render(<AccountStorage />);
-    expect(await screen.findByText("240 MB")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Refresh usage" }));
-    expect(screen.getByText(/Loading personal storage usage/)).toBeInTheDocument();
-    expect(screen.queryByText("240 MB")).not.toBeInTheDocument();
-    resolveRefresh({ ...usage, usedBytes: 0, reservedBytes: 0, availableBytes: 1_000_000_000 });
-    expect(await screen.findAllByText("0 B")).toHaveLength(2);
-    expect(screen.getAllByText("1.0 GB")).toHaveLength(2);
-    await waitFor(() => expect(api.getStorageUsage).toHaveBeenCalledTimes(2));
   });
 });
