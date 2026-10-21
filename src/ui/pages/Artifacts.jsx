@@ -101,7 +101,9 @@ export default function Artifacts() {
     getStorageUsage({ signal: controller.signal }).then(data => {
       if (!controller.signal.aborted) setUsage({ status: "success", data });
     }).catch(error => {
-      if (!controller.signal.aborted && error?.name !== "AbortError") setUsage({ status: "error", data: null });
+      if (!controller.signal.aborted && error?.name !== "AbortError") {
+        setUsage({ status: "error", data: null, error: error?.code || "unavailable" });
+      }
     });
     return () => controller.abort();
   }, []);
@@ -204,7 +206,7 @@ export function StorageUsage({ state }) {
     <p role="status"><Spinner size="sm" /> Loading personal storage usage…</p>
   </section>;
   if (state.status === "error") return <section className="storage-usage storage-usage--unavailable">
-    <h2>Personal managed storage</h2><p role="alert">Storage usage is unavailable right now. No usage value has been assumed.</p>
+    <h2>Personal managed storage</h2><p role="alert">{STORAGE_ERROR_MESSAGES[state.error] || "Storage usage is unavailable right now. No usage value has been assumed."}</p>
   </section>;
   const value = state.data;
   const percent = value.quotaBytes ? Math.min(100, ((value.usedBytes + value.reservedBytes) / value.quotaBytes) * 100) : 0;
@@ -212,13 +214,15 @@ export function StorageUsage({ state }) {
     <div className="storage-usage__heading"><div><h2>Personal managed storage</h2>
       <p>Membership: {value.plan ? value.plan[0].toUpperCase() + value.plan.slice(1) : "Unavailable"}</p></div>
       <a className="omni-btn omni-btn--secondary omni-btn--sm" href="/studio/billing/plans">View upgrade options</a></div>
-    {value.quotaBytes === null ? <p role="alert">Your current storage allowance is unavailable.</p> : <>
-      <ProgressBar value={percent} variant={value.overQuota ? "danger" : percent >= 85 ? "warning" : "accent"} />
-      <dl><div><dt>Used</dt><dd>{formatBytes(value.usedBytes)}</dd></div>
-        <div><dt>Reserved</dt><dd>{formatBytes(value.reservedBytes)}</dd></div>
+    {value.quotaBytes === null ? <p role="alert">Your current storage allowance is unavailable.</p>
+      : <ProgressBar value={percent} variant={value.overQuota ? "danger" : percent >= 85 ? "warning" : "accent"} />}
+    <dl><div><dt>Used</dt><dd>{formatBytes(value.usedBytes)}</dd></div>
+      <div><dt>Reserved</dt><dd>{formatBytes(value.reservedBytes)}</dd></div>
+      {value.quotaBytes !== null && <>
         <div><dt>Available</dt><dd>{formatBytes(value.availableBytes)}</dd></div>
-        <div><dt>Total</dt><dd>{formatBytes(value.quotaBytes)}</dd></div></dl>
-    </>}
+        <div><dt>Total</dt><dd>{formatBytes(value.quotaBytes)}</dd></div>
+      </>}
+    </dl>
     {value.enforcementActive && <p className="storage-usage__enforced">Quota enforced</p>}
     {value.quotaMode === "audit" && <p>Quota accounting is in audit mode; enforcement is not active.</p>}
     {value.overQuota && <p role="alert">You are over your current storage allowance. Downloads and deletion remain available, but new storage may be blocked.</p>}

@@ -73,13 +73,13 @@ describe("Settings page", () => {
     window.api.username = "alice";
     render(<Settings config={{}} setConfig={vi.fn()} currentUser={null} />);
     fireEvent.click(screen.getByText("Use OmniBioAI defaults"));
-    expect(screen.getByDisplayValue("/home/alice/Desktop/machine/omnibioai/data")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("/home/alice/Desktop/omnibioai-ecosystem/omnibioai/data")).toBeInTheDocument();
 
     cleanup();
     delete window.api.username; // window.api present but no username -> "user" fallback
     render(<Settings config={{}} setConfig={vi.fn()} currentUser={null} />);
     fireEvent.click(screen.getByText("Use OmniBioAI defaults"));
-    expect(screen.getByDisplayValue("/home/user/Desktop/machine/omnibioai/data")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("/home/user/Desktop/omnibioai-ecosystem/omnibioai/data")).toBeInTheDocument();
 
     const platformSpy = vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
     cleanup();

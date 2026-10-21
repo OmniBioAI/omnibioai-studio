@@ -24,6 +24,7 @@ describe("LicenseGate", () => {
     window.electronAPI = { getLicense: vi.fn().mockResolvedValue({ valid: true, expiry: "2000-01-01" }) };
     render(<LicenseGate><div>protected content</div></LicenseGate>);
     await waitFor(() => expect(screen.getByRole("img", { name: "OmniBioAI" })).toBeInTheDocument());
+    expect(document.querySelector('input[type="password"]')).toBeNull();
     cleanup();
 
     window.electronAPI = { getLicense: vi.fn().mockResolvedValue({ valid: false }) };
@@ -48,6 +49,7 @@ describe("LicenseGate", () => {
     expect(await screen.findByText("Please enter a license key")).toBeInTheDocument();
 
     const input = screen.getByPlaceholderText("OMNI-XXXX-XXXX-XXXX-XXXX");
+    fireEvent.change(screen.getByPlaceholderText("Email"), { target: { value: "owner@omnibioai.test" } });
     fireEvent.change(input, { target: { value: "BAD-KEY" } });
     window.electronAPI.validateLicense.mockResolvedValueOnce({ valid: false, reason: "This key was revoked" });
     fireEvent.click(screen.getByText("Activate License"));
@@ -64,5 +66,6 @@ describe("LicenseGate", () => {
     window.electronAPI.validateLicense.mockResolvedValueOnce({ valid: true, tier: "beta", expiry: "2099-06-01", days_remaining: 30 });
     fireEvent.keyDown(input, { key: "Enter" });
     await waitFor(() => expect(screen.getByText("protected content")).toBeInTheDocument());
+    expect(window.electronAPI.validateLicense).toHaveBeenLastCalledWith({ key: "BAD-KEY", email: "owner@omnibioai.test" });
   });
 });

@@ -14,7 +14,7 @@ pip install pytest requests
 ## Quick start
 
 ```bash
-cd ~/Desktop/machine/omnibioai-studio
+cd ~/Desktop/omnibioai-ecosystem/omnibioai-studio
 ./tests/integration/run_integration_tests.sh
 ```
 

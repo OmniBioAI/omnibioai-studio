@@ -1,0 +1,2 @@
+FROM omnibioai-studio-web:auth-flow-separation-v1-base
+COPY deploy/dgx/nginx-auth-acceptance.conf /etc/nginx/conf.d/default.conf

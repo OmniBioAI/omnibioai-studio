@@ -7,7 +7,7 @@
 #   ./test_integration.sh
 #
 # Requires: curl, jq, docker compose
-# Run from: ~/Desktop/machine/omnibioai-studio/
+# Run from: ~/Desktop/omnibioai-ecosystem/omnibioai-studio/
 # ============================================================
 
 set -euo pipefail

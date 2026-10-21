@@ -834,6 +834,24 @@ it.each([
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });
 
+it("opens Storage from the dashboard Account menu and keeps Account Settings navigation", async () => {
+  getCurrentUser.mockResolvedValue(admin);
+  render(<App />);
+  await screen.findByText("Studio page");
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Storage" }));
+  expect(await screen.findByRole("heading", { name: "Storage", exact: true })).toBeInTheDocument();
+  expect(location.pathname).toBe("/studio/storage");
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent("Storage");
+  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+  expect(screen.getByRole("menuitem", { name: "Storage" })).toHaveAttribute("aria-current", "page");
+  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
+  await screen.findByText("Profile page");
+  fireEvent.click(screen.getByRole("button", { name: "Storage", exact: true }));
+  expect(location.pathname).toBe("/studio/storage");
+});
+
 it("keeps Privacy, Plan and Help distinct page indices with no collision against existing Account or Organization routes", async () => {
   getCurrentUser.mockResolvedValue(admin);
   render(<App />);

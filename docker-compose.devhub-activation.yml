@@ -1,0 +1,13 @@
+# Explicit activation overlay. Do not include for normal Studio operations:
+# its required interpolation is intentionally scoped to the operator's
+# Dev-Hub activation procedure rather than the shared base/release projects.
+services:
+  dev-hub:
+    profiles:
+      - devhub
+    secrets:
+      - devhub_internal_proxy_secret
+secrets:
+  devhub_internal_proxy_secret:
+    file: ${DEVHUB_INTERNAL_PROXY_SECRET_FILE:?Set DEVHUB_INTERNAL_PROXY_SECRET_FILE to the protected secret file}
+    name: devhub_internal_proxy_secret

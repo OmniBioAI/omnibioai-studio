@@ -69,38 +69,26 @@ def get_conn():
     )
 
 
-def init_db():
-    conn = pymysql.connect(
-        host=MYSQL_HOST,
-        port=MYSQL_PORT,
-        user=MYSQL_USER,
-        password=MYSQL_PASSWORD,
-        cursorclass=pymysql.cursors.Cursor,
-    )
-    with conn.cursor() as cur:
-        cur.execute(f"CREATE DATABASE IF NOT EXISTS `{MYSQL_DATABASE}`")
-    conn.commit()
-    conn.close()
+def validate_db_schema():
+    """Fail startup unless the pre-provisioned license schema is usable.
 
+    Schema creation belongs to the reviewed database migration/provisioning
+    process. The service identity has data access only and must not issue DDL.
+    Selecting the expected columns with LIMIT 0 validates names and
+    permissions without reading or changing license rows.
+    """
     conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS licenses (
-                `key` VARCHAR(255) PRIMARY KEY,
-                email VARCHAR(255) NOT NULL,
-                tier VARCHAR(50) NOT NULL,
-                expiry VARCHAR(20) NOT NULL,
-                machine_id VARCHAR(255),
-                created_at VARCHAR(20) NOT NULL,
-                activated_at VARCHAR(20),
-                is_active TINYINT(1) DEFAULT 1
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT `key`, email, tier, expiry, machine_id, created_at, "
+                "activated_at, is_active FROM licenses LIMIT 0"
             )
-        """)
-    conn.commit()
-    conn.close()
+    finally:
+        conn.close()
 
 
-init_db()
+validate_db_schema()
 
 
 class GenerateRequest(BaseModel):
@@ -211,24 +199,15 @@ def _load_valid_license(key: str):
 
 @app.post("/api/license/generate")
 def generate(req: GenerateRequest, authorization: str | None = Header(default=None)):
-    _require_permission(authorization, MANAGE_LICENSES, action="license_generate")
-    expiry = datetime.date.today() + datetime.timedelta(days=req.days)
-    key = generate_key(req.email, req.tier, expiry)
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute(
-            "REPLACE INTO licenses (`key`, email, tier, expiry, created_at, is_active) VALUES (%s, %s, %s, %s, %s, 1)",
-            (key, req.email, req.tier, str(expiry), str(datetime.date.today())),
-        )
-    conn.commit()
-    conn.close()
-    return {
-        "key": key,
-        "email": req.email,
-        "tier": req.tier,
-        "expiry": str(expiry),
-        "days": req.days,
-    }
+    # Compatibility service: existing rows may still validate here during
+    # migration, but every new issuance belongs to omnibioai-auth.  This is
+    # intentionally not controlled by an environment toggle: an accidentally
+    # enabled production variable must not resurrect a second writer.
+    _require_permission(authorization, MANAGE_LICENSES, action="license_generate_retired")
+    raise HTTPException(
+        status_code=410,
+        detail="Legacy issuance is retired; use omnibioai-auth /platform/licenses",
+    )
 
 
 @app.post("/api/license/validate")
@@ -274,7 +253,20 @@ def list_licenses(authorization: str | None = Header(default=None)):
         cur.execute("SELECT `key`, email, tier, expiry, is_active FROM licenses")
         rows = cur.fetchall()
     conn.close()
-    return [{"key": r[0], "email": r[1], "tier": r[2], "expiry": r[3], "active": r[4]} for r in rows]
+    # Compatibility validation still needs the stored plaintext, but an
+    # administrative listing must never retrieve it.  Expose only the same
+    # short prefix/masked representation used by the canonical Auth API.
+    return [
+        {
+            "key_prefix": (r[0] or "")[:9],
+            "masked_key": f"{(r[0] or '')[:9]}-••••-••••-••••",
+            "email": r[1],
+            "tier": r[2],
+            "expiry": r[3],
+            "active": r[4],
+        }
+        for r in rows
+    ]
 
 
 @app.get("/health")

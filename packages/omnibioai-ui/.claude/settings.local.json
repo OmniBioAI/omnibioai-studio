@@ -1,8 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Read(//home/manish/Desktop/machine/**)",
-      "Read(//home/manish/Desktop/machine/omnibioai-design-tokens/**)",
+      "Read(//home/manish/Desktop/omnibioai-ecosystem/**)",
+      "Read(//home/manish/Desktop/omnibioai-ecosystem/omnibioai-design-tokens/**)",
       "Bash(npm run *)",
       "Bash(npm install *)",
       "Bash(cat .npmrc)",

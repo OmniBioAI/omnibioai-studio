@@ -19,6 +19,7 @@ describe("AccountLayout", () => {
     expect(screen.getByRole("button", { name: "Appearance" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Privacy & Data" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Plan" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Storage" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Help & Product" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Storage" })).toBeInTheDocument();
     expect(screen.queryByText(/Usage|Connections/)).not.toBeInTheDocument();

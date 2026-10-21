@@ -1,0 +1,34 @@
+tunnel: omnibioai-beta
+credentials-file: /home/manish/.cloudflared/00090181-2f99-468c-967d-79a1b81080c8.json
+
+# Candidate only. Administrative origins are deliberately absent until
+# Cloudflare Access application and policy coverage is independently verified.
+# dev is disabled because the profile-gated service has no approved deployment.
+ingress:
+  - hostname: omnibioai.org
+    service: http://localhost:8000
+  - hostname: www.omnibioai.org
+    service: http://localhost:8000
+  - hostname: webstudio.omnibioai.org
+    service: http://localhost:80
+  - hostname: workbench.omnibioai.org
+    service: http://localhost:8000
+  - hostname: api.omnibioai.org
+    service: http://127.0.0.1:8080
+  - hostname: lims.omnibioai.org
+    service: http://127.0.0.1:7000
+  - hostname: rag.omnibioai.org
+    service: http://localhost:8090
+  - hostname: models.omnibioai.org
+    service: http://localhost:8095
+  - hostname: bundles.omnibioai.org
+    service: http://localhost:8098
+  - hostname: videos.omnibioai.org
+    service: http://localhost:8086
+  - hostname: sdk.omnibioai.org
+    service: http://localhost:5190
+  - hostname: license.omnibioai.org
+    service: http://localhost:8099
+  - hostname: docs.omnibioai.org
+    service: http://localhost:80
+  - service: http_status:404

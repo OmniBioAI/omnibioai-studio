@@ -1,0 +1,131 @@
+{
+  "workstream": "OMNIBIOAI_MYSQL_DISPOSABLE_REHEARSAL_V4",
+  "started_utc": "2026-10-11T21:18:17.150878+00:00",
+  "content_verification": "NOT_AUTHORIZED_NOT_PERFORMED",
+  "production_changes": false,
+  "root_free_bytes": 3687637831680,
+  "app_image": "sha256:1146170047354680383c7de8c9ece5460488983c74ab75c9635a6476f1b6a351",
+  "mysql_image": "sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b",
+  "isolation": "none",
+  "scratch_container_id": "514ab145a61245243b7efbd38e074e5ea2e631899d16b096ae257480bc52161d",
+  "source_restore_seconds": 0.973678,
+  "source_baseline_pass": true,
+  "queries_before": {
+    "list_scope": false,
+    "definition_scope": false,
+    "execution_scope": false
+  },
+  "migrations": {
+    "django_version": "4.2",
+    "migration_file_hashes": {
+      "0001_initial.py": "73351e0d5bae7017413c1a08aacdd58a6b77216c65615aad81cda35c3b2d1c82",
+      "0002_workflowexecution.py": "a747f39e9eccd7de2608f1681d78e198f0df4e407bac3985c86621b04f6b0ef9",
+      "0003_owned_workflows.py": "4f1d06c7302143437a2693aabbaed3c36dc45cbce44cb4f59bd40cfac132de4d",
+      "0004_cancellation.py": "9046606d77343e1619cee7f2fd8a68290cc8b02e51f6a119909d982ebfb9bda5"
+    },
+    "plan": [
+      [
+        "workflow_builder",
+        "0003_owned_workflows",
+        false
+      ],
+      [
+        "workflow_builder",
+        "0004_cancellation",
+        false
+      ]
+    ],
+    "dependencies": {
+      "0003_owned_workflows": [
+        [
+          "workflow_builder",
+          "0002_workflowexecution"
+        ]
+      ],
+      "0004_cancellation": [
+        [
+          "workflow_builder",
+          "0003_owned_workflows"
+        ]
+      ]
+    },
+    "planned_sql": [
+      "--",
+      "-- Add field owner_user_id to workflowdefinition",
+      "--",
+      "ALTER TABLE `workflow_builder_workflowdefinition` ADD COLUMN `owner_user_id` bigint UNSIGNED NULL CHECK (`owner_user_id` >= 0);",
+      "--",
+      "-- Add field organization_id to workflowdefinition",
+      "--",
+      "ALTER TABLE `workflow_builder_workflowdefinition` ADD COLUMN `organization_id` bigint UNSIGNED NULL CHECK (`organization_id` >= 0);",
+      "--",
+      "-- Alter field name on workflowdefinition",
+      "--",
+      "ALTER TABLE `workflow_builder_workflowdefinition` DROP INDEX `name`;",
+      "--",
+      "-- Create constraint workflow_builder_owner_name_uniq on model workflowdefinition",
+      "--",
+      "ALTER TABLE `workflow_builder_workflowdefinition` ADD CONSTRAINT `workflow_builder_owner_name_uniq` UNIQUE (`owner_user_id`, `name`);",
+      "--",
+      "-- Add field owner_user_id to workflowexecution",
+      "--",
+      "ALTER TABLE `workflow_builder_workflowexecution` ADD COLUMN `owner_user_id` bigint UNSIGNED NULL CHECK (`owner_user_id` >= 0);",
+      "--",
+      "-- Add field organization_id to workflowexecution",
+      "--",
+      "ALTER TABLE `workflow_builder_workflowexecution` ADD COLUMN `organization_id` bigint UNSIGNED NULL CHECK (`organization_id` >= 0);",
+      "CREATE INDEX `workflow_builder_workflowdefinition_owner_user_id_beae10f5` ON `workflow_builder_workflowdefinition` (`owner_user_id`);",
+      "CREATE INDEX `workflow_builder_workflowdefinition_organization_id_e49ad79e` ON `workflow_builder_workflowdefinition` (`organization_id`);",
+      "CREATE INDEX `workflow_builder_workflowexecution_owner_user_id_202b8abf` ON `workflow_builder_workflowexecution` (`owner_user_id`);",
+      "CREATE INDEX `workflow_builder_workflowexecution_organization_id_0bee053c` ON `workflow_builder_workflowexecution` (`organization_id`);",
+      "--",
+      "-- Add field cancel_requested to workflowexecution",
+      "--",
+      "ALTER TABLE `workflow_builder_workflowexecution` ADD COLUMN `cancel_requested` bool DEFAULT 0 NOT NULL;",
+      "ALTER TABLE `workflow_builder_workflowexecution` ALTER COLUMN `cancel_requested` DROP DEFAULT;"
+    ],
+    "durations_seconds": {
+      "0003_owned_workflows": 0.06408,
+      "0004_cancellation": 0.008912
+    },
+    "workflow_history": [
+      [
+        "workflow_builder",
+        "0001_initial"
+      ],
+      [
+        "workflow_builder",
+        "0002_workflowexecution"
+      ],
+      [
+        "workflow_builder",
+        "0003_owned_workflows"
+      ],
+      [
+        "workflow_builder",
+        "0004_cancellation"
+      ]
+    ]
+  },
+  "changed_ddl_tables": [
+    "omnibioai.django_migrations",
+    "omnibioai.workflow_builder_workflowdefinition",
+    "omnibioai.workflow_builder_workflowexecution"
+  ],
+  "queries_after": {
+    "list_scope": true,
+    "definition_scope": true,
+    "execution_scope": true
+  },
+  "workflow_schema_matches_dgx": true,
+  "scratch_storage": "21807104",
+  "tmpfs_usage": "Filesystem      1B-blocks      Used Available Use% Mounted on\ntmpfs          1073741824 288313344 785428480  27% /var/lib/mysql\ntmpfs           268435456         0 268435456   0% /tmp",
+  "status": "PASS_WORKFLOW_REHEARSAL",
+  "cleanup": [
+    {
+      "id": "514ab145a61245243b7efbd38e074e5ea2e631899d16b096ae257480bc52161d",
+      "removed": true
+    }
+  ],
+  "temporary_secret_deleted": true
+}

@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Badge } from "@omnibioai/ui";
-import { loginWithPassword, loginWithLicenseKey, isElectron, getOAuthLoginUrl, oauthProviders } from "../lib/session";
+import {
+  completePasswordLoginWithMfa, getOAuthLoginUrl, isElectron, loginWithLicenseKey,
+  loginWithPassword, oauthProviders, resendPasswordEmailOtp,
+} from "../lib/session";
 import OmniBioAILogo from "./brand/OmniBioAILogo";
 
 const PROVIDER_LABELS = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
@@ -79,23 +82,68 @@ export default function Login({ title, description }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [licenseKey, setLicenseKey] = useState("");
+  const [loginChallenge, setLoginChallenge] = useState(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpMethod, setOtpMethod] = useState("email");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+    const timer = window.setInterval(() => setResendCooldown(value => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown > 0]);
 
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       if (mode === "license") {
-        await loginWithLicenseKey(licenseKey.trim(), email, isElectron() ? "desktop" : "web");
+        await loginWithLicenseKey(licenseKey.trim(), email.trim(), isElectron() ? "desktop" : "web");
+        setNotice("License activated. Sign in separately to start an authorized session.");
       } else {
-        await loginWithPassword(email, password);
+        if (loginChallenge) {
+          await completePasswordLoginWithMfa(
+            loginChallenge.token, otpCode.trim(), otpMethod === "email" ? "email" : undefined,
+          );
+        } else {
+          await loginWithPassword(email.trim(), password);
+        }
       }
       // Success dispatches omnibioai-session-changed; listeners (e.g. App.jsx)
       // pick up the new currentUser and re-render past this screen.
     } catch (err) {
-      setError(err.message || "Login failed");
+      if (err.code === "mfa_required" && err.challengeToken) {
+        const methods = err.methods || [];
+        setLoginChallenge({ token: err.challengeToken, methods });
+        setOtpMethod(methods.includes("email") ? "email" : "totp");
+        setResendCooldown(methods.includes("email") ? 60 : 0);
+        setPassword("");
+        setError("");
+      } else {
+        setError(err.message || "Login failed");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (!loginChallenge || resendCooldown > 0) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      setResendCooldown(await resendPasswordEmailOtp(loginChallenge.token));
+      setOtpCode("");
+      setNotice("A new verification code was sent.");
+    } catch (err) {
+      if (err.retryAfterSeconds) setResendCooldown(err.retryAfterSeconds);
+      setError(err.message || "Unable to resend verification code");
     } finally {
       setBusy(false);
     }
@@ -192,12 +240,15 @@ export default function Login({ title, description }) {
               padding: 3,
             }}
           >
-            {["password", "license"].map((m) => (
+            {["license", "password"].map((m) => (
               <button
                 key={m}
                 type="button"
                 className="studio-login-tab"
-                onClick={() => { setMode(m); setError(""); }}
+                onClick={() => {
+                  setMode(m); setError(""); setNotice(""); setLoginChallenge(null);
+                  setOtpCode(""); setResendCooldown(0);
+                }}
                 style={{
                   flex: 1, padding: "8px 0", cursor: "pointer",
                   fontSize: "0.78rem", fontFamily: "var(--mono)",
@@ -209,46 +260,71 @@ export default function Login({ title, description }) {
                   transition: "background 0.15s, color 0.15s, border-color 0.15s",
                 }}
               >
-                {m === "password" ? "Password" : "License Key"}
+                {m === "password" ? "Password Login" : "License Activation"}
               </button>
             ))}
           </div>
 
           <form onSubmit={submit}>
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle()}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@omnibioai"
-                style={fieldStyle()}
-              />
-            </div>
-            {mode === "password" ? (
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle()}>Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  style={fieldStyle()}
-                />
+            {loginChallenge ? <>
+              <div style={{ color: MUTED, fontSize: 12, lineHeight: 1.5, marginBottom: 16 }}>
+                {otpMethod === "email"
+                  ? "Enter the six-digit code sent to your registered email address. It expires in five minutes."
+                  : "Enter a code from your authenticator app or an authorized recovery code."}
               </div>
-            ) : (
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle()}>License Key</label>
+              {loginChallenge.methods.includes("email") && loginChallenge.methods.includes("totp") && (
+                <div role="group" aria-label="Verification method" style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                  <button type="button" aria-pressed={otpMethod === "email"} onClick={() => { setOtpMethod("email"); setOtpCode(""); setError(""); }}>Email OTP</button>
+                  <button type="button" aria-pressed={otpMethod === "totp"} onClick={() => { setOtpMethod("totp"); setOtpCode(""); setError(""); }}>Authenticator / recovery</button>
+                </div>
+              )}
+              <div style={{ marginBottom: 14 }}>
+                <label htmlFor="login-verification-code" style={labelStyle()}>
+                  {otpMethod === "email" ? "Email OTP verification" : "Authenticator or recovery code"}
+                </label>
                 <input
+                  id="login-verification-code"
+                  aria-label={otpMethod === "email" ? "Email OTP verification" : "Authenticator or recovery code"}
                   type="text"
-                  value={licenseKey}
-                  onChange={(e) => setLicenseKey(e.target.value)}
-                  placeholder="OMNI-XXXX-XXXX-XXXX-XXXX"
-                  style={fieldStyle({ color: ACCENT, letterSpacing: "0.1em", textTransform: "uppercase" })}
+                  inputMode={otpMethod === "email" ? "numeric" : undefined}
+                  autoComplete="one-time-code"
+                  pattern={otpMethod === "email" ? "[0-9]{6}" : undefined}
+                  maxLength={otpMethod === "email" ? 6 : undefined}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  style={fieldStyle()}
+                  required
+                  autoFocus
                 />
               </div>
-            )}
+              {otpMethod === "email" && (
+                <button type="button" disabled={busy || resendCooldown > 0} onClick={resendOtp} style={{ width: "100%", marginBottom: 14 }}>
+                  {resendCooldown > 0 ? `Resend OTP (${resendCooldown}s)` : "Resend OTP"}
+                </button>
+              )}
+            </> : <>
+              <div style={{ marginBottom: 14 }}>
+                <label htmlFor="login-email" style={labelStyle()}>Email</label>
+                <input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@omnibioai" style={fieldStyle()} required />
+              </div>
+              {mode === "password" ? (
+                <div style={{ marginBottom: 20 }}>
+                  <label style={labelStyle()}>Password</label>
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••" style={fieldStyle()} required />
+                </div>
+              ) : (
+                <div style={{ marginBottom: 20 }}>
+                  <label style={labelStyle()}>License Key</label>
+                  <input type="text" value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)}
+                    placeholder="OMNI-XXXX-XXXX-XXXX-XXXX"
+                    style={fieldStyle({ color: ACCENT, letterSpacing: "0.1em", textTransform: "uppercase" })} required />
+                </div>
+              )}
+            </>}
             {error && <div style={{ marginBottom: 14 }}><Badge variant="danger">{error}</Badge></div>}
+            {notice && <div role="status" style={{ marginBottom: 14, color: ACCENT, fontSize: 12 }}>{notice}</div>}
             <button
               type="submit"
               disabled={busy}
@@ -266,11 +342,14 @@ export default function Login({ title, description }) {
                 opacity: busy ? 0.7 : 1,
               }}
             >
-              {busy ? "Signing in…" : mode === "license" ? "Activate License →" : "Sign in"}
+              {busy ? "Working…" : loginChallenge ? "Verify OTP" : mode === "license" ? "Activate License" : "Continue"}
             </button>
+            {loginChallenge && <button type="button" disabled={busy} onClick={() => {
+              setLoginChallenge(null); setOtpCode(""); setError(""); setNotice(""); setResendCooldown(0);
+            }} style={{ width: "100%", marginTop: 10 }}>Back to password login</button>}
           </form>
 
-          {!isElectron() && (
+          {!isElectron() && !loginChallenge && (
             <div style={{ marginTop: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 16px" }}>
                 <div style={{ flex: 1, height: 1, background: FIELD_BORDER }} />

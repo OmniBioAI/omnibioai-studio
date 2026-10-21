@@ -4,6 +4,7 @@ import OmniBioAILogo from './brand/OmniBioAILogo';
 export default function LicenseGate({ children }) {
     const [license, setLicense] = useState(null);
     const [key, setKey] = useState('');
+    const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [validating, setValidating] = useState(false);
@@ -45,7 +46,9 @@ export default function LicenseGate({ children }) {
         setValidating(true);
         setError('');
         try {
-            const result = await window.electronAPI.validateLicense(key.trim());
+            const result = await window.electronAPI.validateLicense({
+                key: key.trim(), email: email.trim(),
+            });
             if (result.valid) {
                 setLicense(result);
             } else {
@@ -71,6 +74,15 @@ export default function LicenseGate({ children }) {
                     <h1 className="text-2xl font-bold text-white mb-2">Studio</h1>
                     <p className="text-gray-400">Enter your license key to continue</p>
                 </div>
+
+                <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Email"
+                    required
+                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
 
                 <input
                     type="text"

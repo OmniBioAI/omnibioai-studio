@@ -93,6 +93,7 @@ function statusCode(status) {
   if (status === 404) return "not_found";
   if (status === 409) return "conflict";
   if (status === 413) return "quota_exceeded";
+  if (status === 429) return "rate_limited";
   return "unavailable";
 }
 

@@ -33,6 +33,14 @@ backup/credential variables explicitly for each host. Run
 `scripts/compose-preflight.sh` before Compose; it fails closed when required
 bind sources or configured external directories are missing.
 
+For the DGX ARM64 development stack, use `scripts/compose-dgx.sh`. It pins the
+absolute project directory and the ordered file set
+`docker-compose.yml`, `docker-compose.override.yml`, and
+`docker-compose.arm64.yml`. Run `scripts/dgx-deployment-preflight.sh` before
+any approved activation; it validates bind source types and symlink targets,
+rejects `/mnt/wdpro26tb`, and requires an already-promoted PUBLIC_ONLY Dev Hub
+index. Neither preflight provisions paths or builds an index.
+
 ## backup-mysql.sh
 Daily MySQL backup with 7-day retention.
 

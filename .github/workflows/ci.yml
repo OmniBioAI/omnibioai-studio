@@ -82,6 +82,8 @@ jobs:
           TES_TOOLSERVER_CLIENT_SECRET=citestoolserver
           TES_TOOLSERVER_REGISTRATION_CLIENT_ID=ci-tes-toolserver-registration
           TES_TOOLSERVER_REGISTRATION_CLIENT_SECRET=citestoolserverregistration
+          INTEGRATION_CREDENTIAL_SERVICE_SECRET=ciintegrationcredential
+          STORAGE_BILLING_URL=http://ci-storage-billing.invalid
           ENVEOF
           # rag's env_file is gitignored and generated on real hosts; compose
           # config refuses to render when it is missing.

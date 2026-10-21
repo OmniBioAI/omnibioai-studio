@@ -1,0 +1,85 @@
+# DGX production-only publication policy. Internal container-to-container
+# traffic continues to use the Compose network and service ports directly.
+x-loopback-note: &loopback-note
+  com.omnibioai.exposure: "host-loopback-only"
+
+services:
+  mysql:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:3306:3306"]
+  toolserver:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:9090:9090"]
+  dev-hub:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:5173:5173", "127.0.0.1:8082:8082"]
+  tes:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8081:8081", "127.0.0.1:5177:5177"]
+  model-registry:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8095:8095", "127.0.0.1:5176:5176"]
+  billing-service:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8005:8005"]
+  ollama:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:11434:11434"]
+  rag:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8090:8096", "127.0.0.1:5175:5175"]
+  workbench:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8000:8000"]
+    environment:
+      DJANGO_SETTINGS_MODULE: omnibioai.dgx_production_settings
+      DJANGO_ALLOWED_HOSTS: 127.0.0.1,localhost,workbench,omnibioai-workbench,omnibioai.org,www.omnibioai.org,workbench.omnibioai.org,webstudio.omnibioai.org
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://omnibioai.org,https://www.omnibioai.org,https://workbench.omnibioai.org,https://webstudio.omnibioai.org
+      DJANGO_TRUSTED_PROXY_IPS: ""
+    volumes:
+      - ./deploy/dgx/workbench_production_settings.py:/app/omnibioai/dgx_production_settings.py:ro
+  launcher:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:5190:5190"]
+  jupyter:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8888:8888"]
+  workflow-bundles:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8098:8098", "127.0.0.1:5178:5178"]
+  tool-images:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8097:8097", "127.0.0.1:5179:5179"]
+  videos:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8086:8086"]
+  opa:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8181:8181"]
+  auth-service:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8001:8001"]
+  policy-engine:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8002:8002"]
+  hpc-policy-engine:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8003:8003"]
+  security-audit:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8004:8004"]
+  api-gateway:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8080:8080"]
+  grafana:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:3000:3000"]
+  license-server:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8099:8099"]
+  cadvisor:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:8585:8080"]
+  redis-exporter:
+    labels: *loopback-note
+    ports: !override ["127.0.0.1:9121:9121"]
