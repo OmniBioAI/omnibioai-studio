@@ -1,5 +1,5 @@
 import React from "react";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({ token: "tenant-a-token", version: 1, listeners: new Set() }));
@@ -76,7 +76,7 @@ describe("Storage account and real usage client", () => {
     fetch.mockResolvedValue({ ...response({ ...usage, used_bytes: 400, available_bytes: 300 }), json: async function () { return this.body; }, body: { ...usage, used_bytes: 400, available_bytes: 300 } });
     fetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => new Promise(resolve => { resolveBody = resolve; }) });
     render(<AccountStorage />); await waitFor(() => expect(resolveBody).toBeTypeOf("function"));
-    session.version += 1; session.listeners.forEach(fn => fn());
+    act(() => { session.version += 1; session.listeners.forEach(fn => fn()); });
     expect(await screen.findByText("400 B")).toBeInTheDocument();
     await act(async () => resolveBody(usage));
     expect(screen.queryByText("200 B")).not.toBeInTheDocument();
@@ -98,7 +98,7 @@ describe("Storage account and real usage client", () => {
     fetch.mockResolvedValue(response({ ...usage, used_bytes: 0, reserved_bytes: 0, available_bytes: 1000 }));
     render(<AccountStorage />); await screen.findByText("Membership: Free");
     expect(screen.getAllByText("0 B")).toHaveLength(2);
-    expect(screen.getByText(/No reconciliation check has been reported/)).toBeInTheDocument();
+    expect(screen.queryByText(/reconciliation/i)).not.toBeInTheDocument();
     expect(screen.getByText(/do not confirm that all existing files have been counted/)).toBeInTheDocument();
   });
   it("does not treat a reconciliation timestamp as proof that legacy files were counted", () => {
@@ -109,5 +109,86 @@ describe("Storage account and real usage client", () => {
     } }} />);
     expect(screen.getByText(/Last reconciliation check reported/)).toBeInTheDocument();
     expect(screen.getByText(/timestamp alone does not confirm that all existing files have been counted/)).toBeInTheDocument();
+  });
+});
+
+
+describe("Storage Visual V2", () => {
+  it.each([["free", "Free", 1_000_000_000], ["plus", "Plus", 20_000_000_000], ["pro", "Pro", 100_000_000_000]])("marks only the API-supplied %s plan current", async (plan, name, quota) => {
+    fetch.mockResolvedValue(response({ ...usage, membership_plan: plan, quota_bytes: quota, available_bytes: quota - 500 }));
+    render(<AccountStorage />);
+    await screen.findByText(`Membership: ${name}`);
+    expect(screen.getAllByText("Current plan")).toHaveLength(1);
+    expect(within(screen.getByRole("article", { name: `${name} storage plan` })).getByText("Current plan")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Explore membership plans/ })).toHaveAttribute("href", "/studio/billing/plans");
+  });
+  it("uses the effective API quota even when it differs from the standard plan", async () => {
+    render(<AccountStorage />); await screen.findByText("Membership: Free");
+    expect(displayed("Total")).toBe("1.0 KB");
+    expect(screen.getByRole("article", { name: "Free storage plan" })).toHaveTextContent("1 GB");
+    expect(screen.getByRole("img", { name: /Personal storage:/ })).toHaveAccessibleName(/200 B used, 300 B reserved, 500 B available, 1.0 KB total. 50% used or reserved/);
+  });
+  it("keeps all four cards but no chart or current plan when entitlements are missing", async () => {
+    fetch.mockResolvedValue(response({ ...usage, membership_plan: null, quota_bytes: null, available_bytes: null, entitlement_status: "cached_or_unavailable" }));
+    render(<AccountStorage />); await screen.findByText("Membership: Unavailable");
+    expect(["Used", "Reserved", "Available", "Total"].map(displayed)).toEqual(["200 B", "300 B", "Unavailable", "Unavailable"]);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current plan")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("No allowance has been assumed");
+  });
+  it.each([0, 200])("handles a zero-byte allowance with %s bytes used without an invalid percentage", async used => {
+    fetch.mockResolvedValue(response({ ...usage, quota_bytes: 0, used_bytes: used, reserved_bytes: 0, available_bytes: 0, over_quota: used > 0 }));
+    render(<AccountStorage />); await screen.findByText("Membership: Free");
+    expect(displayed("Total")).toBe("0 B");
+    expect(screen.getByText("No storage allowance allocated")).toBeInTheDocument();
+    expect(screen.getByRole("img")).toHaveAccessibleName(/No percentage is defined for a zero-byte allowance/);
+    expect(document.body.textContent).not.toMatch(/NaN|Infinity/);
+  });
+  it("reports reserved-only overage and the actual percentage above 100", async () => {
+    fetch.mockResolvedValue(response({ ...usage, used_bytes: 0, reserved_bytes: 1200, available_bytes: 0, over_quota: true }));
+    render(<AccountStorage />); await screen.findByText("Membership: Free");
+    expect(screen.getByRole("img")).toHaveAccessibleName(/120% used or reserved/);
+    expect(screen.getByRole("alert")).toHaveTextContent("Quota enforcement is not active");
+  });
+  it("displays an API reconciliation timestamp without claiming full accounting", async () => {
+    fetch.mockResolvedValue(response({ ...usage, last_reconciled_at: "2026-10-21T12:00:00Z" }));
+    render(<AccountStorage />);
+    expect(await screen.findByText(/Last reconciliation check reported/)).toHaveTextContent("timestamp alone does not confirm");
+    expect(document.querySelector("time")).toHaveAttribute("datetime", "2026-10-21T12:00:00Z");
+  });
+  it("labels a cached entitlement", async () => {
+    fetch.mockResolvedValue(response({ ...usage, entitlement_status: "cached_or_unavailable" }));
+    render(<AccountStorage />);
+    await screen.findByText("Membership: Free");
+    expect(screen.getByRole("status")).toHaveTextContent("Showing the last allowance supplied by the service");
+  });
+  it.each([{}, { ...usage, available_bytes: 600 }, { ...usage, used_bytes: -1 }])("rejects empty or inconsistent API payloads", async body => {
+    fetch.mockResolvedValue(response(body)); render(<AccountStorage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("No usage value has been assumed");
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current plan")).not.toBeInTheDocument();
+  });
+  it("clears metrics and current plan during refresh and disables duplicate requests", async () => {
+    render(<AccountStorage />); await screen.findByText("Membership: Free");
+    let resolve;
+    fetch.mockReturnValueOnce(new Promise(done => { resolve = done; }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh usage" }));
+    expect(screen.getByRole("button", { name: "Refreshing usage…" })).toBeDisabled();
+    expect(screen.queryByText("200 B")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current plan")).not.toBeInTheDocument();
+    await act(async () => resolve(response()));
+    expect(await screen.findByRole("button", { name: "Refresh usage" })).toBeEnabled();
+  });
+  it("ignores an in-flight refresh after a session switch", async () => {
+    render(<AccountStorage />); await screen.findByText("Membership: Free");
+    let resolve;
+    fetch.mockReturnValueOnce(new Promise(done => { resolve = done; }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh usage" }));
+    fetch.mockResolvedValue(response({ ...usage, membership_plan: "plus", used_bytes: 400, available_bytes: 300 }));
+    act(() => { session.token = "tenant-b-token"; session.version += 1; session.listeners.forEach(fn => fn()); });
+    await screen.findByText("Membership: Plus");
+    await act(async () => resolve(response()));
+    expect(screen.queryByText("Membership: Free")).not.toBeInTheDocument();
+    expect(displayed("Used")).toBe("400 B");
   });
 });
