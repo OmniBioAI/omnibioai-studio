@@ -73,6 +73,72 @@ beforeEach(() => {
 });
 
 describe("Artifacts API", () => {
+  it.each([
+    ["free", 1_000_000_000], ["plus", 20_000_000_000], ["pro", 100_000_000_000],
+  ])("preserves the authoritative %s entitlement and subtracts upload reservations", async (plan, quota) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: {
+      ...usageBody, membership_plan: plan, quota_bytes: quota,
+      used_bytes: 200, reserved_bytes: 300, available_bytes: quota - 500,
+    } }));
+    await expect(getStorageUsage()).resolves.toMatchObject({ plan, quotaBytes: quota,
+      usedBytes: 200, reservedBytes: 300, availableBytes: quota - 500 });
+  });
+
+  it.each([
+    [0, 0, 0, 0, false], [0, 1, 0, 0, true],
+    [1_000, 400, 600, 0, false], [1_000, 400, 601, 0, true],
+    [1_000, 400, 0, 600, false],
+  ])("accepts quota %s with used %s, reserved %s and available %s", async (quota, used, reserved, available, over) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: {
+      ...usageBody, quota_bytes: quota, used_bytes: used, reserved_bytes: reserved,
+      available_bytes: available, over_quota: over,
+    } }));
+    await expect(getStorageUsage()).resolves.toMatchObject({ quotaBytes: quota,
+      usedBytes: used, reservedBytes: reserved, availableBytes: available, overQuota: over });
+  });
+
+  it.each([
+    { available_bytes: 760000000 }, // Ignores the 1,000-byte reservation.
+    { over_quota: true }, { reserved_bytes: -1 }, { reserved_bytes: 0.5 },
+    { used_bytes: Number.MAX_SAFE_INTEGER, reserved_bytes: 1 },
+    { quota_bytes: null }, { membership_plan: null },
+    { enforcement_active: false }, { quota_mode: "audit" },
+    { owner_id: "" }, { owner_id: "other-user" }, { owner_id: "0" },
+    { last_reconciled_at: "invalid" }, { entitlement_status: "invented" },
+  ])("rejects contradictory or unsafe storage projection %j", async patch => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: { ...usageBody, ...patch } }));
+    await expect(getStorageUsage()).rejects.toMatchObject({ code: "invalid" });
+  });
+
+  it("preserves reconciliation evidence without exposing the owner identifier", async () => {
+    const reconciled = "2026-10-21T12:00:00Z";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: { ...usageBody, last_reconciled_at: reconciled } }));
+    const result = await getStorageUsage();
+    expect(result.lastReconciledAt).toBe(reconciled);
+    expect(result).not.toHaveProperty("owner_id");
+  });
+
+  it("ignores caller-supplied owner and organization selectors", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: usageBody }));
+    await getStorageUsage({ owner_id: "8", organization_id: "9" });
+    expect(fetchSpy.mock.calls[0][0]).toBe("/_svc/workbench/api/storage/me/usage");
+    expect(fetchSpy.mock.calls[0][1].body).toBeUndefined();
+  });
+
+  it.each(["headers", "body"])("discards another session's usage during %s delivery", async phase => {
+    let deliver;
+    const pending = new Promise(resolve => { deliver = resolve; });
+    const json = vi.fn(() => pending);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => phase === "headers"
+      ? pending : Promise.resolve({ ...response(), json }));
+    const result = getStorageUsage();
+    if (phase === "body") await vi.waitFor(() => expect(json).toHaveBeenCalled());
+    else expect(fetchSpy).toHaveBeenCalled();
+    session.version += 2; // Also catches A -> B -> A with an unchanged token.
+    deliver(phase === "headers" ? response({ body: usageBody }) : usageBody);
+    await expect(result).rejects.toMatchObject({ code: "stale" });
+  });
+
   it("loads and validates personal managed-storage usage", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: usageBody }));
     const usage = await getStorageUsage();
@@ -85,10 +151,15 @@ describe("Artifacts API", () => {
       quotaBytes: 1000000000, availableBytes: 759999000, plan: "free", enforcementActive: true });
   });
 
+  it("accepts the existing Workbench projection when reconciliation evidence is omitted", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: usageBody }));
+    await expect(getStorageUsage()).resolves.toMatchObject({ lastReconciledAt: null });
+  });
+
   it("does not send a caller-selected owner or tenant and preserves unknown allowance", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response({ body: {
       ...usageBody, quota_bytes: null, available_bytes: null, membership_plan: null,
-      entitlement_status: "cached_or_unavailable", enforcement_active: false,
+      entitlement_status: "cached_or_unavailable", quota_mode: "audit", enforcement_active: false,
     } }));
     const usage = await getStorageUsage();
     expect(fetchSpy.mock.calls[0][0]).toBe("/_svc/workbench/api/storage/me/usage");

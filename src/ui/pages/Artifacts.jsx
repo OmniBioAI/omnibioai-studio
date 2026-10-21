@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ProgressBar, Spinner } from "@omnibioai/ui";
 import { useAccountDateTime } from "../components/PreferencesProvider";
+import { useStorageUsage } from "../lib/useStorageUsage";
 import {
   downloadArtifact,
   getArtifact,
   getArtifactProvenance,
-  getStorageUsage,
   listArtifacts,
 } from "../lib/artifactsApi";
 import "./Artifacts.css";
@@ -93,20 +93,7 @@ export default function Artifacts() {
   const [filter, setFilter] = useState("All");
   const [result, setResult] = useState({ status: "loading", items: [], error: "" });
   const [selected, setSelected] = useState(null);
-  const [usage, setUsage] = useState({ status: "loading", data: null });
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setUsage({ status: "loading", data: null });
-    getStorageUsage({ signal: controller.signal }).then(data => {
-      if (!controller.signal.aborted) setUsage({ status: "success", data });
-    }).catch(error => {
-      if (!controller.signal.aborted && error?.name !== "AbortError") {
-        setUsage({ status: "error", data: null, error: error?.code || "unavailable" });
-      }
-    });
-    return () => controller.abort();
-  }, []);
+  const usage = useStorageUsage(request.reload);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -201,7 +188,15 @@ export default function Artifacts() {
   </section>;
 }
 
+const STORAGE_ERROR_MESSAGES = Object.freeze({
+  unauthorized: "Sign in again to view storage usage. No usage value has been assumed.",
+  forbidden: "Access to storage usage was denied. No usage value has been assumed.",
+  not_found: "The storage usage endpoint was not found. No usage value has been assumed.",
+  rate_limited: "Storage usage is temporarily rate limited. Please refresh later. No usage value has been assumed.",
+});
+
 export function StorageUsage({ state }) {
+  const formatDate = useAccountDateTime();
   if (state.status === "loading") return <section className="storage-usage" aria-busy="true">
     <p role="status"><Spinner size="sm" /> Loading personal storage usage…</p>
   </section>;
@@ -209,7 +204,8 @@ export function StorageUsage({ state }) {
     <h2>Personal managed storage</h2><p role="alert">{STORAGE_ERROR_MESSAGES[state.error] || "Storage usage is unavailable right now. No usage value has been assumed."}</p>
   </section>;
   const value = state.data;
-  const percent = value.quotaBytes ? Math.min(100, ((value.usedBytes + value.reservedBytes) / value.quotaBytes) * 100) : 0;
+  const heldBytes = value.usedBytes + value.reservedBytes;
+  const percent = value.quotaBytes ? Math.min(100, (heldBytes / value.quotaBytes) * 100) : heldBytes > 0 ? 100 : 0;
   return <section className={`storage-usage${value.overQuota ? " storage-usage--over" : ""}`}>
     <div className="storage-usage__heading"><div><h2>Personal managed storage</h2>
       <p>Membership: {value.plan ? value.plan[0].toUpperCase() + value.plan.slice(1) : "Unavailable"}</p></div>
@@ -223,9 +219,18 @@ export function StorageUsage({ state }) {
         <div><dt>Total</dt><dd>{formatBytes(value.quotaBytes)}</dd></div>
       </>}
     </dl>
+    <p>Usage includes managed uploads and imports. Reserved bytes are held for pending uploads and imports and reduce available storage.</p>
+    <p>Workflow outputs and platform storage are excluded from this personal allowance. 1 GB = 1,000,000,000 bytes.</p>
+    {value.lastReconciledAt ? <p>Last reconciliation check reported: <time dateTime={value.lastReconciledAt}>{formatDate(value.lastReconciledAt)}</time>. This timestamp alone does not confirm that all existing files have been counted.</p>
+      : <p role="status">No reconciliation check has been reported. These counters do not confirm that all existing files have been counted.</p>}
+    {value.entitlementStatus !== "fresh" && value.quotaBytes !== null && <p role="status">The current membership allowance could not be refreshed.</p>}
     {value.enforcementActive && <p className="storage-usage__enforced">Quota enforced</p>}
     {value.quotaMode === "audit" && <p>Quota accounting is in audit mode; enforcement is not active.</p>}
-    {value.overQuota && <p role="alert">You are over your current storage allowance. Downloads and deletion remain available, but new storage may be blocked.</p>}
+    {value.quotaMode === "off" && <p>Quota enforcement is off.</p>}
+    {value.quotaMode === "blocked" && <p role="alert">Storage admission is blocked pending accounting verification.</p>}
+    {value.overQuota && <p role="alert">You are over your current storage allowance. {value.enforcementActive
+      ? "New uploads that exceed your allowance are blocked."
+      : value.quotaMode === "blocked" ? "Storage admission is currently blocked." : "Quota enforcement is not active."}</p>}
   </section>;
 }
 

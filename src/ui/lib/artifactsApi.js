@@ -106,21 +106,41 @@ function byteField(value, nullable = false) {
 export async function getStorageUsage({ signal } = {}) {
   const value = await requestJson("/api/storage/me/usage", { signal });
   if (!value || value.owner_type !== "USER" || typeof value.owner_id !== "string"
+      || !/^[1-9][0-9]{0,18}$/.test(value.owner_id)
       || !["free", "plus", "pro", null].includes(value.membership_plan)
       || !["off", "audit", "enforce", "blocked"].includes(value.quota_mode)
       || typeof value.over_quota !== "boolean" || typeof value.enforcement_active !== "boolean") {
     throw new ArtifactsApiError("invalid");
   }
+  const usedBytes = byteField(value.used_bytes);
+  const reservedBytes = byteField(value.reserved_bytes);
+  const quotaBytes = byteField(value.quota_bytes, true);
+  const availableBytes = byteField(value.available_bytes, true);
+  const heldBytes = usedBytes + reservedBytes;
+  const lastReconciledAt = value.last_reconciled_at === undefined
+    ? "" : validDate(value.last_reconciled_at);
+  // Validate one atomic backend projection; never repair counters or infer a
+  // personal entitlement from the marketing plan catalog in the browser.
+  if (!Number.isSafeInteger(heldBytes)
+      || availableBytes !== (quotaBytes === null ? null : Math.max(0, quotaBytes - heldBytes))
+      || value.over_quota !== (quotaBytes !== null && heldBytes > quotaBytes)
+      || (quotaBytes === null) !== (value.membership_plan === null)
+      || value.enforcement_active !== (value.quota_mode === "enforce")
+      || !["fresh", "cached_or_unavailable"].includes(value.entitlement_status)
+      || lastReconciledAt === null) {
+    throw new ArtifactsApiError("invalid");
+  }
   return Object.freeze({
-    usedBytes: byteField(value.used_bytes),
-    reservedBytes: byteField(value.reserved_bytes),
-    quotaBytes: byteField(value.quota_bytes, true),
-    availableBytes: byteField(value.available_bytes, true),
+    usedBytes,
+    reservedBytes,
+    quotaBytes,
+    availableBytes,
     plan: value.membership_plan,
     overQuota: value.over_quota,
     quotaMode: value.quota_mode,
     enforcementActive: value.enforcement_active,
     entitlementStatus: cleanText(value.entitlement_status, 32),
+    lastReconciledAt: lastReconciledAt || null,
   });
 }
 
