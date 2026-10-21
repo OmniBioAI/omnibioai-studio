@@ -150,6 +150,12 @@ services:
     # deploy-verify default (14d) is fine for this one -- no override.
     volumes:
       - ${WORKSPACE_HOST}:/workspace
+      # The work entry under WORKSPACE_HOST is a symlink to the 26 TB drive.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: /workspace/work
+        bind:
+          create_host_path: false
     depends_on:
       mysql:
         condition: service_healthy
@@ -1180,6 +1186,12 @@ services:
       DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
       - ${WORKSPACE_HOST}:/workspace
+      # Keep the workspace work path usable without following its host symlink.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: /workspace/work
+        bind:
+          create_host_path: false
       - type: bind
         source: ${WORK_DIR}/runs
         target: /app/work/runs
@@ -1362,6 +1374,12 @@ services:
       WORKBENCH_PLUGIN_REGISTRY_PATH: /app/data/workbench-plugin-registry.json
     volumes:
         - ${MACHINE_DIR}:/workspace
+        # Reports and coverage write to work/out, so keep this bind writable.
+        - type: bind
+          source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+          target: /workspace/work
+          bind:
+            create_host_path: false
         - ${MACHINE_DIR}/omnibioai-ecosystem-regression/status/regression-health.json:/app/data/regression-health.json:ro
         - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
         - /media/manish/OmniBioAI-SIFs/reference:/media/manish/OmniBioAI-SIFs/reference
