@@ -1,0 +1,18 @@
+# gitleaks configuration (loaded automatically from the repository root by
+# scripts/secret-scan.sh). Keeps every default rule; adds one narrow allowlist.
+
+[extend]
+useDefault = true
+
+# security-artifacts/*.json are image scan and provenance reports that copy the
+# scanned images' environment. Images built on the Docker Official Image
+# python:3.12 carry GPG_KEY, the Python 3.12 release manager's PUBLIC OpenPGP
+# key fingerprint (used to verify the CPython source download). It is not a
+# secret, but generic-api-key matches it. Allowed only when BOTH the value and
+# the path match; the same value anywhere else is still reported.
+[[allowlists]]
+description = "Public python:3.12 GPG_KEY fingerprint in security-artifacts reports"
+condition = "AND"
+regexTarget = "secret"
+regexes = ['''^7169605F62C751356D054A26A821E680E5FA6305$''']
+paths = ['''^security-artifacts/[^/]+\.json$''']

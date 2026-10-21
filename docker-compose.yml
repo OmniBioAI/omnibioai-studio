@@ -1,3 +1,13 @@
+# obai-deploy pre-build hooks (opt-in, per service). Before building <service>,
+# obai-deploy runs scripts/obai-prebuild from the service's git-archived build
+# tree in an offline, read-only container where only that tree is writable;
+# each input is a host path (relative to this directory) mounted read-only at
+# /obai-inputs/<NAME> and exported as OBAI_INPUT_<NAME>.
+x-obai-prebuild:
+  videos:
+    inputs:
+      MEDIA_DIR: ../omnibioai-videos/content   # approved media (repo copies are Git LFS pointers)
+
 services:
 
   mysql:
@@ -140,6 +150,12 @@ services:
     # deploy-verify default (14d) is fine for this one -- no override.
     volumes:
       - ${WORKSPACE_HOST}:/workspace
+      # The work entry under WORKSPACE_HOST is a symlink to the 26 TB drive.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: /workspace/work
+        bind:
+          create_host_path: false
     depends_on:
       mysql:
         condition: service_healthy
@@ -232,7 +248,14 @@ services:
       - /tmp/omnibioai_tes_runs:/tmp/omnibioai_tes_runs
       # Regression-safe workflow fixture root, also covered by the
       # Docker Socket Proxy's approved WORK_DIR prefix.
-      - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
+      # Fail closed if the 26 TB work volume is absent instead of letting
+      # Docker create the path on the root disk. Source stays under WORK_DIR
+      # (the socket proxy's approved prefix).
+      - type: bind
+        source: ${WORK_DIR}/workflow_runner_exec
+        target: /app/work/workflow_runner_exec
+        bind:
+          create_host_path: false
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_HOST in environment: above and the docker-socket-proxy
       # service's own comment. :ro because TES only ever needs to
@@ -288,7 +311,12 @@ services:
       - ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
       - ${MACHINE_DIR}/omnibioai-tool-images:${MACHINE_DIR}/omnibioai-tool-images:ro
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
-      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+      # Bind the physical 26 TB path; the repository's work entry is a symlink.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: ${MACHINE_DIR}/work
+        bind:
+          create_host_path: false
       - type: bind
         source: ${DATA_DIR}/tool-images/sif
         target: /sif
@@ -1019,7 +1047,12 @@ services:
         bind:
           create_host_path: false
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
-      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+      # Bind the physical 26 TB path; the repository's work entry is a symlink.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: ${MACHINE_DIR}/work
+        bind:
+          create_host_path: false
       - /media:/media:ro
     depends_on:
       docker-socket-proxy:
@@ -1153,6 +1186,12 @@ services:
       DOCKER_HOST: unix:///var/run/proxy-socket/docker.sock
     volumes:
       - ${WORKSPACE_HOST}:/workspace
+      # Keep the workspace work path usable without following its host symlink.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: /workspace/work
+        bind:
+          create_host_path: false
       - type: bind
         source: ${WORK_DIR}/runs
         target: /app/work/runs
@@ -1335,6 +1374,12 @@ services:
       WORKBENCH_PLUGIN_REGISTRY_PATH: /app/data/workbench-plugin-registry.json
     volumes:
         - ${MACHINE_DIR}:/workspace
+        # Reports and coverage write to work/out, so keep this bind writable.
+        - type: bind
+          source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+          target: /workspace/work
+          bind:
+            create_host_path: false
         - ${MACHINE_DIR}/omnibioai-ecosystem-regression/status/regression-health.json:/app/data/regression-health.json:ro
         - /media/manish/OmniBioAI-SIFs/work:/media/manish/OmniBioAI-SIFs/work
         - /media/manish/OmniBioAI-SIFs/reference:/media/manish/OmniBioAI-SIFs/reference
@@ -1428,7 +1473,12 @@ services:
           create_host_path: false
       - ${MACHINE_DIR}/omnibioai:/repos/omnibioai:ro
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
-      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+      # Bind the physical 26 TB path; the repository's work entry is a symlink.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: ${MACHINE_DIR}/work
+        bind:
+          create_host_path: false
       - ${MACHINE_DIR}/omnibioai-rag:/repos/omnibioai-rag:ro
       - ${MACHINE_DIR}/omnibioai-toolserver:/repos/omnibioai-toolserver:ro
       - ${MACHINE_DIR}/omnibioai-sdk:/repos/omnibioai-sdk:ro
@@ -1504,7 +1554,12 @@ services:
       - "${HOST_IP:-0.0.0.0}:8888:8888"
     volumes:
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
-      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+      # Bind the physical 26 TB path; the repository's work entry is a symlink.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: ${MACHINE_DIR}/work
+        bind:
+          create_host_path: false
     environment:
       - JUPYTER_TOKEN=${JUPYTER_TOKEN:-omnibioai}
       - GRANT_SUDO=yes
@@ -1520,7 +1575,12 @@ services:
       - "127.0.0.1:8787:8787"
     volumes:
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
-      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+      # Bind the physical 26 TB path; the repository's work entry is a symlink.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: ${MACHINE_DIR}/work
+        bind:
+          create_host_path: false
     environment:
       - PASSWORD=${RSTUDIO_PASSWORD:-omnibioai}
       - ROOT=TRUE
@@ -1536,7 +1596,12 @@ services:
       - "127.0.0.1:8083:8080"
     volumes:
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
-      - ${MACHINE_DIR}/work:${MACHINE_DIR}/work
+      # Bind the physical 26 TB path; the repository's work entry is a symlink.
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: ${MACHINE_DIR}/work
+        bind:
+          create_host_path: false
     environment:
       - PASSWORD=${VSCODE_PASSWORD:-omnibioai}
     restart: unless-stopped
@@ -1664,6 +1729,12 @@ services:
 
   videos:
     image: ghcr.io/omnibioai/omnibioai-videos:latest
+    # Built by `obai-deploy build videos` (the release pin resets build: so `up`
+    # never builds). Dockerfile.public needs dist/public, generated by the repo's
+    # scripts/obai-prebuild hook -- see x-obai-prebuild at the top of this file.
+    build:
+      context: ../omnibioai-videos
+      dockerfile: Dockerfile.public
     restart: on-failure
     ports:
       - "8086:8086"
