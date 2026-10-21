@@ -44,3 +44,17 @@ cced81dacacf28eed07a4426fe4b116295573507:.env:generic-api-key:8
 975460f350e777340dc2d83911f9c565f18c12c8:DEPLOYMENT.md:curl-auth-user:232
 975460f350e777340dc2d83911f9c565f18c12c8:DEPLOYMENT.md:curl-auth-user:317
 975460f350e777340dc2d83911f9c565f18c12c8:DEPLOYMENT.md:curl-auth-user:320
+
+# --- cbffedd1 security-artifacts (2026-10-20): generic-api-key matches are the
+# official Python base image's GPG_KEY env (the public OpenPGP fingerprint used to
+# verify CPython release tarballs), recorded in image history / build provenance.
+# Public, not a credential; matches no current secret value. Exact locations only.
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate-rc-v1.provenance.statement.json:generic-api-key:1
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate-rc-v2-baseline-image-scan.json:generic-api-key:421
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate-rc-v2-baseline-image-scan.json:generic-api-key:95
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate-rc-v2-final-image-vuln.json:generic-api-key:421
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate-rc-v2-final-image-vuln.json:generic-api-key:95
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate-rc-v2b-final-image-vuln.json:generic-api-key:428
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate-rc-v2b-final-image-vuln.json:generic-api-key:96
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-v2-isolated-rollback-vuln.json:generic-api-key:421
+cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-v2-isolated-rollback-vuln.json:generic-api-key:95
