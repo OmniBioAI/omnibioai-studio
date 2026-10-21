@@ -475,8 +475,8 @@ services:
 
   lims:
     build:
-      context: ${MACHINE_DIR}
-      dockerfile: omnibioai-lims/Dockerfile
+      context: ${MACHINE_DIR}/omnibioai-lims
+      dockerfile: Dockerfile
       target: backend
       secrets:
         - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
