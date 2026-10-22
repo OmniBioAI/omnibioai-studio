@@ -9,6 +9,7 @@ vi.mock("../../src/ui/lib/session", () => ({
   getRefreshToken: () => null,
   getCurrentUserSync: () => ({ userId: 1, email: "test@example.com", permissions: ["manage_config", "manage_roles"] }),
   getCurrentUser: vi.fn().mockResolvedValue({ userId: 1, email: "test@example.com", permissions: ["manage_config", "manage_roles"] }),
+  getIdentity: vi.fn().mockResolvedValue({ organizations: [] }),
   onSessionChange: vi.fn(() => () => {}),
   logout: vi.fn().mockResolvedValue(undefined),
   loginWithPassword: vi.fn().mockResolvedValue({}),
