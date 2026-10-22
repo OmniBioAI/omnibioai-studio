@@ -26,7 +26,11 @@ export function usageLabel(row) {
 }
 
 function date(value, fallback = "—") {
-  return value ? String(value).slice(0, 10) : fallback;
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return fallback;
+  const [, year, month, day] = match;
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" })
+    .format(new Date(Number(year), Number(month) - 1, Number(day)));
 }
 
 function amount(value, currency = "USD") {
@@ -45,29 +49,30 @@ function valueForLimit(row) {
 export default function BillingRedesign({ currentUser, onMembershipPlans, onStorage }) {
   if (!currentUser) return <Login title="Sign in required" description="Billing information requires an authenticated OmniBioAI account." />;
   if (currentUser.orgId == null) {
-    return <section className="billing-page"><header><p className="billing-crumb">Account › Billing</p><h1>Billing</h1><p>Plan, usage and invoices for your organization.</p></header><Card><p>No organization is associated with this session.</p></Card>{onMembershipPlans && <Button variant="secondary" onClick={onMembershipPlans}>Membership &amp; Plans</Button>}</section>;
+    return <section className="billing-page"><header><h1>Billing</h1><p>Plan, usage and invoices for your organization.</p></header><Card><p>No organization is associated with this session.</p></Card>{onMembershipPlans && <Button variant="secondary" onClick={onMembershipPlans}>Membership &amp; Plans</Button>}</section>;
   }
   return <OrgBilling currentUser={currentUser} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
 }
 
 function OrgBilling({ currentUser, onMembershipPlans, onStorage }) {
   const [identity, setIdentity] = useState(null);
-  const [identityLoaded, setIdentityLoaded] = useState(false);
-  const [identityUnavailable, setIdentityUnavailable] = useState(false);
   const [orgId, setOrgId] = useState(currentUser.orgId);
   useEffect(() => {
     let active = true;
-    getIdentity().then(value => { if (active) { setIdentity(value); setIdentityLoaded(true); } }).catch(() => { if (active) { setIdentityUnavailable(true); setIdentityLoaded(true); } });
+    getIdentity().then(value => { if (active) setIdentity(value); }).catch(() => { if (active) setIdentity(null); });
     return () => { active = false; };
   }, []);
   const orgs = identity?.organizations || [];
   const organization = orgs.find(row => String(row.organization_id) === String(orgId));
-  const orgName = organization?.organization_name || (identityUnavailable || identityLoaded ? "Organization name unavailable" : "Organization details loading");
+  const namedOrgs = orgs.filter(row => typeof row.organization_name === "string" && row.organization_name.trim());
+  const orgName = typeof organization?.organization_name === "string" && organization.organization_name.trim()
+    ? organization.organization_name : null;
   const isOrgAdmin = organization?.roles?.includes("org_admin") === true;
-  return <BillingDashboard key={String(orgId)} orgId={orgId} orgName={orgName} orgs={orgs} isOrgAdmin={isOrgAdmin} onOrgChange={setOrgId} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
+  const canManageAllOrgs = identity?.global_permissions?.includes("manage_all_orgs") === true;
+  return <BillingDashboard key={String(orgId)} orgId={orgId} orgName={orgName} orgs={namedOrgs} isOrgAdmin={isOrgAdmin} canManageAllOrgs={canManageAllOrgs} onOrgChange={setOrgId} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
 }
 
-function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, onOrgChange, onMembershipPlans, onStorage }) {
+function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, canManageAllOrgs, onOrgChange, onMembershipPlans, onStorage }) {
   const [state, setState] = useState({ loading: true, subscription: null, limits: null, summary: null, payment: null, invoices: null, errors: [] });
   const [tab, setTab] = useState("overview");
   const [paymentAction, setPaymentAction] = useState({ pending: false, error: "" });
@@ -132,11 +137,11 @@ function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, onOrgChange, onMem
 
   return <main className="billing-page">
     <header className="billing-header">
-      <div><p className="billing-crumb">Account › Billing</p><h1>Billing</h1><p className="billing-subtitle">Plan, usage and invoices for your organization.</p></div>
-      <div className="billing-org">
+      <div><h1>Billing</h1><p className="billing-subtitle">Plan, usage and invoices for your organization.</p></div>
+      {(orgName || orgs.length > 1) && <div className="billing-org">
         {orgs.length > 1 ? <label>Organization<select value={String(orgId)} onChange={event => onOrgChange(event.target.value)}>{orgs.map(org => <option key={org.organization_id} value={org.organization_id}>{org.organization_name}</option>)}</select></label>
-          : <span>{orgName}</span>}
-      </div>
+          : orgName && <span>{orgName}</span>}
+      </div>}
     </header>
 
     {state.errors.map((error, index) => <p className="billing-error" role="status" key={`${index}-${error}`}>{error}</p>)}
@@ -182,7 +187,7 @@ function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, onOrgChange, onMem
       </div>
 
       <div className="billing-column">
-        <PaymentCard payment={payment} isOrgAdmin={isOrgAdmin} onAdd={startPaymentSetup} paymentAction={paymentAction} />
+        <PaymentCard payment={payment} isOrgAdmin={isOrgAdmin} canManageAllOrgs={canManageAllOrgs} onAdd={startPaymentSetup} paymentAction={paymentAction} />
         <InvoicesCard invoices={invoices} summary={summary} compact />
         <Card className="billing-card billing-sales"><h2>Need more?</h2><p>Contact sales to discuss your organization’s needs.</p><a href="mailto:sales@omnibioai.org">Contact sales</a></Card>
         <p className="billing-muted">Billing is managed by organization admins.</p>
@@ -198,8 +203,8 @@ function SummaryItem({ label, value, detail }) {
   return <Card className="billing-summary-item"><span>{label}</span><strong>{value}</strong>{detail && <small>{detail}</small>}</Card>;
 }
 
-function PaymentCard({ payment, isOrgAdmin, onAdd, paymentAction }) {
-  const canManage = Boolean(payment?.can_manage && isOrgAdmin);
+function PaymentCard({ payment, isOrgAdmin, canManageAllOrgs, onAdd, paymentAction }) {
+  const canManage = Boolean(payment?.can_manage && (isOrgAdmin || canManageAllOrgs));
   const enabled = Boolean(payment?.stripe_enabled);
   return <Card className="billing-card"><h2>Payment method</h2>
     {payment?.has_payment_method && payment.card ? <p className="billing-card-number">{humanize(payment.card.brand)} ···· {payment.card.last4}</p>
