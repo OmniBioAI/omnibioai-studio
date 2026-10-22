@@ -39,6 +39,19 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Billing redesign", () => {
+  it("requires sign-in when there is no current user", () => {
+    render(<Billing currentUser={null} />);
+    expect(screen.getByText("Sign in required")).toBeInTheDocument();
+  });
+
+  it("shows the no-organization state and optional Membership & Plans action", () => {
+    const onMembershipPlans = vi.fn();
+    render(<Billing currentUser={{ orgId: null }} onMembershipPlans={onMembershipPlans} />);
+    expect(screen.getByText("No organization is associated with this session.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Membership & Plans" }));
+    expect(onMembershipPlans).toHaveBeenCalledOnce();
+  });
+
   it("renders the organization identity, Free summary and three requested tabs", async () => {
     render(<Billing currentUser={member} />);
     expect(await screen.findByText("Acme Research")).toBeInTheDocument();
