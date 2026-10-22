@@ -13,7 +13,7 @@
 .billing-page * { box-sizing: border-box; }
 .billing-page h1, .billing-page h2, .billing-page p { margin-top: 0; }
 .billing-page h1 { margin-bottom: 7px; font-size: var(--font-size-2xl); letter-spacing: -0.035em; }
-.billing-page h2 { margin-bottom: 16px; font-size: var(--font-size-xl); letter-spacing: -.01em; }
+.billing-page h2 { margin-bottom: 12px; font-size: var(--font-size-md); font-weight: 600; letter-spacing: 0; }
 .billing-crumb, .billing-muted { color: var(--billing-muted); }
 .billing-subtitle { margin: 0; color: var(--billing-muted); }
 .billing-header { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:24px; }
@@ -27,6 +27,8 @@
 .billing-summary-item .omni-card__body > span, .billing-summary-item .omni-card__body > small { color:var(--billing-muted); font-size:var(--font-size-sm); }
 .billing-summary-item .omni-card__body > strong { font-size:var(--font-size-lg); overflow-wrap:anywhere; }
 .billing-card > .omni-card__body { padding:20px; }
+.billing-payment > .omni-card__body, .billing-sales > .omni-card__body { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+.billing-payment h2, .billing-payment p, .billing-sales h2, .billing-sales p { margin:0; }
 .billing-tabs { display:flex; gap:6px; border-bottom:1px solid var(--billing-border); margin-bottom:20px; }
 .billing-tabs button { min-height:46px; min-width:100px; padding:10px 16px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--billing-muted); font:inherit; font-size:var(--font-size-md); font-weight:600; cursor:pointer; }
 .billing-tabs button:hover, .billing-tabs button:focus-visible { color:#fff; }
@@ -36,7 +38,7 @@
 .billing-column { display:grid; gap:16px; min-width:0; }
 .billing-card { color:#edf2f7; }
 .billing-card p { color:var(--billing-muted); line-height:1.55; }
-.billing-plan-title { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:9px; font-size:var(--font-size-lg); }
+.billing-plan-title { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:9px; }
 .billing-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:20px 0; }
 .billing-facts div { min-width:0; }
 .billing-facts dt { color:var(--billing-muted); font-size:12px; margin-bottom:5px; }
