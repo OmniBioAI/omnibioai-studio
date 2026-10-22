@@ -5,9 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const api = vi.hoisted(() => ({
   getSubscription: vi.fn(), getUsageLimits: vi.fn(), getBillingSummary: vi.fn(),
   getPaymentMethod: vi.fn(), getInvoices: vi.fn(),
+  createPaymentSetupSession: vi.fn(),
   getUsageSummary: vi.fn(), getCostHistory: vi.fn(), getCostBreakdown: vi.fn(),
 }));
 vi.mock("../../src/ui/lib/billingApi", () => api);
+const stripe = vi.hoisted(() => ({ openStripeUrl: vi.fn() }));
+vi.mock("../../src/ui/lib/stripePortal", () => stripe);
 
 const session = vi.hoisted(() => ({ getIdentity: vi.fn() }));
 vi.mock("../../src/ui/lib/session", async importOriginal => ({ ...(await importOriginal()), ...session }));
@@ -25,6 +28,8 @@ beforeEach(() => {
   ] });
   api.getBillingSummary.mockReset().mockResolvedValue({ current_period: null, current_usage_cost: "0", currency: "usd", invoice_count: 0, outstanding_amount: "0" });
   api.getPaymentMethod.mockReset().mockResolvedValue({ stripe_enabled: false, can_manage: true, has_payment_method: false, card: null });
+  api.createPaymentSetupSession.mockReset().mockResolvedValue({ url: "https://checkout.stripe.com/session" });
+  stripe.openStripeUrl.mockReset();
   api.getInvoices.mockReset().mockResolvedValue({ invoices: [], total_count: 0, limit: 50, offset: 0 });
   api.getUsageSummary.mockReset().mockResolvedValue({ services: [] });
   api.getCostHistory.mockReset().mockResolvedValue({ history: [], currency: "usd" });
@@ -46,6 +51,7 @@ describe("Billing redesign", () => {
     expect(screen.getByText("No renewal needed")).toBeInTheDocument();
     expect(screen.getByText("None", { selector: "strong" })).toBeInTheDocument();
     expect(api.getInvoices).toHaveBeenCalledWith("42");
+    expect(await screen.findByText("No invoices yet")).toBeInTheDocument();
   });
 
   it("uses the configured readable usage labels and shows amber at 80 percent", async () => {
@@ -110,18 +116,31 @@ describe("Billing redesign", () => {
     expect(screen.queryByRole("button", { name: "Add payment method" })).not.toBeInTheDocument();
   });
 
-  it("provides the add-payment page shell without collecting card number or CVC", async () => {
+  it("hides actions when the billing API says can_manage is false", async () => {
+    api.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: false, has_payment_method: true, card: { brand: "visa", last4: "4242" } });
+    render(<Billing currentUser={member} />);
+    expect((await screen.findAllByText("Visa ···· 4242")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /payment method/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Only organization billing admins can change payment methods.")).toBeInTheDocument();
+  });
+
+  it("starts the hosted Checkout setup session without rendering an inactive card form", async () => {
     api.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: true, has_payment_method: false, card: null });
+    const stripeTab = { opener: {}, document: { title: "", body: { textContent: "" } }, closed: false };
+    vi.spyOn(window, "open").mockReturnValue(stripeTab);
     render(<Billing currentUser={member} />);
     fireEvent.click(await screen.findByRole("button", { name: "Add payment method" }));
-    expect(await screen.findByRole("heading", { name: "Add payment method" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Country")).toBeInTheDocument();
-    expect(screen.getByLabelText("ZIP code")).toBeInTheDocument();
-    expect(screen.getByLabelText("Billing email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Tax ID (optional)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Make default")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    await waitFor(() => expect(api.createPaymentSetupSession).toHaveBeenCalledWith("42"));
+    expect(stripe.openStripeUrl).toHaveBeenCalledWith("https://checkout.stripe.com/session", expect.anything());
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/card number|cvc/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/not a SetupIntent client secret/)).toBeInTheDocument();
+    expect(screen.getByText("Payments secured by Stripe.")).toBeInTheDocument();
+  });
+
+  it("shows a billing error message instead of a blank page when an API fails", async () => {
+    api.getSubscription.mockRejectedValue(new Error("Billing service unavailable"));
+    render(<Billing currentUser={member} />);
+    expect(await screen.findByText("Billing service unavailable")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Billing" })).toBeInTheDocument();
   });
 });

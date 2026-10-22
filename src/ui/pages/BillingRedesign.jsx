@@ -3,6 +3,7 @@ import { Badge, Button, Card, ProgressBar, Spinner } from "@omnibioai/ui";
 import Login from "../components/Login";
 import { getIdentity } from "../lib/session";
 import * as billingApi from "../lib/billingApi";
+import { openStripeUrl } from "../lib/stripePortal";
 import "./BillingRedesign.css";
 
 const labels = {
@@ -69,7 +70,7 @@ function OrgBilling({ currentUser, onMembershipPlans, onStorage }) {
 function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, onOrgChange, onMembershipPlans, onStorage }) {
   const [state, setState] = useState({ loading: true, subscription: null, limits: null, summary: null, payment: null, invoices: null, errors: [] });
   const [tab, setTab] = useState("overview");
-  const [addingPayment, setAddingPayment] = useState(false);
+  const [paymentAction, setPaymentAction] = useState({ pending: false, error: "" });
   useEffect(() => {
     let active = true;
     Promise.allSettled([
@@ -100,10 +101,34 @@ function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, onOrgChange, onMem
   const isFree = String(subscription?.plan_name || "").toLowerCase() === "free";
   const renewalDate = subscription?.renewal_date;
   const usageRows = limits?.limits || [];
-  const activeTab = (next) => { setAddingPayment(false); setTab(next); };
+  const activeTab = (next) => setTab(next);
 
   if (state.loading) return <section className="billing-page" aria-busy="true"><div className="billing-loading"><Spinner size="sm" /> Loading billing details…</div></section>;
-  if (addingPayment) return <AddPaymentMethod payment={payment} onBack={() => setAddingPayment(false)} />;
+  async function startPaymentSetup() {
+    if (paymentAction.pending) return;
+    // Reserve the browser tab synchronously so popup blocking does not lose
+    // the hosted Checkout handoff after the API request completes.
+    const canOpenExternally = Boolean(window.electronAPI?.openExternal || window.api?.openExternal);
+    const stripeTab = canOpenExternally ? null : window.open("about:blank", "_blank");
+    if (stripeTab) {
+      stripeTab.opener = null;
+      stripeTab.document.title = "Opening secure Stripe Checkout…";
+      stripeTab.document.body.textContent = "Opening secure Stripe Checkout…";
+    } else if (!canOpenExternally) {
+      setPaymentAction({ pending: false, error: "Allow pop-ups to continue to secure Stripe Checkout." });
+      return;
+    }
+    setPaymentAction({ pending: true, error: "" });
+    try {
+      const { url } = await billingApi.createPaymentSetupSession(orgId);
+      openStripeUrl(url, stripeTab);
+    } catch (error) {
+      if (stripeTab && !stripeTab.closed) stripeTab.close();
+      setPaymentAction({ pending: false, error: error?.message || "Could not start secure Checkout. Please try again." });
+      return;
+    }
+    setPaymentAction({ pending: false, error: "" });
+  }
 
   return <main className="billing-page">
     <header className="billing-header">
@@ -157,7 +182,7 @@ function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, onOrgChange, onMem
       </div>
 
       <div className="billing-column">
-        <PaymentCard payment={payment} isOrgAdmin={isOrgAdmin} onAdd={() => setAddingPayment(true)} />
+        <PaymentCard payment={payment} isOrgAdmin={isOrgAdmin} onAdd={startPaymentSetup} paymentAction={paymentAction} />
         <InvoicesCard invoices={invoices} summary={summary} compact />
         <Card className="billing-card billing-sales"><h2>Need more?</h2><p>Contact sales to discuss your organization’s needs.</p><a href="mailto:sales@omnibioai.org">Contact sales</a></Card>
         <p className="billing-muted">Billing is managed by organization admins.</p>
@@ -173,13 +198,14 @@ function SummaryItem({ label, value, detail }) {
   return <Card className="billing-summary-item"><span>{label}</span><strong>{value}</strong>{detail && <small>{detail}</small>}</Card>;
 }
 
-function PaymentCard({ payment, isOrgAdmin, onAdd }) {
+function PaymentCard({ payment, isOrgAdmin, onAdd, paymentAction }) {
   const canManage = Boolean(payment?.can_manage && isOrgAdmin);
   const enabled = Boolean(payment?.stripe_enabled);
   return <Card className="billing-card"><h2>Payment method</h2>
     {payment?.has_payment_method && payment.card ? <p className="billing-card-number">{humanize(payment.card.brand)} ···· {payment.card.last4}</p>
       : <p>No card on file. You only need one to upgrade.</p>}
-    {canManage && <button className="billing-primary" type="button" disabled={!enabled} onClick={onAdd}>{payment?.has_payment_method ? "Update payment method" : "Add payment method"}</button>}
+    {canManage && <button className="billing-primary" type="button" disabled={!enabled || paymentAction.pending} onClick={onAdd}>{paymentAction.pending ? "Opening Stripe Checkout…" : payment?.has_payment_method ? "Update payment method" : "Add payment method"}</button>}
+    {paymentAction.error && <p className="billing-error" role="alert">{paymentAction.error}</p>}
     {!enabled && canManage && <p className="billing-muted">Payments aren’t set up in this environment.</p>}
     {!canManage && <p className="billing-muted">Only organization billing admins can change payment methods.</p>}
     <p className="billing-muted">Payments secured by Stripe.</p>
@@ -248,26 +274,4 @@ function UsageTable({ title, rows, columns, empty, currency }) {
     <div role="row" className="billing-usage-table__head">{columns.map(key => <strong role="columnheader" key={key}>{humanize(key)}</strong>)}</div>
     {rows.map((row, index) => <div role="row" className="billing-usage-table__row" key={index}>{columns.map(key => <span role="cell" key={key}>{key === "date" ? date(row[key]) : key === "cost" ? amount(row[key], currency) : key === "resource" ? usageLabel(row) : row[key] ?? "—"}{key === "quantity" && row.unit ? ` ${row.unit}` : ""}</span>)}</div>)}
   </div> : <p>{empty}</p>}</Card>;
-}
-
-function AddPaymentMethod({ payment, onBack }) {
-  const enabled = Boolean(payment?.stripe_enabled);
-  return <main className="billing-page">
-    <p className="billing-crumb">Account › Billing › Add payment method</p><button className="billing-back" type="button" onClick={onBack}>← Back to Billing</button>
-    <h1>Add payment method</h1><p className="billing-subtitle">Add a payment method for your organization.</p>
-    <div className="billing-add-layout"><Card className="billing-card"><form onSubmit={event => event.preventDefault()}>
-      <fieldset><legend>Payment type</legend><label><input type="radio" name="payment-type" value="card" defaultChecked /> Card</label><label><input type="radio" name="payment-type" value="bank" /> US bank account</label></fieldset>
-      <div className="billing-element-placeholder" role="note">Secure payment fields are not available: this backend exposes a hosted Checkout setup session, not a SetupIntent client secret for Stripe Elements.</div>
-      {/* TODO: mount Stripe Payment Element when Billing exposes a SetupIntent client secret. Never add card/CVC inputs here. */}
-      <fieldset><legend>Billing details</legend>
-        <label>Country<select defaultValue=""><option value="" disabled>Select a country</option><option value="US">United States</option></select></label>
-        <label>ZIP code<input autoComplete="postal-code" /></label>
-        <label>Billing email<input type="email" autoComplete="email" /></label>
-        <label>Tax ID (optional)<input /></label>
-      </fieldset>
-      <label className="billing-default"><input type="checkbox" /> Make default</label>
-      {!enabled && <p role="status" className="billing-muted">Payments aren’t set up in this environment.</p>}
-      <div className="billing-form-actions"><button type="button" onClick={onBack}>Cancel</button><button type="submit" className="billing-primary" disabled>Save</button></div>
-    </form></Card></div>
-  </main>;
 }
