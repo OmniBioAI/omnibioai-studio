@@ -154,10 +154,12 @@ for (const width of [1440, 390]) {
             inputHeight: input.getBoundingClientRect().height, buttonHeight: create.getBoundingClientRect().height,
             pageWidth: document.documentElement.scrollWidth, pageScrollX, tableScrolls: table ? table.scrollWidth > table.clientWidth : null,
             tableOverflow: table ? getComputedStyle(table).overflowX : null,
-            whiteSpace: getComputedStyle(element.querySelector(".developer-example")).whiteSpace };
+            whiteSpace: getComputedStyle(element.querySelector(".developer-example")).whiteSpace,
+            exampleOverflows: element.querySelector(".developer-example").scrollWidth > element.querySelector(".developer-example").clientWidth };
         });
         assert.equal(layout.inputHeight, 44); assert.equal(layout.buttonHeight, 44);
-        assert.equal(layout.whiteSpace, "pre"); assert.equal(layout.pageScrollX, 0, `Page must not scroll horizontally: ${JSON.stringify(layout)}`);
+        assert.equal(layout.whiteSpace, "pre-wrap"); assert.equal(layout.exampleOverflows, false);
+        assert.equal(layout.pageScrollX, 0, `Page must not scroll horizontally: ${JSON.stringify(layout)}`);
         if (width === 1440) {
           assert.ok(Math.abs(layout.left.y - layout.right.y) < 1, "Cards should have two columns");
           assert.ok(Math.abs(layout.left.width / layout.right.width - 1.5) < 0.05, "Columns should be about 60/40");

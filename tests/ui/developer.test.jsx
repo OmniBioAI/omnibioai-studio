@@ -55,6 +55,11 @@ async function createKey() {
 }
 
 describe("Developer page", () => {
+  it("uses only the public production gateway URL", () => {
+    expect(apiBaseUrl()).toBe("https://webstudio.omnibioai.org/_svc/gateway");
+    expect(apiBaseUrl()).not.toMatch(/localhost|127\.0\.0\.1|192\.168\.|10\.|\.internal/i);
+  });
+
   it("requires sign-in without API calls", () => {
     render(<Developer currentUser={null} />);
     expect(screen.getByText("Sign in required")).toBeInTheDocument();
@@ -80,7 +85,25 @@ describe("Developer page", () => {
     expect(screen.getByText("Revoked")).toBeInTheDocument();
     expect(screen.getAllByRole("columnheader").map(node => node.textContent)).toEqual(["Name", "Key", "Created", "Last used", "Expires", "Actions"]);
     expect(billing.getUsageLimits).toHaveBeenCalledWith("42");
-    expect(screen.getByRole("link", { name: "Literature answers 0 / 100. View Billing" })).toHaveAttribute("href", "/studio/billing");
+    const meter = screen.getByRole("link", { name: "Literature answers 0 / 100. View Billing" });
+    expect(meter).toHaveClass("developer-usage");
+    expect(meter).toHaveAttribute("href", "/studio/billing");
+  });
+
+  it("sorts and dims revoked keys and hides more than three behind a toggle", async () => {
+    const revokedKeys = Array.from({ length: 4 }, (_, index) => ({ ...revoked, id: 10 + index, name: `revoked-${index + 1}` }));
+    api.listMyApiKeys.mockResolvedValue([revokedKeys[0], active, ...revokedKeys.slice(1)]);
+    await mount();
+    expect(screen.getAllByRole("rowheader").map(cell => cell.textContent)).toEqual(["notebook"]);
+    const toggle = screen.getByRole("button", { name: "Show revoked (4)" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    expect(screen.getAllByRole("rowheader").map(cell => cell.textContent)).toEqual(["notebook", "revoked-1", "revoked-2", "revoked-3", "revoked-4"]);
+    for (const name of ["revoked-1", "revoked-2", "revoked-3", "revoked-4"]) {
+      expect(screen.getByRole("rowheader", { name }).closest("tr")).toHaveClass("developer-key-row-revoked");
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Hide revoked" }));
+    expect(screen.queryByRole("rowheader", { name: "revoked-1" })).not.toBeInTheDocument();
   });
 
   it("shows the key exactly once, gates Done, copies it, then permanently clears it", async () => {
@@ -281,6 +304,7 @@ describe("Developer page", () => {
       if (name === "Python") expect(panel.textContent).toContain("import os");
       const code = panel.querySelector("pre").textContent;
       fireEvent.click(screen.getByRole("button", { name: `Copy ${name} example` })); await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(code));
+      expect(code).toContain(name === "Python" ? "import os" : "OMNIBIOAI_API_KEY");
     }
     for (const [from, key, to] of [["cURL", "ArrowRight", "Python"], ["Python", "End", "MCP"], ["MCP", "ArrowRight", "cURL"], ["cURL", "ArrowLeft", "MCP"], ["MCP", "Home", "cURL"]]) {
       fireEvent.keyDown(screen.getByRole("tab", { name: from }), { key });

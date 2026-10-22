@@ -49,6 +49,8 @@
 .developer-new-key > .developer-button { justify-self: start; min-width: 90px; }
 .developer-new-key p { color: #bfd1ca; }
 .developer-code { max-width: 100%; margin: 0; padding: 12px; overflow-x: auto; white-space: pre; word-break: normal; overflow-wrap: normal; color: #e0e8f2; background: #0c1118; border: 1px solid var(--developer-border); border-radius: 8px; font-size: var(--font-size-sm); line-height: 1.8; tab-size: 2; }
+.developer-wrapped-code { overflow-x: hidden; white-space: pre-wrap; overflow-wrap: anywhere; }
+.developer-code-line { display: block; min-width: 0; padding-left: 2ch; text-indent: -2ch; white-space: pre-wrap; overflow-wrap: anywhere; }
 .developer-new-key > .developer-code { border-color: #245046; }
 .developer-export-label { margin-top: 3px; font-size: var(--font-size-sm); }
 .developer-export { color: #b6c9c0; }
@@ -65,9 +67,12 @@
 .developer-table th:first-child, .developer-table td:first-child { padding-left: 0; }
 .developer-table th:last-child, .developer-table td:last-child { padding-right: 0; text-align: right; }
 .developer-table tbody tr:last-child > * { border-bottom: 0; }
+.developer-table tbody tr.developer-key-row-revoked { opacity: .5; }
 .developer-table .developer-button { font-size: var(--font-size-sm); padding-inline: 10px; }
 .developer-key-name { display: inline-block; max-width: 160px; white-space: normal; overflow-wrap: anywhere; vertical-align: middle; }
 .developer-new-badge { display: inline-block; margin-left: 8px; padding: 1px 6px; border: 1px solid #245046; border-radius: 5px; color: var(--developer-accent); font-size: var(--font-size-xs); }
+.developer-revoked-toggle { min-height: 44px; margin-top: 10px; padding: 8px 0; border: 0; background: transparent; color: var(--developer-muted); font: inherit; font-size: var(--font-size-sm); cursor: pointer; }
+.developer-revoked-toggle:hover { color: #f4f7fb; }
 .developer-empty { padding: 22px 12px 24px; text-align: center; }
 .developer-empty strong { font-size: var(--font-size-md); }
 .developer-empty p { max-width: 330px; margin: 8px auto 0; color: var(--developer-muted); }

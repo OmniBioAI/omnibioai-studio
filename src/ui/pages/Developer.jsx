@@ -7,7 +7,7 @@ import { getIdentity, getSessionVersion, onSessionChange } from "../lib/session"
 import "./Developer.css";
 
 export function apiBaseUrl() {
-  return `${window.location.origin}/_svc/gateway`;
+  return "https://webstudio.omnibioai.org/_svc/gateway";
 }
 
 // Only allow list metadata into table state, even if a response includes extras.
@@ -41,13 +41,13 @@ function lastUsed(value) {
   return new Intl.RelativeTimeFormat("en-US").format(-Math.floor(seconds / size), unit);
 }
 
-function CopyButton({ targetRef, label, children = "Copy" }) {
+function CopyButton({ targetRef, label, children = "Copy", text }) {
   const [feedback, setFeedback] = useState("");
 
   async function copy() {
     if (!targetRef.current) return;
     try {
-      await navigator.clipboard.writeText(targetRef.current.textContent);
+      await navigator.clipboard.writeText(text ?? targetRef.current.textContent);
       if (targetRef.current) setFeedback("copied");
     } catch {
       // Select the existing text; never duplicate a secret in a hidden input.
@@ -70,6 +70,12 @@ function CopyButton({ targetRef, label, children = "Copy" }) {
       {feedback === "selected" ? "Text selected. Press Ctrl+C or ⌘C to copy." : ""}
     </span>
   </div>;
+}
+
+function WrappedCode({ children }) {
+  return String(children).split("\n").map((line, index, lines) => <React.Fragment key={index}>
+    <span className="developer-code-line">{line}</span>{index < lines.length - 1 ? "\n" : null}
+  </React.Fragment>);
 }
 
 function NewKeyPanel({ secret, onDone }) {
@@ -167,9 +173,9 @@ OMNIBIOAI_BASE_URL="${base}" \\
       <div role="tabpanel" id={`developer-panel-${tab}`} aria-labelledby={`developer-tab-${tab}`}>
         <div className="developer-code-toolbar">
           <span className="developer-muted">{tab === "Python" ? "Python" : "Terminal"}</span>
-          <CopyButton key={tab} targetRef={codeRef} label={`Copy ${tab} example`} />
+          <CopyButton key={tab} targetRef={codeRef} label={`Copy ${tab} example`} text={examples[tab]} />
         </div>
-        <pre className="developer-code developer-example" tabIndex={0} ref={codeRef}><code>{examples[tab]}</code></pre>
+        <pre className="developer-code developer-example developer-wrapped-code" tabIndex={0} ref={codeRef}><code><WrappedCode>{examples[tab]}</WrappedCode></code></pre>
       </div>
       <p className="developer-idempotency">Each answer is billed once. Send the same Idempotency-Key to retry safely: you get the stored answer and aren’t billed again.</p>
       <a className="developer-docs" href="https://docs.omnibioai.org/developer/api/" target="_blank" rel="noopener noreferrer">API docs <span aria-hidden="true">↗</span></a>
@@ -196,6 +202,7 @@ function ApiKeys({ currentUser }) {
   const [created, setCreated] = useState(null);
   const [newKeyId, setNewKeyId] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
+  const [showRevoked, setShowRevoked] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [revokeError, setRevokeError] = useState("");
   const controller = useRef(null);
@@ -313,6 +320,11 @@ function ApiKeys({ currentUser }) {
     <Card className="developer-card"><h1>No organization context</h1><p className="developer-muted">Personal API keys belong to an organization your account is a member of. Your session isn’t associated with one, so there’s nothing to create a key in.</p></Card>
   </section>;
 
+  const activeKeys = keys?.filter(row => row.status !== "revoked") || [];
+  const revokedKeys = keys?.filter(row => row.status === "revoked") || [];
+  const hideRevoked = revokedKeys.length > 3 && !showRevoked;
+  const visibleKeys = [...activeKeys, ...(hideRevoked ? [] : revokedKeys)];
+
   return <div className="developer-page">
     <header className="developer-header">
       <div><h1>API keys</h1><p>Call the Literature AI API from scripts, notebooks and MCP clients.</p></div>
@@ -345,7 +357,7 @@ function ApiKeys({ currentUser }) {
           {!!keys?.length && <div className="developer-table-scroll" tabIndex={0} role="region" aria-label="Your API keys">
             <table className="developer-table">
               <thead><tr><th scope="col">Name</th><th scope="col">Key</th><th scope="col">Created</th><th scope="col">Last used</th><th scope="col">Expires</th><th scope="col"><span className="developer-sr-only">Actions</span></th></tr></thead>
-              <tbody>{keys.map(row => <tr key={row.id}>
+              <tbody>{visibleKeys.map(row => <tr key={row.id} className={row.status === "revoked" ? "developer-key-row-revoked" : undefined}>
                 <th scope="row"><span className="developer-key-name">{row.name || "API key"}</span>{row.id === newKeyId && row.status === "active" && <span className="developer-new-badge">New</span>}</th>
                 <td><code>{row.key_prefix}…</code></td>
                 <td>{calendarDate(row.created_at)}</td>
@@ -356,6 +368,8 @@ function ApiKeys({ currentUser }) {
               </tr>)}</tbody>
             </table>
           </div>}
+          {revokedKeys.length > 3 && <button type="button" className="developer-revoked-toggle" aria-expanded={showRevoked}
+            onClick={() => setShowRevoked(value => !value)}>{showRevoked ? "Hide revoked" : `Show revoked (${revokedKeys.length})`}</button>}
           {confirmation && <section className="developer-confirmation" aria-labelledby="revoke-heading" onKeyDown={event => { if (event.key === "Escape" && !revoking) cancelRevoke(); }}>
             <h3 id="revoke-heading">Revoke ‘{confirmation.name || confirmation.key_prefix}’?</h3>
             <p>Scripts using it will stop working.</p>
