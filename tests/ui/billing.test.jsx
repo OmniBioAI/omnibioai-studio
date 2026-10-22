@@ -21,12 +21,12 @@ import { usageLabel } from "../../src/ui/pages/BillingRedesign";
 const member = { orgId: "42", permissions: [] };
 
 beforeEach(() => {
-  api.getSubscription.mockReset().mockResolvedValue({ plan_name: "Free", status: "active", start_date: "2026-01-10", billing_interval: "monthly", currency: "usd", features: [] });
+  api.getSubscription.mockReset().mockResolvedValue({ plan_name: "Free", status: "active", start_date: "2026-10-04", billing_interval: "monthly", currency: "usd", features: [] });
   api.getUsageLimits.mockReset().mockResolvedValue({ plan_name: "Free", as_of: "2026-10-01", limits: [
     { service: "api", action: "completed", resource: "literature.answer", unit: "answers", period: "monthly", included: 100, used: 80, percentage_used: 80 },
     { service: "api", action: "completed", resource: "literature.search", unit: "searches", period: "monthly", included: 500, used: 0, percentage_used: 0 },
   ] });
-  api.getBillingSummary.mockReset().mockResolvedValue({ current_period: null, current_usage_cost: "0", currency: "usd", invoice_count: 0, outstanding_amount: "0" });
+  api.getBillingSummary.mockReset().mockResolvedValue({ current_period: { period_end: "2026-10-31" }, current_usage_cost: "0", currency: "usd", invoice_count: 0, outstanding_amount: "0" });
   api.getPaymentMethod.mockReset().mockResolvedValue({ stripe_enabled: false, can_manage: true, has_payment_method: false, card: null });
   api.createPaymentSetupSession.mockReset().mockResolvedValue({ url: "https://checkout.stripe.com/session" });
   stripe.openStripeUrl.mockReset();
@@ -34,7 +34,11 @@ beforeEach(() => {
   api.getUsageSummary.mockReset().mockResolvedValue({ services: [] });
   api.getCostHistory.mockReset().mockResolvedValue({ history: [], currency: "usd" });
   api.getCostBreakdown.mockReset().mockResolvedValue({ breakdown: {}, currency: "usd" });
-  session.getIdentity.mockReset().mockResolvedValue({ organizations: [{ organization_id: "42", organization_name: "Acme Research", roles: ["org_admin"] }] });
+  session.getIdentity.mockReset().mockResolvedValue({
+    user: { id: 17, email: "billing-admin@example.org", status: "active" },
+    global_roles: [], global_permissions: [],
+    organizations: [{ organization_id: "42", organization_name: "Acme Research", roles: ["org_admin"], effective_permissions: [] }],
+  });
 });
 afterEach(cleanup);
 
@@ -55,7 +59,7 @@ describe("Billing redesign", () => {
   it("renders the organization identity, Free summary and three requested tabs", async () => {
     render(<Billing currentUser={member} />);
     expect(await screen.findByText("Acme Research")).toBeInTheDocument();
-    expect(screen.getByText("Account › Billing")).toBeInTheDocument();
+    expect(screen.queryByText("Account › Billing")).not.toBeInTheDocument();
     expect(screen.getByText("Plan, usage and invoices for your organization.")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Usage" })).toBeInTheDocument();
@@ -63,6 +67,11 @@ describe("Billing redesign", () => {
     expect(screen.getByText("You’re on the Free plan. There’s nothing to pay, and no billing period runs until you upgrade.")).toBeInTheDocument();
     expect(screen.getByText("No renewal needed")).toBeInTheDocument();
     expect(screen.getByText("None", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Since Oct 4, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Resets Oct 31, 2026")).toBeInTheDocument();
+    const summaryBody = document.querySelector(".billing-summary-item .omni-card__body");
+    expect(summaryBody).toHaveClass("omni-card__body");
+    expect([...summaryBody.children].map(node => node.tagName)).toEqual(["SPAN", "STRONG", "SMALL"]);
     expect(api.getInvoices).toHaveBeenCalledWith("42");
     expect(await screen.findByText("No invoices yet")).toBeInTheDocument();
   });
@@ -77,9 +86,9 @@ describe("Billing redesign", () => {
   });
 
   it("shows an organization switcher only for multiple memberships", async () => {
-    session.getIdentity.mockResolvedValue({ organizations: [
-      { organization_id: "42", organization_name: "Acme Research" },
-      { organization_id: "84", organization_name: "Beta Lab" },
+    session.getIdentity.mockResolvedValue({ user: { id: 17, email: "multi@example.org", status: "active" }, global_roles: [], global_permissions: [], organizations: [
+      { organization_id: "42", organization_name: "Acme Research", roles: [], effective_permissions: [] },
+      { organization_id: "84", organization_name: "Beta Lab", roles: [], effective_permissions: [] },
     ] });
     render(<Billing currentUser={member} />);
     const select = await screen.findByRole("combobox", { name: "Organization" });
@@ -106,7 +115,7 @@ describe("Billing redesign", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
     expect(await screen.findByRole("table", { name: "Usage by service" })).toBeInTheDocument();
     expect(screen.getByText("Rag Query")).toBeInTheDocument();
-    expect(screen.getByText("2026-10-20")).toBeInTheDocument();
+    expect(screen.getByText("Oct 20, 2026")).toBeInTheDocument();
     expect(api.getUsageSummary).toHaveBeenCalledWith("42", expect.any(String), expect.any(String));
   });
 
@@ -123,7 +132,7 @@ describe("Billing redesign", () => {
 
   it("hides payment actions from a non-admin even if the billing response is misconfigured", async () => {
     api.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: true, has_payment_method: false, card: null });
-    session.getIdentity.mockResolvedValue({ organizations: [{ organization_id: "42", organization_name: "Acme Research", roles: ["org_member"] }] });
+    session.getIdentity.mockResolvedValue({ user: { id: 18, email: "member@example.org", status: "active" }, global_roles: [], global_permissions: [], organizations: [{ organization_id: "42", organization_name: "Acme Research", roles: ["org_member"], effective_permissions: [] }] });
     render(<Billing currentUser={member} />);
     await screen.findByText("Only organization billing admins can change payment methods.");
     expect(screen.queryByRole("button", { name: "Add payment method" })).not.toBeInTheDocument();
@@ -135,6 +144,31 @@ describe("Billing redesign", () => {
     expect((await screen.findAllByText("Visa ···· 4242")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /payment method/i })).not.toBeInTheDocument();
     expect(screen.getByText("Only organization billing admins can change payment methods.")).toBeInTheDocument();
+  });
+
+  it("shows payment actions for the platform owner when Billing grants manage_all_orgs", async () => {
+    api.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: true, has_payment_method: false, card: null });
+    session.getIdentity.mockResolvedValue({
+      user: { id: 7, email: "manish@omnibioai.org", status: "active" },
+      global_roles: [{ id: 1, name: "admin" }, { id: 2, name: "platform_admin" }],
+      global_permissions: ["manage_all_orgs"],
+      organizations: [],
+    });
+    render(<Billing currentUser={member} />);
+    expect(await screen.findByRole("button", { name: "Add payment method" })).toBeInTheDocument();
+    expect(document.querySelector(".billing-org")).toBeNull();
+    expect(screen.queryByText(/unavailable|loading/i)).not.toBeInTheDocument();
+  });
+
+  it("omits the organization header when /auth/me has no name for the selected organization", async () => {
+    session.getIdentity.mockResolvedValue({
+      user: { id: 18, email: "member@example.org", status: "active" }, global_roles: [], global_permissions: [],
+      organizations: [{ organization_id: "42", roles: ["org_admin"], effective_permissions: [] }],
+    });
+    render(<Billing currentUser={member} />);
+    await screen.findByRole("heading", { name: "Billing" });
+    expect(document.querySelector(".billing-org")).toBeNull();
+    expect(screen.queryByText(/organization name unavailable|organization details loading/i)).not.toBeInTheDocument();
   });
 
   it("starts the hosted Checkout setup session without rendering an inactive card form", async () => {
