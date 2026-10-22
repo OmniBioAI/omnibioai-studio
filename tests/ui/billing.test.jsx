@@ -126,16 +126,16 @@ describe("Billing redesign", () => {
     api.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: false, has_payment_method: false, card: null });
     cleanup();
     render(<Billing currentUser={member} />);
-    await screen.findByText("Only organization billing admins can change payment methods.");
+    await screen.findByText("You have read-only access to billing.");
     expect(screen.queryByRole("button", { name: "Add payment method" })).not.toBeInTheDocument();
   });
 
-  it("hides payment actions from a non-admin even if the billing response is misconfigured", async () => {
+  it("shows payment actions solely from the billing API authorization result", async () => {
     api.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: true, has_payment_method: false, card: null });
     session.getIdentity.mockResolvedValue({ user: { id: 18, email: "member@example.org", status: "active" }, global_roles: [], global_permissions: [], organizations: [{ organization_id: "42", organization_name: "Acme Research", roles: ["org_member"], effective_permissions: [] }] });
     render(<Billing currentUser={member} />);
-    await screen.findByText("Only organization billing admins can change payment methods.");
-    expect(screen.queryByRole("button", { name: "Add payment method" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Add payment method" })).toBeInTheDocument();
+    expect(screen.queryByText("You have read-only access to billing.")).not.toBeInTheDocument();
   });
 
   it("hides actions when the billing API says can_manage is false", async () => {
@@ -143,7 +143,7 @@ describe("Billing redesign", () => {
     render(<Billing currentUser={member} />);
     expect((await screen.findAllByText("Visa ···· 4242")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /payment method/i })).not.toBeInTheDocument();
-    expect(screen.getByText("Only organization billing admins can change payment methods.")).toBeInTheDocument();
+    expect(screen.getByText("You have read-only access to billing.")).toBeInTheDocument();
   });
 
   it("shows payment actions for the platform owner when Billing grants manage_all_orgs", async () => {
@@ -158,6 +158,15 @@ describe("Billing redesign", () => {
     expect(await screen.findByRole("button", { name: "Add payment method" })).toBeInTheDocument();
     expect(document.querySelector(".billing-org")).toBeNull();
     expect(screen.queryByText(/unavailable|loading/i)).not.toBeInTheDocument();
+  });
+
+  it("uses the plan name and status as the plan card heading", async () => {
+    render(<Billing currentUser={member} />);
+    await screen.findByText("Acme Research");
+    expect(screen.queryByRole("heading", { name: "Plan" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Free Active" })).toBeInTheDocument();
+    expect(screen.getByText("Free", { selector: ".billing-plan-title strong" })).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
   it("omits the organization header when /auth/me has no name for the selected organization", async () => {

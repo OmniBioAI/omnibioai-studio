@@ -67,12 +67,10 @@ function OrgBilling({ currentUser, onMembershipPlans, onStorage }) {
   const namedOrgs = orgs.filter(row => typeof row.organization_name === "string" && row.organization_name.trim());
   const orgName = typeof organization?.organization_name === "string" && organization.organization_name.trim()
     ? organization.organization_name : null;
-  const isOrgAdmin = organization?.roles?.includes("org_admin") === true;
-  const canManageAllOrgs = identity?.global_permissions?.includes("manage_all_orgs") === true;
-  return <BillingDashboard key={String(orgId)} orgId={orgId} orgName={orgName} orgs={namedOrgs} isOrgAdmin={isOrgAdmin} canManageAllOrgs={canManageAllOrgs} onOrgChange={setOrgId} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
+  return <BillingDashboard key={String(orgId)} orgId={orgId} orgName={orgName} orgs={namedOrgs} onOrgChange={setOrgId} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
 }
 
-function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, canManageAllOrgs, onOrgChange, onMembershipPlans, onStorage }) {
+function BillingDashboard({ orgId, orgName, orgs, onOrgChange, onMembershipPlans, onStorage }) {
   const [state, setState] = useState({ loading: true, subscription: null, limits: null, summary: null, payment: null, invoices: null, errors: [] });
   const [tab, setTab] = useState("overview");
   const [paymentAction, setPaymentAction] = useState({ pending: false, error: "" });
@@ -158,8 +156,7 @@ function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, canManageAllOrgs, 
 
     {tab === "overview" && <section className="billing-grid">
       <div className="billing-column">
-        <Card className="billing-card"><h2>Plan</h2>
-          <div className="billing-plan-title"><strong>{subscription?.plan_name || "No active subscription"}</strong>{subscription && <Badge variant="success">Active</Badge>}</div>
+        <Card className="billing-card"><h2 className="billing-plan-title" aria-label={subscription ? `${subscription.plan_name} Active` : "No active subscription"}><strong>{subscription?.plan_name || "No active subscription"}</strong>{subscription && <Badge variant="success">Active</Badge>}</h2>
           <p>{isFree ? "You’re on the Free plan. There’s nothing to pay, and no billing period runs until you upgrade." : subscription ? `Your organization’s ${subscription.plan_name} plan is active.` : "No active subscription is recorded for this organization."}</p>
           <dl className="billing-facts">
             <div><dt>Started</dt><dd>{date(subscription?.start_date)}</dd></div>
@@ -187,7 +184,7 @@ function BillingDashboard({ orgId, orgName, orgs, isOrgAdmin, canManageAllOrgs, 
       </div>
 
       <div className="billing-column">
-        <PaymentCard payment={payment} isOrgAdmin={isOrgAdmin} canManageAllOrgs={canManageAllOrgs} onAdd={startPaymentSetup} paymentAction={paymentAction} />
+        <PaymentCard payment={payment} onAdd={startPaymentSetup} paymentAction={paymentAction} />
         <InvoicesCard invoices={invoices} summary={summary} compact />
         <Card className="billing-card billing-sales"><h2>Need more?</h2><p>Contact sales to discuss your organization’s needs.</p><a href="mailto:sales@omnibioai.org">Contact sales</a></Card>
         <p className="billing-muted">Billing is managed by organization admins.</p>
@@ -203,16 +200,16 @@ function SummaryItem({ label, value, detail }) {
   return <Card className="billing-summary-item"><span>{label}</span><strong>{value}</strong>{detail && <small>{detail}</small>}</Card>;
 }
 
-function PaymentCard({ payment, isOrgAdmin, canManageAllOrgs, onAdd, paymentAction }) {
-  const canManage = Boolean(payment?.can_manage && (isOrgAdmin || canManageAllOrgs));
+function PaymentCard({ payment, onAdd, paymentAction }) {
+  const canManage = payment?.can_manage === true;
   const enabled = Boolean(payment?.stripe_enabled);
-  return <Card className="billing-card"><h2>Payment method</h2>
+  return <Card className="billing-card billing-payment"><h2>Payment method</h2>
     {payment?.has_payment_method && payment.card ? <p className="billing-card-number">{humanize(payment.card.brand)} ···· {payment.card.last4}</p>
       : <p>No card on file. You only need one to upgrade.</p>}
     {canManage && <button className="billing-primary" type="button" disabled={!enabled || paymentAction.pending} onClick={onAdd}>{paymentAction.pending ? "Opening Stripe Checkout…" : payment?.has_payment_method ? "Update payment method" : "Add payment method"}</button>}
     {paymentAction.error && <p className="billing-error" role="alert">{paymentAction.error}</p>}
     {!enabled && canManage && <p className="billing-muted">Payments aren’t set up in this environment.</p>}
-    {!canManage && <p className="billing-muted">Only organization billing admins can change payment methods.</p>}
+    {!canManage && <p className="billing-muted">You have read-only access to billing.</p>}
     <p className="billing-muted">Payments secured by Stripe.</p>
   </Card>;
 }
