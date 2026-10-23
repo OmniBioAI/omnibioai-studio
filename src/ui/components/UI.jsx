@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 
 export function Panel({ children, style }) {
   return (
@@ -54,24 +54,30 @@ export function PanelBody({ children, style }) {
   );
 }
 
-export function FormRow({ label, children }) {
+export function FormRow({ label, children, id: suppliedId }) {
+  const generatedId = useId();
+  const controlId = suppliedId || `form-control-${generatedId}`;
+  const control = React.isValidElement(children)
+    ? React.cloneElement(children, { id: children.props.id || controlId })
+    : children;
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={{
+      <label htmlFor={controlId} style={{
         fontSize: 'var(--font-size-xs)', fontFamily: "var(--mono)", color: "var(--color-text-muted)",
         letterSpacing: "0.08em", textTransform: "uppercase",
         marginBottom: 6, display: "block",
       }}>
         {label}
       </label>
-      {children}
+      {control}
     </div>
   );
 }
 
-export function Input({ type = "text", placeholder, value, onChange }) {
+export function Input({ type = "text", placeholder, value, onChange, ...props }) {
   return (
     <input
+      {...props}
       type={type}
       placeholder={placeholder}
       value={value}
@@ -149,11 +155,16 @@ export function Select({ value, onChange, options, ...props }) {
   );
 }
 
-export function Toggle({ value, onChange }) {
+export function Toggle({ value, onChange, label, ...props }) {
   return (
     <button
+      type="button"
+      role="switch"
+      aria-checked={!!value}
+      aria-label={label}
       onClick={() => onChange(!value)}
       className={`toggle ${value ? "on" : "off"}`}
+      {...props}
     />
   );
 }
@@ -175,7 +186,7 @@ export function ToggleRow({ label, sub, value, onChange }) {
           </span>
         )}
       </div>
-      <Toggle value={value} onChange={onChange} />
+      <Toggle label={label} value={value} onChange={onChange} />
     </div>
   );
 }

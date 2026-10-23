@@ -62,6 +62,19 @@ export default function Mode({ config, setConfig, currentUser }) {
 
 function ModeConsole({ config, setConfig }) {
   const selected = config.mode;
+  const selectMode = (modeId) => setConfig((previous) => ({ ...previous, mode: modeId }));
+  const onModeKeyDown = (event) => {
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const available = MODES.filter(mode => !mode.disabled);
+    if (!available.length) return;
+    const current = Math.max(0, available.findIndex(mode => mode.id === selected));
+    const next = event.key === "Home" ? 0 : event.key === "End" ? available.length - 1
+      : (current + (["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1) + available.length) % available.length;
+    const target = document.getElementById(`runtime-mode-${available[next].id}`);
+    target?.focus();
+    selectMode(available[next].id);
+  };
 
   return (
     <div>
@@ -77,6 +90,9 @@ function ModeConsole({ config, setConfig }) {
       {/* Mode Cards */}
       <div
         className="studio-mode-grid"
+        role="radiogroup"
+        aria-label="Runtime mode"
+        onKeyDown={onModeKeyDown}
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
@@ -88,11 +104,18 @@ function ModeConsole({ config, setConfig }) {
           const isSelected = selected === m.id;
           const isDisabled = !!m.disabled;
           return (
-            <div
+            <button
               key={m.id}
-              onClick={() => !isDisabled && setConfig((p) => ({ ...p, mode: m.id }))}
+              id={`runtime-mode-${m.id}`}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-disabled={isDisabled || undefined}
+              tabIndex={isDisabled || (selected !== m.id && MODES.some(mode => !mode.disabled && mode.id === selected)) ? -1 : 0}
+              onClick={() => !isDisabled && selectMode(m.id)}
               title={isDisabled ? m.tooltip : undefined}
               style={{
+                width: "100%", textAlign: "left", fontFamily: "inherit",
                 background: isSelected ? "rgba(0,229,160,0.04)" : "var(--bg2)",
                 border: isSelected
                   ? "1px solid rgba(0,229,160,0.4)"
@@ -145,7 +168,7 @@ function ModeConsole({ config, setConfig }) {
               >
                 {m.desc}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

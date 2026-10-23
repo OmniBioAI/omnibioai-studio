@@ -77,7 +77,7 @@ export function GrafanaViewer({ onBack, label }) {
             onClick={onBack}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "5px 12px", borderRadius: "var(--radius-sm)",
+              minHeight: 44, padding: "8px 12px", borderRadius: "var(--radius-sm)",
               background: "rgba(0,229,160,0.08)", border: "1px solid rgba(0,229,160,0.2)",
               color: "var(--accent)", fontFamily: "var(--font)", fontSize: "var(--font-size-xs)",
               fontWeight: 600, cursor: "pointer",

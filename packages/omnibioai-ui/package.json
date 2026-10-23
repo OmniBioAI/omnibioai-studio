@@ -16,6 +16,7 @@
     "@omnibioai/design-tokens": "file:../omnibioai-design-tokens"
   },
   "devDependencies": {
+    "axe-core": "^4.12.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "@chromatic-com/storybook": "^5.2.1",

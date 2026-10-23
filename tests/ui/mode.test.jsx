@@ -18,6 +18,19 @@ describe("Mode page", () => {
     expect(updater({ mode: "x" })).toMatchObject({ mode: "beta" });
   });
 
+  it("exposes a named radio group and supports arrow-key selection", () => {
+    const setConfig = vi.fn();
+    render(<Mode config={{ mode: "beta" }} setConfig={setConfig} currentUser={admin} />);
+    const group = screen.getByRole("radiogroup", { name: "Runtime mode" });
+    const selected = screen.getByRole("radio", { name: /Beta Cloud/ });
+    expect(selected).toHaveAttribute("aria-checked", "true");
+    selected.focus();
+    fireEvent.keyDown(group, { key: "ArrowRight" });
+    expect(selected).toHaveFocus();
+    expect(setConfig).toHaveBeenCalled();
+    expect(setConfig.mock.calls.at(-1)[0]({ mode: "beta" })).toEqual({ mode: "beta" });
+  });
+
   it("does not select a disabled mode, and shows its tooltip and coming-soon label", () => {
     const setConfig = vi.fn();
     render(<Mode config={{ mode: "beta" }} setConfig={setConfig} currentUser={admin} />);

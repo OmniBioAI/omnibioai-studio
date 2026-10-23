@@ -19,6 +19,8 @@ export default defineConfig({
         replacement: testRequire.resolve(`${name}/package.json`).replace(/\/package\.json$/, ""),
       })),
       { find: /^vitest$/, replacement: testRequire.resolve("vitest/package.json").replace(/package\.json$/, "dist/index.js") },
+      { find: "axe-core", replacement: testRequire.resolve("axe-core") },
+      { find: /^@omnibioai\/ui$/, replacement: fileURLToPath(new URL("./packages/omnibioai-ui/src/index.ts", import.meta.url)) },
       { find: "@testing-library/jest-dom/vitest", replacement: testRequire.resolve("@testing-library/jest-dom/vitest").replace(/\.js$/, ".mjs") },
       ...["@testing-library/react", "@testing-library/user-event"].map(name => ({ find: name, replacement: testRequire.resolve(name) })),
     ],

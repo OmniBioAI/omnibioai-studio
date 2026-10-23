@@ -1,7 +1,8 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Btn, HealthCard, Input, Select, ToggleRow } from "../../src/ui/components/UI";
+import userEvent from "@testing-library/user-event";
+import { Btn, FormRow, HealthCard, Input, Select, ToggleRow } from "../../src/ui/components/UI";
 import Sidebar from "../../src/ui/components/Sidebar";
 import MobileNav from "../../src/ui/components/MobileNav";
 
@@ -18,6 +19,26 @@ describe("application navigation and controls", () => {
     expect(onChange).toHaveBeenCalledTimes(4);
   });
 
+  it("connects FormRow labels to stable native control ids", () => {
+    render(<><FormRow label="Sample name"><Input value="" onChange={vi.fn()} /></FormRow>
+      <FormRow label="Data type"><Select value="reads" onChange={vi.fn()} options={["reads"]} /></FormRow></>);
+    const input = screen.getByLabelText("Sample name");
+    const select = screen.getByLabelText("Data type");
+    expect(input.id).toBeTruthy();
+    expect(select.id).toBeTruthy();
+    expect(input.id).not.toBe(select.id);
+  });
+
+  it("activates desktop sidebar destinations with the keyboard", async () => {
+    const user = userEvent.setup();
+    const setStep = vi.fn();
+    render(<Sidebar nav={nav} step={4} setStep={setStep} systemStatus="idle" currentUser={null} />);
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Launch" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(setStep).toHaveBeenCalledWith(4);
+  });
+
   it("shows health state labels and handles desktop navigation and sign out", () => {
     const setStep = vi.fn();
     const onStudioClick = vi.fn();
@@ -28,6 +49,7 @@ describe("application navigation and controls", () => {
     expect(onStudioClick).toHaveBeenCalled();
     expect(setStep).toHaveBeenCalledWith(9);
     expect(screen.getByText("user@test")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Launch" })).toHaveAttribute("aria-current", "page");
   });
 
   it("supports drawer close, escape, keyboard navigation, and active-page close", () => {

@@ -90,13 +90,13 @@ export default function Logs() {
             </span>
           )}
           <button onClick={() => setPaused(p => !p)} style={{
-            padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+            minHeight:44, padding:"8px 12px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             background: paused ? "rgba(255,165,2,0.12)" : "var(--bg3)",
             border: paused ? "1px solid rgba(255,165,2,0.25)" : "1px solid var(--border2)",
             color: paused ? "var(--warn)" : "var(--color-text-muted)", cursor:"pointer",
           }}>{paused ? "▶ Resume" : "⏸ Pause"}</button>
           <button onClick={() => setLogs([])} style={{
-            padding:"5px 12px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+            minHeight:44, padding:"8px 12px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             background:"var(--bg3)", border:"1px solid var(--border2)", color:"var(--color-text-muted)", cursor:"pointer",
           }}>Clear</button>
         </div>
@@ -105,13 +105,14 @@ export default function Logs() {
       <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
         {SOURCES.map(s => (
           <button key={s} onClick={() => setFilter(s)} style={{
-            padding:"4px 10px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+            minHeight:44, padding:"8px 10px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             background: filter === s ? "rgba(0,229,160,0.1)" : "var(--bg3)",
             border: filter === s ? "1px solid rgba(0,229,160,0.25)" : "1px solid var(--border)",
             color: filter === s ? "var(--accent)" : "var(--color-text-muted)", cursor:"pointer",
           }}>{s}</button>
         ))}
-        <input value={search} onChange={e => setSearch(e.target.value)}
+        <label htmlFor="logs-search" className="studio-visually-hidden">Search logs</label>
+        <input id="logs-search" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="search logs..."
           style={{
             marginLeft:"auto", padding:"5px 10px", borderRadius:5,
