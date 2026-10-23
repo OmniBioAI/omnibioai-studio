@@ -1,6 +1,7 @@
 import React from "react";
 import { pluginEndpoint } from "../../../lib/pluginApi";
 import { validateResourcePayload } from "../../../lib/pluginUiContracts";
+import { safeErrorMessage } from "../../../lib/safeErrorMessage";
 
 /** Single selection from a server-discovered, owner-scoped resource list.
  * The value is always the opaque server id -- never a display label, and
@@ -37,7 +38,7 @@ export default function ResourceSelectField({ input, value = "", onChange, contr
       })
       .catch(error => {
         if (requestToken.current !== token || error.name === "AbortError") return;
-        setState({ status: "error", resources: [], error: error.message || "Unable to load options." });
+        setState({ status: "error", resources: [], error: safeErrorMessage(error, "Unable to load options. Please try again.") });
       });
     return () => controller.abort();
   }, [input.endpoint]);

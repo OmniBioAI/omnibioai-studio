@@ -30,11 +30,11 @@ describe("OAuthLinkConfirm", () => {
     confirmOAuthLink.mockRejectedValueOnce(new Error("wrong password"));
     render(<OAuthLinkConfirm linkToken="lt" provider="google" email="a@b.test" onDone={vi.fn()} onCancel={vi.fn()} />);
     fireEvent.click(screen.getByText("Link account"));
-    expect(await screen.findByText("wrong password")).toBeInTheDocument();
+    expect(await screen.findByText("Could not confirm the account link. Please try again.")).toBeInTheDocument();
 
     confirmOAuthLink.mockRejectedValueOnce(new Error());
     fireEvent.click(screen.getByText("Link account"));
-    expect(await screen.findByText("Could not confirm the link")).toBeInTheDocument();
+    expect(await screen.findByText("Could not confirm the account link. Please try again.")).toBeInTheDocument();
   });
 
   it("calls onCancel", () => {

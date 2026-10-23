@@ -47,6 +47,7 @@ import OmniBioAILogo from "./components/brand/OmniBioAILogo";
 import { GrafanaViewer } from "./components/GrafanaViewer";
 import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } from "./lib/session";
 import { loadConfig as loadWebConfig } from "./lib/web/webApi";
+import { safeErrorMessage } from "./lib/safeErrorMessage";
 
 // idx values: 0-17 are real `step` pages (see `pages` below); 18/19 are the
 // Code/Workflows service aliases (never a real step -- see
@@ -804,7 +805,7 @@ export default function App() {
           fontFamily: "var(--mono)", fontSize: "var(--font-size-xs)",
           display: "flex", alignItems: "flex-start", gap: 10,
         }}>
-          <div style={{ flex: 1 }}>Sign-in failed: {oauthNotice.message}</div>
+          <div style={{ flex: 1 }}>{safeErrorMessage(oauthNotice, "Sign-in could not be completed. Please try again.")}</div>
           <div style={{ cursor: "pointer" }} onClick={() => setOauthNotice(null)}>✕</div>
         </div>
       )}

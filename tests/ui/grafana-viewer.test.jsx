@@ -53,11 +53,11 @@ describe("GrafanaViewer — Electron build", () => {
     expect(document.querySelector("iframe")).toBeNull();
   });
 
-  it("shows the retry screen with the backend's error message on a failed login", async () => {
+  it("shows the retry screen with a safe message on a failed login", async () => {
     const GrafanaViewer = await loadWith(true);
     window.electronAPI = { grafanaLogin: vi.fn().mockRejectedValue(new Error("Grafana unreachable")) };
     render(<GrafanaViewer onBack={vi.fn()} />);
-    expect(await screen.findByText("Grafana unreachable")).toBeInTheDocument();
+    expect(await screen.findByText("Could not connect to the monitoring service. Please try again later.")).toBeInTheDocument();
     expect(screen.getByText("Retry")).toBeInTheDocument();
   });
 
@@ -65,7 +65,7 @@ describe("GrafanaViewer — Electron build", () => {
     const GrafanaViewer = await loadWith(true);
     window.electronAPI = { grafanaLogin: vi.fn().mockRejectedValue(new Error()) };
     render(<GrafanaViewer onBack={vi.fn()} />);
-    expect(await screen.findByText("Auth failed — check Grafana is running")).toBeInTheDocument();
+    expect(await screen.findByText("Could not connect to the monitoring service. Please try again later.")).toBeInTheDocument();
 
     let resolveRetry;
     window.electronAPI.grafanaLogin.mockImplementationOnce(() => new Promise((res) => { resolveRetry = res; }));

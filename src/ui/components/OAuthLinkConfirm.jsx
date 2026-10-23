@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Card, Button, Badge } from "@omnibioai/ui";
 import { confirmOAuthLink } from "../lib/session";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 
 const PROVIDER_LABELS = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
@@ -17,7 +18,7 @@ export default function OAuthLinkConfirm({ linkToken, provider, email, onDone, o
       await confirmOAuthLink(linkToken, password);
       onDone();
     } catch (err) {
-      setError(err.message || "Could not confirm the link");
+      setError(safeErrorMessage(err, "Could not confirm the account link. Please try again."));
     } finally {
       setBusy(false);
     }

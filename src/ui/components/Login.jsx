@@ -5,6 +5,7 @@ import {
   loginWithPassword, oauthProviders, resendPasswordEmailOtp,
 } from "../lib/session";
 import OmniBioAILogo from "./brand/OmniBioAILogo";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 
 const PROVIDER_LABELS = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
@@ -125,7 +126,7 @@ export default function Login({ title, description }) {
         setPassword("");
         setError("");
       } else {
-        setError(err.message || "Login failed");
+        setError(safeErrorMessage(err, "Login failed. Check your details and try again."));
       }
     } finally {
       setBusy(false);
@@ -143,7 +144,7 @@ export default function Login({ title, description }) {
       setNotice("A new verification code was sent.");
     } catch (err) {
       if (err.retryAfterSeconds) setResendCooldown(err.retryAfterSeconds);
-      setError(err.message || "Unable to resend verification code");
+      setError(safeErrorMessage(err, "Unable to resend the verification code. Please try again."));
     } finally {
       setBusy(false);
     }

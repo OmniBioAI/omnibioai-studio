@@ -64,14 +64,15 @@ describe("Jobs page", () => {
     expect(screen.getAllByText("local").length).toBeGreaterThan(0);
   });
 
-  it("shows an error banner when loading fails, and empty states with no data", async () => {
+  it("shows a safe error banner when loading fails, and empty states with no data", async () => {
     vi.stubGlobal("fetch", mockFetchByPath([
       ["/api/runs", () => new Response("boom", { status: 500, statusText: "Server Error" })],
       ["/api/tools", () => jsonRes([])],
       ["/api/servers", () => jsonRes([])],
     ]));
     render(<Jobs />);
-    await waitFor(() => expect(screen.getByText(/500 Server Error/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Could not load jobs. Please try again.")).toBeInTheDocument());
+    expect(screen.queryByText(/boom|500 Server Error/)).not.toBeInTheDocument();
     expect(screen.getByText("No servers configured")).toBeInTheDocument();
     expect(screen.getByText("No tools registered")).toBeInTheDocument();
   });
@@ -116,7 +117,7 @@ describe("Jobs page", () => {
     render(<Jobs />);
     await waitFor(() => expect(screen.getByText("call-variants")).toBeInTheDocument());
     fireEvent.click(screen.getByText("call-variants"));
-    await waitFor(() => expect(screen.getByText(/Error loading logs/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Could not load job logs. Please try again.")).toBeInTheDocument());
   });
 
   it("shows the 'No logs yet' placeholder when logs come back empty", async () => {
@@ -157,7 +158,7 @@ describe("Jobs page", () => {
     const [inputsBox, resourcesBox] = screen.getAllByRole("textbox").slice(-2);
     fireEvent.change(inputsBox, { target: { value: "{not json" } });
     fireEvent.click(submitBtn);
-    expect(await screen.findByText(/JSON parse error/)).toBeInTheDocument();
+    expect(await screen.findByText("Inputs and resources must contain valid JSON.")).toBeInTheDocument();
 
     fireEvent.change(inputsBox, { target: { value: '{"sample":"s1"}' } });
     fireEvent.change(resourcesBox, { target: { value: '{"cpu":2}' } });
@@ -186,7 +187,8 @@ describe("Jobs page", () => {
     fireEvent.click(screen.getByRole("button", { name: "+ Submit Run" }));
     fireEvent.change(screen.getByDisplayValue("— select tool —"), { target: { value: "align" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(screen.getByText(/400 Bad Request/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Could not submit the job. Please try again.")).toBeInTheDocument());
+    expect(screen.queryByText(/400 Bad Request|nope/)).not.toBeInTheDocument();
     expect(screen.getByText("Submit New Run")).toBeInTheDocument();
   });
 

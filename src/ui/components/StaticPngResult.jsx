@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 
 export default function StaticPngResult({ renderEndpoint, render }) {
   const [state, setState] = useState({ status: "loading", url: "", error: "" });
@@ -27,7 +28,7 @@ export default function StaticPngResult({ renderEndpoint, render }) {
         setState({ status: "ready", url: objectUrl, error: "" });
       })
       .catch(error => {
-        if (!cancelled) setState({ status: "error", url: "", error: error.message || "Unable to load the result image." });
+        if (!cancelled) setState({ status: "error", url: "", error: safeErrorMessage(error, "Unable to load the result image. Please try again.") });
       });
 
     return () => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 
 export default function UpdateBanner() {
   const [update, setUpdate] = useState(null); // { version } | null
@@ -18,7 +19,7 @@ export default function UpdateBanner() {
   const border  = isError ? "rgba(255,71,87,0.3)"    : "rgba(0,148,255,0.25)";
   const color   = isError ? "var(--danger)"           : "var(--accent2)";
   const text    = isError
-    ? `Update failed: ${error.message}`
+    ? safeErrorMessage(error, "The update could not be completed. Please try again later.")
     : `\u{1F504} OmniBioAI Studio v${update.version} is available — downloading…`;
 
   return (

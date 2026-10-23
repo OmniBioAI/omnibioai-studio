@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import OmniBioAILogo from './brand/OmniBioAILogo';
+import { safeErrorMessage } from '../lib/safeErrorMessage';
 
 export default function LicenseGate({ children }) {
     const [license, setLicense] = useState(null);
@@ -55,7 +56,7 @@ export default function LicenseGate({ children }) {
                 setError(result.reason || 'Invalid license key');
             }
         } catch (e) {
-            setError('Validation failed: ' + e.message);
+            setError(safeErrorMessage(e, 'License validation failed. Check the key and try again.'));
         }
         setValidating(false);
     }

@@ -47,7 +47,7 @@ describe("PluginPage capability routing", () => {
     const serverError = Object.assign(new Error("server unavailable"), { status: 503 });
     loadPluginDescriptor.mockRejectedValueOnce(serverError);
     rerender(<PluginPage slug="deseq2_analysis" url="/_svc/workbench/plugins/deseq2_analysis/" label="DESeq2" onBack={vi.fn()} />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("server unavailable");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The service is temporarily unavailable. Please try again later.");
     expect(screen.queryByTestId("service-viewer")).not.toBeInTheDocument();
   });
 

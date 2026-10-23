@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Badge, Card, Spinner } from "@omnibioai/ui";
 import * as billingApi from "../lib/billingApi";
 import { openStripeUrl } from "../lib/stripePortal";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 import "./AccountPlan.css";
 
 // Read-mostly personal view of the organization's own subscription — backed
@@ -103,7 +104,7 @@ function PlanView({ orgId, onMembershipPlans }) {
       const { url } = await billingApi.createBillingPortalSession(orgId);
       openStripeUrl(url);
     } catch (err) {
-      setPortalError(err.message || "That action failed. Please try again.");
+      setPortalError(safeErrorMessage(err, "That action failed. Please try again."));
     } finally {
       inFlight.current = false;
       setPortalBusy(false);
