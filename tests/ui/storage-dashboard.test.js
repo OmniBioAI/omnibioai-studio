@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatStorageBytes, storageSegments } from "../../src/ui/lib/storageDashboard";
 
 describe("decimal storage presentation", () => {
-  it.each([[null, "Unavailable"], [0, "0 B"], [999, "999 B"], [1000, "1.0 KB"], [1024, "1.0 KB"], [1_000_000, "1.0 MB"], [1_000_000_000, "1.0 GB"], [20_000_000_000, "20.0 GB"], [100_000_000_000, "100.0 GB"], [1_000_000_000_000, "1.0 TB"], [Number.MAX_SAFE_INTEGER, "9.0 PB"]])("formats %s as %s", (bytes, text) => {
+  it.each([[null, "—"], [0, "0 B"], [999, "999 B"], [1000, "1.0 KB"], [1024, "1.0 KB"], [1_000_000, "1.0 MB"], [1_000_000_000, "1.0 GB"], [20_000_000_000, "20.0 GB"], [100_000_000_000, "100.0 GB"], [1_000_000_000_000, "1.0 TB"], [Number.MAX_SAFE_INTEGER, "9.0 PB"]])("formats %s as %s", (bytes, text) => {
     expect(formatStorageBytes(bytes)).toBe(text);
   });
   it.each([

@@ -57,6 +57,7 @@ export default function BillingRedesign({ currentUser, organizationId, view = "b
 
 function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
   const [state, setState] = useState({ loading: true, subscription: null, limits: null, summary: null, payment: null, invoices: null, errors: [] });
+  const [reload, setReload] = useState(0);
   const [tab, setTab] = useState("overview");
   const [paymentAction, setPaymentAction] = useState({ pending: false, error: "" });
   useEffect(() => {
@@ -83,7 +84,8 @@ function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
       });
     });
     return () => { active = false; };
-  }, [orgId]);
+  }, [orgId, reload]);
+  const retryBilling = () => setReload(value => value + 1);
 
   const { subscription, limits, summary, payment, invoices } = state;
   const isFree = String(subscription?.plan_name || "").toLowerCase() === "free";
@@ -129,7 +131,7 @@ function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
     </header>
     <p className="billing-cross-link">Looking for your personal storage? <a href="/studio/account/membership-storage" onClick={event => { if (onMembershipPlans) { event.preventDefault(); onMembershipPlans(); } }}>View Membership &amp; storage</a></p>
 
-    {state.errors.map((error, index) => <p className="billing-error" role="status" key={`${index}-${error}`}>{error}</p>)}
+    {state.errors.map((error, index) => <AccountState key={`${index}-${error}`} variant="error" title="Couldn’t load billing details" onRetry={retryBilling}>{error}</AccountState>)}
     <section className="billing-summary" aria-label="Billing summary">
       <SummaryItem label="Organization plan" value={subscription?.plan_name || "No active plan"} detail={subscription?.start_date ? `Since ${date(subscription.start_date)}` : "Start date not provided"} />
       <SummaryItem label="This month" value={summary ? amount(summary.outstanding_amount, summary.currency) : "—"} detail="Amount due" />
@@ -156,7 +158,7 @@ function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
         <Card className="billing-card"><h2>Usage</h2>
           {usageRows.length ? <div className="billing-usage-rows">{usageRows.map((row, index) => {
             const usage = valueForLimit(row);
-            if (!usage) return <AccountState key={index} variant="error" title={`Couldn’t load ${usageLabel(row)}`} onRetry={() => window.location.reload()}>The organization usage limit failed to load.</AccountState>;
+            if (!usage) return <AccountState key={index} variant="error" title={`Couldn’t load ${usageLabel(row)}`} onRetry={retryBilling}>The organization usage limit failed to load.</AccountState>;
             const amber = usage.percent >= 80;
             return <div className="billing-usage-row" key={`${row.service}-${row.action}-${row.resource}-${index}`}>
               <div className="billing-usage-label"><strong>{usageLabel(row)}</strong><span>{usage.used} of {usage.cap}{row.unit ? ` ${row.unit}` : ""}</span></div>
@@ -172,13 +174,13 @@ function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
 
       <div className="billing-column">
         <PaymentCard payment={payment} onAdd={startPaymentSetup} paymentAction={paymentAction} />
-        <InvoicesCard invoices={invoices} summary={summary} compact />
+        <InvoicesCard invoices={invoices} summary={summary} compact onRetry={retryBilling} />
         <Card className="billing-card billing-sales"><h2>Need more?</h2><p>Contact sales to discuss your organization’s needs.</p><a href="mailto:sales@omnibioai.org">Contact sales</a></Card>
         <p className="billing-muted">Billing is managed by organization admins.</p>
       </div>
     </section>}
 
-    {tab === "invoices" && <InvoicesCard invoices={invoices} summary={summary} />}
+    {tab === "invoices" && <InvoicesCard invoices={invoices} summary={summary} onRetry={retryBilling} />}
   </main>;
 }
 
@@ -200,14 +202,13 @@ function PaymentCard({ payment, onAdd, paymentAction }) {
   </Card>;
 }
 
-function InvoicesCard({ invoices, summary, compact = false }) {
+function InvoicesCard({ invoices, summary, compact = false, onRetry }) {
   const rows = invoices?.invoices || [];
   return <Card className="billing-card"><h2>Invoices</h2>
     {rows.length ? <div className="billing-invoices">{rows.map(invoice => <div className="billing-invoice" key={invoice.id}>
       <span>{date(invoice.created_at || invoice.period_end)}</span><span>{invoice.invoice_number || `Invoice ${invoice.id}`}</span><strong>{amount(invoice.total, invoice.currency)}</strong>
       <Badge variant={String(invoice.status).toLowerCase() === "paid" ? "success" : "neutral"}>{humanize(invoice.status || "unknown")}</Badge>
-      <AccountState variant="hidden" />
-    </div>)}</div> : invoices ? <p>No invoices yet</p> : <AccountState variant="error" title="Couldn’t load invoices" onRetry={() => window.location.reload()}>The organization invoice list failed to load.</AccountState>}
+    </div>)}</div> : invoices ? <p>No invoices yet</p> : <AccountState variant="error" title="Couldn’t load invoices" onRetry={onRetry}>The organization invoice list failed to load.</AccountState>}
     <div className="billing-outstanding"><span>Outstanding balance</span><strong>{summary ? amount(summary.outstanding_amount, summary.currency) : "—"}</strong></div>
     {/* TODO: billing API currently has no invoice PDF URL or download endpoint. */}
   </Card>;

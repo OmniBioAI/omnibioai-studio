@@ -158,13 +158,13 @@ export default function AccountSecurity({ currentUser }) {
           <h2 id="security-overview-heading">Security overview</h2>
           <dl className="security-facts">
             <StatusRow label="Multi-factor authentication">
-              {mfa.status === "success" ? (verifiedDevices.length ? "Enabled" : "Not enabled") : <AccountState variant="error" title="Couldn’t load MFA" onRetry={loadMfa}>MFA status failed to load.</AccountState>}
+              {mfa.status === "success" ? (verifiedDevices.length ? "Enabled" : "Not enabled") : "—"}
             </StatusRow>
             <StatusRow label="Active sessions">
-              {sessions.status === "success" ? activeSessions.length : <AccountState variant="error" title="Couldn’t load sessions" onRetry={loadSessions}>Session status failed to load.</AccountState>}
+              {sessions.status === "success" ? activeSessions.length : "—"}
             </StatusRow>
             <StatusRow label="Active personal API keys">
-              {apiKeys.status === "success" ? activeKeys.length : <AccountState variant="error" title="Couldn’t load API keys" onRetry={loadApiKeys}>API key status failed to load.</AccountState>}
+              {apiKeys.status === "success" ? activeKeys.length : "—"}
             </StatusRow>
           </dl>
         </section>

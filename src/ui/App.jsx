@@ -193,7 +193,7 @@ export const LEGACY_ACCOUNT_REDIRECTS = {
   "/studio/personalization": PREFERENCES_PATH,
   "/studio/notifications": PREFERENCES_PATH,
   "/studio/privacy": PRIVACY_PATH,
-  "/studio/plan": BILLING_PATH,
+  "/studio/plan": STORAGE_PATH,
   "/studio/storage": STORAGE_PATH,
   "/studio/billing/plans": STORAGE_PATH,
   "/studio/help": HELP_PATH,
