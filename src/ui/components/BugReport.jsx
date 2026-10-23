@@ -45,7 +45,7 @@ export default function BugReport() {
           position: "fixed", bottom: 16, right: 16, left: "auto",
           background: "#dc2626", color: "#fff",
           border: "none", borderRadius: 9999,
-          padding: "6px 12px", fontSize: 12, cursor: "pointer",
+          minHeight: 44, padding: "8px 12px", fontSize: 12, cursor: "pointer",
           display: "flex", alignItems: "center", gap: 4,
           boxShadow: "0 4px 12px rgba(0,0,0,0.4)", zIndex: 9999,
         }}

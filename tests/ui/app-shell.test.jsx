@@ -138,7 +138,7 @@ describe("App shell — Studio landing", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    expect(screen.getByText("Studio", { selector: "div" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Studio" })).toBeInTheDocument();
     const sections = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
     expect(sections.map((section) => section.getAttribute("data-nav-section"))).toEqual([
       "", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "Organization", "System",
@@ -149,7 +149,7 @@ describe("App shell — Studio landing", () => {
     expect(sections[5].textContent).not.toContain("Jobs");
     expect(document.querySelector("[data-nav-item='Profile']")).not.toBeInTheDocument();
     expect(document.querySelector("[data-nav-item='Storage']")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Mode", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mode" }));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
   });
 
@@ -157,7 +157,7 @@ describe("App shell — Studio landing", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await screen.findByText("Studio page");
-    fireEvent.click(screen.getByText("Integrations", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Integrations" }));
     expect(await screen.findByText("Integrations page")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/studio/integrations");
     expect(document.querySelector('[data-nav-item="Integrations"]')).toBeInTheDocument();
@@ -172,8 +172,8 @@ describe("App shell — Studio landing", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
-    fireEvent.click(screen.getByText("Studio", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Studio" }));
     expect(window.location.pathname).toBe("/studio");
   });
 
@@ -247,7 +247,7 @@ describe("App shell — Studio landing", () => {
       "Mode", "LLM", "Cloud", "HPC", "Launch", "Services",
       "Logs", "Jobs", "Roles", "Settings", "Billing", "Developer",
     ]) {
-      fireEvent.click(screen.getByText(page, { selector: "div" }));
+      fireEvent.click(screen.getByRole("button", { name: page }));
       expect(await screen.findByRole("button", { name: "← Back to Studio" })).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
       await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
@@ -387,7 +387,7 @@ describe("App shell — navigation and roles nav", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Mode", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mode" }));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
     expect(screen.getByText("Back")).toBeDisabled();
     fireEvent.click(screen.getByText("Next →"));
@@ -395,7 +395,7 @@ describe("App shell — navigation and roles nav", () => {
     fireEvent.click(screen.getByText("Back"));
     await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("Launch", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Launch" }));
     await waitFor(() => expect(screen.getByText("Launch page")).toBeInTheDocument());
     expect(screen.getByText("Next →")).toBeDisabled();
   });
@@ -404,7 +404,7 @@ describe("App shell — navigation and roles nav", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Launch", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Launch" }));
     await waitFor(() => expect(screen.getByText("Launch page")).toBeInTheDocument());
     fireEvent.click(screen.getByText("go-starting"));
     await waitFor(() => expect(screen.getAllByText("STARTING").length).toBeGreaterThan(0));
@@ -421,7 +421,7 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await screen.findByText("Studio page");
-    const openCode = () => fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    const openCode = () => fireEvent.click(screen.getByRole("button", { name: "Code" }));
     const codeView = () => screen.getByText(/^ServiceViewer:Code:.*\/_svc\/sdk$/);
     openCode();
     const first = codeView();
@@ -430,12 +430,12 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
     openCode();
     expect(codeView()).not.toBe(first);
-    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
     await screen.findByText("Jobs page");
     expect(screen.queryByText(/^ServiceViewer:Code:/)).not.toBeInTheDocument();
     openCode();
     const reopened = codeView();
-    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Workflows" }));
     expect(screen.getByText(/^ServiceViewer:Workflows:/)).not.toBe(reopened);
     expect(reopened).not.toBeInTheDocument();
   });
@@ -444,10 +444,10 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     getCurrentUser.mockResolvedValue(admin); // isElectron() is true by default in this file's beforeEach
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Code" }));
     expect(await screen.findByText("ServiceViewer:Code:http://localhost:5174/_svc/sdk")).toBeInTheDocument();
     fireEvent.click(screen.getByText("svback"));
-    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
     await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
   });
 
@@ -455,7 +455,7 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Workflows" }));
     expect(await screen.findByText("ServiceViewer:Workflows:http://localhost:5174/_svc/workflows")).toBeInTheDocument();
   });
 
@@ -469,10 +469,10 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Code" }));
     expect(await screen.findByText(/^ServiceViewer:Code:.*\/_svc\/sdk$/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("svback"));
-    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Workflows" }));
     expect(await screen.findByText(/^ServiceViewer:Workflows:.*\/_svc\/workflows$/)).toBeInTheDocument();
   });
 
@@ -480,7 +480,7 @@ describe("App shell — Code and Workflows navigation (Phase A)", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Jobs", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
     await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
@@ -535,7 +535,7 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    const ask = screen.getByText("Ask OmniBioAI", { selector: "div" });
+    const ask = screen.getByRole("button", { name: "Ask OmniBioAI" });
     expect(ask).not.toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
 
@@ -569,7 +569,7 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("Projects", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Projects" }));
     expect(await screen.findByRole("heading", { name: "Projects" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "No projects yet" })).toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -578,7 +578,7 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("Artifacts", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Artifacts" }));
     expect(await screen.findByRole("heading", { name: "Artifacts" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "No artifacts yet" })).toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalledTimes(3);
@@ -608,7 +608,7 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Explore", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Explore" }));
     expect(await screen.findByRole("heading", { name: "Explore" })).toBeInTheDocument();
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(4));
     expect(fetchSpy.mock.calls.map(([url]) => url).sort()).toEqual(allowed.sort());
@@ -622,7 +622,7 @@ describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Projects", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Projects" }));
     await screen.findByRole("heading", { name: "No projects yet" });
     fireEvent.click(screen.getAllByRole("button", { name: "Create project" })[0]);
     expect(screen.getByRole("dialog", { name: "Create project" })).toBeInTheDocument();
@@ -885,7 +885,7 @@ it("opens Organization Connections directly and from navigation outside Account"
   expect(screen.queryByRole("button", { name: "Personalization", exact: true })).toBeNull();
   fireEvent.click(screen.getByTitle("Back to Studio"));
   await screen.findByText("Studio page");
-  fireEvent.keyDown(screen.getByRole("button", { name: "Connections", exact: true }), { key: "Enter" });
+  fireEvent.click(screen.getByRole("button", { name: "Connections", exact: true }));
   await screen.findByText("Organization Connections page");
   expect(location.pathname).toBe("/studio/organization/connections");
 });

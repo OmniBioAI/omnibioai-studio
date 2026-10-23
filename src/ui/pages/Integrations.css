@@ -9,6 +9,7 @@
 .integrations-controls input, .integrations-controls select, .integrations-dialog input { width: 100%; box-sizing: border-box; min-height: 42px; padding: 9px 12px; color: var(--text); background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; }
 .integrations-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .integrations-filters button, .integrations-actions button, .integration-card button, .integrations-message button, .integrations-dialog-heading button { min-height: 40px; padding: 8px 13px; color: var(--text); background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; cursor: pointer; }
+.integrations-filters button { min-height: 44px; }
 .integrations-filters button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .integrations-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
 .integration-card { display: grid; gap: 12px; height: 100%; }

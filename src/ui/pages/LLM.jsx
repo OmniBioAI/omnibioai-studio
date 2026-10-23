@@ -42,6 +42,7 @@ function LLMConsole({ config, setConfig }) {
         <Panel>
           <PanelHeader title="Local Models" icon iconColor="teal">
             <button
+              type="button" role="switch" aria-checked={!!llm.enable_ollama} aria-label="Enable Local Models"
               className={`toggle ${llm.enable_ollama ? "on" : "off"}`}
               onClick={() => set("enable_ollama", !llm.enable_ollama)}
             />
@@ -81,6 +82,7 @@ function LLMConsole({ config, setConfig }) {
         <Panel>
           <PanelHeader title="Claude API" icon iconColor="blue">
             <button
+              type="button" role="switch" aria-checked={!!llm.enable_claude} aria-label="Enable Claude API"
               className={`toggle ${llm.enable_claude ? "on" : "off"}`}
               onClick={() => set("enable_claude", !llm.enable_claude)}
             />
@@ -115,6 +117,7 @@ function LLMConsole({ config, setConfig }) {
         <Panel>
           <PanelHeader title="OpenAI / Codex" icon iconColor="orange">
             <button
+              type="button" role="switch" aria-checked={!!llm.enable_openai} aria-label="Enable OpenAI / Codex"
               className={`toggle ${llm.enable_openai ? "on" : "off"}`}
               onClick={() => set("enable_openai", !llm.enable_openai)}
             />

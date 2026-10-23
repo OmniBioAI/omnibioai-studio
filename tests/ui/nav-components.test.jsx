@@ -101,7 +101,7 @@ describe("Sidebar", () => {
     const askNav = [{ section: "AI", items: [{ name: "Ask OmniBioAI", idx: -1, disabled: true }] }];
     const setStep = vi.fn();
     render(<Sidebar nav={askNav} step={-1} setStep={setStep} systemStatus="idle" currentUser={null} />);
-    const ask = screen.getByText("Ask OmniBioAI", { selector: "div" });
+    const ask = screen.getByRole("button", { name: /Ask OmniBioAI/ });
     expect(ask).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(ask);
     expect(setStep).not.toHaveBeenCalled();
@@ -113,9 +113,9 @@ describe("Sidebar", () => {
     ] }];
     const setStep = vi.fn();
     render(<Sidebar nav={codeWorkflowsNav} step={9} setStep={setStep} systemStatus="idle" currentUser={null} />);
-    fireEvent.click(screen.getByText("Code", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Code" }));
     expect(setStep).toHaveBeenCalledWith(18);
-    fireEvent.click(screen.getByText("Workflows", { selector: "div" }));
+    fireEvent.click(screen.getByRole("button", { name: "Workflows" }));
     expect(setStep).toHaveBeenCalledWith(19);
   });
 });
@@ -318,7 +318,7 @@ describe("Navigation icons", () => {
   it("does not add icons to section headings", () => {
     const { container } = render(<Sidebar nav={iconNav} step={7} setStep={vi.fn()} systemStatus="idle" currentUser={null} />);
     const headings = [...container.querySelectorAll("[data-nav-section] > div:first-child")]
-      .filter(el => !el.hasAttribute("data-nav-item"));
+      .filter(el => !el.querySelector("[data-nav-item]"));
     for (const heading of headings) {
       expect(heading.querySelector("svg")).not.toBeInTheDocument();
     }

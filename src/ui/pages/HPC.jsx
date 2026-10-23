@@ -41,6 +41,7 @@ function HPCConsole({ config, setConfig }) {
         <Panel>
           <PanelHeader title="Core Settings" icon iconColor="teal">
             <button
+              type="button" role="switch" aria-checked={!!hpc.enabled} aria-label="Enable HPC configuration"
               className={`toggle ${hpc.enabled ? "on" : "off"}`}
               onClick={() => set("enabled", !hpc.enabled)}
             />

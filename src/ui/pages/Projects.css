@@ -5,6 +5,7 @@
 .projects-toolbar, .projects-results { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg3); }
 .projects-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
 .projects-toolbar [aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: rgba(0, 229, 160, .08); }
+.projects-toolbar button { min-height: 44px; }
 .projects-results { min-height: 230px; }
 .project-state { display: grid; place-items: center; align-content: center; min-height: 196px; gap: 10px; text-align: center; }
 .project-state h2 { margin: 0; color: var(--text); font-size: var(--font-size-md); }

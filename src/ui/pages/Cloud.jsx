@@ -42,6 +42,7 @@ function CloudConsole({ config, setConfig }) {
         <Panel>
           <PanelHeader title="Amazon Web Services" icon iconColor="orange">
             <button
+              type="button" role="switch" aria-checked={!!cloud.enable_aws} aria-label="Enable Amazon Web Services"
               className={`toggle ${cloud.enable_aws ? "on" : "off"}`}
               onClick={() => set("enable_aws", !cloud.enable_aws)}
             />
@@ -67,6 +68,7 @@ function CloudConsole({ config, setConfig }) {
         <Panel>
           <PanelHeader title="Microsoft Azure" icon iconColor="blue">
             <button
+              type="button" role="switch" aria-checked={!!cloud.enable_azure} aria-label="Enable Microsoft Azure"
               className={`toggle ${cloud.enable_azure ? "on" : "off"}`}
               onClick={() => set("enable_azure", !cloud.enable_azure)}
             />
@@ -106,6 +108,7 @@ function CloudConsole({ config, setConfig }) {
         <Panel>
           <PanelHeader title="Google Cloud Platform" icon iconColor="teal">
             <button
+              type="button" role="switch" aria-checked={!!cloud.enable_gcp} aria-label="Enable Google Cloud Platform"
               className={`toggle ${cloud.enable_gcp ? "on" : "off"}`}
               onClick={() => set("enable_gcp", !cloud.enable_gcp)}
             />
@@ -145,6 +148,7 @@ function CloudConsole({ config, setConfig }) {
         <Panel>
           <PanelHeader title="Kubernetes" icon iconColor="#326CE5">
             <button
+              type="button" role="switch" aria-checked={!!cloud.enable_kubernetes} aria-label="Enable Kubernetes"
               className={`toggle ${cloud.enable_kubernetes ? "on" : "off"}`}
               onClick={() => set("enable_kubernetes", !cloud.enable_kubernetes)}
             />

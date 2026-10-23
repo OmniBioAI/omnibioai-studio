@@ -68,7 +68,7 @@ export default function Workbench({ state, onStateChange, onOpen }) {
                 if (event.key === "Escape") onStateChange({ ...state, query: "", focusSlug: null });
               }}>
                 Search applications
-                <Input value={state.query} placeholder="Search applications…"
+                <Input id="workbench-search" value={state.query} placeholder="Search applications…"
                   onChange={event => onStateChange({ ...state, query: event.target.value, focusSlug: null })} />
               </label>
               <div role="group" aria-label="Plugin categories" className="native-workbench-filters">

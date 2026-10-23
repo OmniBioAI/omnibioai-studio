@@ -20,6 +20,7 @@
 .artifact-search > div, .artifact-filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .artifact-search input { flex: 1 1 280px; min-width: 0; padding: 8px 10px; color: var(--text); border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); }
 .artifact-filters [aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: rgba(0, 229, 160, .08); }
+.artifact-filters button { min-height: 44px; }
 .artifacts-results { min-height: 230px; overflow: hidden; }
 .artifact-state { display: grid; place-items: center; align-content: center; min-height: 196px; gap: 10px; text-align: center; }
 .artifact-state h2 { margin: 0; color: var(--text); font-size: var(--font-size-md); }

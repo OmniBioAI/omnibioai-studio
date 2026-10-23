@@ -129,7 +129,7 @@
   --accent3: #ff6b35;
   --accent-platform: #67e8f9;
   --text: #e8eaf0;
-  --muted: #6b7280;
+  --muted: #a1aab8;
   --danger: #ff4757;
   --warn: #ffa502;
   --font: system-ui, -apple-system, sans-serif;
@@ -154,6 +154,24 @@
   --font-size-sm: 12px;
   --font-size-base: 13px;
   --font-size-md: 14px;
+  --focus-ring: #3b82f6;
+}
+
+:where(button, a[href], input, select, textarea, [role="radio"], [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px;
+}
+
+.studio-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 /* ── Appearance: color mode ──
@@ -171,8 +189,8 @@ html[data-theme="light"] {
   --border: rgba(15, 23, 42, 0.08);
   --border2: rgba(15, 23, 42, 0.14);
   --text: #0f172a;
-  --muted: #64748b;
-  --color-text-muted: #64748b;
+  --muted: #53657d;
+  --color-text-muted: #53657d;
   --color-text-secondary: #475569;
 
   --color-bg: #f7f8fa;
@@ -540,6 +558,7 @@ a:focus:not(:focus-visible) {
 .explore-search input:focus-visible, .explore-filters button:focus-visible, .explore-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .explore-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .explore-filters button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 7px 11px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); color: var(--text); font: var(--font-size-xs) var(--mono); cursor: pointer; }
+.explore-filters button { min-height: 44px; }
 .explore-filters button[aria-pressed="true"] { border-color: var(--accent); background: var(--color-accent-dim); color: var(--accent); }
 .explore-summary, .explore-partial { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-xs); font-family: var(--mono); }
 .explore-partial { color: var(--color-warning); }

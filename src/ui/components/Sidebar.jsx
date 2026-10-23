@@ -40,11 +40,13 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
       {/* ← Studio back button — visible when browsing a service */}
       {isServiceView && (
         <div style={{ padding:"8px 8px 0" }}>
-          <div
+          <button
+            type="button"
+            className="studio-back-button"
             onClick={onStudioClick}
             style={{
               display:"flex", alignItems:"center", gap:8,
-              padding:"8px 10px", borderRadius:'var(--radius-sm)', cursor:"pointer",
+              minHeight:44, width:"100%", padding:"8px 10px", borderRadius:'var(--radius-sm)', cursor:"pointer",
               fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", fontWeight:600,
               color:"var(--accent)",
               background:"rgba(0,229,160,0.08)",
@@ -52,7 +54,7 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
             }}
           >
             ← Studio
-          </div>
+          </button>
         </div>
       )}
 
@@ -71,21 +73,18 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
               const isActive = !disabled && step === idx;
               const Icon = NAV_ICONS[name];
               return (
-                <div
-                  key={name}
+                <div key={name}>
+                <button
                   data-nav-item={name}
-                  role={name === "Connections" ? "button" : undefined}
-                  tabIndex={name === "Connections" ? 0 : undefined}
-                  aria-current={name === "Connections" && isActive ? "page" : undefined}
-                  onKeyDown={name === "Connections" ? event => {
-                    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setStep(idx); }
-                  } : undefined}
+                  type="button"
+                  className="studio-nav-item"
+                  aria-current={isActive ? "page" : undefined}
                   onClick={disabled ? undefined : () => setStep(idx)}
                   aria-disabled={disabled || undefined}
                   style={{
                     display:"flex", alignItems:"center", gap:8,
-                    padding:"7px 8px", borderRadius:'var(--radius-sm)', cursor: disabled ? "default" : "pointer",
-                    fontSize:'var(--font-size-sm)', marginBottom:1, position:"relative",
+                    width:"100%", textAlign:"left", padding:"7px 8px", borderRadius:'var(--radius-sm)', cursor: disabled ? "default" : "pointer",
+                    fontSize:'var(--font-size-sm)', fontFamily:"inherit", marginBottom:1, position:"relative",
                     transition:"all 0.15s", opacity: disabled ? 0.5 : 1,
                     color:      isActive ? "var(--accent)" : "var(--color-text-muted)",
                     background: isActive ? "rgba(0,229,160,0.08)" : "transparent",
@@ -114,6 +113,7 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
                       Coming soon
                     </span>
                   )}
+                </button>
                 </div>
               );
             })}

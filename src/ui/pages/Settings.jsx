@@ -30,7 +30,7 @@ function SettingToggle({ label, sub, value, onChange }) {
           </div>
         )}
       </div>
-      <Toggle value={value} onChange={onChange} />
+      <Toggle label={label} value={value} onChange={onChange} />
     </div>
   );
 }
