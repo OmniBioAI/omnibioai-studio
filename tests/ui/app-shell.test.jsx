@@ -667,7 +667,7 @@ describe("App shell — OAuth redirect notices", () => {
     consumeOAuthRedirectParams.mockReturnValue({ type: "error", message: "denied" });
     getCurrentUser.mockResolvedValue(admin);
     render(<App />);
-    expect(await screen.findByText("Sign-in failed: denied")).toBeInTheDocument();
+    expect(await screen.findByText("Sign-in could not be completed. Please try again.")).toBeInTheDocument();
     fireEvent.click(screen.getByText("✕"));
     await waitFor(() => expect(screen.queryByText(/Sign-in failed/)).not.toBeInTheDocument());
   });

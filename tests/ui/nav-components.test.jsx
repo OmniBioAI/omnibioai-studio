@@ -342,7 +342,7 @@ describe("UpdateBanner", () => {
     expect(await screen.findByText(/v9\.0\.0 is available/)).toBeInTheDocument();
 
     listeners.error({ message: "checksum mismatch" });
-    expect(await screen.findByText("Update failed: checksum mismatch")).toBeInTheDocument();
+    expect(await screen.findByText("The update could not be completed. Please try again later.")).toBeInTheDocument();
     fireEvent.click(screen.getByText("dismiss"));
     expect(screen.queryByText(/Update failed/)).not.toBeInTheDocument();
   });

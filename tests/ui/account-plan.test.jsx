@@ -146,7 +146,7 @@ describe("AccountPlan", () => {
     window.api = { openExternal: vi.fn() };
     render(<AccountPlan currentUser={user} />);
     fireEvent.click(await screen.findByRole("button", { name: "Manage subscription" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(/Refused/);
+    expect(await screen.findByRole("alert")).toHaveTextContent("That action failed. Please try again.");
     expect(window.api.openExternal).not.toHaveBeenCalled();
   });
 

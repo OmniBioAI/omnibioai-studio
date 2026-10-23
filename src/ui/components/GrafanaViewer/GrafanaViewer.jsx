@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Card, Button, Badge, Spinner } from "@omnibioai/ui";
 import { isElectron } from "../../lib/session";
+import { safeErrorMessage } from "../../lib/safeErrorMessage";
 
 // Electron talks to Grafana directly; a browser tab (web build) can't reach
 // that LAN/localhost port, so it goes through nginx-router's /_svc/monitor
@@ -42,7 +43,7 @@ export function GrafanaViewer({ onBack, label }) {
       await window.electronAPI.grafanaLogin();
       setPhase("ok");
     } catch (e) {
-      setError(e.message || "Auth failed — check Grafana is running");
+      setError(safeErrorMessage(e, "Could not connect to the monitoring service. Please try again later."));
       setPhase("error");
     } finally {
       setBusy(false);

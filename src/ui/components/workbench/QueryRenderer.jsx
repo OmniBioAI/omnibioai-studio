@@ -5,6 +5,7 @@ import { resolveWorkbenchComponent } from "./componentRegistry";
 import { ResultsTableRow } from "./results/ResultsTable";
 import { rowKeys, scalarText, valueAt } from "../../lib/pluginUiContracts";
 import { downloadQueryResult, queryDetail, queryPlugin } from "../../lib/pluginQueryApi";
+import { safeErrorMessage } from "../../lib/safeErrorMessage";
 
 // A legacy single-operation descriptor has no `operations` collection --
 // `activeOperation` is then the descriptor itself, so every read below
@@ -75,7 +76,7 @@ export default function QueryRenderer({ descriptor }) {
         setPayload(next);
       }
     } catch (queryError) {
-      if (!controller.signal.aborted) setError(queryError.message || "Query failed.");
+      if (!controller.signal.aborted) setError(safeErrorMessage(queryError, "Query failed. Please try again."));
     } finally { if (!controller.signal.aborted) setLoading(false); }
   }
 
@@ -102,7 +103,7 @@ export default function QueryRenderer({ descriptor }) {
       });
       if (!controller.signal.aborted) setDetail(next);
     } catch (detailFailure) {
-      if (!controller.signal.aborted) setDetailError(detailFailure.message || "Detail lookup failed.");
+      if (!controller.signal.aborted) setDetailError(safeErrorMessage(detailFailure, "Could not load result details."));
     } finally { if (!controller.signal.aborted) setDetailLoading(false); }
   }
 
@@ -115,7 +116,7 @@ export default function QueryRenderer({ descriptor }) {
       link.href = blobUrl; link.download = String(id); link.hidden = true;
       document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(blobUrl);
     } catch (failure) {
-      setDownloadError(failure.message || "Download failed.");
+      setDownloadError(safeErrorMessage(failure, "Download failed. Please try again."));
     } finally { setDownloadId(""); }
   }
 

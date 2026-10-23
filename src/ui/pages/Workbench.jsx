@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Card, Input, Badge, Spinner, Button } from "@omnibioai/ui";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
 import { applicationUrl, legacyWorkbenchUrl, loadWorkbenchCatalog } from "../lib/workbenchApi";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 import WorkbenchBase from "../components/WorkbenchBase";
 import OmniPage from "../components/OmniPage";
 
@@ -19,7 +20,7 @@ export default function Workbench({ state, onStateChange, onOpen }) {
     setError("");
     loadWorkbenchCatalog({ signal: controller.signal })
       .then(data => { if (!controller.signal.aborted) setCatalog(data); })
-      .catch(err => { if (!controller.signal.aborted) setError(err.message); })
+      .catch(err => { if (!controller.signal.aborted) setError(safeErrorMessage(err, "Could not load the Workbench catalog. Please try again.")); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [attempt]);

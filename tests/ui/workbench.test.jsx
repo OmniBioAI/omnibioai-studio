@@ -85,7 +85,7 @@ describe("Native Workbench catalog", () => {
     const onOpen = vi.fn();
     fetch.mockResolvedValueOnce({ ok: false, status: 503 });
     render(<Harness onOpen={onOpen} />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load Workbench catalog (503)");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not load the Workbench catalog. Please try again.");
     const legacy = screen.getByRole("button", { name: "Use legacy Workbench catalog" });
     expect(legacy).toBeEnabled();
     await user.click(legacy);

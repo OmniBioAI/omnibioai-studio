@@ -135,7 +135,7 @@ describe("Batch 1 query composition", () => {
     search();
     await screen.findByRole("cell", { name: "4HHB" });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Backend temporarily unavailable");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Query failed. Please try again.");
     expect(screen.getByRole("cell", { name: "4HHB" })).toBeInTheDocument();
     expect(screen.getByText("Page 1")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -196,7 +196,7 @@ describe("Batch 1 query composition", () => {
     render(<QueryRenderer descriptor={descriptor} />);
     search();
     fireEvent.click(await screen.findByRole("button", { name: /^View/ }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Structure not available");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not load result details.");
     expect(screen.getByRole("cell", { name: "4HHB" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^View/ }));
     await screen.findByText("Hemoglobin");
@@ -245,7 +245,7 @@ describe("Batch 1 query composition", () => {
     expect(await screen.findByText("No results.")).toHaveAttribute("role", "status");
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
     search("next query");
-    expect(await screen.findByRole("alert")).toHaveTextContent("invalid result data");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Query failed. Please try again.");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 

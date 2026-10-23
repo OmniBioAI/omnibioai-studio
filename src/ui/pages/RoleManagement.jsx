@@ -3,6 +3,7 @@ import { Card, Button, Badge, Table, Input, Tabs } from "@omnibioai/ui";
 import { Panel, PanelHeader, PanelBody, FormRow } from "../components/UI";
 import Login from "../components/Login";
 import * as rolesApi from "../lib/rolesApi";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 
 const MANAGE_ROLES = "manage_roles";
 
@@ -49,7 +50,7 @@ function RoleManagementConsole() {
     try {
       setRoles(await rolesApi.listRoles());
     } catch (err) {
-      setLoadError(err.message || "Failed to load roles");
+      setLoadError(safeErrorMessage(err, "Failed to load roles. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -126,7 +127,7 @@ function RolesTable({ roles, loading, onSelect, onDeleted }) {
     } catch (err) {
       const msg = err.status === 409
         ? `"${role.name}" is still assigned to ${role.user_count} user(s) — remove those assignments first.`
-        : (err.message || "Delete failed");
+        : safeErrorMessage(err, "Delete failed. Please try again.");
       setDeleteErrors((e) => ({ ...e, [role.id]: msg }));
     } finally {
       setDeletingId(null);
@@ -194,7 +195,7 @@ function RoleDetail({ roleId, onDone, onCancel }) {
         setName(role.name);
         setPermissions(role.permissions);
       } catch (err) {
-        if (mounted) setError(err.message || "Failed to load role");
+        if (mounted) setError(safeErrorMessage(err, "Failed to load role. Please try again."));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -226,7 +227,7 @@ function RoleDetail({ roleId, onDone, onCancel }) {
         onDone({ type: "success", text: `Role "${name}" updated.` });
       }
     } catch (err) {
-      setError(err.status === 409 ? "A role with that name already exists." : (err.message || "Save failed"));
+      setError(err.status === 409 ? "A role with that name already exists." : safeErrorMessage(err, "Save failed. Please try again."));
     } finally {
       setSaving(false);
     }
@@ -311,7 +312,7 @@ function UserAssignment({ roles }) {
       setAssignedRoles(data.roles);
       setLoadedUserId(data.user_id);
     } catch (err) {
-      setError(err.status === 404 ? `No user with id ${id}.` : (err.message || "Lookup failed"));
+      setError(err.status === 404 ? `No user with id ${id}.` : safeErrorMessage(err, "Lookup failed. Please try again."));
       setLoadedUserId(null);
     } finally {
       setLoading(false);
@@ -336,7 +337,7 @@ function UserAssignment({ roles }) {
       setError(
         err.status === 403
           ? "Cannot modify your own roles to grant yourself additional permissions."
-          : (err.message || "Save failed")
+          : safeErrorMessage(err, "Save failed. Please try again.")
       );
     } finally {
       setSaving(false);

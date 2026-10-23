@@ -61,7 +61,7 @@ describe("LicenseGate", () => {
 
     window.electronAPI.validateLicense.mockRejectedValueOnce(new Error("network down"));
     fireEvent.click(screen.getByText("Activate License"));
-    expect(await screen.findByText("Validation failed: network down")).toBeInTheDocument();
+    expect(await screen.findByText("License validation failed. Check the key and try again.")).toBeInTheDocument();
 
     window.electronAPI.validateLicense.mockResolvedValueOnce({ valid: true, tier: "beta", expiry: "2099-06-01", days_remaining: 30 });
     fireEvent.keyDown(input, { key: "Enter" });

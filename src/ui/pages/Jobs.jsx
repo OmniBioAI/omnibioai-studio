@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { isElectron, getToken } from "../lib/session";
 import { useAccountDateTime } from "../components/PreferencesProvider";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 
 function getHost() {
   return (
@@ -99,7 +100,7 @@ export default function Jobs() {
       setServers(s);
       setError("");
     } catch (e) {
-      setError(e.message);
+      setError(safeErrorMessage(e, "Could not load jobs. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -123,7 +124,7 @@ export default function Jobs() {
       setDetail(d);
       setLogs(typeof l === "string" ? l : JSON.stringify(l, null, 2));
     } catch (e) {
-      setLogs(`Error loading logs: ${e.message}`);
+      setLogs(safeErrorMessage(e, "Could not load job logs. Please try again."));
     }
   };
 
@@ -134,7 +135,7 @@ export default function Jobs() {
       inputs    = JSON.parse(inputsJson);
       resources = JSON.parse(resourcesJson);
     } catch (e) {
-      setSubmitErr(`JSON parse error: ${e.message}`);
+      setSubmitErr("Inputs and resources must contain valid JSON.");
       return;
     }
     setSubmitting(true);
@@ -149,7 +150,7 @@ export default function Jobs() {
       setResourcesJson("{}");
       loadData();
     } catch (e) {
-      setSubmitErr(e.message);
+      setSubmitErr(safeErrorMessage(e, "Could not submit the job. Please try again."));
     } finally {
       setSubmitting(false);
     }

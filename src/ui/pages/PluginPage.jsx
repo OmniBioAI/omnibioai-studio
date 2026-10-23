@@ -5,6 +5,7 @@ import { resolveWorkbenchRenderer } from "../components/workbench/rendererRegist
 import { loadPluginDescriptor } from "../lib/pluginApi";
 import WorkbenchBase from "../components/WorkbenchBase";
 import OmniPage from "../components/OmniPage";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 
 export default function PluginPage({ slug, url, label, onBack, backLabel = "Back to Workbench" }) {
   const [descriptor, setDescriptor] = useState(null);
@@ -27,7 +28,7 @@ export default function PluginPage({ slug, url, label, onBack, backLabel = "Back
   }
   if (error) {
     return <WorkbenchBase className="native-plugin-error">
-      <OmniPage title={label} error={error.message || "Unable to load plugin UI."}>
+      <OmniPage title={label} error={safeErrorMessage(error, "Unable to load plugin UI. Please try again.")}>
         <Button onClick={() => setAttempt(value => value + 1)}>Retry</Button>
       </OmniPage>
     </WorkbenchBase>;
