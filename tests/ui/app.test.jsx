@@ -5,12 +5,13 @@ import { describe, expect, it, vi } from "vitest";
 
 const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams } = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
+  getIdentity: vi.fn().mockResolvedValue({ organizations: [] }),
   onSessionChange: vi.fn(() => () => {}),
   consumeOAuthRedirectParams: vi.fn(() => null),
 }));
 
 vi.mock("../../src/ui/lib/session", () => ({
-  getCurrentUser, onSessionChange, consumeOAuthRedirectParams,
+  getCurrentUser, getIdentity, onSessionChange, consumeOAuthRedirectParams,
   isElectron: () => false, refresh: vi.fn(), getRefreshToken: () => null, logout: vi.fn(),
 }));
 

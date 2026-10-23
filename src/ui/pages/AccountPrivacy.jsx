@@ -1,5 +1,6 @@
 import React from "react";
 import { Card } from "@omnibioai/ui";
+import AccountState from "../components/AccountState";
 import "./AccountPrivacy.css";
 
 // No canonical Auth API exists today for exporting or deleting account data
@@ -17,9 +18,7 @@ function PrivacyRow({ title, description }) {
         <h3>{title}</h3>
         <p>{description}</p>
       </div>
-      <button type="button" className="omni-btn omni-btn--secondary omni-btn--sm" disabled aria-disabled="true">
-        Not available yet
-      </button>
+      <AccountState variant="setup" actor="OmniBioAI support" href="/studio/account/help" linkLabel="Help & support">{description}</AccountState>
     </div>
   );
 }
@@ -28,8 +27,8 @@ export default function AccountPrivacy() {
   return (
     <section className="account-privacy" aria-labelledby="privacy-heading">
       <header>
-        <h2 id="privacy-heading">Privacy &amp; Data</h2>
-        <p>Review what you can control about your account data today. Capabilities below that aren&rsquo;t available yet are shown disabled rather than hidden, so you always know what&rsquo;s planned.</p>
+        <h2 id="privacy-heading">Privacy &amp; data</h2>
+        <p>Review data controls for your account.</p>
       </header>
       <Card title="Account data">
         <PrivacyRow

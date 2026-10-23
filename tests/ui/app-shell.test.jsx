@@ -8,8 +8,9 @@ vi.mock("../../src/ui/pages/AccountPreferences", () => ({ default: () => <div>Ac
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, getSessionVersion, refresh, getRefreshToken, logout } = vi.hoisted(() => ({
+const { getCurrentUser, getIdentity, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, getSessionVersion, refresh, getRefreshToken, logout } = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
+  getIdentity: vi.fn().mockResolvedValue({ organizations: [] }),
   onSessionChange: vi.fn(() => vi.fn()),
   consumeOAuthRedirectParams: vi.fn(() => null),
   isElectron: vi.fn(() => true),
@@ -20,7 +21,7 @@ const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron,
   logout: vi.fn(),
 }));
 vi.mock("../../src/ui/lib/session", () => ({
-  getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, getSessionVersion, refresh, getRefreshToken, logout,
+  getCurrentUser, getIdentity, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, getSessionVersion, refresh, getRefreshToken, logout,
 }));
 
 vi.mock("../../src/ui/components/LicenseGate", () => ({ default: ({ children }) => <>{children}</> }));
@@ -61,7 +62,7 @@ vi.mock("../../src/ui/pages/OrganizationConnections", () => ({ default: () => <d
 vi.mock("../../src/ui/pages/Integrations", () => ({ default: () => <div>Integrations page</div> }));
 vi.mock("../../src/ui/pages/MembershipPlans", () => ({ default: () => <div>Membership Plans page</div> }));
 
-import App from "../../src/ui/App";
+import App, { LEGACY_ACCOUNT_REDIRECTS, resolveInitialPage } from "../../src/ui/App";
 
 beforeEach(() => {
   delete window.api;
@@ -74,6 +75,15 @@ beforeEach(() => {
 });
 
 describe("App shell — Studio landing", () => {
+  it("redirects every legacy account URL to its home while preserving query strings", () => {
+    for (const [legacy, destination] of Object.entries(LEGACY_ACCOUNT_REDIRECTS)) {
+      window.history.replaceState({}, "", `${legacy}?checkout=success&organization_id=7`);
+      resolveInitialPage();
+      expect(window.location.pathname).toBe(destination);
+      expect(window.location.search).toBe("?checkout=success&organization_id=7");
+    }
+  });
+
   it("opens the Storage route and preserves account navigation", async () => {
     getCurrentUser.mockResolvedValue(admin);
     window.history.replaceState({}, "", "/studio/storage");

@@ -3,6 +3,7 @@ import { Badge, Card } from "@omnibioai/ui";
 import { MEMBERSHIP_FEATURES, MEMBERSHIP_PLANS, normalizeMembershipState } from "../lib/membershipCatalog";
 import * as billingApi from "../lib/billingApi";
 import { openStripeUrl } from "../lib/stripePortal";
+import AccountState from "../components/AccountState";
 import "./MembershipPlans.css";
 
 function useCheckoutNotice() {
@@ -20,12 +21,12 @@ function useCheckoutNotice() {
   return notice;
 }
 
-function CurrentMembership({ state }) {
+function CurrentMembership({ state, onRetry }) {
   if (state.status === "loading") return <div className="membership-current" role="status">Checking current membership…</div>;
-  if (state.status === "error") return <div className="membership-current membership-current-error" role="alert">Individual billing is unavailable. Your membership has not been inferred.</div>;
+  if (state.status === "error") return <AccountState variant="error" title="Couldn’t load Membership" onRetry={onRetry}>Your personal tier failed to load.</AccountState>;
   if (state.status === "unauthorized") return <div className="membership-current" role="status">Sign in to view your membership.</div>;
   if (state.status === "ready") return <div className="membership-current"><span>Current personal membership</span><Badge variant="success">{state.plan[0].toUpperCase() + state.plan.slice(1)}</Badge><span>Status: {state.subscription_status}</span><span>Storage allowance: {state.storage_quota_bytes / 1_000_000_000} GB</span>{state.cancel_at_period_end && <span>Cancellation scheduled</span>}</div>;
-  return <div className="membership-current" role="status"><span>Personal membership</span><Badge variant="neutral">Billing unavailable</Badge><span>No authoritative individual subscription endpoint is configured.</span></div>;
+  return <AccountState variant="setup" href="/studio/account/organization/billing" linkLabel="Go to Billing"><span>An organization billing administrator can configure billing.</span></AccountState>;
 }
 
 function CheckoutNotice({ notice }) {
@@ -38,17 +39,18 @@ function CheckoutNotice({ notice }) {
 function PlanAction({ plan, currentPlan, eligiblePlans, busyPlan, interval, onUpgrade }) {
   if (currentPlan === plan.id) return <button type="button" disabled aria-label={`${plan.name} is your current plan`}>Current plan</button>;
   if (plan.id === "free") return <button type="button" disabled>Included</button>;
-  if (plan.id === "enterprise") return <p className="membership-action-note">Contact Sales is unavailable because no approved inquiry destination is configured.</p>;
+  if (plan.id === "enterprise") return <AccountState variant="setup" href="mailto:sales@omnibioai.org" linkLabel="Contact sales">An organization owner can arrange this tier with Sales.</AccountState>;
   if (interval === "yearly") return <button type="button" disabled aria-label={`${plan.name} annual billing unavailable`}>Annual billing coming soon</button>;
   if (eligiblePlans.includes(plan.id)) return <button type="button" disabled={!!busyPlan} onClick={() => onUpgrade(plan.id)}>{busyPlan === plan.id ? "Opening checkout…" : `Upgrade to ${plan.name}`}</button>;
-  return <><button type="button" disabled aria-label={`Upgrade to ${plan.name} unavailable`}>Upgrade unavailable</button><p className="membership-action-note">Individual {plan.name} checkout is not configured or this transition is unavailable.</p></>;
+  return <AccountState variant="plan" href="#compare-membership" linkLabel="Compare">{plan.name} includes this upgrade path when eligible.</AccountState>;
 }
 
-export default function MembershipPlans({ currentUser, membershipState, onBillingOverview }) {
+export default function MembershipPlans({ currentUser, membershipState, onBillingOverview, embedded = false }) {
   const [interval, setInterval] = useState("monthly");
   const [loadedState, setLoadedState] = useState(() => membershipState || (currentUser ? { status: "loading" } : { status: "unauthorized" }));
   const [busyPlan, setBusyPlan] = useState("");
   const [actionError, setActionError] = useState("");
+  const [reload, setReload] = useState(0);
   const notice = useCheckoutNotice();
   useEffect(() => {
     if (membershipState) { setLoadedState(membershipState); return undefined; }
@@ -61,7 +63,7 @@ export default function MembershipPlans({ currentUser, membershipState, onBillin
       if (active) setLoadedState({ status: error?.status === 401 ? "unauthorized" : "error" });
     });
     return () => { active = false; };
-  }, [currentUser?.userId, membershipState]);
+  }, [currentUser?.userId, membershipState, reload]);
   const state = normalizeMembershipState(loadedState);
   const currentPlan = state.status === "ready" ? state.plan : null;
   const eligiblePlans = state.status === "ready" ? (state.checkout_eligible_plans || []) : [];
@@ -81,10 +83,10 @@ export default function MembershipPlans({ currentUser, membershipState, onBillin
 
   return <section className="membership-page" aria-labelledby="membership-heading">
     <header className="membership-header">
-      <div><p className="membership-eyebrow">Billing</p><h1 id="membership-heading">Membership &amp; Plans</h1><p>Choose the right plan for your bioinformatics research.</p></div>
+      <div><p className="membership-eyebrow">Your account</p>{embedded ? <h3 id="membership-heading">Membership</h3> : <h1 id="membership-heading">Membership</h1>}<p>Choose the right personal storage tier for your bioinformatics research.</p></div>
       {onBillingOverview && <button type="button" className="membership-link" onClick={onBillingOverview}>Billing overview</button>}
     </header>
-    <CurrentMembership state={state} />
+    <CurrentMembership state={state} onRetry={() => setReload(value => value + 1)} />
     <CheckoutNotice notice={notice} />
     {actionError && <p className="membership-notice membership-notice-error" role="alert">{actionError}</p>}
     {state.status === "ready" && state.portal_available && <div className="membership-manage"><button type="button" disabled={!!busyPlan} onClick={() => openSession(billingApi.createUserMembershipPortal, "portal")}>{busyPlan === "portal" ? "Opening billing portal…" : "Manage personal subscription"}</button></div>}
@@ -98,7 +100,7 @@ export default function MembershipPlans({ currentUser, membershipState, onBillin
     <div className="membership-grid">
       {MEMBERSHIP_PLANS.map(plan => <article key={plan.id} className={`membership-card${plan.highlighted ? " membership-card-highlighted" : ""}`}>
         <div className="membership-card-heading"><h2>{plan.name}</h2>{plan.highlighted && <Badge variant="info">Advanced individual plan</Badge>}</div>
-        <div className="membership-price">{interval === "yearly" ? <><strong>Unavailable</strong><span>annual billing</span></> : plan.monthlyPrice == null ? <><strong>Custom</strong><span>pricing</span></> : <><strong>${plan.monthlyPrice}</strong><span>/month</span></>}</div>
+        <div className="membership-price">{interval === "yearly" ? <><strong>Coming soon</strong><span>annual billing</span></> : plan.monthlyPrice == null ? <><strong>Custom</strong><span>pricing</span></> : <><strong>${plan.monthlyPrice}</strong><span>/month</span></>}</div>
         <p>{plan.summary}</p>
         <ul>
           <li>{plan.storageGb == null ? "Organization-owned storage" : `${plan.storageGb} GB personal storage allowance (not yet enforced)`}</li>
@@ -111,14 +113,14 @@ export default function MembershipPlans({ currentUser, membershipState, onBillin
       </article>)}
     </div>
 
-    <Card title="Compare plans">
+    <div id="compare-membership"><Card title="Compare Membership tiers">
       <div className="membership-table-wrap">
         <table className="membership-table">
           <thead><tr><th scope="col">Feature</th>{MEMBERSHIP_PLANS.map(plan => <th scope="col" key={plan.id}>{plan.name}</th>)}</tr></thead>
           <tbody>{MEMBERSHIP_FEATURES.map(row => <tr key={row.label}><th scope="row">{row.label}</th>{row.values.map((value, index) => <td key={`${row.label}-${MEMBERSHIP_PLANS[index].id}`}>{value}</td>)}</tr>)}</tbody>
         </table>
       </div>
-    </Card>
+    </Card></div>
 
     <Card title="Storage and subscription boundaries">
       <div className="membership-boundaries">

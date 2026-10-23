@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Badge, Button, Card, ProgressBar, Spinner } from "@omnibioai/ui";
 import Login from "../components/Login";
-import { getIdentity } from "../lib/session";
+import AccountState from "../components/AccountState";
 import * as billingApi from "../lib/billingApi";
 import { openStripeUrl } from "../lib/stripePortal";
 import "./BillingRedesign.css";
@@ -46,31 +46,16 @@ function valueForLimit(row) {
   return { used, cap, percent: Number.isFinite(Number(row.percentage_used)) ? Number(row.percentage_used) : (cap > 0 ? used / cap * 100 : 0) };
 }
 
-export default function BillingRedesign({ currentUser, onMembershipPlans, onStorage }) {
+export default function BillingRedesign({ currentUser, organizationId, view = "billing", onMembershipPlans, onStorage }) {
   if (!currentUser) return <Login title="Sign in required" description="Billing information requires an authenticated OmniBioAI account." />;
-  if (currentUser.orgId == null) {
-    return <section className="billing-page"><header><h1>Billing</h1><p>Plan, usage and invoices for your organization.</p></header><Card><p>No organization is associated with this session.</p></Card>{onMembershipPlans && <Button variant="secondary" onClick={onMembershipPlans}>Membership &amp; Plans</Button>}</section>;
+  const orgId = organizationId || currentUser.orgId;
+  if (orgId == null) {
+    return <section className="billing-page"><header><h1>Organization plan</h1><p>Plan and invoices for your organization.</p></header><Card><p>No organization is associated with this session.</p></Card>{onMembershipPlans && <Button variant="secondary" onClick={onMembershipPlans}>Membership</Button>}</section>;
   }
-  return <OrgBilling currentUser={currentUser} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
+  return <BillingDashboard key={`${orgId}:${view}`} orgId={orgId} view={view} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
 }
 
-function OrgBilling({ currentUser, onMembershipPlans, onStorage }) {
-  const [identity, setIdentity] = useState(null);
-  const [orgId, setOrgId] = useState(currentUser.orgId);
-  useEffect(() => {
-    let active = true;
-    getIdentity().then(value => { if (active) setIdentity(value); }).catch(() => { if (active) setIdentity(null); });
-    return () => { active = false; };
-  }, []);
-  const orgs = identity?.organizations || [];
-  const organization = orgs.find(row => String(row.organization_id) === String(orgId));
-  const namedOrgs = orgs.filter(row => typeof row.organization_name === "string" && row.organization_name.trim());
-  const orgName = typeof organization?.organization_name === "string" && organization.organization_name.trim()
-    ? organization.organization_name : null;
-  return <BillingDashboard key={String(orgId)} orgId={orgId} orgName={orgName} orgs={namedOrgs} onOrgChange={setOrgId} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
-}
-
-function BillingDashboard({ orgId, orgName, orgs, onOrgChange, onMembershipPlans, onStorage }) {
+function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
   const [state, setState] = useState({ loading: true, subscription: null, limits: null, summary: null, payment: null, invoices: null, errors: [] });
   const [tab, setTab] = useState("overview");
   const [paymentAction, setPaymentAction] = useState({ pending: false, error: "" });
@@ -133,25 +118,27 @@ function BillingDashboard({ orgId, orgName, orgs, onOrgChange, onMembershipPlans
     setPaymentAction({ pending: false, error: "" });
   }
 
+  if (view === "usage") return <main className="billing-page">
+    <header className="billing-header"><div><h1>Usage</h1><p className="billing-subtitle">Request limits and metered costs for your organization.</p></div></header>
+    <UsageDetails orgId={orgId} rows={usageRows} summary={summary} />
+  </main>;
+
   return <main className="billing-page">
     <header className="billing-header">
-      <div><h1>Billing</h1><p className="billing-subtitle">Plan, usage and invoices for your organization.</p></div>
-      {(orgName || orgs.length > 1) && <div className="billing-org">
-        {orgs.length > 1 ? <label>Organization<select value={String(orgId)} onChange={event => onOrgChange(event.target.value)}>{orgs.map(org => <option key={org.organization_id} value={org.organization_id}>{org.organization_name}</option>)}</select></label>
-          : orgName && <span>{orgName}</span>}
-      </div>}
+      <div><h1>Organization plan</h1><p className="billing-subtitle">Plan, payment method and invoices for your organization.</p></div>
     </header>
+    <p className="billing-cross-link">Looking for your personal storage? <a href="/studio/account/membership-storage" onClick={event => { if (onMembershipPlans) { event.preventDefault(); onMembershipPlans(); } }}>View Membership &amp; storage</a></p>
 
     {state.errors.map((error, index) => <p className="billing-error" role="status" key={`${index}-${error}`}>{error}</p>)}
     <section className="billing-summary" aria-label="Billing summary">
-      <SummaryItem label="Plan" value={subscription?.plan_name || "No active plan"} detail={subscription?.start_date ? `Since ${date(subscription.start_date)}` : "Start date unavailable"} />
+      <SummaryItem label="Organization plan" value={subscription?.plan_name || "No active plan"} detail={subscription?.start_date ? `Since ${date(subscription.start_date)}` : "Start date not provided"} />
       <SummaryItem label="This month" value={summary ? amount(summary.outstanding_amount, summary.currency) : "—"} detail="Amount due" />
       <SummaryItem label="Next invoice" value={isFree ? "None" : date(renewalDate)} detail={isFree ? "Free plan" : "Based on renewal date"} />
       <SummaryItem label="Payment method" value={payment?.has_payment_method && payment.card ? `${humanize(payment.card.brand)} ···· ${payment.card.last4}` : "Not set"} detail={payment?.has_payment_method && payment.card ? `Expires ${String(payment.card.exp_month).padStart(2, "0")}/${payment.card.exp_year}` : ""} />
     </section>
 
     <nav className="billing-tabs" aria-label="Billing sections" role="tablist">
-      {["overview", "usage", "invoices"].map(name => <button type="button" role="tab" aria-selected={tab === name} className={tab === name ? "is-active" : ""} key={name} onClick={() => activeTab(name)}>{humanize(name)}</button>)}
+      {["overview", "invoices"].map(name => <button type="button" role="tab" aria-selected={tab === name} className={tab === name ? "is-active" : ""} key={name} onClick={() => activeTab(name)}>{humanize(name)}</button>)}
     </nav>
 
     {tab === "overview" && <section className="billing-grid">
@@ -169,7 +156,7 @@ function BillingDashboard({ orgId, orgName, orgs, onOrgChange, onMembershipPlans
         <Card className="billing-card"><h2>Usage</h2>
           {usageRows.length ? <div className="billing-usage-rows">{usageRows.map((row, index) => {
             const usage = valueForLimit(row);
-            if (!usage) return <p key={index}>Usage limit unavailable for {usageLabel(row)}.</p>;
+            if (!usage) return <AccountState key={index} variant="error" title={`Couldn’t load ${usageLabel(row)}`} onRetry={() => window.location.reload()}>The organization usage limit failed to load.</AccountState>;
             const amber = usage.percent >= 80;
             return <div className="billing-usage-row" key={`${row.service}-${row.action}-${row.resource}-${index}`}>
               <div className="billing-usage-label"><strong>{usageLabel(row)}</strong><span>{usage.used} of {usage.cap}{row.unit ? ` ${row.unit}` : ""}</span></div>
@@ -191,7 +178,6 @@ function BillingDashboard({ orgId, orgName, orgs, onOrgChange, onMembershipPlans
       </div>
     </section>}
 
-    {tab === "usage" && <UsageDetails orgId={orgId} rows={usageRows} summary={summary} />}
     {tab === "invoices" && <InvoicesCard invoices={invoices} summary={summary} />}
   </main>;
 }
@@ -220,8 +206,8 @@ function InvoicesCard({ invoices, summary, compact = false }) {
     {rows.length ? <div className="billing-invoices">{rows.map(invoice => <div className="billing-invoice" key={invoice.id}>
       <span>{date(invoice.created_at || invoice.period_end)}</span><span>{invoice.invoice_number || `Invoice ${invoice.id}`}</span><strong>{amount(invoice.total, invoice.currency)}</strong>
       <Badge variant={String(invoice.status).toLowerCase() === "paid" ? "success" : "neutral"}>{humanize(invoice.status || "unknown")}</Badge>
-      <span className="billing-muted" title="The invoice API does not provide a PDF URL">PDF unavailable</span>
-    </div>)}</div> : <p>{invoices ? "No invoices yet" : "Invoice list unavailable."}</p>}
+      <AccountState variant="hidden" />
+    </div>)}</div> : invoices ? <p>No invoices yet</p> : <AccountState variant="error" title="Couldn’t load invoices" onRetry={() => window.location.reload()}>The organization invoice list failed to load.</AccountState>}
     <div className="billing-outstanding"><span>Outstanding balance</span><strong>{summary ? amount(summary.outstanding_amount, summary.currency) : "—"}</strong></div>
     {/* TODO: billing API currently has no invoice PDF URL or download endpoint. */}
   </Card>;
@@ -257,7 +243,7 @@ function UsageDetails({ orgId, rows, summary }) {
     <Card className="billing-card"><h2>Usage limits</h2>
       {rows.length ? rows.map((row, index) => {
         const usage = valueForLimit(row);
-        return <div className="billing-usage-row" key={index}><div className="billing-usage-label"><strong>{usageLabel(row)}</strong><span>{usage ? `${usage.used} of ${usage.cap} ${row.unit || ""}` : "Unavailable"}</span></div>{usage && <ProgressBar value={usage.percent} variant={usage.percent >= 80 ? "warning" : "accent"} />}</div>;
+        return <div className="billing-usage-row" key={index}><div className="billing-usage-label"><strong>{usageLabel(row)}</strong>{usage && <span>{`${usage.used} of ${usage.cap} ${row.unit || ""}`}</span>}</div>{usage ? <ProgressBar value={usage.percent} variant={usage.percent >= 80 ? "warning" : "accent"} /> : <AccountState variant="error" title="Couldn’t load usage limit" onRetry={() => window.location.reload()}>This request limit failed to load.</AccountState>}</div>;
       }) : <p>Usage limits are not available for this plan.</p>}
       <p className="billing-muted">Resets {reset ? date(reset) : "date not provided"}</p>
       {/* TODO: usage limits expose as_of but do not include an explicit reset date. */}
