@@ -1,5 +1,5 @@
 import React from "react";
-import AccountMenu from "./AccountMenu";
+import AccountMenu from "./AccountMenuButton";
 import { NAV_ICONS } from "./NavIcons";
 import OmniBioAILogo from "./brand/OmniBioAILogo";
 

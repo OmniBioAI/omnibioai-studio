@@ -22,7 +22,7 @@ export default function AccountHelp() {
   return (
     <section className="account-help" aria-labelledby="help-heading">
       <header>
-        <h2 id="help-heading">Help &amp; Product</h2>
+        <h2 id="help-heading">Help &amp; support</h2>
         <p>Documentation, release notes and other OmniBioAI destinations.</p>
       </header>
       <Card title="Resources">

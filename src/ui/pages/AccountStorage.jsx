@@ -4,6 +4,7 @@ import { useAccountDateTime } from "../components/PreferencesProvider";
 import { useStorageUsage } from "../lib/useStorageUsage";
 import { MEMBERSHIP_PLANS } from "../lib/membershipCatalog";
 import { formatStorageBytes, storageSegments } from "../lib/storageDashboard";
+import AccountState from "../components/AccountState";
 import "./AccountStorage.css";
 
 const ERROR_MESSAGES = {
@@ -19,7 +20,7 @@ const METRICS = [
   ["Total", "quotaBytes", "Your effective personal allowance", "total"],
 ];
 
-function StorageSummary({ value }) {
+function StorageSummary({ value, onRetry }) {
   const formatDate = useAccountDateTime();
   const segments = storageSegments(value);
   const plan = MEMBERSHIP_PLANS.find(item => item.id === value.plan);
@@ -30,7 +31,8 @@ function StorageSummary({ value }) {
       <div><span className="storage-dashboard__eyebrow">YOUR STORAGE AT A GLANCE</span>
         <h3 id="storage-summary-heading">Personal managed storage</h3>
         <p>One personal allowance for your managed uploads and imports.</p></div>
-      <span className="storage-dashboard__membership">Membership: {plan?.name || "Unavailable"}</span>
+      {plan ? <span className="storage-dashboard__membership">Membership: {plan.name}</span>
+        : <AccountState variant="error" title="Couldn’t load Membership" onRetry={onRetry}>The personal tier was not reported.</AccountState>}
     </div>
     <dl className="storage-dashboard__metrics">
       {METRICS.map(([label, key, hint, tone]) => <div key={key} className={`storage-dashboard__metric storage-dashboard__metric--${tone}`}>
@@ -38,7 +40,7 @@ function StorageSummary({ value }) {
         <dd>{formatStorageBytes(value[key])}</dd><dd className="storage-dashboard__metric-hint">{hint}</dd>
       </div>)}
     </dl>
-    {value.quotaBytes === null ? <p role="alert" className="storage-dashboard__notice">Your current storage allowance is unavailable. Used and reserved bytes are reported, but available and total storage cannot be determined.</p>
+    {value.quotaBytes === null ? <AccountState variant="error" title="Couldn’t load storage allowance" onRetry={onRetry}>Used and reserved bytes loaded, but total storage did not.</AccountState>
       : <div className="storage-dashboard__usage">
         <div className="storage-dashboard__usage-heading"><h4>Allowance usage</h4>
           <span>{percentage === null ? "No storage allowance allocated" : `${percentage} used or reserved`}</span></div>
@@ -67,7 +69,7 @@ function StoragePlans({ currentPlan }) {
   return <section className="storage-dashboard__plans" aria-labelledby="storage-plans-heading">
     <div className="storage-dashboard__section-heading"><div><h3 id="storage-plans-heading">Storage for every stage</h3>
       <p>Compare personal storage allowances.</p></div>
-      <a className="storage-dashboard__link" href="/studio/billing/plans">Explore membership plans <span aria-hidden="true">↗</span></a></div>
+      <a className="storage-dashboard__link" href="#compare-membership">Compare Membership tiers <span aria-hidden="true">↓</span></a></div>
     <div className="storage-dashboard__plan-grid">
       {MEMBERSHIP_PLANS.filter(plan => ["free", "plus", "pro"].includes(plan.id)).map(plan => <article key={plan.id}
         aria-label={`${plan.name} storage plan`} className={`storage-dashboard__plan${currentPlan === plan.id ? " storage-dashboard__plan--current" : ""}`}>
@@ -80,14 +82,14 @@ function StoragePlans({ currentPlan }) {
   </section>;
 }
 
-export default function AccountStorage() {
+export default function AccountStorage({ embedded = false }) {
   const [reload, setReload] = useState(0);
   const state = useStorageUsage(reload);
   const loading = state.status === "loading";
 
   return <section className="storage-dashboard" aria-labelledby="account-storage-heading">
     <header className="storage-dashboard__header">
-      <div><h2 id="account-storage-heading">Storage</h2><p>A clear view of your personal storage.</p></div>
+      <div>{embedded ? <h3 id="account-storage-heading">Storage</h3> : <h2 id="account-storage-heading">Storage</h2>}<p>A clear view of your personal storage.</p></div>
       <button type="button" className="omni-btn omni-btn--secondary omni-btn--sm"
         disabled={loading} onClick={() => setReload(value => value + 1)}>
         <span aria-hidden="true">↻</span> {loading ? "Refreshing usage…" : "Refresh usage"}</button>
@@ -96,10 +98,8 @@ export default function AccountStorage() {
       <p role="status"><Spinner size="sm" /> Loading personal storage usage…</p>
       <div className="storage-dashboard__skeleton" aria-hidden="true">{METRICS.map(([label]) => <span key={label} />)}</div>
     </section> : state.status === "error" ? <section className="storage-dashboard__summary">
-      <h3>Personal managed storage is unavailable</h3>
-      <p role="alert">{ERROR_MESSAGES[state.error] || "Storage usage is unavailable right now."} No usage value has been assumed.</p>
-      <p>Use Refresh usage to try again.</p>
-    </section> : <StorageSummary value={state.data} />}
+      <AccountState variant="error" title="Couldn’t load personal storage" onRetry={() => setReload(value => value + 1)}>{ERROR_MESSAGES[state.error] || "Storage usage failed to load."} No usage value has been assumed.</AccountState>
+    </section> : <StorageSummary value={state.data} onRetry={() => setReload(value => value + 1)} />}
     <StoragePlans currentPlan={state.status === "success" ? state.data.plan : null} />
     <section className="storage-dashboard__scope" aria-labelledby="storage-scope-heading">
       <h3 id="storage-scope-heading">What counts toward your storage?</h3>

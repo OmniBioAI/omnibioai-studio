@@ -328,7 +328,7 @@ function ApiKeys({ currentUser }) {
   return <div className="developer-page">
     <header className="developer-header">
       <div><h1>API keys</h1><p>Call the Literature AI API from scripts, notebooks and MCP clients.</p></div>
-      {usage && <a className="developer-usage" href="/studio/billing" aria-label={`Literature answers ${usage.used} / ${usage.included}. View Billing`}>
+      {usage && <a className="developer-usage" href="/studio/account/organization/usage" aria-label={`Literature answers ${usage.used} / ${usage.included}. View Usage`}>
         <span>Literature answers <strong>{usage.used.toLocaleString("en-US")} / {usage.included.toLocaleString("en-US")}</strong></span>
         <progress value={Math.min(usage.used, usage.included)} max={usage.included} aria-label="Literature answers used" />
       </a>}

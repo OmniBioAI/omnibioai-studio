@@ -32,11 +32,11 @@ import AccountPrivacy from "./pages/AccountPrivacy";
 import AccountPlan from "./pages/AccountPlan";
 import AccountStorage from "./pages/AccountStorage";
 import AccountHelp from "./pages/AccountHelp";
+import AccountMembershipStorage from "./pages/AccountMembershipStorage";
 import Projects from "./pages/Projects";
 import Artifacts from "./pages/Artifacts";
 import Explore from "./pages/Explore";
 import Integrations from "./pages/Integrations";
-import MembershipPlans from "./pages/MembershipPlans";
 import PreferencesProvider from "./components/PreferencesProvider";
 import AppearanceProvider from "./components/AppearanceProvider";
 import AccountLayout from "./components/AccountLayout";
@@ -45,7 +45,8 @@ import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
 import OmniBioAILogo from "./components/brand/OmniBioAILogo";
 import { GrafanaViewer } from "./components/GrafanaViewer";
-import { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } from "./lib/session";
+import * as session from "./lib/session";
+const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } = session;
 import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 import { safeErrorMessage } from "./lib/safeErrorMessage";
 
@@ -90,8 +91,6 @@ const BASE_NAV = [
     { name:"Launch",       idx:4  },
     { name:"Services",     idx:5  },
     { name:"Logs",         idx:6  },
-    { name:"Billing",      idx:12 },
-    { name:"Developer",    idx:14 },
   ]},
   { section: "Organization", items: [{ name: "Connections", idx: 26 }] },
   { section: "System",  items: [
@@ -106,11 +105,7 @@ const BASE_NAV = [
 function buildNav(canManageRoles) {
   if (!canManageRoles) return BASE_NAV;
   const afterRuntime = BASE_NAV.findIndex(group => group.section === "Runtime") + 1;
-  return [
-    ...BASE_NAV.slice(0, afterRuntime),
-    { section: "Security", items: [{ name: "Roles", idx: 11 }] },
-    ...BASE_NAV.slice(afterRuntime),
-  ];
+  return [...BASE_NAV.slice(0, afterRuntime), { section: "Security", items: [{ name: "Roles", idx: 11 }] }, ...BASE_NAV.slice(afterRuntime)];
 }
 
 const WIZARD_STEPS = ["Mode","LLM","Cloud","HPC","Launch"];
@@ -126,38 +121,39 @@ const PAGE_NAMES = [
 
 const PAGE_LABELS = [
   "Mode", "LLM", "Cloud", "HPC", "Launch", "Services", "Logs",
-  "Studio", "Settings", "Jobs", null, "Roles", "Billing", "Workbench", "Developer", "Profile", "Security", "Preferences",
+  "Studio", "Settings", "Jobs", null, "Roles", "Organization plan", "Workbench", "API keys", "Profile", "Security", "Preferences",
   "Code", "Workflows",
-  "Projects", "Artifacts", "Explore", "Notifications", "Personalization", "Appearance", "Connections",
-  "Privacy & Data", "Plan", "Help & Product", "Integrations", "Membership & Plans", "Storage",
+  "Projects", "Artifacts", "Explore", null, null, null, "Connections",
+  "Privacy & data", "Usage", "Help & support", "Integrations", null, "Membership & storage",
 ];
 
 const STUDIO_PATH = "/studio";
-const PROFILE_PATH = "/studio/profile";
+const PROFILE_PATH = "/studio/account/profile";
 const PROFILE_PAGE = 15;
-const SECURITY_PATH = "/studio/security";
+const SECURITY_PATH = "/studio/account/security";
 const SECURITY_PAGE = 16;
-const PREFERENCES_PATH = "/studio/preferences";
+const PREFERENCES_PATH = "/studio/account/preferences";
 const PREFERENCES_PAGE = 17;
-const NOTIFICATIONS_PATH = "/studio/notifications";
+const NOTIFICATIONS_PATH = "/studio/account/preferences";
 const NOTIFICATIONS_PAGE = 23;
-const PERSONALIZATION_PATH = "/studio/personalization";
+const PERSONALIZATION_PATH = "/studio/account/preferences";
 const PERSONALIZATION_PAGE = 24;
-const APPEARANCE_PATH = "/studio/appearance";
+const APPEARANCE_PATH = "/studio/account/preferences";
 const APPEARANCE_PAGE = 25;
 const CONNECTIONS_PAGE = 26;
-const PRIVACY_PATH = "/studio/privacy";
+const PRIVACY_PATH = "/studio/account/privacy-data";
 const PRIVACY_PAGE = 27;
-const PLAN_PATH = "/studio/plan";
+const PLAN_PATH = "/studio/account/organization/usage";
 const PLAN_PAGE = 28;
 const STORAGE_PAGE = 32;
-const STORAGE_PATH = "/studio/storage";
-const HELP_PATH = "/studio/help";
+const STORAGE_PATH = "/studio/account/membership-storage";
+const HELP_PATH = "/studio/account/help";
 const HELP_PAGE = 29;
 const INTEGRATIONS_PATH = "/studio/integrations";
-const BILLING_PATH = "/studio/billing";
-const MEMBERSHIP_PLANS_PATH = "/studio/billing/plans";
-const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, notifications: NOTIFICATIONS_PAGE, personalization: PERSONALIZATION_PAGE, appearance: APPEARANCE_PAGE, privacy: PRIVACY_PAGE, plan: PLAN_PAGE, storage: STORAGE_PAGE, help: HELP_PAGE };
+const BILLING_PATH = "/studio/account/organization/billing";
+const DEVELOPER_PATH = "/studio/account/organization/api-keys";
+const ROLES_PATH = "/studio/account/organization/members-roles";
+const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, privacy: PRIVACY_PAGE, membership: STORAGE_PAGE, billing: 12, usage: PLAN_PAGE, "api-keys": 14, "members-roles": 11, help: HELP_PAGE };
 const PROJECTS_PATH = "/studio/projects";
 const ARTIFACTS_PATH = "/studio/artifacts";
 const EXPLORE_PATH = "/studio/explore";
@@ -169,12 +165,10 @@ const LEGACY_PORTAL_PATH = "/workbench";
 // history.replaceState, no router) to the three new native shells.
 const PATH_TO_PAGE = {
   "/studio/organization/connections": CONNECTIONS_PAGE,
+  [ROLES_PATH]: 11,
   [PROFILE_PATH]:     PROFILE_PAGE,
   [SECURITY_PATH]:    SECURITY_PAGE,
   [PREFERENCES_PATH]: PREFERENCES_PAGE,
-  [NOTIFICATIONS_PATH]: NOTIFICATIONS_PAGE,
-  [PERSONALIZATION_PATH]: PERSONALIZATION_PAGE,
-  [APPEARANCE_PATH]: APPEARANCE_PAGE,
   [PRIVACY_PATH]: PRIVACY_PAGE,
   [PLAN_PATH]: PLAN_PAGE,
   [STORAGE_PATH]: STORAGE_PAGE,
@@ -184,10 +178,36 @@ const PATH_TO_PAGE = {
   [EXPLORE_PATH]:     EXPLORE_PAGE,
   [INTEGRATIONS_PATH]: INTEGRATIONS_PAGE,
   [BILLING_PATH]: 12,
-  [MEMBERSHIP_PLANS_PATH]: MEMBERSHIP_PLANS_PAGE,
+  [DEVELOPER_PATH]: 14,
 };
 const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([path, page]) => [page, path]));
 const KNOWN_PAGE_PATHS = Object.keys(PATH_TO_PAGE);
+
+export const LEGACY_ACCOUNT_REDIRECTS = {
+  "/studio/billing": BILLING_PATH,
+  "/studio/developer": DEVELOPER_PATH,
+  "/studio/profile": PROFILE_PATH,
+  "/studio/security": SECURITY_PATH,
+  "/studio/preferences": PREFERENCES_PATH,
+  "/studio/appearance": PREFERENCES_PATH,
+  "/studio/personalization": PREFERENCES_PATH,
+  "/studio/notifications": PREFERENCES_PATH,
+  "/studio/privacy": PRIVACY_PATH,
+  "/studio/plan": STORAGE_PATH,
+  "/studio/storage": STORAGE_PATH,
+  "/studio/billing/plans": STORAGE_PATH,
+  "/studio/help": HELP_PATH,
+};
+
+export function resolveInitialPage() {
+  const legacyTarget = LEGACY_ACCOUNT_REDIRECTS[window.location.pathname];
+  if (legacyTarget) {
+    const url = new URL(window.location.href);
+    url.pathname = legacyTarget;
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+  return PATH_TO_PAGE[window.location.pathname] ?? 7;
+}
 
 // "Code" and "Workflows" are nav-only aliases onto the existing Launcher and
 // Workflow Registry services already reachable from Studio's dashboard tiles
@@ -233,7 +253,7 @@ function getSafeReturnTo() {
 }
 
 export default function App() {
-  const [step,         setStep]         = useState(() => PATH_TO_PAGE[window.location.pathname] ?? 7);
+  const [step,         setStep]         = useState(resolveInitialPage);
   const [systemStatus, setSystemStatus] = useState("idle");
   const [ready,        setReady]        = useState(false);
   const [config,       setConfig]       = useState({
@@ -248,6 +268,7 @@ export default function App() {
   }
   const [workbenchState, setWorkbenchState] = useState({ query: "", category: "__all__", focusSlug: null });
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
+  const [accountIdentity, setAccountIdentity] = useState(null);
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
   const [oauthNotice,  setOauthNotice]  = useState(null); // result of an OAuth redirect: link_required | error
   const [returnTo,     setReturnTo]     = useState(() => getSafeReturnTo()); // ?return_to= target, captured once
@@ -290,6 +311,14 @@ export default function App() {
     };
     init();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!currentUser) { setAccountIdentity(null); return undefined; }
+    if (typeof session.getIdentity !== "function") { setAccountIdentity({ organizations: [] }); return undefined; }
+    session.getIdentity().then(value => { if (active) setAccountIdentity(value); }).catch(() => { if (active) setAccountIdentity({ organizations: [] }); });
+    return () => { active = false; };
+  }, [currentUser?.userId]);
 
   // The shell historically loaded at `/`. Keep that entry point working while
   // giving the authenticated portal a stable `/studio` URL. `/workbench` is
@@ -399,19 +428,28 @@ export default function App() {
     <Settings  config={config} setConfig={setConfig} currentUser={currentUser} />,
     <Jobs         />,
     null, // 10 — retired IDE Services slot; keep later page indices stable
-    <RoleManagement currentUser={currentUser} />,
-    <Billing currentUser={currentUser} onMembershipPlans={() => handleNavClick(MEMBERSHIP_PLANS_PAGE)} onStorage={() => handleNavClick(STORAGE_PAGE)} />,
+    <AccountLayout activeSection="members-roles" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      <RoleManagement currentUser={currentUser} />
+    </AccountLayout>,
+    <AccountLayout activeSection="billing" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      {({ organizationId }) => <Billing currentUser={currentUser} organizationId={organizationId} onMembershipPlans={() => handleNavClick(STORAGE_PAGE)} onStorage={() => handleNavClick(STORAGE_PAGE)} />}
+    </AccountLayout>,
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={(url, label, plugin) => setService({ url, label, source: "workbench", pluginSlug: plugin?.slug || null })} />,
-    <Developer currentUser={currentUser} />,
-    <AccountLayout activeSection="profile" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
-      <Profile currentUser={currentUser} />
+    <AccountLayout activeSection="api-keys" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      {({ organizationId }) => <Developer currentUser={{ ...currentUser, orgId: organizationId || currentUser?.orgId }} />}
     </AccountLayout>,
-    <AccountLayout activeSection="security" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+    <AccountLayout activeSection="profile" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      <Profile currentUser={currentUser} onOrganizationPlan={() => handleNavClick(12)} />
+    </AccountLayout>,
+    <AccountLayout activeSection="security" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountSecurity key={`${currentUser?.userId ?? ""}:${currentUser?.email ?? ""}`} currentUser={currentUser} />
     </AccountLayout>,
-    <AccountLayout activeSection="preferences" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+    <AccountLayout activeSection="preferences" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountPreferences />
+      <AccountAppearance />
+      <AccountPersonalization />
+      <AccountNotifications currentUser={currentUser} />
     </AccountLayout>,
     null, // 18 — "Code" opens an external service directly (handleNavClick); never rendered as a page
     null, // 19 — "Workflows" opens an external service directly (handleNavClick); never rendered as a page
@@ -421,29 +459,23 @@ export default function App() {
       if (destination?.kind === "navigate") handleNavClick(destination.page);
       else if (destination?.kind === "service") setService({ url: destination.url, label: destination.label || resource?.name, source: resource?.source });
     }} />,
-    <AccountLayout activeSection="notifications" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
-      <AccountNotifications currentUser={currentUser} />
-    </AccountLayout>,
-    <AccountLayout activeSection="personalization" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
-      <AccountPersonalization />
-    </AccountLayout>,
-    <AccountLayout activeSection="appearance" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
-      <AccountAppearance />
-    </AccountLayout>,
+    null,
+    null,
+    null,
     <OrganizationConnections currentUser={currentUser} />,
-    <AccountLayout activeSection="privacy" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+    <AccountLayout activeSection="privacy" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountPrivacy />
     </AccountLayout>,
-    <AccountLayout activeSection="plan" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
-      <AccountPlan currentUser={currentUser} onMembershipPlans={() => handleNavClick(MEMBERSHIP_PLANS_PAGE)} />
+    <AccountLayout activeSection="usage" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      {({ organizationId }) => <Billing currentUser={currentUser} organizationId={organizationId} view="usage" />}
     </AccountLayout>,
-    <AccountLayout activeSection="help" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+    <AccountLayout activeSection="help" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountHelp />
     </AccountLayout>,
     <Integrations onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} />,
-    <MembershipPlans currentUser={currentUser} onBillingOverview={() => handleNavClick(12)} />,
-    <AccountLayout activeSection="storage" onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
-      <AccountStorage />
+    null,
+    <AccountLayout activeSection="membership" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
+      <AccountMembershipStorage currentUser={currentUser} />
     </AccountLayout>,
   ];
 

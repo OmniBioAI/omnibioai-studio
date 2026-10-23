@@ -1,6 +1,6 @@
 // Decimal bytes, matching the membership catalog and storage API contract.
 export function formatStorageBytes(value) {
-  if (value === null) return "Unavailable";
+  if (value === null) return "—";
   if (value < 1000) return `${value} B`;
   const units = ["KB", "MB", "GB", "TB", "PB"];
   let amount = value / 1000;
