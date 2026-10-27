@@ -364,6 +364,30 @@ which case no further action is needed (verify with `docker inspect <container>
 guaranteed. If the IP changes, `nginx-router` needs `--no-deps --force-recreate` too, or
 that route will 502 again.
 
+### Held services: running image exists only in its container
+
+**Running image only in the container: no recreate until a proper release.**
+
+These services run an image that was deleted from Docker's image store (its tag
+moved to a newer build, then the old image was pruned). The container holds the
+only copy, so the image can't be pinned and there is no rollback image. Any
+recreate — `docker compose up` without `--no-deps`, `--force-recreate`,
+`obai-deploy deploy` — silently switches the service to whatever its tag points
+to now. `docker restart` and host reboots are fine: they reuse the container.
+
+| Service | Running image | Tag now points to | Release issue |
+|---|---|---|---|
+| tes | `f9670fc7f664` | `omnibioai-tes-local` → `b17e0a7257cf` | OmniBioAI/omnibioai-tes#48 |
+| launcher | `f8b256b1d214` | `omnibioai-studio-launcher` → `1f17a123a127` (older build) | OmniBioAI/omnibioai-launcher#10 |
+| security-audit-worker | `a5af294baeef` | `omnibioai-studio-security-audit-worker` → `96c8270c7534` | OmniBioAI/omnibioai-security-audit#25 |
+
+- `obai-deploy check` and `obai-deploy status` list every such service.
+- A hold ends only with a proper release from the deploy session:
+  `obai-deploy release <service> --ref <reviewed commit>`, with tests. Then the
+  service is removed from this table.
+- Never `docker commit` a held container to "save" it. That captures runtime
+  state, not a release.
+
 ---
 
 ## Backup and Restore
