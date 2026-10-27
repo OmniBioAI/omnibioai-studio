@@ -20,6 +20,9 @@ REPO="$(git -C "$(dirname "$(readlink -f "$0")")" rev-parse --show-toplevel)"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG_DIR="${OBAI_CI_LOG_ROOT:-$HOME/omnibioai-ci-logs}/$STAMP"
 mkdir -p "$LOG_DIR"
+HOST_PY="$(command -v python3)"   # reads ci.yml; the venv below has no PyYAML until CI's pip step
+# Playwright browsers live in their own persistent cache, so the download happens once.
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/omnibioai-ci-playwright}"
 
 git -C "$REPO" fetch --quiet origin || { echo "ci-local: git fetch origin failed" >&2; exit 1; }
 SHA="$(git -C "$REPO" rev-parse --verify --quiet "$REF^{commit}")" || { echo "ci-local: not a commit: $REF" >&2; exit 1; }
@@ -44,26 +47,31 @@ record() {   # STATUS SECONDS NAME [NOTE]
   RESULTS+=("$line")
 }
 
-log_file() { N=$((N + 1)); printf '%s/%02d-%s.log' "$LOG_DIR" "$N" "$(tr -c 'A-Za-z0-9\n' '-' <<<"$1")"; }
+next_log() {   # sets LOG to the next numbered log file for step NAME (no subshell, so N advances)
+  N=$((N + 1))
+  local slug="${1//[^A-Za-z0-9]/-}"
+  LOG="$(printf '%s/%02d-%s.log' "$LOG_DIR" "$N" "$slug")"
+}
 
 step() {   # NAME COMMAND...   runs COMMAND in the worktree
-  local name="$1" log t0 status
+  local name="$1" t0 status
   shift
-  log="$(log_file "$name")"
+  next_log "$name"
   t0=$SECONDS
-  if (cd "$WT" && "$@") >"$log" 2>&1; then status=PASS; else status=FAIL; FAILED=1; fi
+  if (cd "$WT" && "$@") >"$LOG" 2>&1; then status=PASS; else status=FAIL; FAILED=1; fi
   record "$status" $((SECONDS - t0)) "$name"
 }
 
 skip() {   # NAME REASON
-  echo "skipped: $2" >"$(log_file "$1")"
+  next_log "$1"
+  echo "skipped: $2" >"$LOG"
   record SKIP 0 "$1" "$2"
 }
 
 # The `run:` block of step NAME in job JOB, as GitHub runs it (bash -eo pipefail).
 ci_step() {   # JOB NAME
   local script
-  script="$(python3 - "$CI_YML" "$1" "$2" <<'PY'
+  script="$("$HOST_PY" - "$CI_YML" "$1" "$2" <<'PY'
 import sys, yaml
 path, job, name = sys.argv[1:]
 steps = yaml.safe_load(open(path))["jobs"][job]["steps"]
@@ -79,6 +87,7 @@ PY
 has_npm_script() { (cd "$WT/$1" && node -e "process.exit(require('./package.json').scripts?.[process.argv[1]] ? 0 : 1)" "$2"); }
 
 echo "ci-local: $REF = ${SHA:0:12}, node $(node --version) (CI uses 20), logs in $LOG_DIR"
+echo "ci-local: Playwright browsers in $PLAYWRIGHT_BROWSERS_PATH"
 
 # ---- job: Lint & Validate
 step "npm ci (root)" npm ci --no-audit --no-fund
