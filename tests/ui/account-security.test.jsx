@@ -34,6 +34,15 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.clearAllMocks(); });
 
 describe("Account Security", () => {
+  it("contains malformed list responses in their sections", async () => {
+    securityApi.listMfaDevices.mockResolvedValue({ devices: [] });
+    securityApi.listSessions.mockResolvedValue({ sessions: [] });
+    apiKeysApi.listMyApiKeys.mockResolvedValue({ keys: [] });
+    render(<AccountSecurity currentUser={userA} />);
+    expect(await screen.findByText("Couldn’t load MFA status")).toBeInTheDocument();
+    expect(screen.getByText("Couldn’t load sessions")).toBeInTheDocument();
+    expect(screen.getByText("Couldn’t load API keys")).toBeInTheDocument();
+  });
   it("renders independent loading states without false empty values", () => {
     securityApi.listMfaDevices.mockReturnValue(new Promise(() => {}));
     securityApi.listSessions.mockReturnValue(new Promise(() => {}));

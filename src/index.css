@@ -49,7 +49,7 @@
 .account-search-empty { margin: 4px 8px 0; color: var(--color-text-muted); font-size: var(--font-size-sm); }
 .account-signout { min-width: 44px; min-height: 44px; margin: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; cursor: pointer; }
 .account-content { min-width: 0; }
-.account-shell .account-content button { min-height: 44px; }
+.account-shell .account-content button { min-width: 44px; min-height: 44px; }
 .account-shell .account-content a { min-height: 44px; display: inline-flex; align-items: center; }
 .account-content > * + * { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--border); }
 .account-state { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg2); color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: left; }
@@ -103,7 +103,7 @@
 .security-key-create > label { display: block; margin-bottom: 6px; color: var(--color-text-muted); font-size: var(--font-size-xs); }
 .security-key-create > div { display: flex; align-items: flex-end; gap: 8px; }
 .security-key-create > div > :first-child { min-width: 0; flex: 1; }
-.security-key-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); color: var(--text); font: inherit; }
+.security-key-input { width: 100%; min-height: 44px; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); color: var(--text); font: inherit; }
 .security-created-key { margin-top: 14px; padding: 12px; display: grid; gap: 10px; border: 1px solid rgba(255,165,2,.25); border-radius: var(--radius-sm); background: rgba(255,165,2,.08); }
 .security-created-key strong { color: var(--warn); font-size: var(--font-size-sm); }
 .security-created-key code { padding: 9px; border: 1px solid var(--border); background: var(--bg); overflow-wrap: anywhere; }
@@ -188,6 +188,17 @@
   outline: 2px solid var(--focus-ring) !important;
   outline-offset: 2px;
 }
+
+.studio-modal { width: min(520px, calc(100vw - 40px)); max-height: calc(100dvh - 40px); box-sizing: border-box; overflow-y: auto; margin: auto; padding: 20px; border: 1px solid var(--border2); border-radius: var(--radius-lg); background: var(--bg3); color: var(--text); box-shadow: 0 25px 50px rgba(0,0,0,.5); }
+.studio-modal::backdrop { background: rgba(0,0,0,.65); }
+.studio-modal :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.studio-modal button, .studio-modal a, .studio-modal input, .studio-modal select, .studio-modal textarea { min-height: 44px; }
+.route-error-boundary { min-height: 280px; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--text); }
+.route-error-boundary h2, .route-error-boundary p { margin: 0; }
+.route-error-boundary p { color: var(--color-text-muted); }
+.route-error-boundary > div:last-child { display: flex; gap: 10px; }
+.route-error-boundary button { min-height: 44px; padding: 8px 16px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg3); color: var(--text); cursor: pointer; }
+.studio-breadcrumb-link { min-width: 44px; min-height: 44px; margin: -8px 0; padding: 8px 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left; }
 
 .studio-visually-hidden {
   position: absolute !important;
@@ -322,6 +333,8 @@ a:focus:not(:focus-visible) {
   top: auto;
   width: 1px;
   height: 1px;
+  min-width: 44px;
+  min-height: 44px;
   overflow: hidden;
   z-index: 9999;
   background: var(--bg3);
@@ -478,9 +491,9 @@ a:focus:not(:focus-visible) {
 }
 
 .toggle {
-  width: 32px;
-  height: 18px;
-  border-radius: 9px;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
   border: none;
   cursor: pointer;
   position: relative;
@@ -492,15 +505,15 @@ a:focus:not(:focus-visible) {
 .toggle::after {
   content: '';
   position: absolute;
-  top: 2px;
-  width: 14px;
-  height: 14px;
+  top: 13px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
   transition: left 0.2s;
 }
-.toggle.on::after  { left: 16px; }
-.toggle.off::after { left: 2px; }
+.toggle.on::after  { left: 23px; }
+.toggle.off::after { left: 3px; }
 
 /* ── App shell: mobile nav (additive — desktop unaffected above 767px) ── */
 /* Desktop's <Sidebar> wrapper already sets width inline (200 or 0 when a
@@ -508,7 +521,7 @@ a:focus:not(:focus-visible) {
    the only nav surface, so the inline sidebar rail is force-collapsed. */
 @media (max-width: 767px) {
   .studio-sidebar-wrap {
-    width: 0 !important;
+    display: none !important;
   }
 }
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@omnibioai/ui";
+import Modal from "../Modal";
 import * as api from "../../lib/securityApi";
 import { getSessionVersion, getToken, onSessionChange } from "../../lib/session";
 
@@ -45,8 +46,8 @@ function MfaSession({ version, devices, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const dialog = useRef(null);
   const container = useRef(null);
+  const returnFocus = useRef(null);
 
   const current = () => alive.current && version === getSessionVersion() && token === getToken();
   useEffect(() => {
@@ -56,17 +57,6 @@ function MfaSession({ version, devices, onChanged }) {
 
   const open = flow !== null;
   const destructivePending = busy && (flow === "remove" || (flow === "recovery" && remaining !== null));
-  useLayoutEffect(() => {
-    if (!open) return;
-    const trigger = document.activeElement;
-    const element = dialog.current;
-    element.showModal();
-    return () => {
-      element.close();
-      if (trigger?.isConnected) trigger.focus();
-      else container.current?.focus();
-    };
-  }, [open]);
 
   function clear() {
     operation.current += 1;
@@ -106,7 +96,8 @@ function MfaSession({ version, devices, onChanged }) {
     }
   }
 
-  function openEnrollment() {
+  function openEnrollment(event) {
+    returnFocus.current = event.currentTarget;
     setFlow("enroll");
     setError("");
   }
@@ -145,7 +136,8 @@ function MfaSession({ version, devices, onChanged }) {
     }
   }
 
-  function manageRecovery() {
+  function manageRecovery(event) {
+    if (!flow && event?.currentTarget) returnFocus.current = event.currentTarget;
     setFlow("recovery");
     run(api.getRecoveryCodeStatus, result => {
       if (!Number.isInteger(result?.remaining) || result.remaining < 0) throw new Error("Invalid recovery status");
@@ -186,7 +178,7 @@ function MfaSession({ version, devices, onChanged }) {
           <div><strong>{item.label || item.device_type}</strong><span>Device {item.id} · {item.verified_at ? "Verified" : "Awaiting verification"}</span>
             {item.created_at && <span>Added {item.created_at}</span>}
             {item.last_used_at && <span>Last used {item.last_used_at}</span>}</div>
-          <Button variant="danger" size="sm" disabled={busy} onClick={() => { setDevice(item); setError(""); setFlow("remove"); }}>Remove</Button>
+          <Button variant="danger" size="sm" disabled={busy} onClick={(event) => { returnFocus.current = event.currentTarget; setDevice(item); setError(""); setFlow("remove"); }}>Remove</Button>
         </div>)}
         <div className="mfa-actions">
           <Button variant="secondary" size="sm" disabled={busy} onClick={openEnrollment}>Add authenticator</Button>
@@ -194,24 +186,9 @@ function MfaSession({ version, devices, onChanged }) {
         </div>
       </>}
       {!open && error && <p role="alert">{error}</p>}
-      {open && <dialog ref={dialog} className="mfa-dialog sentry-block" data-sentry-block="true"
-        aria-labelledby="mfa-dialog-title" aria-describedby="mfa-dialog-description"
-        onKeyDown={event => {
-          if (event.key !== "Tab") return;
-          const controls = event.currentTarget.querySelectorAll(":is(button, input):not(:disabled)");
-          const first = controls[0], last = controls[controls.length - 1];
-          if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) {
-            event.preventDefault(); last.focus();
-          } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault(); first.focus();
-          }
-        }}
-        onCancel={event => {
-          event.preventDefault();
-          if (codes) setNotice("Save your codes, then choose I have saved my codes to close.");
-          else if (destructivePending) setNotice("Wait for this update to finish.");
-          else dismiss();
-        }}>
+      {open && <Modal className="mfa-dialog sentry-block" titleId="mfa-dialog-title"
+        descriptionId="mfa-dialog-description" onClose={dismiss} returnFocusRef={returnFocus}
+        fallbackFocusRef={container} data-sentry-block="true">
         <h3 id="mfa-dialog-title">{flow === "enroll" ? "Add authenticator" : flow === "remove" ? "Remove authenticator" : "Recovery codes"}</h3>
         <p id="mfa-dialog-description">{flow === "enroll" ? (setup ? "Add a time-based account in your authenticator app, then verify its six-digit code." : "Continue when you are ready to generate a one-time authenticator setup key.")
           : flow === "remove" ? "Removing the last verified authenticator disables personal MFA."
@@ -249,7 +226,7 @@ function MfaSession({ version, devices, onChanged }) {
           </> : !busy && <Button variant="secondary" onClick={manageRecovery}>Retry recovery status</Button>}
         </>}
         {!codes && <Button variant="ghost" disabled={destructivePending} onClick={dismiss}>Cancel</Button>}
-      </dialog>}
+      </Modal>}
     </div>
   );
 }

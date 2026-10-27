@@ -267,14 +267,6 @@ export default function Studio() {
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
 
-      {/* Skip to content — visually hidden until focused */}
-      <a
-        href="#main-content"
-        className="skip-to-content"
-      >
-        Skip to content
-      </a>
-
       {/* Header */}
       <div className="workbench-header">
         <div>

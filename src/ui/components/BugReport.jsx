@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react";
 import { useState } from "react";
+import Modal from "./Modal";
 
 export default function BugReport() {
   const [open, setOpen] = useState(false);
@@ -33,41 +34,24 @@ export default function BugReport() {
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 right-4 bg-red-600 hover:bg-red-700
-                   text-white text-xs px-3 py-2 rounded-full shadow-lg
-                   flex items-center gap-1 z-50"
+        className="bug-report-trigger"
         style={{
-          // Bottom-right, not bottom-left: the desktop Sidebar's own
-          // Account footer/system-status area lives in the viewport's
-          // bottom-left corner (see Sidebar.jsx), and this button used to
-          // render fixed on top of it at the same corner.
-          position: "fixed", bottom: 16, right: 16, left: "auto",
           background: "#dc2626", color: "#fff",
           border: "none", borderRadius: 9999,
-          minHeight: 44, padding: "8px 12px", fontSize: 12, cursor: "pointer",
+          minWidth: 44, minHeight: 44, padding: "8px 12px", fontSize: 12, cursor: "pointer",
           display: "flex", alignItems: "center", gap: 4,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.4)", zIndex: 9999,
         }}
       >
         🐛 Report Bug
       </button>
 
       {open && (
-        <div style={{
-          position: "fixed", inset: 0,
-          background: "rgba(0,0,0,0.6)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 9999,
-        }}>
-          <div style={{
-            background: "#1f2937", borderRadius: 16,
-            padding: 24, width: "100%", maxWidth: 440,
-            boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
-          }}>
+        <Modal className="bug-report-dialog" titleId="bug-report-title" onClose={() => setOpen(false)}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h2 style={{ color: "#fff", fontWeight: 700, fontSize: 16, margin: 0 }}>🐛 Report a Bug</h2>
-              <button onClick={() => setOpen(false)}
+              <h2 id="bug-report-title" style={{ color: "#fff", fontWeight: 700, fontSize: 16, margin: 0 }}>🐛 Report a Bug</h2>
+              <button type="button" aria-label="Close bug report" onClick={() => setOpen(false)}
                 style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 18 }}>✕</button>
             </div>
 
@@ -80,12 +64,15 @@ export default function BugReport() {
               <>
                 <input
                   type="text"
+                  aria-label="Bug title"
+                  data-modal-initial-focus
                   placeholder="Bug title"
                   value={form.title}
                   onChange={e => setForm({ ...form, title: e.target.value })}
                   style={inputStyle}
                 />
                 <textarea
+                  aria-label="Bug description"
                   placeholder="Describe what happened..."
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
@@ -94,12 +81,14 @@ export default function BugReport() {
                 />
                 <input
                   type="email"
+                  aria-label="Your email (optional)"
                   placeholder="Your email (optional)"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
                   style={inputStyle}
                 />
                 <select
+                  aria-label="Severity"
                   value={form.severity}
                   onChange={e => setForm({ ...form, severity: e.target.value })}
                   style={{ ...inputStyle, marginBottom: 16 }}
@@ -124,8 +113,7 @@ export default function BugReport() {
                 </button>
               </>
             )}
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

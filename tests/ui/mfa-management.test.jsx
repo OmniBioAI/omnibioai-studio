@@ -175,10 +175,12 @@ describe("MFA enrollment", () => {
     first.focus(); fireEvent.keyDown(dialog, { key: "Tab" }); expect(first).toHaveFocus();
     fireEvent.keyDown(dialog, { key: "Enter" }); expect(first).toHaveFocus();
   });
-  it("restores focus to the MFA section when the original trigger is gone", async () => {
+  it("restores focus to the dialog trigger after pending cleanup finishes", async () => {
     const trigger = document.createElement("button"); document.body.append(trigger); trigger.focus();
-    const { container } = mount(); await start(); trigger.remove(); click("Cancel");
-    expect(container.querySelector(".mfa-management")).toHaveFocus();
+    mount();
+    const addAuthenticator = screen.getByRole("button", { name: "Add authenticator" });
+    await start(); trigger.remove(); click("Cancel");
+    await waitFor(() => expect(addAuthenticator).toHaveFocus());
   });
 });
 
@@ -200,9 +202,9 @@ describe("device removal and recovery codes", () => {
     mount(); click("Remove"); click("Confirm removal"); click("Confirm removal");
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
-    expect(screen.getByText("Wait for this update to finish.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(api.removeMfaDevice).toHaveBeenCalledOnce();
-    await act(async () => request.resolve(null)); expect(changed).toHaveBeenCalledOnce();
+    await act(async () => request.resolve(null)); expect(changed).not.toHaveBeenCalled();
   });
   it("only reads recovery status on open; requires explicit replacement then acknowledgement", async () => {
     mount(); click("Manage recovery codes"); await screen.findByText("2 unused recovery codes.");
@@ -211,9 +213,8 @@ describe("device removal and recovery codes", () => {
     click("Regenerate recovery codes"); await screen.findByText(/Save these recovery codes now/);
     click("Copy all"); await screen.findByText("Copied"); expect(clipboard).toHaveBeenCalledWith(codes.join("\n"));
     fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText(/Save your codes, then choose/)).toBeInTheDocument();
-    click("I have saved my codes"); expect(screen.queryByText(/TEST-RECOVERY/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText(/TEST-RECOVERY/)).not.toBeInTheDocument();
     click("Manage recovery codes"); await screen.findByText("2 unused recovery codes.");
     expect(screen.queryByText(/TEST-RECOVERY/)).not.toBeInTheDocument();
   });
@@ -223,8 +224,8 @@ describe("device removal and recovery codes", () => {
     click("Generate recovery codes"); click("Generate recovery codes"); expect(api.generateRecoveryCodes).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
-    expect(screen.getByText("Wait for this update to finish.")).toBeInTheDocument();
-    await act(async () => request.resolve({ codes })); expect(screen.getByText(/Save these recovery codes/)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await act(async () => request.resolve({ codes })); expect(screen.queryByText(/Save these recovery codes/)).not.toBeInTheDocument();
   });
   it("retries recovery status and handles malformed status and code responses", async () => {
     api.getRecoveryCodeStatus.mockResolvedValueOnce({ remaining: -1 }).mockResolvedValueOnce({ remaining: 2 });

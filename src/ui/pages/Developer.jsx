@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Card, Spinner } from "@omnibioai/ui";
 import Login from "../components/Login";
+import Modal from "../components/Modal";
 import * as apiKeysApi from "../lib/apiKeysApi";
 import { getUsageLimits } from "../lib/billingApi";
 import { getIdentity, getSessionVersion, onSessionChange } from "../lib/session";
@@ -199,6 +200,7 @@ function ApiKeys({ currentUser }) {
   const [usage, setUsage] = useState(null);
   const [name, setName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(null);
   const [newKeyId, setNewKeyId] = useState(null);
@@ -289,7 +291,18 @@ function ApiKeys({ currentUser }) {
 
   function dismissSecret() {
     setCreated(null);
-    inputRef.current?.focus();
+    setName("");
+    setCreateOpen(false);
+  }
+
+  function closeCreate() {
+    secretGeneration.current += 1;
+    setCreated(null);
+    setName("");
+    setNameTouched(false);
+    setCreating(false);
+    setCreateError("");
+    setCreateOpen(false);
   }
 
   function cancelRevoke() {
@@ -340,21 +353,28 @@ function ApiKeys({ currentUser }) {
       <div className="developer-column">
         <section aria-labelledby="create-key-heading"><Card className="developer-card">
           <h2 id="create-key-heading">Create a key</h2>
-          <form onSubmit={create}>
+          <p className="developer-muted">Generate an organization-scoped key for scripts, notebooks and MCP clients.</p>
+          <button type="button" className="developer-button developer-primary" onClick={() => setCreateOpen(true)}>New key</button>
+          <p className="developer-scope"><code>dataset.read</code><span>{orgName ? `in ${orgName} · ` : ""}usage is billed to this organization</span></p>
+        </Card></section>
+
+        {createOpen && <Modal className="developer-create-dialog" titleId="developer-create-title" onClose={closeCreate} initialFocusRef={inputRef}>
+          <h2 id="developer-create-title">Create key</h2>
+          {!created && <form onSubmit={create}>
             <label htmlFor="developer-key-name">Key name</label>
             <div className="developer-create-controls">
               <input id="developer-key-name" ref={inputRef} value={name}
                 onChange={event => { setName(event.target.value); setNameTouched(true); }} onBlur={() => setNameTouched(true)}
-                placeholder="e.g. notebook" maxLength={100} disabled={creating || !!created}
+                placeholder="e.g. notebook" maxLength={100} disabled={creating}
                 aria-invalid={nameTouched && !name.trim()} aria-describedby={nameTouched && !name.trim() ? "developer-key-name-error" : undefined} />
-              <button type="submit" className="developer-button developer-primary" disabled={creating || !!created || !name.trim()}>{creating ? "Creating…" : "Create key"}</button>
+              <button type="submit" className="developer-button developer-primary" disabled={creating || !name.trim()}>{creating ? "Creating…" : "Create key"}</button>
             </div>
             {nameTouched && !name.trim() && <p id="developer-key-name-error" className="developer-field-error">Enter a name for this key.</p>}
-          </form>
-          <p className="developer-scope"><code>dataset.read</code><span>{orgName ? `in ${orgName} · ` : ""}usage is billed to this organization</span></p>
+          </form>}
           {createError && <p className="developer-error" role="alert">{createError}</p>}
           {created && <NewKeyPanel key={created.id} secret={created.key} onDone={dismissSecret} />}
-        </Card></section>
+          {!created && <button type="button" className="developer-button" onClick={closeCreate} disabled={creating}>Cancel</button>}
+        </Modal>}
 
         <section aria-labelledby="your-keys-heading"><Card className="developer-card">
           <h2 id="your-keys-heading">Your keys</h2>

@@ -79,6 +79,10 @@
 .developer-loading { display: flex; align-items: center; gap: 10px; color: var(--developer-muted); padding-block: 20px; }
 .developer-error { margin: 12px 0 0; padding: 12px; border: 1px solid #733f45; border-radius: 8px; color: #ffd5d8; }
 .developer-field-error { margin: 7px 0 0; color: #ffb8be; font-size: var(--font-size-sm); }
+.developer-create-dialog { background: var(--developer-surface); color: var(--developer-text); }
+.developer-create-dialog h2 { margin: 0 0 16px; }
+.developer-create-dialog form { display: grid; gap: 8px; }
+.developer-create-dialog > .developer-button { margin-top: 14px; }
 .developer-confirmation { padding: 16px; margin-top: 18px; border: 1px solid #60353f; border-radius: 8px; background: #241b21; overflow-wrap: anywhere; }
 .developer-confirmation p { color: #d1bfc6; margin-bottom: 12px; }
 .developer-confirm-actions { display: flex; gap: 10px; margin-top: 12px; }

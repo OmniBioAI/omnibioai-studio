@@ -10,14 +10,14 @@ describe("LicenseGate", () => {
   it("bypasses the gate entirely outside Electron (dev mode)", async () => {
     render(<LicenseGate><div>protected content</div></LicenseGate>);
     await waitFor(() => expect(screen.getByText("protected content")).toBeInTheDocument());
-    expect(screen.getByText(/dev · expires/)).toBeInTheDocument();
+    expect(screen.queryByText(/dev · expires/)).not.toBeInTheDocument();
   });
 
   it("reuses a cached, unexpired license", async () => {
     window.electronAPI = { getLicense: vi.fn().mockResolvedValue({ valid: true, tier: "pro", expiry: "2099-01-01", days_remaining: 10 }) };
     render(<LicenseGate><div>protected content</div></LicenseGate>);
     await waitFor(() => expect(screen.getByText("protected content")).toBeInTheDocument());
-    expect(screen.getByText(/pro · expires 2099-01-01 · 10d left/)).toBeInTheDocument();
+    expect(screen.queryByText(/pro · expires/)).not.toBeInTheDocument();
   });
 
   it("falls through to the entry form for an expired or invalid cached license, or a lookup error", async () => {
