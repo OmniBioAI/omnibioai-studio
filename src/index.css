@@ -209,7 +209,12 @@
    initial `true`). Light overrides the same variable names consumed both
    here and by @omnibioai/ui (packages/omnibioai-design-tokens/tokens.css) so
    every existing component re-themes without a second theme system. */
+/* Studio is locked to dark until PR C adds colour tokens (see LOCKED_THEME in
+   AppearanceProvider); color-scheme keeps native controls and scrollbars dark. */
+:root { color-scheme: dark; }
+
 html[data-theme="light"] {
+  color-scheme: light;
   --bg: #f7f8fa;
   --bg2: #ffffff;
   --bg3: #eef0f4;
