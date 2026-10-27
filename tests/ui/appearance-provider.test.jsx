@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import AppearanceProvider, { LOCKED_THEME, useAppearance } from "../../src/ui/components/AppearanceProvider";
+import AppearanceProvider, { useAppearance } from "../../src/ui/components/AppearanceProvider";
 import { saveAppearance } from "../../src/ui/lib/appearanceApi";
 
 afterEach(() => { cleanup(); delete window.matchMedia; document.documentElement.style.colorScheme = ""; document.documentElement.removeAttribute("data-theme"); document.documentElement.removeAttribute("data-accent"); document.documentElement.removeAttribute("data-density"); document.documentElement.removeAttribute("data-motion"); });
@@ -59,36 +59,6 @@ describe("AppearanceProvider", () => {
     expect(document.documentElement.dataset.accent).toBe("teal");
     expect(document.documentElement.dataset.density).toBe("comfortable");
   });
-
-
-
-
-  it("is locked to dark until colour tokens land (UI review N1)", () => {
-    expect(LOCKED_THEME).toBe("dark");
-  });
-
-  it("ignores prefers-color-scheme while locked and sets color-scheme: dark", () => {
-    const queries = [];
-    window.matchMedia = query => { queries.push(query); return fakeMediaQueryList(false); }; // OS reports light
-    render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
-    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
-    expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(document.documentElement.style.colorScheme).toBe("dark");
-    expect(queries).not.toContain("(prefers-color-scheme: dark)");
-  });
-
-  it("keeps an explicit Light choice saved but still renders dark while locked", () => {
-    const { unmount } = render(<AppearanceProvider userId={9}><Probe /></AppearanceProvider>);
-    act(() => screen.getByText("set-light").click());
-    expect(screen.getByTestId("mode")).toHaveTextContent("light");
-    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
-    expect(document.documentElement.dataset.theme).toBe("dark");
-    unmount();
-    render(<AppearanceProvider userId={9}><Probe /></AppearanceProvider>);
-    expect(screen.getByTestId("mode")).toHaveTextContent("light");
-    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
-  });
-
   it("supports the legacy addListener/removeListener MediaQueryList API", () => {
     const motionQuery = fakeMediaQueryList(false, "legacy");
     installMatchMedia({ "(prefers-color-scheme: dark)": fakeMediaQueryList(false, "legacy"), "(prefers-reduced-motion: reduce)": motionQuery });
@@ -98,16 +68,15 @@ describe("AppearanceProvider", () => {
     expect(screen.getByTestId("resolved-motion")).toHaveTextContent("reduce");
   });
 
-  it("declares a dark color-scheme for the document before React mounts", () => {
+  it("declares support for both color schemes before React mounts", () => {
     const read = file => readFileSync([file, `../../${file}`].map(path => resolve(process.cwd(), path)).find(existsSync), "utf8");
     const css = read("src/index.css");
     const html = read("index.html");
-    expect(css).toMatch(/:root\s*\{\s*color-scheme:\s*dark;\s*\}/);
-    expect(html).toContain('<meta name="color-scheme" content="dark" />');
+    expect(css).toMatch(/:root\s*\{\s*color-scheme:\s*light dark;\s*\}/);
+    expect(html).toContain('<meta name="color-scheme" content="light dark" />');
   });
 
-  // Behaviour for when LOCKED_THEME is removed in PR C.
-  describe.skipIf(Boolean(LOCKED_THEME))("unlocked colour mode", () => {
+  describe("unlocked colour mode", () => {
     it("resolves System against the OS color-scheme query and updates live on change", () => {
       const colorQuery = fakeMediaQueryList(false, "modern"); // OS reports light
       installMatchMedia({ "(prefers-color-scheme: dark)": colorQuery, "(prefers-reduced-motion: reduce)": fakeMediaQueryList(false) });

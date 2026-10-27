@@ -1,6 +1,7 @@
 import React from "react";
 import { Panel, PanelHeader, PanelBody, HealthCard } from "../components/UI";
 import RequirePermission from "../components/RequirePermission";
+import PageHeader from "../components/PageHeader";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -78,14 +79,7 @@ function ModeConsole({ config, setConfig }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
-          Runtime Mode
-        </div>
-        <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
-          select execution backend for workflow orchestration
-        </div>
-      </div>
+      <PageHeader title="Runtime Mode" description="select execution backend for workflow orchestration" />
 
       {/* Mode Cards */}
       <div

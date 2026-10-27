@@ -33,6 +33,15 @@ describe("ServiceViewer", () => {
     expect(document.querySelector("iframe").title).toBe("/service");
   });
 
+  it("offers full-screen escape hatches only for embedded Lit AI and Workflows", () => {
+    const { rerender } = render(<ServiceViewer url="/_svc/workflows" label="Workflows" onBack={vi.fn()} />);
+    expect(screen.getByRole("link", { name: "Open full screen" })).toHaveAttribute("href", "/_svc/workflows");
+    rerender(<ServiceViewer url="/_svc/rag/" label="RAG / Lit AI" onBack={vi.fn()} />);
+    expect(screen.getByRole("link", { name: "Open full screen" })).toHaveAttribute("href", "/_svc/rag/");
+    rerender(<ServiceViewer url="/_svc/sdk" label="Code" onBack={vi.fn()} />);
+    expect(screen.queryByRole("link", { name: "Open full screen" })).not.toBeInTheDocument();
+  });
+
   it("calls onBack", () => {
     const onBack = vi.fn();
     render(<ServiceViewer url="/service" label="Service" onBack={onBack} />);

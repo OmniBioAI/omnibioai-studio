@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@omnibioai/ui";
 import { ToggleRow } from "../components/UI";
-import { useAppearance, LOCKED_THEME } from "../components/AppearanceProvider";
+import { useAppearance } from "../components/AppearanceProvider";
 import OmniBioAILogo from "../components/brand/OmniBioAILogo";
 
 const MODE_OPTIONS = [
@@ -102,9 +102,7 @@ export default function AccountAppearance() {
       <Card>
         <div className="appearance-section">
           <h2>Color mode</h2>
-          <p className="appearance-section-hint">{LOCKED_THEME
-            ? "Studio uses the dark theme for now while the light theme is being finished. Your choice is saved and applies once it is available."
-            : "System follows your OS or browser setting and updates Studio immediately if it changes."}</p>
+          <p className="appearance-section-hint">System follows your OS or browser setting and updates Studio immediately if it changes.</p>
           <RadioGroup legend="Color mode" className="appearance-segmented" value={mode} onChange={setMode} options={MODE_OPTIONS}
             renderOption={option => (
               <>

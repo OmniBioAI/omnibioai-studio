@@ -119,9 +119,12 @@ async function fixtureRoute(route, counters) {
   return json(route, {});
 }
 
-async function openAccountPage(path, width) {
-  const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, colorScheme: "dark", serviceWorkers: "block" });
-  await context.addInitScript(() => localStorage.setItem("omnibioai_access_token", "QUALITY-SESSION"));
+async function openAccountPage(path, width, theme = "dark") {
+  const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, colorScheme: theme, serviceWorkers: "block" });
+  await context.addInitScript(selectedTheme => {
+    localStorage.setItem("omnibioai_access_token", "QUALITY-SESSION");
+    localStorage.setItem("omnibioai_appearance:7", JSON.stringify({ version: 1, mode: selectedTheme, accent: "teal", density: "comfortable", reducedMotion: "system" }));
+  }, theme);
   const counters = { enroll: 0, createKey: 0 };
   const page = await context.newPage();
   await page.route("**/*", route => fixtureRoute(route, counters));
@@ -131,8 +134,8 @@ async function openAccountPage(path, width) {
   return { context, page, counters };
 }
 
-function checkResult(pageName, width, check, failures) {
-  const key = `${pageName}|${width}|${check}`;
+function checkResult(pageName, width, theme, check, failures) {
+  const key = `${pageName}|${width}|${theme}|${check}`;
   const issue = EXPECTED_FAILURES[key];
   if (issue) {
     assert.ok(failures.length, `${issue} now passes for ${key}; remove its expected-failure annotation`);
@@ -183,18 +186,19 @@ async function thirtyStepFocusWalk(page) {
 
 for (const [pageName, path] of ACCOUNT_PAGES) {
   for (const width of [1440, 390]) {
-    test(`${pageName} meets the UI quality contract at ${width}px`, async () => {
-      const { context, page } = await openAccountPage(path, width);
+    for (const theme of ["dark", "light"]) test(`${pageName} meets the UI quality contract at ${width}px in ${theme} mode`, async () => {
+      const { context, page } = await openAccountPage(path, width, theme);
       try {
+        assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
         const h1s = await page.locator("h1").allTextContents();
         assert.deepEqual(h1s, [pageName], `${pageName} must have exactly one page H1`);
-        checkResult(pageName, width, "axe", await axeFailures(page));
-        checkResult(pageName, width, "targets", await targetFailures(page));
+        checkResult(pageName, width, theme, "axe", await axeFailures(page));
+        checkResult(pageName, width, theme, "targets", await targetFailures(page));
         if (width === 390) {
           const overflow = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - innerWidth);
-          checkResult(pageName, width, "overflow", overflow > 0 ? [{ overflow }] : []);
+          checkResult(pageName, width, theme, "overflow", overflow > 0 ? [{ overflow }] : []);
         }
-        checkResult(pageName, width, "focus", await thirtyStepFocusWalk(page));
+        checkResult(pageName, width, theme, "focus", await thirtyStepFocusWalk(page));
       } finally {
         await context.close();
       }

@@ -13,12 +13,6 @@ const AppearanceContext = createContext({
 
 export const useAppearance = () => useContext(AppearanceContext);
 
-// Studio renders dark-only until PR C replaces hard-coded dark colours with
-// theme tokens (UI review 2026-10-26, N1: light mode left titles and text
-// unreadable). The saved mode is kept untouched so it applies again once this
-// lock is removed; prefers-color-scheme is not consulted while it is set.
-export const LOCKED_THEME = "dark";
-
 // jsdom (this app's test environment) does not implement matchMedia at all —
 // every call site must tolerate its absence rather than crash the app shell.
 function safeMatchMedia(query) {
@@ -64,10 +58,10 @@ export default function AppearanceProvider({ userId, children }) {
     setAppearance(loadAppearance(userId));
   }, [userId]);
 
-  useMediaQueryPreference(LOCKED_THEME ? null : "(prefers-color-scheme: dark)", setSystemDark);
+  useMediaQueryPreference("(prefers-color-scheme: dark)", setSystemDark);
   useMediaQueryPreference("(prefers-reduced-motion: reduce)", setSystemReducedMotion);
 
-  const resolvedTheme = LOCKED_THEME || (appearance.mode === "system" ? (systemDark ? "dark" : "light") : appearance.mode);
+  const resolvedTheme = appearance.mode === "system" ? (systemDark ? "dark" : "light") : appearance.mode;
   const resolvedMotion = appearance.reducedMotion === "reduce" || systemReducedMotion ? "reduce" : "system";
 
   useEffect(() => {

@@ -1,0 +1,20 @@
+.service-viewer-fullscreen {
+  display: none;
+  min-height: 44px;
+  align-items: center;
+  margin-left: auto;
+  padding: 8px 12px;
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-surface);
+  color: var(--accent);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 599px) {
+  .service-viewer-fullscreen { display: inline-flex; }
+  .service-viewer-label, .service-viewer-url { display: none; }
+}

@@ -38,7 +38,7 @@ function AccessDenied({ email, permission }) {
       <div style={{ width: "100%", maxWidth: 360, textAlign: "center", boxSizing: "border-box" }}>
         <Card elevated>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Access denied</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>Access denied</div>
           <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)", marginBottom: 12 }}>
             {email} does not have permission to view or edit this configuration.
           </div>

@@ -1,9 +1,11 @@
 import React, { useRef, useEffect } from "react";
 import { isElectron } from "../lib/session";
+import "./ServiceViewer.css";
 
 export default function ServiceViewer({ url, label, onBack, backLabel = "Back to Studio" }) {
   const webviewRef = useRef(null);
   const electron = isElectron();
+  const mobileFullScreen = label === "Workflows" || /Lit AI/i.test(label || "");
 
   useEffect(() => {
     if (!electron) return;
@@ -29,22 +31,22 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
           onClick={onBack}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            padding: "5px 12px", borderRadius: "var(--radius-sm)",
-            background: "rgba(0,229,160,0.08)", border: "1px solid rgba(0,229,160,0.2)",
+            minHeight: 44, padding: "8px 12px", borderRadius: "var(--radius-sm)",
+            background: "var(--color-accent-surface)", border: "1px solid var(--color-accent-border)",
             color: "var(--accent)", fontFamily: "var(--font)", fontSize: "var(--font-size-xs)",
             fontWeight: 600, cursor: "pointer",
           }}
         >
           ← {backLabel}
         </button>
-        <span style={{
+        <span className="service-viewer-label" style={{
           fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",
           color: "var(--color-text-muted)", overflow: "hidden", textOverflow: "ellipsis",
           whiteSpace: "nowrap",
         }}>
           {label}
         </span>
-        <span style={{
+        <span className="service-viewer-url" style={{
           marginLeft: "auto",
           fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",
           color: "var(--border2)", overflow: "hidden", textOverflow: "ellipsis",
@@ -52,6 +54,9 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
         }}>
           {url}
         </span>
+        {mobileFullScreen && <a className="service-viewer-fullscreen" href={url} target="_blank" rel="noopener noreferrer">
+          Open full screen
+        </a>}
       </div>
       {electron ? (
         <webview

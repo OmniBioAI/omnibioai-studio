@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
+import PageHeader from "../components/PageHeader";
 
 const SOURCES = ["all", "mysql", "redis", "workbench", "tes", "toolserver", "ollama", "rag", "opa"];
 const LEVEL_COLOR = { INFO:"#0094ff", OK:"var(--accent)", WARN:"var(--color-warning)", ERR:"var(--color-danger)", DEBUG:"var(--color-text-muted)" };
@@ -73,16 +74,8 @@ export default function Logs() {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
-        <div>
-          <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
-            Live Logs
-          </div>
-          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
-            real-time docker service log stream
-          </div>
-        </div>
-        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+      <PageHeader title="Live Logs" description="real-time docker service log stream" actions={
+        <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
           {streaming && (
             <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--accent)", display:"flex", alignItems:"center", gap:5 }}>
               <span style={{ width:6, height:6, borderRadius:"50%", background:"var(--accent)", display:"inline-block", animation:"pulse 2s infinite" }} />
@@ -91,16 +84,15 @@ export default function Logs() {
           )}
           <button onClick={() => setPaused(p => !p)} style={{
             minHeight:44, padding:"8px 12px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
-            background: paused ? "rgba(255,165,2,0.12)" : "var(--bg3)",
-            border: paused ? "1px solid rgba(255,165,2,0.25)" : "1px solid var(--border2)",
+            background: paused ? "var(--color-warning-dim)" : "var(--bg3)",
+            border: paused ? "1px solid var(--color-warning-border)" : "1px solid var(--border2)",
             color: paused ? "var(--warn)" : "var(--color-text-muted)", cursor:"pointer",
           }}>{paused ? "▶ Resume" : "⏸ Pause"}</button>
           <button onClick={() => setLogs([])} style={{
             minHeight:44, padding:"8px 12px", borderRadius:5, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             background:"var(--bg3)", border:"1px solid var(--border2)", color:"var(--color-text-muted)", cursor:"pointer",
           }}>Clear</button>
-        </div>
-      </div>
+        </div>} />
 
       <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
         {SOURCES.map(s => (

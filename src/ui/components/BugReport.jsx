@@ -38,7 +38,7 @@ export default function BugReport() {
         onClick={() => setOpen(true)}
         className="bug-report-trigger"
         style={{
-          background: "#dc2626", color: "#fff",
+          background: "var(--color-danger-solid)", color: "var(--color-on-danger)",
           border: "none", borderRadius: 9999,
           minWidth: 44, minHeight: 44, padding: "8px 12px", fontSize: 12, cursor: "pointer",
           display: "flex", alignItems: "center", gap: 4,
@@ -50,7 +50,7 @@ export default function BugReport() {
       {open && (
         <Modal className="bug-report-dialog" titleId="bug-report-title" onClose={() => setOpen(false)}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h2 id="bug-report-title" style={{ color: "#fff", fontWeight: 700, fontSize: 16, margin: 0 }}>🐛 Report a Bug</h2>
+              <h2 id="bug-report-title" style={{ color: "var(--text)", fontWeight: 700, fontSize: 16, margin: 0 }}>🐛 Report a Bug</h2>
               <button type="button" aria-label="Close bug report" onClick={() => setOpen(false)}
                 style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 18 }}>✕</button>
             </div>
@@ -58,7 +58,7 @@ export default function BugReport() {
             {submitted ? (
               <div style={{ textAlign: "center", padding: "32px 0" }}>
                 <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
-                <p style={{ color: "#fff", margin: 0 }}>Bug reported! Thank you.</p>
+                <p style={{ color: "var(--text)", margin: 0 }}>Bug reported! Thank you.</p>
               </div>
             ) : (
               <>
@@ -102,7 +102,7 @@ export default function BugReport() {
                   onClick={handleSubmit}
                   disabled={!form.title || !form.description}
                   style={{
-                    width: "100%", background: "#dc2626", color: "#fff",
+                    width: "100%", background: "var(--color-danger-solid)", color: "var(--color-on-danger)",
                     border: "none", borderRadius: 8, padding: "10px 0",
                     fontWeight: 600, fontSize: 14, cursor: "pointer",
                     opacity: (!form.title || !form.description) ? 0.5 : 1,
@@ -120,7 +120,7 @@ export default function BugReport() {
 }
 
 const inputStyle = {
-  width: "100%", background: "#374151", color: "#fff",
+  width: "100%", background: "var(--bg2)", color: "var(--text)",
   border: "1px solid #4b5563", borderRadius: 8,
   padding: "8px 12px", marginBottom: 12, fontSize: 13,
   boxSizing: "border-box", outline: "none",

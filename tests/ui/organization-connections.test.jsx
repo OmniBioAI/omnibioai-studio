@@ -194,7 +194,7 @@ describe("Organization Connections", () => {
       const { unmount } = render(<AppearanceProvider userId={7}><OrganizationConnections currentUser={user} /></AppearanceProvider>);
       await screen.findByText("Credential stored securely");
       expect(document.documentElement.dataset.accent).toBe(accent); expect(document.documentElement.dataset.motion).toBe("reduce");
-      expect(document.documentElement.dataset.theme).toBe("dark"); unmount();
+      expect(document.documentElement.dataset.theme).toBe(mode === "light" ? "light" : "dark"); unmount();
     }
   });
 });

@@ -446,7 +446,7 @@ export default function Studio() {
         flexWrap:"wrap", gap:12,
       }}>
         <div>
-          <div style={{ fontSize:'var(--font-size-base)', fontWeight:600, color:"#fff", marginBottom:4 }}>
+          <div style={{ fontSize:'var(--font-size-base)', fontWeight:600, color:"var(--text)", marginBottom:4 }}>
             <span aria-hidden="true">🚀</span> Explore all plugins, tools and pipelines
           </div>
           <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>

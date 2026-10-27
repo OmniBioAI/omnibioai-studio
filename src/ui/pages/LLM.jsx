@@ -4,6 +4,7 @@ import {
   FormRow, Input, Select, ToggleRow,
 } from "../components/UI";
 import RequirePermission from "../components/RequirePermission";
+import PageHeader from "../components/PageHeader";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -27,14 +28,7 @@ function LLMConsole({ config, setConfig }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
-          LLM Configuration
-        </div>
-        <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>
-          configure local, cloud, and enterprise AI providers
-        </div>
-      </div>
+      <PageHeader title="LLM Configuration" description="configure local, cloud, and enterprise AI providers" />
 
       <p role="note">Provider credentials are managed by your organization in Auth. Studio does not store provider keys.</p>
       <div className="studio-grid-1" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>

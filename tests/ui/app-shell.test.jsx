@@ -18,7 +18,6 @@ vi.mock("../../src/ui/components/BugReport", () => ({ default: () => null }));
 vi.mock("../../src/ui/components/UpdateBanner", () => ({ default: () => null }));
 vi.mock("../../src/ui/components/MobileNav", () => ({ default: () => null }));
 vi.mock("../../src/ui/components/Login", () => ({ default: () => <div>Login</div> }));
-vi.mock("../../src/ui/components/WorkbenchModuleHeader", () => ({ default: () => null }));
 vi.mock("../../src/ui/components/OAuthLinkConfirm", () => ({ default: () => null }));
 vi.mock("../../src/ui/components/GrafanaViewer", () => ({ GrafanaViewer: () => null }));
 
