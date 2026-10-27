@@ -41,6 +41,7 @@ export default function AccountSecurity({ currentUser }) {
     try {
       const data = await loader();
       if (requestGeneration === generation.current && data !== null) {
+        if (!Array.isArray(data)) throw new Error(`Invalid ${label} response`);
         setter({ status: "success", data, error: "" });
       }
     } catch (error) {

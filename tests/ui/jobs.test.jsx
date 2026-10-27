@@ -77,6 +77,17 @@ describe("Jobs page", () => {
     expect(screen.getByText("No tools registered")).toBeInTheDocument();
   });
 
+  it("contains malformed list responses instead of crashing the route", async () => {
+    vi.stubGlobal("fetch", mockFetchByPath([
+      ["/api/runs", () => jsonRes({ runs: [] })],
+      ["/api/tools", () => jsonRes(tools)],
+      ["/api/servers", () => jsonRes(servers)],
+    ]));
+    render(<Jobs />);
+    expect(await screen.findByText("Could not load jobs. Please try again.")).toBeInTheDocument();
+    expect(screen.queryByText(/Invalid runs response/)).not.toBeInTheDocument();
+  });
+
   it("shows the empty run-history state", async () => {
     vi.stubGlobal("fetch", mockFetchByPath([
       ["/api/runs", () => jsonRes([])],

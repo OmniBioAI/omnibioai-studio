@@ -75,6 +75,13 @@ describe("RoleManagement console — roles list", () => {
     await waitFor(() => expect(screen.getByText(/No roles yet/)).toBeInTheDocument());
   });
 
+  it("rejects a malformed roles response without crashing", async () => {
+    rolesApi.listRoles.mockResolvedValueOnce({ roles: twoRoles });
+    render(<RoleManagement currentUser={admin} />);
+    expect(await screen.findByText("Failed to load roles. Please try again.")).toBeInTheDocument();
+    expect(screen.queryByText("Reader")).not.toBeInTheDocument();
+  });
+
   it("deletes a role after confirmation, and cancels without confirmation", async () => {
     render(<RoleManagement currentUser={admin} />);
     await waitFor(() => expect(screen.getByText("Reader")).toBeInTheDocument());
@@ -120,7 +127,7 @@ describe("RoleManagement console — role detail", () => {
     render(<RoleManagement currentUser={admin} />);
     await waitFor(() => expect(screen.getByText("Reader")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "+ New Role" }));
-    expect(screen.getByText(/New Role/)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "New Role" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("Role name is required")).toBeInTheDocument();

@@ -2,7 +2,7 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const session = vi.hoisted(() => ({ user: null, identity: { organizations: [] } }));
+const session = vi.hoisted(() => ({ user: null, identity: { organizations: [] }, crashJobs: false }));
 vi.mock("../../src/ui/lib/session", () => ({
   getCurrentUser: vi.fn(async () => session.user), getIdentity: vi.fn(async () => session.identity),
   getCurrentUserSync: () => session.user, getSessionVersion: () => 1,
@@ -31,7 +31,7 @@ vi.mock("../../src/ui/pages/Services", () => ({ default: () => <div>Services pag
 vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> }));
 vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <div>Studio page</div> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
-vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
+vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => { if (session.crashJobs) throw new Error("private crash detail"); return <div>Jobs page</div>; } }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Members &amp; roles page</div> }));
 vi.mock("../../src/ui/pages/Billing", () => ({ default: ({ view }) => <div>{view === "usage" ? "Usage page" : "Billing page"}</div> }));
 vi.mock("../../src/ui/pages/Workbench", () => ({ default: () => <div>Workbench page</div> }));
@@ -61,11 +61,25 @@ beforeEach(() => {
   cleanup();
   session.user = admin;
   session.identity = { organizations: [{ organization_id: 1, organization_name: "Genome Lab" }] };
+  session.crashJobs = false;
   window.history.replaceState({}, "", "/studio");
 });
 afterEach(cleanup);
 
 describe("Account route migration", () => {
+  it("keeps the shell usable when a route crashes", async () => {
+    session.crashJobs = true;
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<App />);
+    await screen.findByText("Studio page");
+    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
+    expect(await screen.findByText("Something went wrong on this page")).toBeInTheDocument();
+    expect(screen.queryByText("private crash detail")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Studio" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Platform Health/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Studio" }));
+    expect(await screen.findByText("Studio page")).toBeInTheDocument();
+  });
   it("redirects legacy URLs while preserving query strings", () => {
     for (const [legacy, destination] of Object.entries(LEGACY_ACCOUNT_REDIRECTS)) {
       window.history.replaceState({}, "", `${legacy}?checkout=success&organization_id=7`);

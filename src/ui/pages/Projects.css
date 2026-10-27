@@ -38,7 +38,7 @@
 .project-confirmation h4 { margin: 0; font-size: var(--font-size-sm); }
 .project-detail-extension:empty { display: none; }
 .project-modal-backdrop { z-index: 1210; align-items: center; justify-content: center; padding: 20px; }
-.project-modal { width: min(520px, 100%); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); box-shadow: 0 24px 70px rgba(0, 0, 0, .45); }
+.project-modal { width: min(520px, calc(100vw - 40px)); padding: 0; color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); box-shadow: 0 24px 70px rgba(0, 0, 0, .45); }
 .project-modal > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .project-modal h2 { margin: 0; font-size: var(--font-size-md); }
 .project-modal form { display: grid; gap: 16px; padding: 18px; }

@@ -116,12 +116,5 @@ export default function LicenseGate({ children }) {
         </div>
     );
 
-    return (
-        <>
-            <div className="fixed bottom-2 right-2 bg-gray-800 text-xs text-gray-400 px-2 py-1 rounded opacity-50">
-                {license.tier} · expires {license.expiry} · {license.days_remaining}d left
-            </div>
-            {children}
-        </>
-    );
+    return children;
 }

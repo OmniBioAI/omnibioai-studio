@@ -44,6 +44,7 @@ import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
 import OmniBioAILogo from "./components/brand/OmniBioAILogo";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { GrafanaViewer } from "./components/GrafanaViewer";
 import * as session from "./lib/session";
 const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } = session;
@@ -574,6 +575,7 @@ export default function App() {
       background:"var(--bg)", color:"var(--text)",
       fontFamily:"var(--font)", overflow:"hidden",
     }}>
+      <a href="#main-content" className="skip-to-content">Skip to content</a>
       {/* Sidebar — auto-hides when inside a service/app view (desktop);
           also force-collapsed below 768px via .studio-sidebar-wrap, where
           MobileNav's drawer is the nav surface instead (see index.css). */}
@@ -625,11 +627,10 @@ export default function App() {
             fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
             display:"flex", alignItems:"center", gap:6,
           }}>
-            <span
+            <button type="button" className="studio-breadcrumb-link"
               onClick={handleStudioClick}
-              style={{ cursor:"pointer" }}
               title="Back to Studio"
-            >studio</span>
+            >studio</button>
             {" / "}
             {Object.values(ACCOUNT_PAGES).includes(step) && !service ? <><span>account</span>{" / "}</> : null}
             {step === CONNECTIONS_PAGE && !service ? <><span>organization</span>{" / "}</> : null}
@@ -696,6 +697,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               style={{
+                minWidth:44, minHeight:44, display:"inline-flex", alignItems:"center",
                 fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)', padding:"3px 8px",
                 borderRadius:'var(--radius-xs)', letterSpacing:"0.08em",
                 background:"rgba(255,255,255,0.05)", color:"var(--color-text-muted)",
@@ -703,16 +705,18 @@ export default function App() {
                 textDecoration:"none", whiteSpace:"nowrap",
               }}
             >Platform Health &rarr;</a>
+            <BugReport />
           </div>
         </div>
 
         {/* Page Content */}
-        <div style={{
+        <main id="main-content" tabIndex={-1} style={{
           flex:1, overflow:"hidden", display:"flex", flexDirection:"column",
           ...(service ? {} : { overflowY:"auto", padding:20 }),
           scrollbarWidth:"thin",
           scrollbarColor:"var(--border2) transparent",
         }}>
+          <ErrorBoundary key={service?.openId || `page-${step}`} compact onReset={handleStudioClick}>
           {service
             ? service.url.includes("/_svc/videos")
               ? <Videos onBack={handleVideoBack} />
@@ -735,7 +739,8 @@ export default function App() {
               </div>
             )
           }
-        </div>
+          </ErrorBoundary>
+        </main>
 
         {/* Wizard Nav — only for setup pages */}
         {isWizardPage && (
@@ -815,6 +820,11 @@ export default function App() {
         isProfileActive={!service && step === PROFILE_PAGE} isSecurityActive={!service && step === SECURITY_PAGE}
         open={mobileNavOpen} onClose={() => setMobileNavOpen(false)}
       />
+      <span
+        className="studio-visually-hidden"
+        tabIndex={0}
+        onFocus={() => document.querySelector(".skip-to-content")?.focus()}
+      />
     </div>
     )}
 
@@ -842,7 +852,6 @@ export default function App() {
         </div>
       )}
 
-      <BugReport />
     </PreferencesProvider>
     </LicenseGate>
     </AppearanceProvider>

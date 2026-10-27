@@ -83,9 +83,9 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
                   aria-disabled={disabled || undefined}
                   style={{
                     display:"flex", alignItems:"center", gap:8,
-                    width:"100%", textAlign:"left", padding:"7px 8px", borderRadius:'var(--radius-sm)', cursor: disabled ? "default" : "pointer",
+                    width:"100%", minHeight:44, textAlign:"left", padding:"7px 8px", borderRadius:'var(--radius-sm)', cursor: disabled ? "default" : "pointer",
                     fontSize:'var(--font-size-sm)', fontFamily:"inherit", marginBottom:1, position:"relative",
-                    transition:"all 0.15s", opacity: disabled ? 0.5 : 1,
+                    transition:"color 0.15s, background-color 0.15s, border-color 0.15s", opacity: disabled ? 0.5 : 1,
                     color:      isActive ? "var(--accent)" : "var(--color-text-muted)",
                     background: isActive ? "rgba(0,229,160,0.08)" : "transparent",
                     border:     isActive ? "1px solid rgba(0,229,160,0.15)" : "1px solid transparent",

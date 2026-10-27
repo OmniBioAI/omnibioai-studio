@@ -21,8 +21,24 @@ export default class ErrorBoundary extends React.Component {
     Sentry.captureException(error, { extra: { componentStack: info?.componentStack } });
   }
 
+  reset = () => {
+    this.setState({ error: null });
+    this.props.onReset?.();
+  };
+
   render() {
     if (this.state.error) {
+      if (this.props.compact) return (
+        <section className="route-error-boundary" role="alert">
+          <div aria-hidden="true">⚠</div>
+          <h2>Something went wrong on this page</h2>
+          <p>The Studio shell is still available. Return to Studio or retry this page.</p>
+          <div>
+            <button type="button" onClick={this.reset}>Back to Studio</button>
+            <button type="button" onClick={() => window.location.reload()}>Reload</button>
+          </div>
+        </section>
+      );
       return (
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",

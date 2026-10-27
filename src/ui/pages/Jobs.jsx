@@ -52,6 +52,16 @@ const STATE_COLOR = {
   CANCELLED:  "var(--color-text-muted)",
 };
 
+function requireArray(value, label) {
+  if (!Array.isArray(value)) throw new Error(`Invalid ${label} response`);
+  return value;
+}
+
+function requireRecord(value, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Invalid ${label} response`);
+  return value;
+}
+
 function Badge({ state }) {
   return (
     <span style={{
@@ -95,9 +105,9 @@ export default function Jobs() {
         apiFetch("/api/tools"),
         apiFetch("/api/servers"),
       ]);
-      setRuns(r);
-      setTools(t);
-      setServers(s);
+      setRuns(requireArray(r, "runs"));
+      setTools(requireArray(t, "tools"));
+      setServers(requireArray(s, "servers"));
       setError("");
     } catch (e) {
       setError(safeErrorMessage(e, "Could not load jobs. Please try again."));
@@ -121,7 +131,7 @@ export default function Jobs() {
         apiFetch(`/api/runs/${run_id}`),
         apiFetch(`/api/runs/${run_id}/logs`),
       ]);
-      setDetail(d);
+      setDetail(requireRecord(d, "run detail"));
       setLogs(typeof l === "string" ? l : JSON.stringify(l, null, 2));
     } catch (e) {
       setLogs(safeErrorMessage(e, "Could not load job logs. Please try again."));

@@ -4,6 +4,7 @@ import { Panel, PanelHeader, PanelBody, FormRow } from "../components/UI";
 import Login from "../components/Login";
 import * as rolesApi from "../lib/rolesApi";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
+import Modal from "../components/Modal";
 
 const MANAGE_ROLES = "manage_roles";
 
@@ -48,7 +49,9 @@ function RoleManagementConsole() {
     setLoading(true);
     setLoadError("");
     try {
-      setRoles(await rolesApi.listRoles());
+      const rows = await rolesApi.listRoles();
+      if (!Array.isArray(rows)) throw new Error("Invalid roles response");
+      setRoles(rows);
     } catch (err) {
       setLoadError(safeErrorMessage(err, "Failed to load roles. Please try again."));
     } finally {
@@ -57,16 +60,6 @@ function RoleManagementConsole() {
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
-
-  if (selectedRoleId !== null) {
-    return (
-      <RoleDetail
-        roleId={selectedRoleId}
-        onDone={(msg) => { setSelectedRoleId(null); setNotice(msg); refresh(); }}
-        onCancel={() => setSelectedRoleId(null)}
-      />
-    );
-  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -109,6 +102,11 @@ function RoleManagementConsole() {
           },
         ]}
       />
+      {selectedRoleId !== null && <RoleDetail
+        roleId={selectedRoleId}
+        onDone={(msg) => { setSelectedRoleId(null); setNotice(msg); refresh(); }}
+        onCancel={() => setSelectedRoleId(null)}
+      />}
     </div>
   );
 }
@@ -192,6 +190,7 @@ function RoleDetail({ roleId, onDone, onCancel }) {
       try {
         const role = await rolesApi.getRole(roleId);
         if (!mounted) return;
+        if (!role || typeof role.name !== "string" || !Array.isArray(role.permissions)) throw new Error("Invalid role response");
         setName(role.name);
         setPermissions(role.permissions);
       } catch (err) {
@@ -233,16 +232,18 @@ function RoleDetail({ roleId, onDone, onCancel }) {
     }
   };
 
-  if (loading) {
-    return <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-muted)" }}>Loading…</div>;
-  }
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 520 }}>
-      <div><Button variant="ghost" onClick={onCancel}>← Back to roles</Button></div>
+    <Modal titleId="role-dialog-title" onClose={() => { if (!saving) onCancel(); }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <h2 id="role-dialog-title">{isNew ? "New Role" : name ? `Edit Role — ${name}` : "Edit role"}</h2>
+        <Button data-modal-initial-focus variant="ghost" onClick={onCancel} disabled={saving}>← Back to roles</Button>
+      </div>
 
-      <Panel>
-        <PanelHeader title={isNew ? "◈  New Role" : `◈  Edit Role — ${name}`} icon iconColor="teal" />
+      {loading ? (
+        <div style={{ padding: 24, textAlign: "center", color: "var(--color-text-muted)" }}>Loading…</div>
+      ) : <Panel>
+        <PanelHeader title="◈  Role details" icon iconColor="teal" />
         <PanelBody>
           <FormRow label="Role Name">
             <Input value={name} onChange={(e) => setName(e.target.value)} disabled={!isNew} placeholder="e.g. data_scientist" />
@@ -286,8 +287,9 @@ function RoleDetail({ roleId, onDone, onCancel }) {
             <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
           </div>
         </PanelBody>
-      </Panel>
+      </Panel>}
     </div>
+    </Modal>
   );
 }
 
@@ -309,6 +311,7 @@ function UserAssignment({ roles }) {
     setNotice(null);
     try {
       const data = await rolesApi.getUserRoles(id);
+      if (!data || !Array.isArray(data.roles) || data.user_id == null) throw new Error("Invalid user roles response");
       setAssignedRoles(data.roles);
       setLoadedUserId(data.user_id);
     } catch (err) {
@@ -331,6 +334,7 @@ function UserAssignment({ roles }) {
     setNotice(null);
     try {
       const data = await rolesApi.setUserRoles(loadedUserId, assignedRoles);
+      if (!data || !Array.isArray(data.roles)) throw new Error("Invalid user roles response");
       setAssignedRoles(data.roles);
       setNotice({ type: "success", text: "Roles updated." });
     } catch (err) {

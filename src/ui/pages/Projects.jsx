@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Spinner } from "@omnibioai/ui";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 import ProjectCollaboration from "../components/projects/ProjectCollaboration";
+import Modal from "../components/Modal";
 import { archiveProject, createProject, getProject, listProjects, updateProject } from "../lib/projectsApi";
 import "./Projects.css";
 
@@ -105,6 +106,7 @@ function ProjectFormDialog({ mode, project, onClose, onSaved }) {
   const [error, setError] = useState("");
   const locked = useRef(false);
   const controller = useRef(new AbortController());
+  const nameRef = useRef(null);
   useEffect(() => () => controller.current.abort(), []);
 
   async function submit(event) {
@@ -128,11 +130,10 @@ function ProjectFormDialog({ mode, project, onClose, onSaved }) {
   }
 
   const title = mode === "create" ? "Create project" : "Edit project";
-  return <div className="project-modal-backdrop" onMouseDown={event => { if (!saving && event.target === event.currentTarget) onClose(); }}>
-    <section className="project-modal" role="dialog" aria-modal="true" aria-labelledby="project-form-title">
+  return <Modal className="project-modal" titleId="project-form-title" onClose={() => { if (!saving) onClose(); }} initialFocusRef={nameRef}>
       <header><h2 id="project-form-title">{title}</h2><button type="button" className={buttonClass} disabled={saving} onClick={onClose}>Cancel</button></header>
       <form onSubmit={submit} aria-busy={saving}>
-        <label htmlFor={`project-name-${mode}`}>Name<input id={`project-name-${mode}`} className="studio-field" value={name}
+        <label htmlFor={`project-name-${mode}`}>Name<input ref={nameRef} id={`project-name-${mode}`} className="studio-field" value={name}
           maxLength={255} required disabled={saving} onChange={event => setName(event.target.value)} /></label>
         <label htmlFor={`project-description-${mode}`}>Description<textarea id={`project-description-${mode}`} className="studio-field"
           value={description} rows={5} disabled={saving} onChange={event => setDescription(event.target.value)} /></label>
@@ -140,8 +141,7 @@ function ProjectFormDialog({ mode, project, onClose, onSaved }) {
         <button type="submit" className="omni-btn omni-btn--primary omni-btn--sm" disabled={saving}>
           {saving ? "Saving…" : mode === "create" ? "Create project" : "Save changes"}</button>
       </form>
-    </section>
-  </div>;
+  </Modal>;
 }
 
 function ProjectDetail({ summary, formatDate, onClose, onProjectChange }) {

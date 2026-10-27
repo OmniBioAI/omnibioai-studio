@@ -31,9 +31,6 @@ const ACCOUNT_PAGES = [
 const EXPECTED_FAILURES = {
   // Populated only with findings reproduced by this suite. Keep issue IDs
   // beside the narrowest page/check combination that demonstrates them.
-  ...Object.fromEntries(ACCOUNT_PAGES.flatMap(([pageName]) => [1440, 390].map(width => [`${pageName}|${width}|axe`, "N8"]))),
-  ...Object.fromEntries(ACCOUNT_PAGES.flatMap(([pageName]) => [1440, 390].map(width => [`${pageName}|${width}|targets`, "#8"]))),
-  ...Object.fromEntries(ACCOUNT_PAGES.flatMap(([pageName]) => [1440, 390].map(width => [`${pageName}|${width}|focus`, "#2"]))),
 };
 
 const member = {
@@ -100,7 +97,9 @@ async function fixtureRoute(route, counters) {
     if (request.method() === "POST") counters.createKey += 1;
     return json(route, request.method() === "POST" ? { id: 3, name: "quality", key_prefix: "omni_sk_test", key: "TEST-ONLY-KEY", status: "active" } : [], request.method() === "POST" ? 201 : 200);
   }
-  if (path === "/roles") return json(route, []);
+  if (path === "/roles") return json(route, [{ id: "quality-role", name: "Quality reviewer", permissions: [], permission_count: 0, user_count: 0 }]);
+  if (path === "/roles/quality-role") return json(route, { id: "quality-role", name: "Quality reviewer", permissions: [] });
+  if (path === "/_svc/workbench/api/projects/") return json(route, { projects: [] });
   if (path === "/billing/me/membership") return json(route, { plan: "free", status: "active" });
   if (path === "/billing/me/entitlements") return json(route, { features: [] });
   if (path.endsWith("/subscription")) return json(route, { plan_name: "Research", status: "active", billing_interval: "monthly", currency: "usd", start_date: "2026-01-01", renewal_date: "2027-01-01", features: [] });
@@ -206,6 +205,7 @@ for (const [pageName, path] of ACCOUNT_PAGES) {
 test("N9: API key creation requires a valid name and reports the field error inline", async () => {
   const { context, page, counters } = await openAccountPage("/studio/account/organization/api-keys", 1440);
   try {
+    await page.getByRole("button", { name: "New key", exact: true }).click();
     const input = page.getByLabel("Key name", { exact: true });
     const create = page.getByRole("button", { name: "Create key", exact: true });
     assert.equal(await create.isDisabled(), true);
@@ -240,18 +240,33 @@ test("N10: authenticator enrolment starts only on Continue and Escape discards s
 
 test("Escape closes each account dialog", async () => {
   const scenarios = [
-    ["mobile navigation", "/studio/account/profile", 390, "Open navigation", "Navigation"],
+    ["mobile navigation", "/studio/account/profile", 390, "Open navigation", "Navigation", false],
+    ["create project", "/studio/projects", 1440, "Create project", "Create project"],
+    ["new role", "/studio/account/organization/members-roles", 1440, "+ New Role", "New Role"],
+    ["edit role", "/studio/account/organization/members-roles", 1440, "Edit", "Edit Role — Quality reviewer"],
+    ["create key", "/studio/account/organization/api-keys", 1440, "New key", "Create key"],
     ["authenticator", "/studio/account/security", 1440, "Add authenticator", "Add authenticator"],
     ["recovery codes", "/studio/account/security", 1440, "Manage recovery codes", "Recovery codes"],
+    ["bug report", "/studio/account/profile", 1440, "🐛 Report Bug", "🐛 Report a Bug"],
   ];
-  for (const [name, path, width, triggerName, dialogName] of scenarios) {
+  for (const [name, path, width, triggerName, dialogName, shared = true] of scenarios) {
     const { context, page } = await openAccountPage(path, width);
     try {
-      await page.getByRole("button", { name: triggerName, exact: true }).click();
+      const trigger = page.getByRole("button", { name: triggerName, exact: true }).first();
+      await trigger.click();
       const dialog = page.getByRole("dialog", { name: dialogName, exact: true });
       await dialog.waitFor();
+      if (shared) {
+        assert.equal(await page.locator("#root").getAttribute("inert"), "", `${name}: background must be inert`);
+        assert.equal(await dialog.evaluate(element => element.contains(document.activeElement)), true, `${name}: initial focus must be inside`);
+        for (let step = 0; step < 12; step += 1) {
+          await page.keyboard.press("Tab");
+          assert.equal(await dialog.evaluate(element => element.contains(document.activeElement)), true, `${name}: focus escaped at Tab ${step + 1}`);
+        }
+      }
       await page.keyboard.press("Escape");
       await dialog.waitFor({ state: "detached", timeout: 2000 });
+      if (shared) assert.equal(await trigger.evaluate(element => element === document.activeElement), true, `${name}: focus did not return to trigger`);
     } catch (error) {
       assert.fail(`${name}: ${error.message}`);
     } finally { await context.close(); }

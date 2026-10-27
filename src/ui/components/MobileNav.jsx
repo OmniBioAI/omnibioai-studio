@@ -64,6 +64,7 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
         aria-modal="true"
         aria-label="Navigation"
         aria-hidden={!open}
+        inert={!open ? "" : undefined}
         style={{
           position: "fixed", top: 0, left: 0, bottom: 0,
           width: "min(82vw, 280px)",
