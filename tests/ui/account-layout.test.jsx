@@ -17,6 +17,8 @@ describe("AccountLayout", () => {
   it("renders grouped real links and marks the active page", () => {
     const navigate = vi.fn();
     render(<AccountLayout activeSection="billing" currentUser={{ permissions: [] }} identity={{ organizations: [{ organization_id: 5, organization_name: "Genome Lab" }] }} onNavigate={navigate}>Billing content</AccountLayout>);
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1, name: "Billing" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Your account" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Organization" })).toBeInTheDocument();
     const billing = screen.getByRole("link", { name: "Billing" });

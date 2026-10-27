@@ -57,7 +57,7 @@ describe("Profile", () => {
     mockApi({ ...identity, user: { ...identity.user, created_at } });
     render(<Profile currentUser={currentUser} />);
     await screen.findByRole("heading", { name: identity.user.email });
-    expect(screen.getByText("Not provided")).toBeInTheDocument();
+    expect(screen.queryByText(/Member since|Not provided|Unavailable/)).not.toBeInTheDocument();
   });
 
   it("handles missing optional roles and organizations without billing requests", async () => {

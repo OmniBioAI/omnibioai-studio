@@ -3,6 +3,7 @@ import { Badge, Card, Spinner } from "@omnibioai/ui";
 import * as billingApi from "../lib/billingApi";
 import { openStripeUrl } from "../lib/stripePortal";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
+import AccountState from "../components/AccountState";
 import "./AccountPlan.css";
 
 // Read-mostly personal view of the organization's own subscription — backed
@@ -55,7 +56,7 @@ function featureValue(f) {
 // null, status: "success" in the effect below -- it never reaches here.
 function errorMessage(error) {
   if (error?.status === 401 || error?.status === 403) return "This request could not be authorized. Reopen Studio and retry.";
-  return "Your organization's plan is unavailable right now. Please retry.";
+  return "Your organization's plan could not be loaded. Please retry.";
 }
 
 export default function AccountPlan({ currentUser, onMembershipPlans }) {
@@ -121,8 +122,8 @@ function PlanView({ orgId, onMembershipPlans }) {
       </header>
       <Card title="Organization plan">
         {state.status === "loading" && <p role="status"><Spinner size="sm" /> Loading organization plan…</p>}
-        {state.status === "error" && friendlyError && <><p role="alert">{friendlyError}</p><button type="button" className="omni-btn omni-btn--secondary omni-btn--sm" onClick={() => setReload(v => v + 1)}>Retry</button></>}
-        {state.status === "success" && !state.subscription && <p>Your organization has no active subscription.</p>}
+        {state.status === "error" && friendlyError && <AccountState variant="error" title="Couldn’t load organization plan" onRetry={() => setReload(v => v + 1)}>{friendlyError}</AccountState>}
+        {state.status === "success" && !state.subscription && <AccountState variant="plan" includedIn="An active organization plan" href="/studio/account/membership-storage" />}
         {state.status === "success" && state.subscription && (() => {
           const sub = state.subscription;
           const variant = STATUS_VARIANT[sub.status] || "neutral";
@@ -156,18 +157,13 @@ function PlanView({ orgId, onMembershipPlans }) {
       <Card title="Organization subscription details">
         <dl className="plan-summary">
           <div><dt>Ownership</dt><dd>ORGANIZATION</dd></div>
-          <div><dt>Billing account</dt><dd>{paymentMethod.status === "loading" ? "Loading…" : paymentMethod.status === "error" ? "Unavailable" : paymentMethod.data?.has_payment_method && paymentMethod.data?.card ? `${paymentMethod.data.card.brand || "Card"} ending in ${paymentMethod.data.card.last4}` : paymentMethod.data?.stripe_enabled ? "No payment method on file" : "Online billing unavailable"}</dd></div>
-          <div><dt>Licensed members</dt><dd>Unavailable — Billing does not report member counts.</dd></div>
-          <div><dt>Seat allowance</dt><dd>{seatAllowance(state.subscription)}</dd></div>
+          <div><dt>Billing account</dt><dd>{paymentMethod.status === "loading" ? "Loading…" : paymentMethod.status === "error"
+            ? <AccountState variant="error" title="Couldn’t load billing account" onRetry={() => setReload(v => v + 1)}>Payment details failed to load.</AccountState>
+            : paymentMethod.data?.has_payment_method && paymentMethod.data?.card ? `${paymentMethod.data.card.brand || "Card"} ending in ${paymentMethod.data.card.last4}`
+              : paymentMethod.data?.stripe_enabled ? <AccountState variant="setup" actor="An organization billing administrator" href="/studio/account/organization/billing">No payment method is on file.</AccountState>
+                : <AccountState variant="setup" actor="An organization billing administrator" href="/studio/account/help">Online billing is not set up for this organization.</AccountState>}</dd></div>
+          {seatAllowance(state.subscription) && <div><dt>Seat allowance</dt><dd>{seatAllowance(state.subscription)}</dd></div>}
         </dl>
-      </Card>
-      <Card title="Organization storage">
-        <dl className="plan-summary">
-          <div><dt>Ownership scope</dt><dd>ORGANIZATION — separate from personal managed storage</dd></div>
-          <div><dt>Configured provider</dt><dd>Unavailable — no organization storage configuration API is connected.</dd></div>
-          <div><dt>Connection health</dt><dd>Unavailable — no storage health API is connected.</dd></div>
-        </dl>
-        <p className="plan-note">Planned customer-owned options: AWS S3, Google Cloud Storage, Azure Blob, S3-compatible storage, and an on-premises storage gateway. This page does not configure credentials, gateways, or transfers.</p>
       </Card>
       {onMembershipPlans && <div className="plan-actions"><button type="button" className="omni-btn omni-btn--secondary omni-btn--sm" onClick={onMembershipPlans}>Upgrade individual plan</button></div>}
       {canManage && (
@@ -186,6 +182,6 @@ function PlanView({ orgId, onMembershipPlans }) {
 
 function seatAllowance(subscription) {
   const feature = subscription?.features?.find(item => ["max_users", "seats", "seat_allowance"].includes(item.feature_key));
-  if (!feature) return "Unavailable — no seat allowance is present in the subscription record.";
+  if (!feature) return null;
   return featureValue(feature);
 }

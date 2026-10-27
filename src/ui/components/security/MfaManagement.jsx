@@ -106,13 +106,16 @@ function MfaSession({ version, devices, onChanged }) {
     }
   }
 
-  function enroll() {
+  function openEnrollment() {
     setFlow("enroll");
+    setError("");
+  }
+
+  function enroll() {
     run(api.startMfaEnrollment, result => {
-      if (result) {
-        setSetup(setupFrom(result));
-        verificationAttempted.current = false;
-      }
+      if (!result) throw new Error("Missing enrollment response");
+      setSetup(setupFrom(result));
+      verificationAttempted.current = false;
     });
   }
 
@@ -186,7 +189,7 @@ function MfaSession({ version, devices, onChanged }) {
           <Button variant="danger" size="sm" disabled={busy} onClick={() => { setDevice(item); setError(""); setFlow("remove"); }}>Remove</Button>
         </div>)}
         <div className="mfa-actions">
-          <Button variant="secondary" size="sm" disabled={busy} onClick={enroll}>Add authenticator</Button>
+          <Button variant="secondary" size="sm" disabled={busy} onClick={openEnrollment}>Add authenticator</Button>
           <Button variant="secondary" size="sm" disabled={busy} onClick={manageRecovery}>Manage recovery codes</Button>
         </div>
       </>}
@@ -210,7 +213,7 @@ function MfaSession({ version, devices, onChanged }) {
           else dismiss();
         }}>
         <h3 id="mfa-dialog-title">{flow === "enroll" ? "Add authenticator" : flow === "remove" ? "Remove authenticator" : "Recovery codes"}</h3>
-        <p id="mfa-dialog-description">{flow === "enroll" ? "Add a time-based account in your authenticator app, then verify its six-digit code."
+        <p id="mfa-dialog-description">{flow === "enroll" ? (setup ? "Add a time-based account in your authenticator app, then verify its six-digit code." : "Continue when you are ready to generate a one-time authenticator setup key.")
           : flow === "remove" ? "Removing the last verified authenticator disables personal MFA."
           : "Recovery codes can each be used once to sign in when your authenticator is unavailable."}</p>
         {busy && <p role="status">Updating MFA…</p>}
@@ -226,7 +229,8 @@ function MfaSession({ version, devices, onChanged }) {
             <input id="mfa-verification" className="studio-field security-key-input" value={code} onChange={event => setCode(event.target.value)}
               inputMode="numeric" autoComplete="off" maxLength={6} pattern="[0-9]{6}" required disabled={busy} />
             <button type="submit" className="omni-btn omni-btn--primary omni-btn--sm" disabled={busy || !/^[0-9]{6}$/.test(code)}>Verify authenticator</button>
-          </form> : !busy && <Button variant="secondary" onClick={enroll}>Retry enrollment</Button>}
+          </form> : !busy && !error ? <Button variant="primary" onClick={enroll}>Continue</Button>
+            : !busy && <Button variant="secondary" onClick={enroll}>Retry enrollment</Button>}
         </>}
         {flow === "remove" && <>
           <p>Remove {device.label || device.device_type} (device {device.id})?</p>

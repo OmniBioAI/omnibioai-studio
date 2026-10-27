@@ -65,7 +65,8 @@ describe("Account Security", () => {
     expect(screen.getByText("Agent/1")).toBeInTheDocument();
     expect(screen.getByText("IP 127.0.0.1")).toBeInTheDocument();
     expect(screen.getByText("omni_sk_live_ab", { selector: "strong" })).toBeInTheDocument();
-    expect(screen.getAllByText(/Unavailable/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Unavailable/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Created Unavailable$/)).not.toBeInTheDocument();
     expect(screen.getAllByText(/Last used/).length).toBeGreaterThan(1);
   });
 

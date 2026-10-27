@@ -74,7 +74,8 @@ describe("AccountPlan", () => {
   it("shows an honest empty state for no active subscription, not an error", async () => {
     billingApi.getSubscription.mockImplementation(notFound);
     render(<AccountPlan currentUser={user} />);
-    expect(await screen.findByText("Your organization has no active subscription.")).toBeInTheDocument();
+    expect(await screen.findByText("Not in your plan")).toBeInTheDocument();
+    expect(screen.getByText("An active organization plan includes this.")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -102,7 +103,7 @@ describe("AccountPlan", () => {
     expect(await screen.findByRole("button", { name: "Manage subscription" })).toBeInTheDocument();
   });
 
-  it("shows only authoritative organization billing fields and honest storage/seat gaps", async () => {
+  it("shows only authoritative organization billing fields and hides facts the APIs never return", async () => {
     billingApi.getSubscription.mockResolvedValue({
       ...subscription,
       features: [...subscription.features, { feature_key: "max_users", value_type: "integer", int_value: 25 }],
@@ -113,9 +114,8 @@ describe("AccountPlan", () => {
     expect(screen.getByText("ORGANIZATION")).toBeInTheDocument();
     expect(screen.getByText("visa ending in 4242")).toBeInTheDocument();
     expect(screen.getAllByText("25")).toHaveLength(2);
-    expect(screen.getByText(/Billing does not report member counts/)).toBeInTheDocument();
-    expect(screen.getByText(/no organization storage configuration API/)).toBeInTheDocument();
-    expect(screen.getByText(/AWS S3, Google Cloud Storage, Azure Blob/)).toBeInTheDocument();
+    expect(screen.queryByText(/Licensed members|organization storage|Configured provider|Connection health/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Unavailable/i)).not.toBeInTheDocument();
   });
 
   it("keeps organization subscription management admin-only while plans remain viewable", async () => {
@@ -242,7 +242,7 @@ describe("AccountPlan", () => {
     billingApi.getSubscription.mockReset();
     billingApi.getSubscription.mockImplementation(notFound);
     rerender(<AccountPlan currentUser={{ userId: 1, orgId: "99" }} />);
-    expect(await screen.findByText("Your organization has no active subscription.")).toBeInTheDocument();
+    expect(await screen.findByText("Not in your plan")).toBeInTheDocument();
     expect(screen.queryByText("Growth")).not.toBeInTheDocument();
   });
 });

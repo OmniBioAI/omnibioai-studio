@@ -138,7 +138,7 @@ describe("Developer page", () => {
   it("never writes a secret to storage, URLs, console output or examples", async () => {
     const storage = vi.spyOn(Storage.prototype, "setItem");
     const log = vi.spyOn(console, "log"), warn = vi.spyOn(console, "warn"), error = vi.spyOn(console, "error");
-    await mount();
+    await mount(); fireEvent.change(screen.getByLabelText("Key name"), { target: { value: "secure-key" } });
     api.listMyApiKeys.mockResolvedValue([{ ...createdMetadata, key: KEY }, active]);
     fireEvent.click(screen.getByRole("button", { name: "Create key" }));
     await screen.findByTestId("new-key");
@@ -180,7 +180,7 @@ describe("Developer page", () => {
   it.each(["unmount", "pagehide"])("ignores late creation after %s", async action => {
     let resolveCreate;
     api.createMyApiKey.mockReturnValue(new Promise(resolve => { resolveCreate = resolve; }));
-    const view = await mount(); fireEvent.click(screen.getByRole("button", { name: "Create key" }));
+    const view = await mount(); fireEvent.change(screen.getByLabelText("Key name"), { target: { value: "late-key" } }); fireEvent.click(screen.getByRole("button", { name: "Create key" }));
     if (action === "unmount") view.unmount(); else fireEvent(window, new Event("pagehide"));
     await act(async () => resolveCreate(createdResponse));
     expect(document.body.textContent).not.toContain(KEY);
@@ -198,12 +198,23 @@ describe("Developer page", () => {
     expect(window.getSelection().toString()).toBe("");
   });
 
-  it("defaults an empty name and resets acknowledgement for the next key", async () => {
-    await mount(); fireEvent.click(screen.getByRole("button", { name: "Create key" }));
+  it("requires a valid name, shows an inline field error, and resets acknowledgement for the next key", async () => {
+    await mount();
+    const input = screen.getByLabelText("Key name");
+    const create = screen.getByRole("button", { name: "Create key" });
+    expect(create).toBeDisabled();
+    fireEvent.change(input, { target: { value: "   " } });
+    expect(screen.getByText("Enter a name for this key.")).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(api.createMyApiKey).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: "CLI" } });
+    expect(screen.queryByText("Enter a name for this key.")).not.toBeInTheDocument();
+    expect(create).toBeEnabled(); fireEvent.click(create);
     await screen.findByTestId("new-key");
-    expect(api.createMyApiKey).toHaveBeenCalledWith("API key", { signal: expect.any(AbortSignal) });
+    expect(api.createMyApiKey).toHaveBeenCalledWith("CLI", { signal: expect.any(AbortSignal) });
     fireEvent.click(screen.getByRole("checkbox")); fireEvent.click(screen.getByRole("button", { name: "Done" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Create key" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create key" })).toBeDisabled());
+    fireEvent.change(input, { target: { value: "Next key" } });
     fireEvent.click(screen.getByRole("button", { name: "Create key" })); await screen.findByTestId("new-key");
     expect(screen.getByRole("checkbox")).not.toBeChecked(); expect(screen.getByRole("button", { name: "Done" })).toBeDisabled();
   });
@@ -277,13 +288,14 @@ describe("Developer page", () => {
   });
 
   it("keeps the secret available if reloading its metadata fails", async () => {
-    await mount(); api.listMyApiKeys.mockRejectedValue(new Error("reload failed"));
+    await mount(); fireEvent.change(screen.getByLabelText("Key name"), { target: { value: "reload-key" } }); api.listMyApiKeys.mockRejectedValue(new Error("reload failed"));
     fireEvent.click(screen.getByRole("button", { name: "Create key" })); await screen.findByTestId("new-key"); await screen.findByRole("alert");
     expect(screen.getByTestId("new-key")).toHaveTextContent(KEY); expect(screen.getByText("New")).toBeInTheDocument();
   });
 
   it.each([409, 402, 500])("handles create failure %s without raw errors", async status => {
     api.createMyApiKey.mockRejectedValue(Object.assign(new Error(KEY), { status })); await mount();
+    fireEvent.change(screen.getByLabelText("Key name"), { target: { value: "failing-key" } });
     fireEvent.click(screen.getByRole("button", { name: "Create key" })); await screen.findByRole("alert");
     expect(document.body.textContent).not.toContain(KEY); expect(screen.queryByTestId("new-key")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create key" })).toBeEnabled();
