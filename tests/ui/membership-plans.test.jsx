@@ -47,12 +47,12 @@ describe("MembershipPlans", () => {
     expect(enterprise).toHaveTextContent("S3-compatible");
     expect(enterprise).toHaveTextContent("on-premises storage gateway");
     expect(enterprise).toHaveTextContent("costs are not included unless specified in a contract");
-    expect(within(enterprise).queryByRole("link", { name: /Contact Sales/i })).not.toBeInTheDocument();
+    expect(within(enterprise).getByRole("link", { name: /Contact sales/i })).toHaveAttribute("href", "mailto:sales@omnibioai.org");
   });
 
   it("does not infer Free when individual billing is unavailable", async () => {
     render(<MembershipPlans currentUser={user} />);
-    expect(await screen.findByText(/has not been inferred/)).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn’t load Membership");
     expect(screen.queryByRole("button", { name: /Free is your current plan/ })).not.toBeInTheDocument();
   });
 
@@ -67,17 +67,19 @@ describe("MembershipPlans", () => {
     const state = normalizeMembershipState({ status: "ready", scope: "ORGANIZATION", plan: "pro" });
     expect(state.status).toBe("unavailable");
     render(<MembershipPlans currentUser={user} membershipState={{ status: "ready", scope: "ORGANIZATION", plan: "pro" }} />);
-    expect(screen.getByText("Billing unavailable")).toBeInTheDocument();
+    const billingLink = screen.getByRole("link", { name: "Go to Billing" });
+    expect(billingLink).toHaveAttribute("href", "/studio/account/organization/billing");
+    expect(billingLink.closest('[role="status"]')).toHaveTextContent("Not set up yet");
     expect(screen.queryByRole("button", { name: "Pro is your current plan" })).not.toBeInTheDocument();
   });
 
   it("shows loading, billing-error, and unauthorized states without guessing", () => {
     const view = render(<MembershipPlans currentUser={user} membershipState={{ status: "loading" }} />);
-    expect(screen.getByRole("status")).toHaveTextContent("Checking current membership");
+    expect(screen.getByText("Checking current membership…")).toBeInTheDocument();
     view.rerender(<MembershipPlans currentUser={user} membershipState={{ status: "error" }} />);
-    expect(screen.getByRole("alert")).toHaveTextContent("has not been inferred");
+    expect(screen.getByRole("alert")).toHaveTextContent("Couldn’t load Membership");
     view.rerender(<MembershipPlans currentUser={null} />);
-    expect(screen.getByRole("status")).toHaveTextContent("Sign in");
+    expect(screen.getByText("Sign in to view your membership.")).toBeInTheDocument();
   });
 
   it("makes annual billing visibly unavailable without inventing prices", () => {
@@ -85,7 +87,7 @@ describe("MembershipPlans", () => {
     fireEvent.click(screen.getByRole("button", { name: "Yearly" }));
     expect(screen.getByRole("button", { name: "Yearly" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByRole("status").some(item => item.textContent.includes("No annual Stripe prices are configured"))).toBe(true);
-    expect(screen.getAllByText("Unavailable")).toHaveLength(4);
+    expect(screen.getAllByText("Coming soon")).toHaveLength(4);
     expect(screen.getByRole("button", { name: "Plus annual billing unavailable" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Pro annual billing unavailable" })).toBeDisabled();
     expect(screen.queryByText("$228")).not.toBeInTheDocument();
@@ -95,8 +97,11 @@ describe("MembershipPlans", () => {
 
   it("keeps Plus and Pro upgrades disabled when checkout is not configured", () => {
     render(<MembershipPlans currentUser={user} />);
-    expect(screen.getByRole("button", { name: "Upgrade to Plus unavailable" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Upgrade to Pro unavailable" })).toBeDisabled();
+    for (const plan of ["Plus", "Pro"]) {
+      const card = screen.getByRole("heading", { name: plan }).closest("article");
+      expect(within(card).getByText("Not in your plan")).toBeInTheDocument();
+      expect(within(card).getByRole("link", { name: "Compare" })).toHaveAttribute("href", "#compare-membership");
+    }
   });
 
   it.each([
@@ -108,7 +113,7 @@ describe("MembershipPlans", () => {
     render(<MembershipPlans currentUser={user} />);
     expect(screen.getByText(new RegExp(copy))).toBeInTheDocument();
     expect(window.location.search).toBe("");
-    expect(await screen.findByText(/has not been inferred/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByRole("alert").some(alert => alert.textContent.includes("Couldn’t load Membership"))).toBe(true));
   });
 
   it("provides an overflow wrapper and single-column mobile breakpoint hooks", () => {
@@ -130,7 +135,7 @@ describe("MembershipPlans", () => {
       storage_quota_bytes: 1_000_000_000, checkout_eligible_plans: [], portal_available: false,
     });
     render(<MembershipPlans currentUser={user} />);
-    expect(screen.getByRole("status")).toHaveTextContent("Checking current membership");
+    expect(screen.getByText("Checking current membership…")).toBeInTheDocument();
     expect(await screen.findByText("Status: active")).toBeInTheDocument();
     expect(screen.getByText("Storage allowance: 1 GB")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Free is your current plan" })).toBeDisabled();
@@ -152,7 +157,9 @@ describe("MembershipPlans", () => {
     window.api = { openExternal: vi.fn() };
     render(<MembershipPlans currentUser={user} />);
     const upgrade = await screen.findByRole("button", { name: "Upgrade to Plus" });
-    expect(screen.getByRole("button", { name: "Upgrade to Pro unavailable" })).toBeDisabled();
+    const pro = screen.getByRole("heading", { name: "Pro" }).closest("article");
+    expect(within(pro).getByText("Not in your plan")).toBeInTheDocument();
+    expect(within(pro).queryByRole("button", { name: /Upgrade/ })).not.toBeInTheDocument();
     fireEvent.click(upgrade);
     await waitFor(() => expect(billingApi.createUserMembershipCheckout).toHaveBeenCalledWith("plus"));
     expect(window.api.openExternal).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/cs_test");
@@ -163,10 +170,11 @@ describe("MembershipPlans", () => {
       owner_type: "USER", plan: "free", subscription_status: "active",
       storage_quota_bytes: 1_000_000_000, checkout_eligible_plans: ["pro"], portal_available: false,
     });
-    billingApi.createUserMembershipCheckout.mockRejectedValue(new Error("Checkout configuration unavailable"));
+    billingApi.createUserMembershipCheckout.mockRejectedValue(Object.assign(new Error("psycopg2.OperationalError at 10.0.0.12:5432"), { status: 500 }));
     render(<MembershipPlans currentUser={user} />);
     fireEvent.click(await screen.findByRole("button", { name: "Upgrade to Pro" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Checkout configuration unavailable");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The service is temporarily unavailable. Please try again later.");
+    expect(document.body.textContent).not.toMatch(/psycopg2|10\.0\.0\.12/);
     expect(screen.getByRole("button", { name: "Free is your current plan" })).toBeDisabled();
   });
 

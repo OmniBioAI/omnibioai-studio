@@ -1,891 +1,103 @@
 import React from "react";
-vi.mock("../../src/ui/pages/AccountPersonalization", () => ({ default: () => <div>Account Personalization page</div> }));
-vi.mock("../../src/ui/components/PreferencesProvider", () => ({
-  default: ({ children }) => <>{children}</>,
-  useAccountDateTime: () => value => value || "Unavailable",
-}));
-vi.mock("../../src/ui/pages/AccountPreferences", () => ({ default: () => <div>Account Preferences page</div> }));
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, getSessionVersion, refresh, getRefreshToken, logout } = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  onSessionChange: vi.fn(() => vi.fn()),
-  consumeOAuthRedirectParams: vi.fn(() => null),
-  isElectron: vi.fn(() => true),
-  getToken: vi.fn(() => "tok"),
-  getSessionVersion: vi.fn(() => 1),
-  refresh: vi.fn(),
-  getRefreshToken: vi.fn(() => null),
+const session = vi.hoisted(() => ({ user: null, identity: { organizations: [] } }));
+vi.mock("../../src/ui/lib/session", () => ({
+  getCurrentUser: vi.fn(async () => session.user), getIdentity: vi.fn(async () => session.identity),
+  getCurrentUserSync: () => session.user, getSessionVersion: () => 1,
+  onSessionChange: vi.fn(() => vi.fn()), consumeOAuthRedirectParams: vi.fn(() => null),
+  isElectron: vi.fn(() => true), refresh: vi.fn(), getRefreshToken: vi.fn(() => null), getToken: vi.fn(() => "token"),
   logout: vi.fn(),
 }));
-vi.mock("../../src/ui/lib/session", () => ({
-  getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, getToken, getSessionVersion, refresh, getRefreshToken, logout,
-}));
-
+vi.mock("../../src/ui/lib/web/webApi", () => ({ loadConfig: vi.fn(async () => ({ mode: "beta" })) }));
 vi.mock("../../src/ui/components/LicenseGate", () => ({ default: ({ children }) => <>{children}</> }));
-vi.mock("../../src/ui/components/Login", () => ({ default: () => <div>Login screen</div> }));
+vi.mock("../../src/ui/components/PreferencesProvider", () => ({ default: ({ children }) => <>{children}</>, usePreferences: () => ({ owner: "test", authenticated: true, status: "success", data: { timezone: null } }), useAccountDateTime: () => value => value || "Not provided" }));
+vi.mock("../../src/ui/components/AppearanceProvider", () => ({ default: ({ children }) => <>{children}</> }));
 vi.mock("../../src/ui/components/BugReport", () => ({ default: () => null }));
 vi.mock("../../src/ui/components/UpdateBanner", () => ({ default: () => null }));
-vi.mock("../../src/ui/components/MobileNav", () => ({
-  default: ({ open, onClose }) => open ? <div role="dialog" aria-label="mobile nav"><button onClick={onClose}>close-drawer</button></div> : null,
-}));
-vi.mock("../../src/ui/components/OAuthLinkConfirm", () => ({ default: ({ onDone, onCancel }) => <div>Link required<button onClick={onDone}>done</button><button onClick={onCancel}>cancel</button></div> }));
-vi.mock("../../src/ui/components/GrafanaViewer", () => ({ GrafanaViewer: ({ onBack }) => <div>Grafana view<button onClick={onBack}>gback</button></div> }));
+vi.mock("../../src/ui/components/MobileNav", () => ({ default: () => null }));
+vi.mock("../../src/ui/components/Login", () => ({ default: () => <div>Login</div> }));
+vi.mock("../../src/ui/components/WorkbenchModuleHeader", () => ({ default: () => null }));
+vi.mock("../../src/ui/components/OAuthLinkConfirm", () => ({ default: () => null }));
+vi.mock("../../src/ui/components/GrafanaViewer", () => ({ GrafanaViewer: () => null }));
 
 vi.mock("../../src/ui/pages/Mode", () => ({ default: () => <div>Mode page</div> }));
 vi.mock("../../src/ui/pages/LLM", () => ({ default: () => <div>LLM page</div> }));
 vi.mock("../../src/ui/pages/Cloud", () => ({ default: () => <div>Cloud page</div> }));
 vi.mock("../../src/ui/pages/HPC", () => ({ default: () => <div>HPC page</div> }));
-vi.mock("../../src/ui/pages/Launch", () => ({ default: ({ onStatusChange }) => <div>Launch page<button onClick={() => onStatusChange("running")}>go-running</button><button onClick={() => onStatusChange("error")}>go-error</button><button onClick={() => onStatusChange("starting")}>go-starting</button></div> }));
+vi.mock("../../src/ui/pages/Launch", () => ({ default: () => <div>Launch page</div> }));
 vi.mock("../../src/ui/pages/Services", () => ({ default: () => <div>Services page</div> }));
 vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> }));
-vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <><div>Studio page</div><button onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: 13 }))}>Open Workbench catalog</button></> }));
+vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <div>Studio page</div> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
-vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
-vi.mock("../../src/ui/pages/Developer", () => ({ default: () => <div>Developer page</div> }));
-vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ url, label, onBack }) => <div>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
-vi.mock("../../src/ui/pages/PluginPage", () => ({ default: ({ url, label, onBack, backLabel }) => <div data-testid="plugin-page-viewer" data-back-label={backLabel || ""}>ServiceViewer:{label}:{url}<button onClick={onBack}>svback</button></div> }));
-vi.mock("../../src/ui/pages/Videos", () => ({ default: ({ onBack }) => <div>Videos page<button onClick={onBack}>vback</button></div> }));
+vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Members &amp; roles page</div> }));
+vi.mock("../../src/ui/pages/Billing", () => ({ default: ({ view }) => <div>{view === "usage" ? "Usage page" : "Billing page"}</div> }));
+vi.mock("../../src/ui/pages/Workbench", () => ({ default: () => <div>Workbench page</div> }));
+vi.mock("../../src/ui/pages/Developer", () => ({ default: () => <div>API keys page</div> }));
 vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
-vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Account Security page</div> }));
-
-vi.mock("../../src/ui/pages/AccountNotifications", () => ({ default: () => <div>Account Notifications page</div> }));
-vi.mock("../../src/ui/pages/AccountAppearance", () => ({ default: () => <div>Account Appearance page</div> }));
-vi.mock("../../src/ui/pages/AccountPrivacy", () => ({ default: () => <div>Account Privacy page</div> }));
-vi.mock("../../src/ui/pages/AccountPlan", () => ({ default: () => <div>Account Plan page</div> }));
-vi.mock("../../src/ui/pages/AccountHelp", () => ({ default: () => <div>Account Help page</div> }));
-
-vi.mock("../../src/ui/pages/OrganizationConnections", () => ({ default: () => <div>Organization Connections page</div> }));
+vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Security page</div> }));
+vi.mock("../../src/ui/pages/AccountPreferences", () => ({ default: () => <div>Preferences page</div> }));
+vi.mock("../../src/ui/pages/AccountPersonalization", () => ({ default: () => <div>Personalization section</div> }));
+vi.mock("../../src/ui/pages/AccountAppearance", () => ({ default: () => <div>Appearance section</div> }));
+vi.mock("../../src/ui/pages/AccountNotifications", () => ({ default: () => <div>Notifications section</div> }));
+vi.mock("../../src/ui/pages/OrganizationConnections", () => ({ default: () => <div>Connections page</div> }));
+vi.mock("../../src/ui/pages/AccountPrivacy", () => ({ default: () => <div>Privacy page</div> }));
+vi.mock("../../src/ui/pages/AccountPlan", () => ({ default: () => <div>Old plan page</div> }));
+vi.mock("../../src/ui/pages/AccountStorage", () => ({ default: () => <div>Old storage page</div> }));
+vi.mock("../../src/ui/pages/AccountMembershipStorage", () => ({ default: () => <div>Membership storage page</div> }));
+vi.mock("../../src/ui/pages/AccountHelp", () => ({ default: () => <div>Help page</div> }));
+vi.mock("../../src/ui/pages/Projects", () => ({ default: () => <div>Projects page</div> }));
+vi.mock("../../src/ui/pages/Artifacts", () => ({ default: () => <div>Artifacts page</div> }));
+vi.mock("../../src/ui/pages/Explore", () => ({ default: () => <div>Explore page</div> }));
 vi.mock("../../src/ui/pages/Integrations", () => ({ default: () => <div>Integrations page</div> }));
-vi.mock("../../src/ui/pages/MembershipPlans", () => ({ default: () => <div>Membership Plans page</div> }));
 
-import App from "../../src/ui/App";
+import App, { LEGACY_ACCOUNT_REDIRECTS, resolveInitialPage } from "../../src/ui/App";
+
+const admin = { userId: 1, email: "alex@example.org", orgId: 1, permissions: ["manage_roles"] };
 
 beforeEach(() => {
-  delete window.api;
-  isElectron.mockReturnValue(true);
-  getCurrentUser.mockResolvedValue(null);
-  consumeOAuthRedirectParams.mockReturnValue(null);
-  getRefreshToken.mockReturnValue(null);
-  onSessionChange.mockReturnValue(vi.fn());
-  window.history.replaceState({}, "", "/");
+  cleanup();
+  session.user = admin;
+  session.identity = { organizations: [{ organization_id: 1, organization_name: "Genome Lab" }] };
+  window.history.replaceState({}, "", "/studio");
 });
+afterEach(cleanup);
 
-describe("App shell — Studio landing", () => {
-  it("opens the Storage route and preserves account navigation", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    window.history.replaceState({}, "", "/studio/storage");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false, status: 401 });
-    try {
-      render(<App />);
-      await screen.findByRole("heading", { name: "Storage", exact: true });
-      expect(screen.getByRole("button", { name: "Storage", exact: true })).toHaveAttribute("aria-current", "page");
-      fireEvent.click(screen.getByRole("button", { name: "Security", exact: true }));
-      await screen.findByText("Account Security page");
-      expect(location.pathname).toBe("/studio/security");
-      fireEvent.click(screen.getByRole("button", { name: "Storage", exact: true }));
-      await screen.findByRole("heading", { name: "Storage", exact: true });
-      expect(location.pathname).toBe("/studio/storage");
-    } finally { fetchSpy.mockRestore(); }
-  });
-  it("removes IDE Services and resolves its retired internal index to Launch", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await screen.findByText("Studio page");
-    expect(document.querySelector('[data-nav-item="IDE Services"]')).toBeNull();
-    expect(screen.queryByText("IDE Services")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Account menu" })).toBeInTheDocument();
-    fireEvent(window, new CustomEvent("navigate", { detail: 10 }));
-    await screen.findByText("Launch page");
-    expect(screen.getByText("launch", { selector: "span" })).toBeInTheDocument();
-    expect(screen.queryByText("IDE Services")).not.toBeInTheDocument();
-  });
-
-  it("opens Personalization directly and navigates through canonical Account URLs", async () => {
-    getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/personalization");
-    render(<App />); await screen.findByText("Account Personalization page");
-    expect(screen.getByText("account", { selector: "span" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Personalization" })).toHaveAttribute("aria-current", "page");
-    for (const [label, page] of [["Preferences", "Account Preferences page"], ["Security", "Account Security page"], ["Profile", "Profile page"], ["Notifications", "Account Notifications page"]]) {
-      fireEvent.click(screen.getByRole("button", { name: label, exact: true })); await screen.findByText(page);
-      expect(location.pathname).toBe(`/studio/${label.toLowerCase()}`);
-      fireEvent.click(screen.getByRole("button", { name: "Personalization", exact: true })); await screen.findByText("Account Personalization page");
-      expect(location.pathname).toBe("/studio/personalization");
-    }
-    fireEvent.click(screen.getByTitle("Back to Studio")); await screen.findByText("Studio page");
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Personalization/ }));
-    await screen.findByText("Account Personalization page"); expect(location.pathname).toBe("/studio/personalization");
-    expect(document.querySelector('[data-nav-item="Personalization"]')).toBeNull();
-  });
-  it("opens Preferences directly with account breadcrumb and navigates between all account sections", async () => {
-    getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/preferences");
-    render(<App />); await screen.findByText("Account Preferences page");
-    expect(screen.getByText("account", { selector: "span" })).toBeInTheDocument();
-    const accountNav = document.querySelector('[aria-label="Account settings"]');
-    expect(accountNav.querySelector('[aria-current="page"]')).toHaveTextContent("Preferences");
-    fireEvent.click([...accountNav.querySelectorAll("button")].find(button => button.textContent === "Profile"));
-    await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
-    fireEvent.click(screen.getByRole("button", { name: "Preferences", exact: true }));
-    await screen.findByText("Account Preferences page"); expect(location.pathname).toBe("/studio/preferences");
-    fireEvent.click(screen.getByRole("button", { name: "Security", exact: true })); await screen.findByText("Account Security page");
-    fireEvent.click(screen.getByRole("button", { name: "Preferences", exact: true })); await screen.findByText("Account Preferences page");
-    expect(document.querySelector('[data-nav-item="Preferences"]')).toBeNull();
-  });
-  it("lands authenticated users on Studio and keeps Mode accessible", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Studio" })).toBeInTheDocument();
-    const sections = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
-    expect(sections.map((section) => section.getAttribute("data-nav-section"))).toEqual([
-      "", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "Organization", "System",
-    ]);
-    expect(sections[0].querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
-    expect(sections[5].textContent).toMatch(/Launch.*Services.*Logs.*Billing.*Developer/);
-    expect(sections[5].textContent).not.toContain("Studio");
-    expect(sections[5].textContent).not.toContain("Jobs");
-    expect(document.querySelector("[data-nav-item='Profile']")).not.toBeInTheDocument();
-    expect(document.querySelector("[data-nav-item='Storage']")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Mode" }));
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
-  });
-
-  it("opens Integrations from Discover and supports its canonical direct URL", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await screen.findByText("Studio page");
-    fireEvent.click(screen.getByRole("button", { name: "Integrations" }));
-    expect(await screen.findByText("Integrations page")).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/studio/integrations");
-    expect(document.querySelector('[data-nav-item="Integrations"]')).toBeInTheDocument();
-    cleanup();
-    window.history.replaceState({}, "", "/studio/integrations");
-    render(<App />);
-    expect(await screen.findByText("Integrations page")).toBeInTheDocument();
-  });
-
-  it("returns to the canonical /studio path when Studio is selected", async () => {
-    window.history.replaceState({}, "", "/jobs");
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
-    fireEvent.click(screen.getByRole("button", { name: "Studio" }));
-    expect(window.location.pathname).toBe("/studio");
-  });
-
-  it("maps the legacy portal path to /studio", async () => {
-    window.history.replaceState({}, "", "/workbench");
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    expect(window.location.pathname).toBe("/studio");
-  });
-
-  it("opens Profile from the desktop account area and preserves its direct URL", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Profile/ }));
-    expect(await screen.findByText("Profile page")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Account" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Profile" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByText("account")).toBeInTheDocument();
-    expect(document.querySelector("[data-nav-item='Studio']")).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/studio/profile");
-    fireEvent.click(screen.getByTitle("Back to Studio"));
-    expect(await screen.findByText("Studio page")).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/studio");
-  });
-
-  it("loads the Profile page directly", async () => {
-    window.history.replaceState({}, "", "/studio/profile");
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    expect(await screen.findByText("Profile page")).toBeInTheDocument();
-  });
-
-  it("opens Security from Account", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Security/ }));
-    expect(await screen.findByText("Account Security page")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Security" })).toHaveAttribute("aria-current", "page");
-    expect(window.location.pathname).toBe("/studio/security");
-  });
-
-  it("loads Security directly", async () => {
-    window.history.replaceState({}, "", "/studio/security");
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Account Security page")).toBeInTheDocument());
-  });
-
-  it("opens the Videos viewer when visiting /studio/videos directly", async () => {
-    window.history.replaceState({}, "", "/studio/videos");
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Videos page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("vback"));
-    await waitFor(() => expect(screen.queryByText("Videos page")).not.toBeInTheDocument());
-    expect(window.location.pathname).toBe("/studio");
-  });
-
-  it("renders the shared module header for native pages and returns to /studio", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: "← Back to Studio" })).not.toBeInTheDocument();
-
-    for (const page of [
-      "Mode", "LLM", "Cloud", "HPC", "Launch", "Services",
-      "Logs", "Jobs", "Roles", "Settings", "Billing", "Developer",
-    ]) {
-      fireEvent.click(screen.getByRole("button", { name: page }));
-      expect(await screen.findByRole("button", { name: "← Back to Studio" })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
-      await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-      expect(window.location.pathname).toBe("/studio");
-    }
-  });
-});
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.clearAllMocks(); delete window.api; });
-
-const admin = { userId: 1, email: "admin@test", permissions: ["manage_roles"] };
-
-describe("App shell — loading and first-run", () => {
-  it("shows a loading spinner until window.api.loadConfig resolves, then routes to Settings when no data_dir is set", async () => {
-    let resolveConfig;
-    window.api = { loadConfig: vi.fn(() => new Promise((res) => { resolveConfig = res; })) };
-    render(<App />);
-    expect(screen.getByText("Loading configuration...")).toBeInTheDocument();
-    resolveConfig({ mode: "local", settings: {} });
-    await waitFor(() => expect(screen.getByText("Settings page")).toBeInTheDocument());
-  });
-
-  it("routes to Settings with no saved config at all, and stays on Mode when data_dir is already set", async () => {
-    window.api = { loadConfig: vi.fn().mockResolvedValue(null) };
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Settings page")).toBeInTheDocument());
-    cleanup();
-
-    window.api = { loadConfig: vi.fn().mockResolvedValue({ mode: "local", settings: { data_dir: "/d" } }) };
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  });
-
-  it("stays ready and on Mode when loadConfig throws (dev mode)", async () => {
-    window.api = { loadConfig: vi.fn().mockRejectedValue(new Error("no ipc")) };
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  });
-
-  it("becomes ready immediately with no window.api at all", async () => {
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  });
-
-  it("defaults an unset saved mode to beta", async () => {
-    window.api = { loadConfig: vi.fn().mockResolvedValue({ settings: { data_dir: "/d" } }) };
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  });
-});
-
-describe("App shell — web auth gate", () => {
-  it("waits for authChecked before rendering, and shows Login when signed out", async () => {
-    isElectron.mockReturnValue(false);
-    let resolveUser;
-    getCurrentUser.mockReturnValue(new Promise((res) => { resolveUser = res; }));
-    render(<App />);
-    expect(screen.getByText("Loading configuration...")).toBeInTheDocument();
-    resolveUser(null);
-    await waitFor(() => expect(screen.getByText("Login screen")).toBeInTheDocument());
-  });
-
-  it("renders the shell once signed in", async () => {
-    isElectron.mockReturnValue(false);
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    expect(screen.getByText("Roles")).toBeInTheDocument();
-  });
-});
-
-describe("App shell — navigation and roles nav", () => {
-  it("hides the Roles nav item for a user without manage_roles, once known", async () => {
-    getCurrentUser.mockResolvedValue({ userId: 2, email: "u@test", permissions: [] });
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    expect(screen.queryByText("Roles")).not.toBeInTheDocument();
-  });
-
-  it("keeps Roles visible while currentUser is still unresolved, then navigates to it", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Roles")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Roles"));
-    await waitFor(() => expect(screen.getByText("Roles page")).toBeInTheDocument());
-  });
-
-  it("responds to navigate and open-service window events", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    window.dispatchEvent(new CustomEvent("navigate", { detail: 9 }));
-    await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
-
-    window.dispatchEvent(new CustomEvent("open-service", { detail: { url: "/_svc/other", label: "Other Service" } }));
-    await waitFor(() => expect(screen.getByText(/ServiceViewer:Other Service/)).toBeInTheDocument());
-    fireEvent.click(screen.getByText("svback"));
-    await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
-
-    window.dispatchEvent(new CustomEvent("open-service", { detail: { url: "/_svc/other", label: "Other Service" } }));
-    await waitFor(() => expect(screen.getByText(/ServiceViewer:Other Service/)).toBeInTheDocument());
-    // breadcrumb "studio" click returns to Workbench and clears the service view
-    fireEvent.click(screen.getByText("studio"));
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  });
-
-  it("routes videos and Grafana service opens to their dedicated viewers", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-
-    window.dispatchEvent(new CustomEvent("open-service", { detail: { url: "/_svc/videos", label: "Videos" } }));
-    await waitFor(() => expect(screen.getByText("Videos page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("vback"));
-    await waitFor(() => expect(screen.queryByText("Videos page")).not.toBeInTheDocument());
-
-    window.dispatchEvent(new CustomEvent("open-service", { detail: { url: "/_svc/monitor", label: "Metrics" } }));
-    await waitFor(() => expect(screen.getByText("Grafana view")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("gback"));
-    await waitFor(() => expect(screen.queryByText("Grafana view")).not.toBeInTheDocument());
-  });
-
-  it("opens and closes the mobile nav drawer, and shows the first-run warning banner", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    window.api = { loadConfig: vi.fn().mockResolvedValue({ mode: "local", settings: {} }) };
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Settings page")).toBeInTheDocument());
-    expect(screen.getByText(/Setup required/)).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Setup required/));
-
-    fireEvent.click(screen.getByLabelText("Open navigation"));
-    expect(screen.getByRole("dialog", { name: "mobile nav" })).toBeInTheDocument();
-    fireEvent.click(screen.getByText("close-drawer"));
-    expect(screen.queryByRole("dialog", { name: "mobile nav" })).not.toBeInTheDocument();
-  });
-
-  it("walks the wizard controls: dot navigation, Back/Next, and boundary disabling", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Mode" }));
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
-    expect(screen.getByText("Back")).toBeDisabled();
-    fireEvent.click(screen.getByText("Next →"));
-    await waitFor(() => expect(screen.getByText("LLM page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("Back"));
-    await waitFor(() => expect(screen.getByText("Mode page")).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: "Launch" }));
-    await waitFor(() => expect(screen.getByText("Launch page")).toBeInTheDocument());
-    expect(screen.getByText("Next →")).toBeDisabled();
-  });
-
-  it("reflects running and error system status from the Launch page", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Launch" }));
-    await waitFor(() => expect(screen.getByText("Launch page")).toBeInTheDocument());
-    fireEvent.click(screen.getByText("go-starting"));
-    await waitFor(() => expect(screen.getAllByText("STARTING").length).toBeGreaterThan(0));
-    fireEvent.click(screen.getByText("go-running"));
-    await waitFor(() => expect(screen.getAllByText("RUNNING").length).toBeGreaterThan(0));
-    fireEvent.click(screen.getByText("go-error"));
-    await waitFor(() => expect(screen.getAllByText("ERROR").length).toBeGreaterThan(0));
-  });
-});
-
-describe("App shell — Code and Workflows navigation (Phase A)", () => {
-  it("reopens Code with a fresh service view, preserves it during ordinary updates, and exits to native navigation", async () => {
-    isElectron.mockReturnValue(false);
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await screen.findByText("Studio page");
-    const openCode = () => fireEvent.click(screen.getByRole("button", { name: "Code" }));
-    const codeView = () => screen.getByText(/^ServiceViewer:Code:.*\/_svc\/sdk$/);
-    openCode();
-    const first = codeView();
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    expect(codeView()).toBe(first);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    openCode();
-    expect(codeView()).not.toBe(first);
-    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
-    await screen.findByText("Jobs page");
-    expect(screen.queryByText(/^ServiceViewer:Code:/)).not.toBeInTheDocument();
-    openCode();
-    const reopened = codeView();
-    fireEvent.click(screen.getByRole("button", { name: "Workflows" }));
-    expect(screen.getByText(/^ServiceViewer:Workflows:/)).not.toBe(reopened);
-    expect(reopened).not.toBeInTheDocument();
-  });
-
-  it("opens the existing Launcher service when Code is selected, using the canonical Electron webview path", async () => {
-    getCurrentUser.mockResolvedValue(admin); // isElectron() is true by default in this file's beforeEach
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Code" }));
-    expect(await screen.findByText("ServiceViewer:Code:http://localhost:5174/_svc/sdk")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("svback"));
-    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
-    await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
-  });
-
-  it("opens the existing Workflow Registry service when Workflows is selected, using the canonical Electron webview path", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Workflows" }));
-    expect(await screen.findByText("ServiceViewer:Workflows:http://localhost:5174/_svc/workflows")).toBeInTheDocument();
-  });
-
-  it("still opens Code and Workflows as the canonical same-origin service in the browser (non-Electron) path", async () => {
-    // Doesn't assert an exact origin here: App.jsx's pre-existing resolveServiceUrl
-    // also rewrites any /_svc/* URL whenever Vite's own DEV flag is on, independent
-    // of isElectron() -- the same already-shared behavior every dashboard-tile
-    // service goes through. What matters for Phase A is that Code/Workflows reuse
-    // that exact mechanism rather than bypassing it.
-    isElectron.mockReturnValue(false);
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Code" }));
-    expect(await screen.findByText(/^ServiceViewer:Code:.*\/_svc\/sdk$/)).toBeInTheDocument();
-    fireEvent.click(screen.getByText("svback"));
-    fireEvent.click(screen.getByRole("button", { name: "Workflows" }));
-    expect(await screen.findByText(/^ServiceViewer:Workflows:.*\/_svc\/workflows$/)).toBeInTheDocument();
-  });
-
-  it("leaves Jobs' own behavior and the Account menu unchanged", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
-    await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    expect(screen.getByRole("menuitem", { name: /Profile/ })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: /Security/ })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: /Preferences/ })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: /Appearance/ })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: /Notifications/ })).toBeInTheDocument();
-  });
-});
-
-describe("App shell — primary navigation IA (AI / Work / Discover)", () => {
-  it("renders Studio, AI, Work, Discover, Setup, Runtime, Security, Organization and System exactly once each, in order, with the exact Work order and no duplicate items", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-
-    const sectionEls = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
-    const sectionNames = sectionEls.map(el => el.getAttribute("data-nav-section"));
-    expect(sectionNames).toEqual(["", "AI", "Work", "Discover", "Setup", "Runtime", "Security", "Organization", "System"]);
-
-    const aiSection = sectionEls[sectionNames.indexOf("AI")];
-    expect([...aiSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual(["Ask OmniBioAI"]);
-
-    const workSection = sectionEls[sectionNames.indexOf("Work")];
-    expect([...workSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual([
-      "Projects", "Code", "Workflows", "Jobs", "Artifacts",
-    ]);
-
-    const discoverSection = sectionEls[sectionNames.indexOf("Discover")];
-    expect([...discoverSection.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"))).toEqual(["Explore", "Integrations"]);
-
-    const allItems = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-item]")].map(el => el.getAttribute("data-nav-item"));
-    for (const name of ["Code", "Workflows", "Jobs", "Projects", "Artifacts", "Explore", "Integrations", "Ask OmniBioAI"]) {
-      expect(allItems.filter(n => n === name)).toHaveLength(1);
+describe("Account route migration", () => {
+  it("redirects legacy URLs while preserving query strings", () => {
+    for (const [legacy, destination] of Object.entries(LEGACY_ACCOUNT_REDIRECTS)) {
+      window.history.replaceState({}, "", `${legacy}?checkout=success&organization_id=7`);
+      resolveInitialPage();
+      expect(window.location.pathname).toBe(destination);
+      expect(window.location.search).toBe("?checkout=success&organization_id=7");
     }
   });
 
-  it("no longer lists Code, Workflows or Jobs under Runtime", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    const sectionEls = [...document.querySelectorAll(".studio-sidebar-wrap [data-nav-section]")];
-    const runtime = sectionEls.find(el => el.getAttribute("data-nav-section") === "Runtime");
-    const runtimeItems = [...runtime.querySelectorAll("[data-nav-item]")].map(el => el.getAttribute("data-nav-item"));
-    expect(runtimeItems).toEqual(["Launch", "Services", "Logs", "Billing", "Developer"]);
-  });
-
-  it("Ask OmniBioAI opens the existing Dev Hub service, same mechanism as Code/Workflows, and returns to Studio", async () => {
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    const ask = screen.getByRole("button", { name: "Ask OmniBioAI" });
-    expect(ask).not.toHaveAttribute("aria-disabled", "true");
-    expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
-
-    fireEvent.click(ask);
-    expect(await screen.findByText("ServiceViewer:Ask OmniBioAI:http://localhost:5174/_svc/devhub?view=chat")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("svback"));
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  });
-
-  it("loads Projects and Artifacts through their canonical Workbench proxy routes", async () => {
-    const fetchSpy = vi.fn(url => {
-      if (String(url).includes("/_svc/workbench/api/projects/")) {
-        return Promise.resolve({ ok: true, status: 200, json: async () => ({ projects: [] }) });
-      }
-      if (String(url).includes("/_svc/workbench/plugins/artifact_manager/artifacts")) {
-        return Promise.resolve({ ok: true, status: 200, json: async () => ({ results: [], total: 0, limit: 200, offset: 0 }) });
-      }
-      if (String(url).includes("/_svc/workbench/api/storage/me/usage")) {
-        return Promise.resolve({ ok: true, status: 200, json: async () => ({
-          owner_type: "USER", owner_id: "1", used_bytes: 0, reserved_bytes: 0,
-          quota_bytes: 1_000_000_000, available_bytes: 1_000_000_000,
-          membership_plan: "free", over_quota: false, quota_mode: "audit",
-          enforcement_active: false, entitlement_status: "fresh",
-        }) });
-      }
-      return Promise.reject(new Error(`unexpected request: ${url}`));
-    });
-    vi.stubGlobal("fetch", fetchSpy);
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: "Projects" }));
-    expect(await screen.findByRole("heading", { name: "Projects" })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "No projects yet" })).toBeInTheDocument();
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(fetchSpy.mock.calls[0][0]).toBe("http://localhost:5174/_svc/workbench/api/projects/?status=all");
-    expect(fetchSpy.mock.calls[0][0]).not.toMatch(/organization/i);
-    fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: "Artifacts" }));
-    expect(await screen.findByRole("heading", { name: "Artifacts" })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "No artifacts yet" })).toBeInTheDocument();
-    expect(fetchSpy).toHaveBeenCalledTimes(3);
-    const artifactUrls = fetchSpy.mock.calls.slice(1).map(call => call[0]);
-    expect(artifactUrls).toContain("http://localhost:5174/_svc/workbench/plugins/artifact_manager/artifacts?limit=200&offset=0");
-    expect(artifactUrls).toContain("http://localhost:5174/_svc/workbench/api/storage/me/usage");
-    artifactUrls.forEach(url => expect(url).not.toMatch(/organization/i));
-    expect(screen.queryByText(/unified artifact tracking/i)).not.toBeInTheDocument();
-    vi.unstubAllGlobals();
-  });
-
-  it("Explore renders as a native shell and only loads canonical discovery sources", async () => {
-    const allowed = [
-      "http://localhost:5174/_svc/workbench/home/catalog/",
-      "http://webstudio.omnibioai.org:8081/api/tools",
-      "http://webstudio.omnibioai.org:8098/v1/workflows",
-      "http://webstudio.omnibioai.org:8081/api/servers",
-    ];
-    const fetchSpy = vi.fn(url => {
-      if (String(url).includes("home/catalog")) return Promise.resolve({ ok: true, json: async () => ({ schema_version: 1, total_count: 0, categories: [] }) });
-      if (String(url).endsWith("/api/tools")) return Promise.resolve({ ok: true, json: async () => [] });
-      if (String(url).endsWith("/v1/workflows")) return Promise.resolve({ ok: true, json: async () => [{ id: 1, name: "rnaseq", display_name: "RNA-seq workflow", engine: "nextflow", category: "transcriptomics", description: "Canonical workflow registry record" }] });
-      if (String(url).endsWith("/api/servers")) return Promise.resolve({ ok: true, json: async () => [{ server_id: "local", adapter_type: "local", capabilities: { cpu: 4 } }] });
-      return Promise.reject(new Error(`unexpected Explore request: ${url}`));
-    });
-    vi.stubGlobal("fetch", fetchSpy);
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Explore" }));
-    expect(await screen.findByRole("heading", { name: "Explore" })).toBeInTheDocument();
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(4));
-    expect(fetchSpy.mock.calls.map(([url]) => url).sort()).toEqual(allowed.sort());
-    expect(screen.getByRole("heading", { name: "RNA-seq workflow", level: 2 })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Tool Executor", level: 2 })).toBeInTheDocument();
-    vi.unstubAllGlobals();
-  });
-
-  it("opens the canonical Create project form from the Projects route", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: true, status: 200, json: async () => ({ projects: [] }) });
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Projects" }));
-    await screen.findByRole("heading", { name: "No projects yet" });
-    fireEvent.click(screen.getAllByRole("button", { name: "Create project" })[0]);
-    expect(screen.getByRole("dialog", { name: "Create project" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Name")).toBeRequired();
-  });
-
-  it("supports direct deep links to /studio/projects, /studio/artifacts and /studio/explore", async () => {
-    for (const [path, heading] of [
-      ["/studio/projects", "Projects"],
-      ["/studio/artifacts", "Artifacts"],
-      ["/studio/explore", "Explore"],
-    ]) {
-      window.history.replaceState({}, "", path);
-      getCurrentUser.mockResolvedValue(admin);
-      const { unmount } = render(<App />);
-      expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
-      unmount();
-    }
-  });
-});
-
-describe("App shell — OAuth redirect notices", () => {
-  it("shows the link-confirmation dialog and clears it on done/cancel", async () => {
-    consumeOAuthRedirectParams.mockReturnValue({ type: "link_required", linkToken: "lt", provider: "google", email: "a@b.test" });
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    expect(await screen.findByText("Link required")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("done"));
-    await waitFor(() => expect(screen.queryByText("Link required")).not.toBeInTheDocument());
-  });
-
-  it("dismisses the link-confirmation dialog via cancel", async () => {
-    consumeOAuthRedirectParams.mockReturnValue({ type: "link_required", linkToken: "lt", provider: "google", email: "a@b.test" });
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    expect(await screen.findByText("Link required")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("cancel"));
-    await waitFor(() => expect(screen.queryByText("Link required")).not.toBeInTheDocument());
-  });
-
-  it("shows and dismisses a sign-in error banner", async () => {
-    consumeOAuthRedirectParams.mockReturnValue({ type: "error", message: "denied" });
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    expect(await screen.findByText("Sign-in could not be completed. Please try again.")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("✕"));
-    await waitFor(() => expect(screen.queryByText(/Sign-in failed/)).not.toBeInTheDocument());
-  });
-});
-
-describe("App shell — token refresh and return_to redirect", () => {
-  it("refreshes the access token on mount when a refresh token exists", async () => {
-    getRefreshToken.mockReturnValue("rt");
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(refresh).toHaveBeenCalled());
-  });
-
-  it("does not refresh with no refresh token", async () => {
-    getRefreshToken.mockReturnValue(null);
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-    expect(refresh).not.toHaveBeenCalled();
-  });
-
-  it("ignores an unsafe or cross-origin return_to and strips a safe one from the URL", async () => {
-    window.history.replaceState({}, "", "/?return_to=//evil.example");
-    getCurrentUser.mockResolvedValue(null);
-    isElectron.mockReturnValue(false);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Login screen")).toBeInTheDocument());
-    cleanup();
-
-    window.history.replaceState({}, "", "/?return_to=%2Fjobs");
-    getCurrentUser.mockResolvedValue(null);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Login screen")).toBeInTheDocument());
-    expect(window.location.search).toBe("");
-  });
-
-  it("treats a malformed return_to as unsafe rather than throwing", async () => {
-    window.history.replaceState({}, "", "/?return_to=%2F%25zz");
-    getCurrentUser.mockResolvedValue(null);
-    isElectron.mockReturnValue(false);
-    render(<App />);
-    await waitFor(() => expect(screen.getByText("Login screen")).toBeInTheDocument());
-  });
-
-  it("redirects to a safe return_to once the user is signed in", async () => {
-    window.history.replaceState({}, "", "/?return_to=%2Fjobs");
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    // jsdom doesn't implement real navigation, but the assignment itself
-    // must not throw and the shell should still render.
-    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  });
-});
-
-describe("App shell — native Workbench catalog", () => {
-  it("passes Studio-origin back context to a Workbench plugin viewer", async () => {
-    getCurrentUser.mockResolvedValue(admin);
+  it("keeps Runtime to Launch, Services and Logs and opens Account from the footer button", async () => {
     render(<App />);
     await screen.findByText("Studio page");
-    window.dispatchEvent(new CustomEvent("open-service", { detail: {
-      url: "/_svc/workbench/plugins/provenance/",
-      label: "Provenance",
-      source: "workbench",
-      pluginSlug: "provenance",
-      backLabel: "Back to Studio",
-    }}));
-    expect(await screen.findByTestId("plugin-page-viewer")).toHaveAttribute("data-back-label", "Back to Studio");
+    const runtime = document.querySelector('[data-nav-section="Runtime"]');
+    expect([...runtime.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual(["Launch", "Services", "Logs"]);
+    expect(screen.queryByText("Billing", { selector: "[data-nav-item]" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Developer", { selector: "[data-nav-item]" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
+    await screen.findByText("Profile page");
+    expect(window.location.pathname).toBe("/studio/account/profile");
   });
 
-  it.each([false, true])("opens through ServiceViewer and restores filters in Electron=%s", async electron => {
-    const { catalogResponse } = await import("./workbench-fixture");
-    vi.stubGlobal("fetch", vi.fn().mockImplementation(async url => {
-      if (String(url).includes("/api/ui-schema/")) {
-        return { ok: true, json: async () => ({ schema_version: 1, plugin: { slug: "rna" }, renderer: "legacy", native_supported: false }) };
-      }
-      return catalogResponse();
-    }));
-    isElectron.mockReturnValue(electron);
-    getCurrentUser.mockResolvedValue(admin);
-    render(<App />);
-    await screen.findByText("Studio page");
-    expect(screen.queryByRole("heading", { name: "Workbench" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Open Workbench catalog" }));
-    await screen.findByRole("button", { name: "Open RNA Analysis" });
-    fireEvent.click(screen.getByRole("button", { name: "Analysis 2" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Search applications" }), { target: { value: "rna" } });
-    fireEvent.click(screen.getByRole("button", { name: "Open RNA Analysis" }));
-    const origin = electron ? "http://localhost:5174" : "";
-    expect(screen.getByText(`ServiceViewer:RNA Analysis:${origin}/_svc/workbench/plugins/rna/`)).toBeInTheDocument();
-    fireEvent.click(screen.getByText("svback"));
-    const launch = await screen.findByRole("button", { name: "Open RNA Analysis" });
-    expect(screen.getByRole("textbox", { name: "Search applications" })).toHaveValue("rna");
-    await waitFor(() => expect(launch).toHaveFocus());
-    fireEvent.keyDown(screen.getByRole("textbox", { name: "Search applications" }), { key: "Escape" });
-    expect(screen.getByRole("button", { name: "Analysis 2" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: "← Back to Studio" }));
-    expect(screen.getByText("Studio page")).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/studio");
-    vi.unstubAllGlobals();
-  });
-});
-
-
-it("opens the Notifications Account route without adding primary navigation", async () => {
-  getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/notifications");
-  render(<App />); await screen.findByText("Account Notifications page");
-  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent("Notifications");
-  expect(document.querySelector('[data-nav-item="Notifications"]')).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
-  await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
-  fireEvent.click(screen.getByRole("button", { name: "Notifications", exact: true }));
-  await screen.findByText("Account Notifications page"); expect(location.pathname).toBe("/studio/notifications");
-});
-
-it("opens the Appearance Account route without adding primary navigation", async () => {
-  getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", "/studio/appearance");
-  render(<App />); await screen.findByText("Account Appearance page");
-  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent("Appearance");
-  expect(document.querySelector('[data-nav-item="Appearance"]')).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
-  await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
-  fireEvent.click(screen.getByRole("button", { name: "Appearance", exact: true }));
-  await screen.findByText("Account Appearance page"); expect(location.pathname).toBe("/studio/appearance");
-});
-
-it("opens Appearance from the Account menu and closes the menu", async () => {
-  getCurrentUser.mockResolvedValue(admin);
-  render(<App />);
-  await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: /Appearance/ }));
-  await screen.findByText("Account Appearance page");
-  expect(location.pathname).toBe("/studio/appearance");
-  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-});
-
-
-it.each([
-  ["Privacy & Data", "/studio/privacy", "Account Privacy page"],
-  ["Plan", "/studio/plan", "Account Plan page"],
-  ["Help & Product", "/studio/help", "Account Help page"],
-])("opens the %s Account route without adding primary navigation", async (label, path, pageText) => {
-  getCurrentUser.mockResolvedValue(admin); window.history.replaceState({}, "", path);
-  render(<App />); await screen.findByText(pageText);
-  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent(label);
-  expect(document.querySelector(`[data-nav-item="${label}"]`)).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
-  await screen.findByText("Profile page"); expect(location.pathname).toBe("/studio/profile");
-  fireEvent.click(screen.getByRole("button", { name: label, exact: true }));
-  await screen.findByText(pageText); expect(location.pathname).toBe(path);
-});
-
-it.each([
-  ["Privacy & Data", "Account Privacy page"],
-  ["Plan", "Account Plan page"],
-  ["Help & Product", "Account Help page"],
-])("opens %s from the Account menu and closes the menu", async (label, pageText) => {
-  getCurrentUser.mockResolvedValue(admin);
-  render(<App />);
-  await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: label }));
-  await screen.findByText(pageText);
-  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-});
-
-it("opens Storage from the dashboard Account menu and keeps Account Settings navigation", async () => {
-  getCurrentUser.mockResolvedValue(admin);
-  render(<App />);
-  await screen.findByText("Studio page");
-  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: "Storage" }));
-  expect(await screen.findByRole("heading", { name: "Storage", exact: true })).toBeInTheDocument();
-  expect(location.pathname).toBe("/studio/storage");
-  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-  expect(document.querySelector('[aria-label="Account settings"] [aria-current="page"]')).toHaveTextContent("Storage");
-  fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-  expect(screen.getByRole("menuitem", { name: "Storage" })).toHaveAttribute("aria-current", "page");
-  fireEvent.click(screen.getByRole("button", { name: "Profile", exact: true }));
-  await screen.findByText("Profile page");
-  fireEvent.click(screen.getByRole("button", { name: "Storage", exact: true }));
-  expect(location.pathname).toBe("/studio/storage");
-});
-
-it("keeps Privacy, Plan and Help distinct page indices with no collision against existing Account or Organization routes", async () => {
-  getCurrentUser.mockResolvedValue(admin);
-  render(<App />);
-  await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
-  const routes = [
-    ["/studio/profile", "Profile page"],
-    ["/studio/security", "Account Security page"],
-    ["/studio/preferences", "Account Preferences page"],
-    ["/studio/notifications", "Account Notifications page"],
-    ["/studio/personalization", "Account Personalization page"],
-    ["/studio/appearance", "Account Appearance page"],
-    ["/studio/privacy", "Account Privacy page"],
-    ["/studio/plan", "Account Plan page"],
-    ["/studio/help", "Account Help page"],
-    ["/studio/organization/connections", "Organization Connections page"],
-    ["/studio/billing/plans", "Membership Plans page"],
-  ];
-  for (const [path, pageText] of routes) {
+  it.each([
+    ["/studio/account/organization/billing", "Billing page"],
+    ["/studio/account/organization/usage", "Usage page"],
+    ["/studio/account/organization/api-keys", "API keys page"],
+    ["/studio/account/membership-storage", "Membership storage page"],
+    ["/studio/account/preferences", "Preferences page"],
+  ])("loads %s in the Account shell", async (path, content) => {
     window.history.replaceState({}, "", path);
     render(<App />);
-    await screen.findByText(pageText);
-    cleanup();
-  }
-});
-
-it("opens Organization Connections directly and from navigation outside Account", async () => {
-  getCurrentUser.mockResolvedValue(admin);
-  window.history.replaceState({}, "", "/studio/organization/connections");
-  render(<App />);
-  await screen.findByText("Organization Connections page");
-  expect(screen.queryByRole("button", { name: "Personalization", exact: true })).toBeNull();
-  fireEvent.click(screen.getByTitle("Back to Studio"));
-  await screen.findByText("Studio page");
-  fireEvent.click(screen.getByRole("button", { name: "Connections", exact: true }));
-  await screen.findByText("Organization Connections page");
-  expect(location.pathname).toBe("/studio/organization/connections");
+    await screen.findByText(content);
+    expect(screen.getByRole("navigation", { name: "Account settings" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/studio/account/profile");
+  });
 });

@@ -4,6 +4,7 @@ import { useAccountDateTime } from "../components/PreferencesProvider";
 import { getSessionVersion, onSessionChange } from "../lib/session";
 import { getNotificationMetadata, getNotificationPreferences, getNotifications, getUnreadNotificationCount,
   markNotificationRead, updateNotificationPreferences, NOTIFICATION_GROUPS, PAGE_SIZE } from "../lib/notificationsApi";
+import AccountState from "../components/AccountState";
 import "./AccountNotifications.css";
 
 const label = value => value.replaceAll("_", " ").replace(/^./, first => first.toUpperCase());
@@ -74,7 +75,9 @@ function NotificationCenter() {
       <p>Manage your personal OmniBioAI in-app notifications and preferences.</p></header>
     <Card title="Inbox">
       <div className="notification-toolbar">
-        <p role="status" aria-live="polite">{unread === undefined ? "Unread count unavailable" : `${unread} unread`}</p>
+        {inbox.status === "success" && unread === undefined
+          ? <AccountState variant="error" title="Couldn’t load unread count" onRetry={() => setReload(value => value + 1)}>Notification count failed to load.</AccountState>
+          : inbox.status === "success" ? <p role="status" aria-live="polite">{`${unread} unread`}</p> : null}
         <button type="button" className={buttonClass} onClick={() => setReload(value => value + 1)}>Refresh inbox</button>
       </div>
       <div className="notification-toolbar" role="group" aria-label="Inbox filters">

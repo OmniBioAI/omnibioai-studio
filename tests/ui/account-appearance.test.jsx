@@ -38,7 +38,10 @@ describe("AccountAppearance", () => {
     expect(screen.getByRole("radio", { name: /System/ })).toHaveAttribute("aria-checked", "false");
     expect(document.documentElement.dataset.theme).toBe("dark");
     fireEvent.click(screen.getByRole("radio", { name: "Light" }));
-    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(screen.getByRole("radio", { name: "Light" })).toHaveAttribute("aria-checked", "true");
+    // Studio is locked to dark until colour tokens land (LOCKED_THEME).
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(screen.getByText(/Studio uses the dark theme for now/)).toBeInTheDocument();
   });
 
   it("navigates the color-mode radiogroup with arrow keys", () => {

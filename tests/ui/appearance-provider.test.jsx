@@ -1,10 +1,12 @@
 import React from "react";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import AppearanceProvider, { useAppearance } from "../../src/ui/components/AppearanceProvider";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import AppearanceProvider, { LOCKED_THEME, useAppearance } from "../../src/ui/components/AppearanceProvider";
 import { saveAppearance } from "../../src/ui/lib/appearanceApi";
 
-afterEach(() => { cleanup(); delete window.matchMedia; document.documentElement.removeAttribute("data-theme"); document.documentElement.removeAttribute("data-accent"); document.documentElement.removeAttribute("data-density"); document.documentElement.removeAttribute("data-motion"); });
+afterEach(() => { cleanup(); delete window.matchMedia; document.documentElement.style.colorScheme = ""; document.documentElement.removeAttribute("data-theme"); document.documentElement.removeAttribute("data-accent"); document.documentElement.removeAttribute("data-density"); document.documentElement.removeAttribute("data-motion"); });
 
 // A minimal MediaQueryList double. `style` picks which listener API it
 // exposes — Electron's bundled Chromium on some builds only has the legacy
@@ -58,30 +60,82 @@ describe("AppearanceProvider", () => {
     expect(document.documentElement.dataset.density).toBe("comfortable");
   });
 
-  it("resolves System against the OS color-scheme query and updates live on change", () => {
-    const colorQuery = fakeMediaQueryList(false, "modern"); // OS reports light
-    installMatchMedia({ "(prefers-color-scheme: dark)": colorQuery, "(prefers-reduced-motion: reduce)": fakeMediaQueryList(false) });
+
+
+
+  it("is locked to dark until colour tokens land (UI review N1)", () => {
+    expect(LOCKED_THEME).toBe("dark");
+  });
+
+  it("ignores prefers-color-scheme while locked and sets color-scheme: dark", () => {
+    const queries = [];
+    window.matchMedia = query => { queries.push(query); return fakeMediaQueryList(false); }; // OS reports light
     render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
-    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
-    act(() => colorQuery.set(true));
+    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(queries).not.toContain("(prefers-color-scheme: dark)");
+  });
+
+  it("keeps an explicit Light choice saved but still renders dark while locked", () => {
+    const { unmount } = render(<AppearanceProvider userId={9}><Probe /></AppearanceProvider>);
+    act(() => screen.getByText("set-light").click());
+    expect(screen.getByTestId("mode")).toHaveTextContent("light");
+    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    unmount();
+    render(<AppearanceProvider userId={9}><Probe /></AppearanceProvider>);
+    expect(screen.getByTestId("mode")).toHaveTextContent("light");
     expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
   });
 
   it("supports the legacy addListener/removeListener MediaQueryList API", () => {
-    const colorQuery = fakeMediaQueryList(false, "legacy");
-    installMatchMedia({ "(prefers-color-scheme: dark)": colorQuery, "(prefers-reduced-motion: reduce)": fakeMediaQueryList(false, "legacy") });
+    const motionQuery = fakeMediaQueryList(false, "legacy");
+    installMatchMedia({ "(prefers-color-scheme: dark)": fakeMediaQueryList(false, "legacy"), "(prefers-reduced-motion: reduce)": motionQuery });
     render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
-    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
-    act(() => colorQuery.set(true));
-    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
+    expect(screen.getByTestId("resolved-motion")).toHaveTextContent("system");
+    act(() => motionQuery.set(true));
+    expect(screen.getByTestId("resolved-motion")).toHaveTextContent("reduce");
   });
 
-  it("an explicit Light/Dark choice is not overridden by the OS query", () => {
-    installMatchMedia({ "(prefers-color-scheme: dark)": fakeMediaQueryList(true), "(prefers-reduced-motion: reduce)": fakeMediaQueryList(false) });
-    render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
-    act(() => screen.getByText("set-light").click());
-    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
-    expect(document.documentElement.dataset.theme).toBe("light");
+  it("declares a dark color-scheme for the document before React mounts", () => {
+    const read = file => readFileSync([file, `../../${file}`].map(path => resolve(process.cwd(), path)).find(existsSync), "utf8");
+    const css = read("src/index.css");
+    const html = read("index.html");
+    expect(css).toMatch(/:root\s*\{\s*color-scheme:\s*dark;\s*\}/);
+    expect(html).toContain('<meta name="color-scheme" content="dark" />');
+  });
+
+  // Behaviour for when LOCKED_THEME is removed in PR C.
+  describe.skipIf(Boolean(LOCKED_THEME))("unlocked colour mode", () => {
+    it("resolves System against the OS color-scheme query and updates live on change", () => {
+      const colorQuery = fakeMediaQueryList(false, "modern"); // OS reports light
+      installMatchMedia({ "(prefers-color-scheme: dark)": colorQuery, "(prefers-reduced-motion: reduce)": fakeMediaQueryList(false) });
+      render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
+      act(() => colorQuery.set(true));
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
+    });
+    it("supports the legacy addListener/removeListener MediaQueryList API", () => {
+      const colorQuery = fakeMediaQueryList(false, "legacy");
+      installMatchMedia({ "(prefers-color-scheme: dark)": colorQuery, "(prefers-reduced-motion: reduce)": fakeMediaQueryList(false, "legacy") });
+      render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
+      act(() => colorQuery.set(true));
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("dark");
+    });
+    it("an explicit Light/Dark choice is not overridden by the OS query", () => {
+      installMatchMedia({ "(prefers-color-scheme: dark)": fakeMediaQueryList(true), "(prefers-reduced-motion: reduce)": fakeMediaQueryList(false) });
+      render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
+      act(() => screen.getByText("set-light").click());
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
+      expect(document.documentElement.dataset.theme).toBe("light");
+    });
+    it("tolerates a MediaQueryList with neither the modern nor legacy listener API", () => {
+      installMatchMedia({ "(prefers-color-scheme: dark)": { matches: false }, "(prefers-reduced-motion: reduce)": { matches: false } });
+      render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
+      expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
+    });
   });
 
   it("reduces motion when the OS prefers it, even without an explicit choice", () => {
@@ -127,11 +181,6 @@ describe("AppearanceProvider", () => {
     expect(screen.getByTestId("accent")).toHaveTextContent("orange");
   });
 
-  it("tolerates a MediaQueryList with neither the modern nor legacy listener API", () => {
-    installMatchMedia({ "(prefers-color-scheme: dark)": { matches: false }, "(prefers-reduced-motion: reduce)": { matches: false } });
-    render(<AppearanceProvider userId={1}><Probe /></AppearanceProvider>);
-    expect(screen.getByTestId("resolved-theme")).toHaveTextContent("light");
-  });
 
   it("exposes safe no-op defaults when used without a provider", () => {
     render(<Probe />);

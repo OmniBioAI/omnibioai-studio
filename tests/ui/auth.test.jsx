@@ -20,13 +20,15 @@ import RequirePermission from "../../src/ui/components/RequirePermission";
 
 describe("authentication UI", () => {
   it("submits a trimmed license key and exposes API errors", async () => {
-    loginWithLicenseKey.mockRejectedValueOnce(new Error("Invalid license key"));
+    const invalidKey = Object.assign(new Error("Invalid license key"), { code: "invalid_key", status: 200 });
+    loginWithLicenseKey.mockRejectedValueOnce(invalidKey);
     render(<Login title="Welcome" description="Sign in" />);
     fireEvent.change(screen.getByPlaceholderText("you@omnibioai"), { target: { value: "a@b.test" } });
     expect(document.querySelector('input[type="password"]')).toBeNull();
     fireEvent.change(screen.getByPlaceholderText("OMNI-XXXX-XXXX-XXXX-XXXX"), { target: { value: "  OMNI-1  " } });
     fireEvent.click(screen.getByRole("button", { name: /activate license/i }));
     await waitFor(() => expect(screen.getByText("Invalid license key")).toBeInTheDocument());
+    expect(screen.queryByText("Login failed. Check your details and try again.")).not.toBeInTheDocument();
     expect(loginWithLicenseKey).toHaveBeenCalledWith("OMNI-1", "a@b.test", "web");
   });
 

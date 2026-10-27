@@ -19,26 +19,48 @@
 .account-menu-identity { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 7px 8px; }
 .account-menu-email { color: var(--text); }
 .account-menu-separator { height: 1px; margin: 5px 0; background: var(--border); }
-.account-menu-popover button { width: 100%; min-height: 40px; padding: 8px 9px; display: flex; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; font-size: var(--font-size-sm); cursor: pointer; text-align: left; }
+.account-menu-popover button { width: 100%; min-height: 44px; padding: 8px 9px; display: flex; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; font-size: var(--font-size-sm); cursor: pointer; text-align: left; }
 .account-menu-popover button:hover, .account-menu-popover button[aria-current="page"] { border-color: rgba(0,229,160,.15); background: rgba(0,229,160,.08); color: var(--accent); }
 .account-menu-popover .account-menu-signout { color: var(--danger); }
 .account-shell { width: 100%; min-width: 0; max-width: 1120px; margin: 0 auto; display: grid; gap: 20px; }
-.account-shell-header { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.account-shell-header { min-height: 64px; padding-bottom: 18px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
 .account-shell-header h1 { margin: 0; font-size: var(--font-size-2xl); }
 .account-shell-header p { margin: 8px 0 0; color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: 1.5; }
-.account-shell-grid { min-width: 0; display: grid; grid-template-columns: 190px minmax(0, 1fr); align-items: start; gap: 20px; }
+.account-shell-eyebrow { margin: 0 0 4px !important; color: var(--accent) !important; font-family: var(--mono); text-transform: uppercase; letter-spacing: .1em; }
+.account-organization-name { padding: 10px 0; font-weight: 600; color: var(--text) !important; }
+.account-organization-switcher { position: relative; display: grid; gap: 4px; min-width: 220px; }
+.account-organization-switcher > span { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.account-organization-switcher > button { min-height: 44px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); color: var(--text); font: inherit; cursor: pointer; }
+.account-organization-switcher ul { position: absolute; z-index: 20; top: 100%; left: 0; right: 0; margin: 6px 0 0; padding: 5px; list-style: none; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg3); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+.account-organization-switcher li button { width: 100%; min-height: 44px; padding: 8px 10px; border: 0; border-radius: var(--radius-xs); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.account-organization-switcher li[aria-selected="true"] button, .account-organization-switcher li button:hover { background: rgba(0,229,160,.08); color: var(--accent); }
+.account-shell-grid { min-width: 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); align-items: start; gap: 28px; }
 .account-local-panel { min-width: 0; padding: 14px 10px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); }
-.account-local-panel h2 { margin: 0 8px 10px; color: var(--color-text-muted); font-family: var(--mono); font-size: var(--font-size-xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
-.account-local-panel nav { display: grid; gap: 3px; }
-.account-local-panel button { position: relative; width: 100%; min-height: 40px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm); cursor: pointer; text-align: left; }
-.account-local-panel button[aria-current="page"] { border-color: rgba(0,229,160,.15); background: rgba(0,229,160,.08); color: var(--accent); }
+.account-local-panel h2 { margin: 0 8px 7px; color: var(--color-text-muted); font-family: var(--mono); font-size: var(--font-size-xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.account-local-panel nav, .account-nav-group { display: grid; gap: 3px; }
+.account-nav-group + .account-nav-group { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.account-local-panel a { position: relative; width: 100%; min-height: 44px; box-sizing: border-box; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--color-text-muted); font: inherit; font-size: var(--font-size-sm); text-decoration: none; }
+.account-local-panel a[aria-current="page"] { border-color: rgba(0,229,160,.15); background: rgba(0,229,160,.08); color: var(--accent); }
 .account-local-active { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .account-search { margin: 0 8px 10px; }
 .account-search-label { display: block; margin-bottom: 4px; font-size: var(--font-size-xs); color: var(--color-text-muted); }
-.account-search input { width: 100%; min-height: 36px; padding: 6px 10px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font: inherit; font-size: var(--font-size-sm); }
+.account-search input { width: 100%; min-height: 44px; padding: 6px 10px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font: inherit; font-size: var(--font-size-sm); }
 .account-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .account-search-empty { margin: 4px 8px 0; color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.account-signout { min-width: 44px; min-height: 44px; margin: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; cursor: pointer; }
 .account-content { min-width: 0; }
+.account-shell .account-content button { min-height: 44px; }
+.account-shell .account-content a { min-height: 44px; display: inline-flex; align-items: center; }
+.account-content > * + * { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--border); }
+.account-state { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg2); color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: left; }
+.account-state strong { color: var(--text); }
+.account-state a, .account-state button { min-height: 44px; padding: 8px 12px; display: inline-flex; align-items: center; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: transparent; color: var(--accent2); font: inherit; text-decoration: none; cursor: pointer; }
+.account-state--error { border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); }
+.membership-storage, .membership-storage-header { display: grid; gap: 10px; }
+.membership-storage-header h2, .membership-storage-header p { margin: 0; }
+.membership-storage-header p { color: var(--color-text-muted); }
+.membership-storage-header a, .billing-cross-link a, .profile-plan-summary a { color: var(--accent2); }
+.membership-storage > .storage-dashboard, .membership-storage > .membership-page { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--border); }
 .profile-page { display: grid; gap: 20px; max-width: 800px; width: 100%; margin: 0 auto; }
 .profile-page h1 { font-size: var(--font-size-xl); font-weight: 700; margin: 0 0 6px; }
 .profile-page h2 { font-size: var(--font-size-lg); font-weight: 600; margin: 0 0 12px; overflow-wrap: anywhere; }
@@ -97,7 +119,7 @@
 .mfa-dialog h3 { margin-top: 0; }
 .mfa-dialog p { line-height: 1.5; overflow-wrap: anywhere; }
 .mfa-dialog form { display: grid; gap: 12px; }
-.mfa-dialog button { margin: 6px 6px 6px 0; min-height: 40px; }
+.mfa-dialog button { margin: 6px 6px 6px 0; min-height: 44px; }
 .mfa-dialog label { display: block; }
 .mfa-dialog :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .mfa-secret { display: block; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; border: 1px solid var(--border); background: var(--bg); font-family: var(--mono); }
@@ -106,7 +128,10 @@
   .account-local-panel { padding: 8px; }
   .account-local-panel h2 { margin-bottom: 6px; }
   .account-local-panel nav { display: flex; overflow-x: auto; }
-  .account-local-panel button { width: auto; min-width: 110px; min-height: 44px; }
+  .account-nav-group { display: flex; flex: 0 0 auto; }
+  .account-nav-group + .account-nav-group { margin: 0 0 0 8px; padding: 0 0 0 8px; border-top: 0; border-left: 1px solid var(--border); }
+  .account-nav-group h2 { display: none; }
+  .account-local-panel a { width: auto; min-width: 110px; min-height: 44px; }
 }
 @media (max-width: 480px) {
   .profile-identity { align-items: flex-start; flex-direction: column; gap: 16px; }
@@ -116,6 +141,8 @@
   .security-section-error { align-items: stretch; flex-direction: column; }
   .account-shell { gap: 16px; }
   .account-shell-header { padding-bottom: 14px; }
+  .account-shell-header { align-items: stretch; flex-direction: column; }
+  .account-organization-switcher { min-width: 0; }
 }
 
 :root {
@@ -182,7 +209,12 @@
    initial `true`). Light overrides the same variable names consumed both
    here and by @omnibioai/ui (packages/omnibioai-design-tokens/tokens.css) so
    every existing component re-themes without a second theme system. */
+/* Studio is locked to dark until PR C adds colour tokens (see LOCKED_THEME in
+   AppearanceProvider); color-scheme keeps native controls and scrollbars dark. */
+:root { color-scheme: dark; }
+
 html[data-theme="light"] {
+  color-scheme: light;
   --bg: #f7f8fa;
   --bg2: #ffffff;
   --bg3: #eef0f4;

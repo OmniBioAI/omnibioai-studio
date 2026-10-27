@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
@@ -43,26 +43,38 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Billing redesign", () => {
+  it.each([200, 401, 502])("ignores a stale organization billing response (%s) after switching organizations", async status => {
+    let finish;
+    const pending = new Promise((resolve, reject) => { finish = status === 200 ? resolve : reject; });
+    api.getSubscription.mockImplementation(org => org === "42" ? pending : Promise.resolve({ plan_name: "New organization", status: "active" }));
+    const { rerender } = render(<Billing currentUser={member} organizationId="42" />);
+    rerender(<Billing currentUser={member} organizationId="84" />);
+    expect(await screen.findByText("New organization", { selector: ".billing-plan-title strong" })).toBeInTheDocument();
+    await act(async () => { finish(status === 200 ? { plan_name: "Private old plan" } : Object.assign(new Error("old request failed"), { status })); await pending.catch(() => {}); });
+    expect(screen.queryByText("Private old plan")).not.toBeInTheDocument();
+    expect(screen.queryByText("old request failed")).not.toBeInTheDocument();
+    expect(screen.getByText("New organization", { selector: ".billing-plan-title strong" })).toBeInTheDocument();
+  });
   it("requires sign-in when there is no current user", () => {
     render(<Billing currentUser={null} />);
     expect(screen.getByText("Sign in required")).toBeInTheDocument();
   });
 
-  it("shows the no-organization state and optional Membership & Plans action", () => {
+  it("shows the no-organization state and optional Membership action", () => {
     const onMembershipPlans = vi.fn();
     render(<Billing currentUser={{ orgId: null }} onMembershipPlans={onMembershipPlans} />);
     expect(screen.getByText("No organization is associated with this session.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Membership & Plans" }));
+    fireEvent.click(screen.getByRole("button", { name: "Membership" }));
     expect(onMembershipPlans).toHaveBeenCalledOnce();
   });
 
-  it("renders the organization identity, Free summary and three requested tabs", async () => {
+  it("renders the organization plan summary and its two local tabs", async () => {
     render(<Billing currentUser={member} />);
-    expect(await screen.findByText("Acme Research")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Organization plan" })).toBeInTheDocument();
     expect(screen.queryByText("Account › Billing")).not.toBeInTheDocument();
-    expect(screen.getByText("Plan, usage and invoices for your organization.")).toBeInTheDocument();
+    expect(screen.getByText("Plan, payment method and invoices for your organization.")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Usage" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Usage" })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Invoices" })).toBeInTheDocument();
     expect(screen.getByText("You’re on the Free plan. There’s nothing to pay, and no billing period runs until you upgrade.")).toBeInTheDocument();
     expect(screen.getByText("No renewal needed")).toBeInTheDocument();
@@ -85,24 +97,20 @@ describe("Billing redesign", () => {
     expect(usageLabel({ service: "api", action: "completed", resource: "literature.answer" })).toBe("Literature answers");
   });
 
-  it("shows an organization switcher only for multiple memberships", async () => {
-    session.getIdentity.mockResolvedValue({ user: { id: 17, email: "multi@example.org", status: "active" }, global_roles: [], global_permissions: [], organizations: [
-      { organization_id: "42", organization_name: "Acme Research", roles: [], effective_permissions: [] },
-      { organization_id: "84", organization_name: "Beta Lab", roles: [], effective_permissions: [] },
-    ] });
-    render(<Billing currentUser={member} />);
-    const select = await screen.findByRole("combobox", { name: "Organization" });
-    fireEvent.change(select, { target: { value: "84" } });
+  it("uses the organization selected by the Account shell", async () => {
+    render(<Billing currentUser={member} organizationId="84" />);
     await waitFor(() => expect(api.getSubscription).toHaveBeenCalledWith("84"));
+    expect(screen.queryByRole("combobox", { name: "Organization" })).not.toBeInTheDocument();
   });
 
   it("renders invoice fields and reports that PDF URLs are not supplied", async () => {
     api.getInvoices.mockResolvedValue({ invoices: [{ id: 12, invoice_number: "INV-12", created_at: "2026-09-30", status: "paid", total: "25.00", currency: "usd" }] });
     render(<Billing currentUser={member} />);
-    await screen.findByText("Acme Research");
+    await screen.findByRole("heading", { name: "Organization plan" });
     fireEvent.click(screen.getByRole("tab", { name: "Invoices" }));
     expect(await screen.findByText("INV-12")).toBeInTheDocument();
-    expect(screen.getByText("PDF unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("PDF unavailable")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /PDF|download/i })).not.toBeInTheDocument();
     expect(screen.getByText("Outstanding balance")).toBeInTheDocument();
   });
 
@@ -110,9 +118,7 @@ describe("Billing redesign", () => {
     api.getUsageSummary.mockResolvedValue({ services: [{ service: "rag", action: "query", resource: "rag.query", quantity: 2, unit: "calls" }] });
     api.getCostHistory.mockResolvedValue({ history: [{ date: "2026-10-20", cost: "1.25" }], currency: "usd" });
     api.getCostBreakdown.mockResolvedValue({ breakdown: { rag: { quantity: 2, cost: "1.25" } }, currency: "usd" });
-    render(<Billing currentUser={member} />);
-    await screen.findByText("Acme Research");
-    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
+    render(<Billing currentUser={member} view="usage" />);
     expect(await screen.findByRole("table", { name: "Usage by service" })).toBeInTheDocument();
     expect(screen.getByText("Rag Query")).toBeInTheDocument();
     expect(screen.getByText("Oct 20, 2026")).toBeInTheDocument();
@@ -162,7 +168,7 @@ describe("Billing redesign", () => {
 
   it("uses the plan name and status as the plan card heading", async () => {
     render(<Billing currentUser={member} />);
-    await screen.findByText("Acme Research");
+    await screen.findByRole("heading", { name: "Organization plan" });
     expect(screen.queryByRole("heading", { name: "Plan" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Free Active" })).toBeInTheDocument();
     expect(screen.getByText("Free", { selector: ".billing-plan-title strong" })).toBeInTheDocument();
@@ -175,7 +181,7 @@ describe("Billing redesign", () => {
       organizations: [{ organization_id: "42", roles: ["org_admin"], effective_permissions: [] }],
     });
     render(<Billing currentUser={member} />);
-    await screen.findByRole("heading", { name: "Billing" });
+    await screen.findByRole("heading", { name: "Organization plan" });
     expect(document.querySelector(".billing-org")).toBeNull();
     expect(screen.queryByText(/organization name unavailable|organization details loading/i)).not.toBeInTheDocument();
   });
@@ -196,7 +202,52 @@ describe("Billing redesign", () => {
   it("shows a billing error message instead of a blank page when an API fails", async () => {
     api.getSubscription.mockRejectedValue(new Error("Billing service unavailable"));
     render(<Billing currentUser={member} />);
-    expect(await screen.findByText("Billing service unavailable")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Billing" })).toBeInTheDocument();
+    expect(await screen.findByText("Some billing details could not be loaded. Please try again.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Organization plan" })).toBeInTheDocument();
+  });
+
+  describe("never renders server error text", () => {
+    const RAW = "psycopg2.OperationalError: could not connect to server at 10.0.0.12:5432\nTraceback (most recent call last): File \"/app/views.py\", line 42";
+    const serverError = (status = 500) => Object.assign(new Error(RAW), { status });
+    const expectNoRawText = () => {
+      const text = document.body.textContent;
+      for (const fragment of ["psycopg2", "10.0.0.12", "Traceback", "/app/views.py", "OperationalError"]) expect(text).not.toContain(fragment);
+    };
+
+    it("shows one safe message when several overview requests fail with server details", async () => {
+      for (const call of [api.getSubscription, api.getUsageLimits, api.getBillingSummary, api.getPaymentMethod, api.getInvoices]) call.mockRejectedValue(serverError());
+      render(<Billing currentUser={member} />);
+      expect(await screen.findByText("The service is temporarily unavailable. Please try again later.")).toBeInTheDocument();
+      expect(screen.getAllByText("The service is temporarily unavailable. Please try again later.")).toHaveLength(1);
+      expectNoRawText();
+    });
+
+    it("uses the generic fallback for failures without a known status", async () => {
+      api.getInvoices.mockRejectedValue(new Error(RAW));
+      render(<Billing currentUser={member} />);
+      expect(await screen.findByText("Some billing details could not be loaded. Please try again.")).toBeInTheDocument();
+      expectNoRawText();
+    });
+
+    it("keeps Checkout setup failures generic", async () => {
+      api.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: true, has_payment_method: false, card: null });
+      api.createPaymentSetupSession.mockRejectedValue(new Error(RAW));
+      const stripeTab = { opener: {}, document: { title: "", body: { textContent: "" } }, closed: false, close: vi.fn() };
+      vi.spyOn(window, "open").mockReturnValue(stripeTab);
+      render(<Billing currentUser={member} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Add payment method" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Could not start secure Checkout. Please try again.");
+      expectNoRawText();
+    });
+
+    it("keeps Usage report failures generic", async () => {
+      api.getUsageSummary.mockRejectedValue(serverError(502));
+      api.getCostHistory.mockRejectedValue(serverError(503));
+      api.getCostBreakdown.mockRejectedValue(new Error(RAW));
+      render(<Billing currentUser={member} view="usage" />);
+      expect(await screen.findByText("The service is temporarily unavailable. Please try again later.")).toBeInTheDocument();
+      expect(screen.getByText("Usage reporting unavailable.")).toBeInTheDocument();
+      expectNoRawText();
+    });
   });
 });

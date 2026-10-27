@@ -13,4 +13,10 @@ describe("safeErrorMessage", () => {
     expect(safeErrorMessage(new Error("backend traceback"), "Could not load jobs."))
       .toBe("Could not load jobs.");
   });
+
+  it("maps known error codes to fixed text without exposing server details", () => {
+    const error = Object.assign(new Error("private license service detail"), { code: "invalid_key", status: 200 });
+    expect(safeErrorMessage(error, "Login failed.")).toBe("Invalid license key");
+    expect(safeErrorMessage(error, "Login failed.")).not.toContain("private license service detail");
+  });
 });

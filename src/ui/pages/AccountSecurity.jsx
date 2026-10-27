@@ -3,6 +3,7 @@ import { Badge, Button, Card, Spinner } from "@omnibioai/ui";
 import * as securityApi from "../lib/securityApi";
 import * as apiKeysApi from "../lib/apiKeysApi";
 import MfaManagement from "../components/security/MfaManagement";
+import AccountState from "../components/AccountState";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 
 const loadingState = () => ({ status: "loading", data: null, error: "" });
@@ -12,12 +13,7 @@ function SectionState({ state, label, onRetry }) {
     return <div className="security-state"><Spinner size="sm" /> Loading {label}…</div>;
   }
   if (state.status === "error") {
-    return (
-      <div className="security-section-error" role="alert">
-        <span>{state.error}</span>
-        <Button variant="secondary" size="sm" onClick={onRetry}>Retry</Button>
-      </div>
-    );
+    return <AccountState variant="error" title={`Couldn’t load ${label}`} onRetry={onRetry}>{state.error}</AccountState>;
   }
   return null;
 }
@@ -162,13 +158,13 @@ export default function AccountSecurity({ currentUser }) {
           <h2 id="security-overview-heading">Security overview</h2>
           <dl className="security-facts">
             <StatusRow label="Multi-factor authentication">
-              {mfa.status === "success" ? (verifiedDevices.length ? "Enabled" : "Not enabled") : "Unavailable"}
+              {mfa.status === "success" ? (verifiedDevices.length ? "Enabled" : "Not enabled") : "—"}
             </StatusRow>
             <StatusRow label="Active sessions">
-              {sessions.status === "success" ? activeSessions.length : "Unavailable"}
+              {sessions.status === "success" ? activeSessions.length : "—"}
             </StatusRow>
             <StatusRow label="Active personal API keys">
-              {apiKeys.status === "success" ? activeKeys.length : "Unavailable"}
+              {apiKeys.status === "success" ? activeKeys.length : "—"}
             </StatusRow>
           </dl>
         </section>
@@ -203,7 +199,7 @@ export default function AccountSecurity({ currentUser }) {
           {activeSessions.map(session => (
             <div className="security-row" key={session.session_id}>
               <div>
-                <strong>{session.auth_method || "Authentication method unavailable"}</strong>
+                <strong>{session.auth_method || "Authentication method not provided"}</strong>
                 <span>Created {formatDate(session.created_at)}</span>
                 <span>Last active {formatDate(session.last_activity_at)}</span>
                 {session.user_agent && <span>{session.user_agent}</span>}

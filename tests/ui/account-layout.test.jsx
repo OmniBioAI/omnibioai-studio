@@ -3,79 +3,46 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AccountLayout from "../../src/ui/components/AccountLayout";
 
+const { logout } = vi.hoisted(() => ({ logout: vi.fn() }));
+vi.mock("../../src/ui/lib/session", () => ({ logout }));
+
 afterEach(cleanup);
 
 describe("AccountLayout", () => {
-  it("renders implemented account sections with semantic active state", () => {
-    render(<AccountLayout activeSection="profile" onNavigate={vi.fn()}><div>Canonical profile</div></AccountLayout>);
-    expect(screen.getByRole("heading", { name: "Account" })).toBeInTheDocument();
-    expect(screen.getByText("Canonical profile")).toBeInTheDocument();
-    const profile = screen.getByRole("button", { name: "Profile" });
-    expect(profile).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: "Security" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("button", { name: "Preferences" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("button", { name: "Personalization" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("button", { name: "Notifications" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Appearance" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Privacy & Data" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Plan" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Storage" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Help & Product" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Storage" })).toBeInTheDocument();
-    expect(screen.queryByText(/Usage|Connections/)).not.toBeInTheDocument();
+  it("lets a signed-in user sign out from Account", () => {
+    render(<AccountLayout activeSection="profile" currentUser={{ email: "user@example.test", permissions: [] }} identity={{ organizations: [] }} onNavigate={vi.fn()}>Profile</AccountLayout>);
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    expect(logout).toHaveBeenCalledOnce();
+  });
+  it("renders grouped real links and marks the active page", () => {
+    const navigate = vi.fn();
+    render(<AccountLayout activeSection="billing" currentUser={{ permissions: [] }} identity={{ organizations: [{ organization_id: 5, organization_name: "Genome Lab" }] }} onNavigate={navigate}>Billing content</AccountLayout>);
+    expect(screen.getByRole("heading", { name: "Your account" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Organization" })).toBeInTheDocument();
+    const billing = screen.getByRole("link", { name: "Billing" });
+    expect(billing).toHaveAttribute("href", "/studio/account/organization/billing");
+    expect(billing).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Genome Lab")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Organization" })).not.toBeInTheDocument();
+    fireEvent.click(billing);
+    expect(navigate).toHaveBeenCalledWith("billing");
   });
 
-  it("delegates local navigation and supports future available sections without owning their data", () => {
-    const onNavigate = vi.fn();
-    const sections = [{ id: "profile", label: "Profile" }, { id: "security", label: "Security" }];
-    render(<AccountLayout activeSection="profile" onNavigate={onNavigate} sections={sections}>Content</AccountLayout>);
-    const security = screen.getByRole("button", { name: "Security" });
-    expect(security).not.toHaveAttribute("aria-current");
-    fireEvent.click(security);
-    expect(onNavigate).toHaveBeenCalledWith("security");
+  it("shows a keyboard reachable switcher only for multiple organizations", () => {
+    render(<AccountLayout activeSection="usage" currentUser={{ orgId: 2, permissions: [] }} identity={{ organizations: [
+      { organization_id: 1, organization_name: "Genome Lab" }, { organization_id: 2, organization_name: "Cell Lab" },
+    ] }} onNavigate={vi.fn()}>Usage</AccountLayout>);
+    const switcher = screen.getByRole("button", { name: /Cell Lab/ });
+    expect(switcher).toHaveAttribute("aria-haspopup", "listbox");
+    fireEvent.click(switcher);
+    fireEvent.click(screen.getByRole("button", { name: "Genome Lab" }));
+    expect(screen.getByRole("button", { name: /Genome Lab/ })).toHaveAttribute("aria-expanded", "false");
+    expect(window.location.search).toContain("organization_id=1");
   });
 
-  it("omits the search box for a short, custom section list", () => {
-    const sections = [{ id: "profile", label: "Profile" }, { id: "security", label: "Security" }];
-    render(<AccountLayout activeSection="profile" onNavigate={vi.fn()} sections={sections}>Content</AccountLayout>);
-    expect(screen.queryByRole("search")).not.toBeInTheDocument();
-  });
-
-  it("filters the default section list by label, locally only", () => {
-    render(<AccountLayout activeSection="profile" onNavigate={vi.fn()}>Content</AccountLayout>);
-    const search = screen.getByRole("searchbox", { name: "Search account settings" });
-    fireEvent.change(search, { target: { value: "priv" } });
-    expect(screen.getByRole("button", { name: "Privacy & Data" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Security" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Plan" })).not.toBeInTheDocument();
-  });
-
-  it("shows an honest empty state for no matches, and never exposes a hidden route", () => {
-    render(<AccountLayout activeSection="profile" onNavigate={vi.fn()}>Content</AccountLayout>);
-    const search = screen.getByRole("searchbox", { name: "Search account settings" });
-    fireEvent.change(search, { target: { value: "unavailable-setting" } });
-    expect(screen.getByRole("status")).toHaveTextContent("No matching settings.");
-    expect(screen.queryByRole("button", { name: /Storage/ })).not.toBeInTheDocument();
-  });
-
-  it("does not navigate on Enter when there is no match or more than one", () => {
-    const onNavigate = vi.fn();
-    render(<AccountLayout activeSection="profile" onNavigate={onNavigate}>Content</AccountLayout>);
-    const search = screen.getByRole("searchbox", { name: "Search account settings" });
-    fireEvent.change(search, { target: { value: "nope" } });
-    fireEvent.submit(search.closest("form"));
-    fireEvent.change(search, { target: { value: "p" } }); // matches several (Profile, Preferences, Appearance, Personalization, Privacy, Plan, Help)
-    fireEvent.submit(search.closest("form"));
-    expect(onNavigate).not.toHaveBeenCalled();
-  });
-
-  it("navigates to the sole match on Enter, and respects a caller's own restricted section list", () => {
-    const onNavigate = vi.fn();
-    const sections = [{ id: "profile", label: "Profile" }, { id: "security", label: "Security" }, { id: "plan", label: "Plan" }, { id: "privacy", label: "Privacy & Data" }, { id: "help", label: "Help & Product" }, { id: "preferences", label: "Preferences" }, { id: "notifications", label: "Notifications" }];
-    render(<AccountLayout activeSection="profile" onNavigate={onNavigate} sections={sections}>Content</AccountLayout>);
-    const search = screen.getByRole("searchbox", { name: "Search account settings" });
-    fireEvent.change(search, { target: { value: "plan" } });
-    fireEvent.submit(search.closest("form"));
-    expect(onNavigate).toHaveBeenCalledWith("plan");
+  it("omits Members & roles for users without manage_roles", () => {
+    render(<AccountLayout activeSection="profile" currentUser={{ permissions: [] }} identity={{ organizations: [] }} onNavigate={vi.fn()}>Profile</AccountLayout>);
+    expect(screen.queryByRole("link", { name: "Members & roles" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Preferences" })).toHaveAttribute("href", "/studio/account/preferences");
   });
 });

@@ -61,7 +61,7 @@ describe("Account Security", () => {
     apiKeysApi.listMyApiKeys.mockResolvedValue([{ ...apiKey, name: null, created_at: null, last_used_at: "2026-01-06T10:00:00Z" }]);
     render(<AccountSecurity currentUser={userA} />);
     expect(await screen.findByText("totp")).toBeInTheDocument();
-    expect(screen.getByText("Authentication method unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Authentication method not provided")).toBeInTheDocument();
     expect(screen.getByText("Agent/1")).toBeInTheDocument();
     expect(screen.getByText("IP 127.0.0.1")).toBeInTheDocument();
     expect(screen.getByText("omni_sk_live_ab", { selector: "strong" })).toBeInTheDocument();

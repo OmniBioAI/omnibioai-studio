@@ -64,6 +64,12 @@ describe("session boundary", () => {
 
   it("maps license failures and consumes OAuth redirects without replay", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ valid: false, reason: "invalid_key" }), { status: 200 }));
+    await expect(loginWithLicenseKey("bad", "a@b.test")).rejects.toMatchObject({
+      message: "Invalid license key", code: "invalid_key", status: 200,
+    });
+
+    globalThis.fetch.mockResolvedValueOnce(
       new Response(JSON.stringify({ valid: false, reason: "expired" }), { status: 400 }));
     await expect(loginWithLicenseKey(" K ", "a@b.test")).rejects.toThrow("This license key has expired");
 

@@ -33,7 +33,7 @@ describe("Account personalization", () => {
     render(<Tree />); expect(screen.getByRole("status")).toHaveTextContent("Loading personalization");
     expect(await ready()).toHaveValue("balanced");
     expect(screen.getByRole("heading", { name: "Personalization" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Personalization" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Preferences" })).toHaveAttribute("href", "/studio/account/preferences");
     expect(screen.getByLabelText("Technical level")).toHaveValue("general");
     expect(screen.getByLabelText("Preferred language")).toHaveValue("");
     expect(screen.getByLabelText("Personal instructions")).toHaveValue("");
