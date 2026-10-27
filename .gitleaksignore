@@ -58,3 +58,14 @@ cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate
 cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-security-gate-rc-v2b-final-image-vuln.json:generic-api-key:96
 cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-v2-isolated-rollback-vuln.json:generic-api-key:421
 cbffedd172002fee782353f7479a06294d072b4e:security-artifacts/devhub-v2-isolated-rollback-vuln.json:generic-api-key:95
+
+# Developer API keys redesign (d3d6782, 2026-10-21): test fixtures, not secrets.
+# Each value is a synthetic `omni_` key_prefix display string (17 chars; the UI
+# shows only this prefix, never a key) or FAKE_KEY = prefix + "FAKE".repeat(9).
+# generic-api-key matches them; only these exact historical locations are ignored.
+d3d6782cb59e0e3d509580beae1cba002974d6a3:tests/browser/developer-redesign.test.mjs:generic-api-key:16
+d3d6782cb59e0e3d509580beae1cba002974d6a3:tests/browser/developer-redesign.test.mjs:generic-api-key:27
+d3d6782cb59e0e3d509580beae1cba002974d6a3:tests/browser/developer-redesign.test.mjs:generic-api-key:28
+d3d6782cb59e0e3d509580beae1cba002974d6a3:tests/browser/developer-redesign.test.mjs:generic-api-key:29
+d3d6782cb59e0e3d509580beae1cba002974d6a3:tests/ui/developer.test.jsx:generic-api-key:16
+d3d6782cb59e0e3d509580beae1cba002974d6a3:tests/ui/developer.test.jsx:generic-api-key:19
