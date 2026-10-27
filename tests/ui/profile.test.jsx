@@ -26,19 +26,19 @@ beforeEach(() => setSession("token-a"));
 afterEach(() => { cleanup(); clearSession(); vi.restoreAllMocks(); });
 
 describe("Profile", () => {
-  it("renders only canonical IAM identity, initials, distinct role scopes, and the organization's plan", async () => {
+  it("renders canonical IAM identity and links organization plan management to Billing", async () => {
     const fetchMock = mockApi();
     localStorage.setItem("profile", JSON.stringify({ email: "forged@example.org" }));
     window.history.replaceState({}, "", "/studio/profile?user_id=999&email=forged@example.org");
     render(<Profile currentUser={currentUser} />);
     expect(screen.getByText("Loading profile…")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: identity.user.email })).toBeInTheDocument();
-    expect(await screen.findByText("Academic")).toBeInTheDocument();
+    const planLink = screen.getByRole("link", { name: "View Organization plan" });
+    expect(planLink).toHaveAttribute("href", "/studio/account/organization/billing");
     expect(screen.getByRole("img", { name: "Initials avatar" })).toHaveTextContent("AL");
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("May 12, 2024")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Organization plan" })).toBeInTheDocument();
-    expect(screen.getByText("Subscription for Genome Lab")).toBeInTheDocument();
+    expect(screen.getByText(/Organization plan for Genome Lab is managed in Billing/)).toBeInTheDocument();
     const org = screen.getByRole("heading", { name: "Genome Lab" }).closest("li");
     expect(within(org).getByText("Organization ID: 42")).toBeInTheDocument();
     expect(within(org).getByText("Organization roles")).toBeInTheDocument();
@@ -56,8 +56,8 @@ describe("Profile", () => {
   it.each([null, undefined, "not-a-date"])("does not synthesize a member-since date (%s)", async created_at => {
     mockApi({ ...identity, user: { ...identity.user, created_at } });
     render(<Profile currentUser={currentUser} />);
-    await screen.findByText("Academic");
-    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    await screen.findByRole("heading", { name: identity.user.email });
+    expect(screen.getByText("Not provided")).toBeInTheDocument();
   });
 
   it("handles missing optional roles and organizations without billing requests", async () => {
@@ -69,59 +69,49 @@ describe("Profile", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("shows all memberships, selects the session organization, and ignores an old organization's plan response", async () => {
-    const oldPlan = deferred();
+  it("shows all memberships and points the session organization to Billing without a plan request", async () => {
     const profile = { ...identity, organizations: [
       { organization_id: 8, organization_name: "Second Lab" }, ...identity.organizations,
     ] };
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(url => {
-      if (String(url).endsWith("/me")) return Promise.resolve(json(profile));
-      if (String(url).includes("/42/")) return oldPlan.promise;
-      return Promise.resolve(json({ plan_name: "Second Lab plan" }));
-    });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(json(profile));
     render(<Profile currentUser={currentUser} />);
-    const select = await screen.findByRole("combobox", { name: "View plan for" });
-    expect(select).toHaveValue("42");
+    expect(await screen.findByRole("heading", { name: "Second Lab" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Genome Lab" })).toBeInTheDocument();
     expect(screen.getByText("None assigned")).toBeInTheDocument();
-    fireEvent.change(select, { target: { value: "8" } });
-    expect(await screen.findByText("Second Lab plan")).toBeInTheDocument();
-    await act(async () => oldPlan.resolve(json({ plan_name: "Stale plan" })));
-    expect(screen.queryByText("Stale plan")).not.toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith("/billing/organizations/8/subscription", expect.anything());
+    expect(screen.getByText(/Organization plan for Genome Lab is managed in Billing/)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("uses a real membership when the session has no matching organization", async () => {
+  it("uses a real membership for the Billing link when the session has no matching organization", async () => {
     mockApi();
     render(<Profile currentUser={{ ...currentUser, orgId: null }} />);
-    expect(await screen.findByText("Academic")).toBeInTheDocument();
-    expect(screen.getByText("Subscription for Genome Lab")).toBeInTheDocument();
+    expect(await screen.findByText(/Organization plan for Genome Lab is managed in Billing/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View Organization plan" })).toHaveAttribute("href", "/studio/account/organization/billing");
   });
 
-  it.each([403, 404, 502])("keeps identity visible on billing %s and allows retry", async status => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(url => Promise.resolve(
-      String(url).endsWith("/me") ? json(identity) : json({}, status)));
+  it.each([403, 404, 502])("keeps identity independent from former billing status %s", async status => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(json(identity));
     render(<Profile currentUser={currentUser} />);
-    expect(await screen.findByText(status === 404 ? "No active subscription" : "Unavailable")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: identity.user.email })).toBeInTheDocument();
-    fetchMock.mockResolvedValue(json({ plan_name: "Recovered" }));
-    fireEvent.click(screen.getByRole("button", { name: "Retry plan" }));
-    expect(await screen.findByText("Recovered")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: identity.user.email })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View Organization plan" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("does not invent a missing plan name", async () => {
+  it("does not invent a plan name on the profile page", async () => {
     mockApi(identity, {});
     render(<Profile currentUser={currentUser} />);
-    expect(await screen.findByText("Unavailable")).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "View Organization plan" })).toBeInTheDocument();
+    expect(screen.queryByText("Academic")).not.toBeInTheDocument();
   });
 
   it("handles an IAM error without cached identity and retries", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
     render(<Profile currentUser={currentUser} />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Your profile is unavailable");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn’t load profile");
     expect(screen.queryByText(currentUser.email)).not.toBeInTheDocument();
     fetchMock.mockImplementation(url => Promise.resolve(String(url).endsWith("/me") ? json(identity) : json({ plan_name: "Academic" })));
-    fireEvent.click(screen.getByRole("button", { name: "Retry profile" }));
-    expect(await screen.findByText("Academic")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByRole("heading", { name: identity.user.email })).toBeInTheDocument();
   });
 
   it("requires sign-in even in Electron and clears an expired session", async () => {
@@ -139,13 +129,13 @@ describe("Profile", () => {
     setSession("token-a", "refresh-a");
     const fetchMock = mockApi();
     render(<Profile currentUser={currentUser} />);
-    await screen.findByText("Academic");
+    await screen.findByRole("heading", { name: identity.user.email });
     const pending = deferred();
     fetchMock.mockReturnValue(pending.promise);
     let request;
     act(() => { request = logout(); });
     expect(screen.queryByRole("heading", { name: identity.user.email })).not.toBeInTheDocument();
-    expect(screen.queryByText("Academic")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "View Organization plan" })).not.toBeInTheDocument();
     expect(screen.getByText("Sign in required")).toBeInTheDocument();
     await act(async () => { pending.resolve(json({})); await request; });
   });
@@ -153,12 +143,12 @@ describe("Profile", () => {
   it("immediately clears loaded identity and billing when the token changes", async () => {
     const fetchMock = mockApi();
     render(<Profile currentUser={currentUser} />);
-    await screen.findByText("Academic");
+    await screen.findByRole("heading", { name: identity.user.email });
     const pending = deferred();
     fetchMock.mockReturnValue(pending.promise);
     act(() => setSession("token-b"));
     expect(screen.queryByText(identity.user.email)).not.toBeInTheDocument();
-    expect(screen.queryByText("Academic")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "View Organization plan" })).not.toBeInTheDocument();
     expect(screen.getByText("Loading profile…")).toBeInTheDocument();
     await act(async () => pending.resolve(json({ user: { id: 8, email: "b@example.org" } })));
     expect(await screen.findByRole("heading", { name: "b@example.org" })).toBeInTheDocument();
@@ -180,25 +170,22 @@ describe("Profile", () => {
     expect(screen.getByRole("heading", { name: "b@example.org" })).toBeInTheDocument();
   });
 
-  it.each([200, 401, 502])("ignores a stale billing %s without invalidating the new login", async status => {
-    const pending = deferred();
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(json(identity))
-      .mockReturnValueOnce(pending.promise)
+  it.each([200, 401, 502])("does not start the removed profile billing request (%s)", async status => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(json(identity))
       .mockResolvedValue(json({ user: { id: 8, email: "b@example.org" } }));
     render(<Profile currentUser={currentUser} />);
-    await screen.findByText("Loading organization plan…");
+    await screen.findByRole("heading", { name: identity.user.email });
     act(() => setSession("token-b"));
     await screen.findByRole("heading", { name: "b@example.org" });
-    await act(async () => pending.resolve(json({ plan_name: "Private old plan" }, status)));
     expect(getToken()).toBe("token-b");
-    expect(screen.queryByText("Private old plan")).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.every(([url]) => String(url).endsWith("/me"))).toBe(true);
     expect(screen.getByRole("heading", { name: "b@example.org" })).toBeInTheDocument();
   });
 
   it("clears data on cross-tab invalidation", async () => {
     mockApi();
     render(<Profile currentUser={currentUser} />);
-    await screen.findByText("Academic");
+    await screen.findByRole("heading", { name: identity.user.email });
     act(() => {
       localStorage.removeItem("omnibioai_access_token");
       window.dispatchEvent(new StorageEvent("storage", { key: "omnibioai_access_token" }));

@@ -8,13 +8,14 @@ afterEach(() => { cleanup(); delete window.api; });
 describe("AccountHelp", () => {
   it("renders only verified destinations, never a Download apps or Support row", () => {
     render(<AccountHelp />);
-    expect(screen.getByRole("heading", { name: "Help & Product" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Help & support" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Documentation/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Release notes/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Source code/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /OmniBioAI \(opens/ })).toBeInTheDocument();
     expect(screen.queryByText(/Download/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Support/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Support$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Support$/i })).not.toBeInTheDocument();
   });
 
   it("opens destinations via the browser-safe window.open fallback outside Electron", () => {

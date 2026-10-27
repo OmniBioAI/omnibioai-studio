@@ -3,9 +3,17 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AccountLayout from "../../src/ui/components/AccountLayout";
 
+const { logout } = vi.hoisted(() => ({ logout: vi.fn() }));
+vi.mock("../../src/ui/lib/session", () => ({ logout }));
+
 afterEach(cleanup);
 
 describe("AccountLayout", () => {
+  it("lets a signed-in user sign out from Account", () => {
+    render(<AccountLayout activeSection="profile" currentUser={{ email: "user@example.test", permissions: [] }} identity={{ organizations: [] }} onNavigate={vi.fn()}>Profile</AccountLayout>);
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    expect(logout).toHaveBeenCalledOnce();
+  });
   it("renders grouped real links and marks the active page", () => {
     const navigate = vi.fn();
     render(<AccountLayout activeSection="billing" currentUser={{ permissions: [] }} identity={{ organizations: [{ organization_id: 5, organization_name: "Genome Lab" }] }} onNavigate={navigate}>Billing content</AccountLayout>);

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { logout } from "../lib/session";
 
 export const ACCOUNT_SECTIONS = [
   { group: "Your account", items: [
@@ -66,6 +67,7 @@ export default function AccountLayout({ activeSection, currentUser, identity, on
                 onClick={event => { event.preventDefault(); onNavigate(item.id); }}><span>{item.label}</span></a>)}
             </div>)}
           </nav>
+          {currentUser && <button type="button" className="account-signout" onClick={logout}>Sign out</button>}
         </aside>
         <main className="account-content" id="account-content">
           {typeof children === "function" ? children({ organizationId, organization: selectedOrganization, organizations }) : children}

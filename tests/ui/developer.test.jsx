@@ -85,9 +85,9 @@ describe("Developer page", () => {
     expect(screen.getByText("Revoked")).toBeInTheDocument();
     expect(screen.getAllByRole("columnheader").map(node => node.textContent)).toEqual(["Name", "Key", "Created", "Last used", "Expires", "Actions"]);
     expect(billing.getUsageLimits).toHaveBeenCalledWith("42");
-    const meter = screen.getByRole("link", { name: "Literature answers 0 / 100. View Billing" });
+    const meter = screen.getByRole("link", { name: "Literature answers 0 / 100. View Usage" });
     expect(meter).toHaveClass("developer-usage");
-    expect(meter).toHaveAttribute("href", "/studio/billing");
+    expect(meter).toHaveAttribute("href", "/studio/account/organization/usage");
   });
 
   it("sorts and dims revoked keys and hides more than three behind a toggle", async () => {

@@ -8,6 +8,7 @@ vi.mock("../../src/ui/lib/session", () => ({
   getCurrentUserSync: () => session.user, getSessionVersion: () => 1,
   onSessionChange: vi.fn(() => vi.fn()), consumeOAuthRedirectParams: vi.fn(() => null),
   isElectron: vi.fn(() => true), refresh: vi.fn(), getRefreshToken: vi.fn(() => null), getToken: vi.fn(() => "token"),
+  logout: vi.fn(),
 }));
 vi.mock("../../src/ui/lib/web/webApi", () => ({ loadConfig: vi.fn(async () => ({ mode: "beta" })) }));
 vi.mock("../../src/ui/components/LicenseGate", () => ({ default: ({ children }) => <>{children}</> }));

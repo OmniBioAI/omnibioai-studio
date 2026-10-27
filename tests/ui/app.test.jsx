@@ -3,7 +3,7 @@ vi.mock("../../src/ui/components/PreferencesProvider", () => ({ default: ({ chil
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams } = vi.hoisted(() => ({
+const { getCurrentUser, getIdentity, onSessionChange, consumeOAuthRedirectParams } = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getIdentity: vi.fn().mockResolvedValue({ organizations: [] }),
   onSessionChange: vi.fn(() => () => {}),

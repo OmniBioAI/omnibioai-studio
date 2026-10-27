@@ -120,7 +120,7 @@ describe("Storage Visual V2", () => {
     await screen.findByText(`Membership: ${name}`);
     expect(screen.getAllByText("Current plan")).toHaveLength(1);
     expect(within(screen.getByRole("article", { name: `${name} storage plan` })).getByText("Current plan")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Explore membership plans/ })).toHaveAttribute("href", "/studio/billing/plans");
+    expect(screen.getByRole("link", { name: /Compare Membership tiers/ })).toHaveAttribute("href", "#compare-membership");
   });
   it("uses the effective API quota even when it differs from the standard plan", async () => {
     render(<AccountStorage />); await screen.findByText("Membership: Free");
@@ -130,8 +130,9 @@ describe("Storage Visual V2", () => {
   });
   it("keeps all four cards but no chart or current plan when entitlements are missing", async () => {
     fetch.mockResolvedValue(response({ ...usage, membership_plan: null, quota_bytes: null, available_bytes: null, entitlement_status: "cached_or_unavailable" }));
-    render(<AccountStorage />); await screen.findByText("Membership: Unavailable");
-    expect(["Used", "Reserved", "Available", "Total"].map(displayed)).toEqual(["200 B", "300 B", "Unavailable", "Unavailable"]);
+    render(<AccountStorage />); await screen.findByText("Couldn’t load Membership");
+    expect(screen.getByText("Couldn’t load storage allowance")).toBeInTheDocument();
+    expect(["Used", "Reserved", "Available", "Total"].map(displayed)).toEqual(["200 B", "300 B", "—", "—"]);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.queryByText("Current plan")).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("No allowance has been assumed");

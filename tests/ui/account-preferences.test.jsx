@@ -40,7 +40,7 @@ describe("account preferences", () => {
   it("loads canonical defaults, provides accessible input and hides unsupported settings", async () => {
     render(<Tree />); expect(screen.getByText("Loading preferences…")).toBeInTheDocument();
     expect(await screen.findByLabelText("Time zone")).toHaveValue("");
-    expect(screen.getByRole("button", { name: "Preferences" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Preferences" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "Save preferences" })).toBeDisabled();
     // Appearance is dropped from this guard — it's now a real sibling Account section
     // (see AccountAppearance.jsx), not an unsupported setting; its sidebar nav entry

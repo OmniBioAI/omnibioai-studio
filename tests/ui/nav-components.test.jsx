@@ -15,26 +15,23 @@ const user = { email: "u@test" };
 afterEach(() => { cleanup(); vi.clearAllMocks(); delete window.api; });
 
 describe("Sidebar", () => {
-  it("opens Personalization through the personal footer", () => {
+  it("opens Account directly from the former Personalization entry point", () => {
     const navigate = vi.fn();
-    render(<Sidebar nav={nav} step={24} setStep={vi.fn()} systemStatus="idle" currentUser={user} onPersonalizationClick={navigate} isPersonalizationActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    const item = screen.getByRole("menuitem", { name: /Personalization/ }); expect(item).toHaveAttribute("aria-current", "page");
-    fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
+    render(<Sidebar nav={nav} step={24} setStep={vi.fn()} systemStatus="idle" currentUser={user} onProfileClick={navigate} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
+    expect(navigate).toHaveBeenCalledOnce();
   });
-  it("opens Preferences through the personal footer", () => {
+  it("opens Account directly from the former Preferences entry point", () => {
     const navigate = vi.fn();
-    render(<Sidebar nav={nav} step={17} setStep={vi.fn()} systemStatus="idle" currentUser={{ userId: 1, email: "test@example.test" }} onPreferencesClick={navigate} isPreferencesActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    const item = screen.getByRole("menuitem", { name: /Preferences/ }); expect(item).toHaveAttribute("aria-current", "page");
-    fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
+    render(<Sidebar nav={nav} step={17} setStep={vi.fn()} systemStatus="idle" currentUser={{ userId: 1, email: "test@example.test" }} onProfileClick={navigate} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
+    expect(navigate).toHaveBeenCalledOnce();
   });
-  it("opens Appearance through the personal footer", () => {
+  it("opens Account directly from the former Appearance entry point", () => {
     const navigate = vi.fn();
-    render(<Sidebar nav={nav} step={24} setStep={vi.fn()} systemStatus="idle" currentUser={{ userId: 1, email: "test@example.test" }} onAppearanceClick={navigate} isAppearanceActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    const item = screen.getByRole("menuitem", { name: /Appearance/ }); expect(item).toHaveAttribute("aria-current", "page");
-    fireEvent.click(item); expect(navigate).toHaveBeenCalledOnce();
+    render(<Sidebar nav={nav} step={24} setStep={vi.fn()} systemStatus="idle" currentUser={{ userId: 1, email: "test@example.test" }} onProfileClick={navigate} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
+    expect(navigate).toHaveBeenCalledOnce();
   });
   it("renders Studio as the first top-level destination and keeps grouped items ordered", () => {
     const fullNav = [
@@ -61,34 +58,31 @@ describe("Sidebar", () => {
     expect(sections[4].textContent).toContain("Settings");
   });
 
-  it("shows the signed-in user and signs out on click", () => {
-    render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="idle" currentUser={user} />);
+  it("shows the signed-in user in the direct Account control", () => {
+    const navigate = vi.fn();
+    render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="idle" currentUser={user} onProfileClick={navigate} />);
     expect(screen.getByText("u@test")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
-    expect(logout).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
   it("opens Profile from the signed-in desktop account area", () => {
     const onProfileClick = vi.fn();
     render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="idle"
       currentUser={user} onProfileClick={onProfileClick} isProfileActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    const profile = screen.getByRole("menuitem", { name: /Profile/ });
+    const profile = screen.getByRole("button", { name: "Open Account" });
     expect(profile).toHaveAttribute("aria-current", "page");
     fireEvent.click(profile);
     expect(onProfileClick).toHaveBeenCalledOnce();
   });
 
-  it("opens Security from the signed-in desktop account area", () => {
-    const onSecurityClick = vi.fn();
+  it("opens the Account profile from Security in the signed-in desktop area", () => {
+    const onProfileClick = vi.fn();
     render(<Sidebar nav={nav} step={16} setStep={vi.fn()} systemStatus="idle" currentUser={user}
-      onProfileClick={vi.fn()} onSecurityClick={onSecurityClick} isSecurityActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    const security = screen.getByRole("menuitem", { name: /Security/ });
-    expect(security).toHaveAttribute("aria-current", "page");
-    fireEvent.click(security);
-    expect(onSecurityClick).toHaveBeenCalledOnce();
+      onProfileClick={onProfileClick} isSecurityActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
+    expect(onProfileClick).toHaveBeenCalledOnce();
   });
 
   it("hides the signed-in block when signed out, and falls back to IDLE for an unknown status", () => {
@@ -121,47 +115,41 @@ describe("Sidebar", () => {
 });
 
 describe("MobileNav", () => {
-  it("opens Storage through the account menu and closes the drawer", () => {
+  it("opens Account directly from Storage and closes the drawer", () => {
     const navigate = vi.fn(), close = vi.fn();
-    render(<MobileNav nav={nav} step={32} setStep={vi.fn()} currentUser={user} open onClose={close} onStorageClick={navigate} isStorageActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    const item = screen.getByRole("menuitem", { name: "Storage" });
-    expect(item).toHaveAttribute("aria-current", "page");
-    fireEvent.click(item);
+    render(<MobileNav nav={nav} step={32} setStep={vi.fn()} currentUser={user} open onClose={close} onProfileClick={navigate} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
     expect(navigate).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();
   });
 
-  it("opens Personalization and closes the drawer", () => {
+  it("opens Account from Personalization and closes the drawer", () => {
     const navigate = vi.fn(), close = vi.fn();
-    render(<MobileNav nav={nav} step={24} setStep={vi.fn()} currentUser={user} open onClose={close} onPersonalizationClick={navigate} isPersonalizationActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Personalization/ }));
+    render(<MobileNav nav={nav} step={24} setStep={vi.fn()} currentUser={user} open onClose={close} onProfileClick={navigate} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
     expect(navigate).toHaveBeenCalledOnce(); expect(close).toHaveBeenCalledOnce();
   });
-  it("opens Preferences and closes the drawer", () => {
+  it("opens Account from Preferences and closes the drawer", () => {
     const navigate = vi.fn(), close = vi.fn();
-    render(<MobileNav nav={nav} step={17} setStep={vi.fn()} currentUser={{ userId: 1, email: "test@example.test" }} open onClose={close} onPreferencesClick={navigate} isPreferencesActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Preferences/ }));
+    render(<MobileNav nav={nav} step={17} setStep={vi.fn()} currentUser={{ userId: 1, email: "test@example.test" }} open onClose={close} onProfileClick={navigate} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
     expect(navigate).toHaveBeenCalledOnce(); expect(close).toHaveBeenCalledOnce();
   });
-  it("opens Appearance and closes the drawer", () => {
+  it("opens Account from Appearance and closes the drawer", () => {
     const navigate = vi.fn(), close = vi.fn();
-    render(<MobileNav nav={nav} step={24} setStep={vi.fn()} currentUser={{ userId: 1, email: "test@example.test" }} open onClose={close} onAppearanceClick={navigate} isAppearanceActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Appearance/ }));
+    render(<MobileNav nav={nav} step={24} setStep={vi.fn()} currentUser={{ userId: 1, email: "test@example.test" }} open onClose={close} onProfileClick={navigate} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
     expect(navigate).toHaveBeenCalledOnce(); expect(close).toHaveBeenCalledOnce();
   });
-  it("closes on backdrop click, and signs out and closes on Sign out click", () => {
+  it("closes on backdrop click and after direct Account navigation", () => {
     const onClose = vi.fn();
-    const { container } = render(<MobileNav nav={nav} step={4} setStep={vi.fn()} currentUser={user} open onClose={onClose} />);
+    const navigate = vi.fn();
+    const { container } = render(<MobileNav nav={nav} step={4} setStep={vi.fn()} currentUser={user} open onClose={onClose} onProfileClick={navigate} />);
     fireEvent.click(container.querySelector('[aria-hidden="true"]'));
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
-    expect(logout).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
+    expect(navigate).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
@@ -170,21 +158,19 @@ describe("MobileNav", () => {
     const onProfileClick = vi.fn();
     render(<MobileNav nav={nav} step={4} setStep={vi.fn()} currentUser={user} open
       onClose={onClose} onProfileClick={onProfileClick} isProfileActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    const profile = screen.getByRole("menuitem", { name: /Profile/ });
+    const profile = screen.getByRole("button", { name: "Open Account" });
     expect(profile).toHaveAttribute("aria-current", "page");
     fireEvent.click(profile);
     expect(onProfileClick).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("opens Security from the signed-in mobile account area and closes the drawer", () => {
+  it("opens Account from Security in the signed-in mobile area and closes the drawer", () => {
     const onClose = vi.fn();
     const onSecurityClick = vi.fn();
     render(<MobileNav nav={nav} step={16} setStep={vi.fn()} currentUser={user} open
-      onClose={onClose} onProfileClick={vi.fn()} onSecurityClick={onSecurityClick} isSecurityActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Security/ }));
+      onClose={onClose} onProfileClick={onSecurityClick} isSecurityActive />);
+    fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
     expect(onSecurityClick).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -226,7 +212,7 @@ describe("MobileNav", () => {
   it("ignores other keys and renders closed with no drawer effects", () => {
     const { container } = render(<MobileNav nav={nav} step={0} setStep={vi.fn()} currentUser={user} open={false} onClose={vi.fn()} />);
     expect(container.querySelector('[role="dialog"]')).toHaveAttribute("aria-hidden", "true");
-    expect(screen.queryByRole("button", { name: "Account menu" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Account" })).not.toBeInTheDocument();
   });
 
   it("renders a disabled nav item as genuinely inert: no onClick fires, not keyboard-activatable (tabIndex=-1, no keydown handler), aria-disabled is set", () => {

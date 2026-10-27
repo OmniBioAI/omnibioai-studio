@@ -7,7 +7,7 @@
 .membership-current { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-height: 24px; padding: 12px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--color-text-muted); }
 .membership-current-error, .membership-notice-error { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
 .membership-toggle { display: inline-flex; justify-self: center; padding: 4px; background: var(--bg2); border: 1px solid var(--border); border-radius: 999px; }
-.membership-toggle button { min-width: 100px; padding: 8px 14px; border: 0; border-radius: 999px; color: var(--color-text-muted); background: transparent; font: inherit; cursor: pointer; }
+.membership-toggle button { min-width: 100px; min-height: 44px; padding: 8px 14px; border: 0; border-radius: 999px; color: var(--color-text-muted); background: transparent; font: inherit; cursor: pointer; }
 .membership-toggle button[aria-pressed="true"] { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, var(--bg)); }
 .membership-annual, .membership-notice { margin: -10px 0 0; padding: 10px 12px; border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); color: var(--color-text-muted); }
 .membership-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
@@ -21,11 +21,11 @@
 .membership-price span { color: var(--color-text-muted); }
 .membership-card ul { display: grid; gap: 8px; padding-left: 19px; }
 .membership-card-action { margin-top: auto; padding-top: 12px; }
-.membership-card-action button { width: 100%; min-height: 40px; padding: 8px 12px; color: var(--text); background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; }
+.membership-card-action button { width: 100%; min-height: 44px; padding: 8px 12px; color: var(--text); background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; }
 .membership-card-action button:disabled { cursor: not-allowed; opacity: .62; }
 .membership-action-note { margin: 7px 0 0; font-size: var(--font-size-xs); }
 .membership-manage { display: flex; justify-content: flex-end; }
-.membership-manage button { min-height: 40px; padding: 8px 13px; color: var(--text); background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; cursor: pointer; }
+.membership-manage button { min-height: 44px; padding: 8px 13px; color: var(--text); background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); font: inherit; cursor: pointer; }
 .membership-table-wrap { max-width: 100%; overflow-x: auto; }
 .membership-table { width: 100%; min-width: 780px; border-collapse: collapse; text-align: left; }
 .membership-table th, .membership-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.45; }

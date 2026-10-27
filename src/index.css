@@ -19,7 +19,7 @@
 .account-menu-identity { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 7px 8px; }
 .account-menu-email { color: var(--text); }
 .account-menu-separator { height: 1px; margin: 5px 0; background: var(--border); }
-.account-menu-popover button { width: 100%; min-height: 40px; padding: 8px 9px; display: flex; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; font-size: var(--font-size-sm); cursor: pointer; text-align: left; }
+.account-menu-popover button { width: 100%; min-height: 44px; padding: 8px 9px; display: flex; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; font-size: var(--font-size-sm); cursor: pointer; text-align: left; }
 .account-menu-popover button:hover, .account-menu-popover button[aria-current="page"] { border-color: rgba(0,229,160,.15); background: rgba(0,229,160,.08); color: var(--accent); }
 .account-menu-popover .account-menu-signout { color: var(--danger); }
 .account-shell { width: 100%; min-width: 0; max-width: 1120px; margin: 0 auto; display: grid; gap: 20px; }
@@ -44,10 +44,13 @@
 .account-local-active { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .account-search { margin: 0 8px 10px; }
 .account-search-label { display: block; margin-bottom: 4px; font-size: var(--font-size-xs); color: var(--color-text-muted); }
-.account-search input { width: 100%; min-height: 36px; padding: 6px 10px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font: inherit; font-size: var(--font-size-sm); }
+.account-search input { width: 100%; min-height: 44px; padding: 6px 10px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font: inherit; font-size: var(--font-size-sm); }
 .account-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .account-search-empty { margin: 4px 8px 0; color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.account-signout { min-width: 44px; min-height: 44px; margin: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; cursor: pointer; }
 .account-content { min-width: 0; }
+.account-shell .account-content button { min-height: 44px; }
+.account-shell .account-content a { min-height: 44px; display: inline-flex; align-items: center; }
 .account-content > * + * { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--border); }
 .account-state { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg2); color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: left; }
 .account-state strong { color: var(--text); }
@@ -116,7 +119,7 @@
 .mfa-dialog h3 { margin-top: 0; }
 .mfa-dialog p { line-height: 1.5; overflow-wrap: anywhere; }
 .mfa-dialog form { display: grid; gap: 12px; }
-.mfa-dialog button { margin: 6px 6px 6px 0; min-height: 40px; }
+.mfa-dialog button { margin: 6px 6px 6px 0; min-height: 44px; }
 .mfa-dialog label { display: block; }
 .mfa-dialog :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .mfa-secret { display: block; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; border: 1px solid var(--border); background: var(--bg); font-family: var(--mono); }

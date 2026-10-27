@@ -75,7 +75,9 @@ function NotificationCenter() {
       <p>Manage your personal OmniBioAI in-app notifications and preferences.</p></header>
     <Card title="Inbox">
       <div className="notification-toolbar">
-        {unread === undefined ? <AccountState variant="error" title="Couldn’t load unread count" onRetry={() => setReload(value => value + 1)}>Notification count failed to load.</AccountState> : <p role="status" aria-live="polite">{`${unread} unread`}</p>}
+        {inbox.status === "success" && unread === undefined
+          ? <AccountState variant="error" title="Couldn’t load unread count" onRetry={() => setReload(value => value + 1)}>Notification count failed to load.</AccountState>
+          : inbox.status === "success" ? <p role="status" aria-live="polite">{`${unread} unread`}</p> : null}
         <button type="button" className={buttonClass} onClick={() => setReload(value => value + 1)}>Refresh inbox</button>
       </div>
       <div className="notification-toolbar" role="group" aria-label="Inbox filters">
