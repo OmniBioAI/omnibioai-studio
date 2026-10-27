@@ -4,6 +4,7 @@ import { MEMBERSHIP_FEATURES, MEMBERSHIP_PLANS, normalizeMembershipState } from 
 import * as billingApi from "../lib/billingApi";
 import { openStripeUrl } from "../lib/stripePortal";
 import AccountState from "../components/AccountState";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 import "./MembershipPlans.css";
 
 function useCheckoutNotice() {
@@ -75,7 +76,7 @@ export default function MembershipPlans({ currentUser, membershipState, onBillin
       const { url } = await call();
       openStripeUrl(url);
     } catch (error) {
-      setActionError(error?.message || "Billing could not start that action. Please try again.");
+      setActionError(safeErrorMessage(error, "Billing could not start that action. Please try again."));
     } finally {
       setBusyPlan("");
     }

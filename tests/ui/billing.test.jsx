@@ -202,7 +202,52 @@ describe("Billing redesign", () => {
   it("shows a billing error message instead of a blank page when an API fails", async () => {
     api.getSubscription.mockRejectedValue(new Error("Billing service unavailable"));
     render(<Billing currentUser={member} />);
-    expect(await screen.findByText("Billing service unavailable")).toBeInTheDocument();
+    expect(await screen.findByText("Some billing details could not be loaded. Please try again.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Organization plan" })).toBeInTheDocument();
+  });
+
+  describe("never renders server error text", () => {
+    const RAW = "psycopg2.OperationalError: could not connect to server at 10.0.0.12:5432\nTraceback (most recent call last): File \"/app/views.py\", line 42";
+    const serverError = (status = 500) => Object.assign(new Error(RAW), { status });
+    const expectNoRawText = () => {
+      const text = document.body.textContent;
+      for (const fragment of ["psycopg2", "10.0.0.12", "Traceback", "/app/views.py", "OperationalError"]) expect(text).not.toContain(fragment);
+    };
+
+    it("shows one safe message when several overview requests fail with server details", async () => {
+      for (const call of [api.getSubscription, api.getUsageLimits, api.getBillingSummary, api.getPaymentMethod, api.getInvoices]) call.mockRejectedValue(serverError());
+      render(<Billing currentUser={member} />);
+      expect(await screen.findByText("The service is temporarily unavailable. Please try again later.")).toBeInTheDocument();
+      expect(screen.getAllByText("The service is temporarily unavailable. Please try again later.")).toHaveLength(1);
+      expectNoRawText();
+    });
+
+    it("uses the generic fallback for failures without a known status", async () => {
+      api.getInvoices.mockRejectedValue(new Error(RAW));
+      render(<Billing currentUser={member} />);
+      expect(await screen.findByText("Some billing details could not be loaded. Please try again.")).toBeInTheDocument();
+      expectNoRawText();
+    });
+
+    it("keeps Checkout setup failures generic", async () => {
+      api.getPaymentMethod.mockResolvedValue({ stripe_enabled: true, can_manage: true, has_payment_method: false, card: null });
+      api.createPaymentSetupSession.mockRejectedValue(new Error(RAW));
+      const stripeTab = { opener: {}, document: { title: "", body: { textContent: "" } }, closed: false, close: vi.fn() };
+      vi.spyOn(window, "open").mockReturnValue(stripeTab);
+      render(<Billing currentUser={member} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Add payment method" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Could not start secure Checkout. Please try again.");
+      expectNoRawText();
+    });
+
+    it("keeps Usage report failures generic", async () => {
+      api.getUsageSummary.mockRejectedValue(serverError(502));
+      api.getCostHistory.mockRejectedValue(serverError(503));
+      api.getCostBreakdown.mockRejectedValue(new Error(RAW));
+      render(<Billing currentUser={member} view="usage" />);
+      expect(await screen.findByText("The service is temporarily unavailable. Please try again later.")).toBeInTheDocument();
+      expect(screen.getByText("Usage reporting unavailable.")).toBeInTheDocument();
+      expectNoRawText();
+    });
   });
 });

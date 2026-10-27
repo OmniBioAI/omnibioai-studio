@@ -170,10 +170,11 @@ describe("MembershipPlans", () => {
       owner_type: "USER", plan: "free", subscription_status: "active",
       storage_quota_bytes: 1_000_000_000, checkout_eligible_plans: ["pro"], portal_available: false,
     });
-    billingApi.createUserMembershipCheckout.mockRejectedValue(new Error("Checkout configuration unavailable"));
+    billingApi.createUserMembershipCheckout.mockRejectedValue(Object.assign(new Error("psycopg2.OperationalError at 10.0.0.12:5432"), { status: 500 }));
     render(<MembershipPlans currentUser={user} />);
     fireEvent.click(await screen.findByRole("button", { name: "Upgrade to Pro" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Checkout configuration unavailable");
+    expect(await screen.findByRole("alert")).toHaveTextContent("The service is temporarily unavailable. Please try again later.");
+    expect(document.body.textContent).not.toMatch(/psycopg2|10\.0\.0\.12/);
     expect(screen.getByRole("button", { name: "Free is your current plan" })).toBeDisabled();
   });
 

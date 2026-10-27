@@ -3,6 +3,7 @@ import { Badge, Button, Card, ProgressBar, Spinner } from "@omnibioai/ui";
 import Login from "../components/Login";
 import AccountState from "../components/AccountState";
 import * as billingApi from "../lib/billingApi";
+import { safeErrorMessage } from "../lib/safeErrorMessage";
 import { openStripeUrl } from "../lib/stripePortal";
 import "./BillingRedesign.css";
 
@@ -71,8 +72,10 @@ function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
     ]).then(results => {
       if (!active) return;
       const [subscription, limits, summary, payment, invoices] = results;
-      const errors = results.map((result, index) => result.status === "rejected" && result.reason?.status !== 404
-        ? result.reason?.message || `Billing data ${index + 1} unavailable` : null).filter(Boolean);
+      // Never render server-provided text: it can carry tracebacks or internal hosts.
+      const errors = [...new Set(results
+        .filter(result => result.status === "rejected" && result.reason?.status !== 404)
+        .map(result => safeErrorMessage(result.reason, "Some billing details could not be loaded. Please try again.")))];
       setState({
         loading: false,
         subscription: subscription.status === "fulfilled" ? subscription.value : null,
@@ -114,7 +117,7 @@ function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
       openStripeUrl(url, stripeTab);
     } catch (error) {
       if (stripeTab && !stripeTab.closed) stripeTab.close();
-      setPaymentAction({ pending: false, error: error?.message || "Could not start secure Checkout. Please try again." });
+      setPaymentAction({ pending: false, error: safeErrorMessage(error, "Could not start secure Checkout. Please try again.") });
       return;
     }
     setPaymentAction({ pending: false, error: "" });
@@ -234,7 +237,7 @@ function UsageDetails({ orgId, rows, summary }) {
         usage: usage.status === "fulfilled" ? usage.value.services || [] : [],
         history: history.status === "fulfilled" ? history.value.history || [] : [],
         breakdown: breakdown.status === "fulfilled" ? breakdown.value.breakdown || {} : {},
-        errors: [usage, history, breakdown].filter(result => result.status === "rejected").map(result => result.reason?.message || "Usage reporting unavailable."),
+        errors: [...new Set([usage, history, breakdown].filter(result => result.status === "rejected").map(result => safeErrorMessage(result.reason, "Usage reporting unavailable.")))],
       });
     });
     return () => { active = false; };
