@@ -13,7 +13,7 @@ function renderPage(userId = 1) {
 describe("AccountAppearance", () => {
   it("renders the heading, a live preview and every control group", () => {
     renderPage();
-    expect(screen.getByRole("heading", { name: "Appearance", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Appearance", level: 2 })).toBeInTheDocument();
     expect(screen.getByText(/never change how the AI responds/)).toBeInTheDocument();
     expect(screen.getByText("RNA-seq workflow")).toBeInTheDocument();
     expect(screen.getByText(/Preview only/)).toBeInTheDocument();

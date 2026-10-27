@@ -23,6 +23,7 @@
     "check-docs": "python3 scripts/check_service_catalog.py",
     "test:secrets": "node --test tests/test_secret_generation.js",
     "test:ui": "npm --prefix packages/omnibioai-ui run test:app",
+    "test:ui-quality": "npm run web:build && node --test tests/ui-quality/*.test.mjs",
     "coverage:ui": "npm --prefix packages/omnibioai-ui run coverage:app"
   },
   "dependencies": {

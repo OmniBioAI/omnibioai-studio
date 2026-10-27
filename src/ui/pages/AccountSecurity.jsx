@@ -7,6 +7,7 @@ import AccountState from "../components/AccountState";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 
 const loadingState = () => ({ status: "loading", data: null, error: "" });
+const hasValidDate = value => !!value && !Number.isNaN(new Date(value).getTime());
 
 function SectionState({ state, label, onRetry }) {
   if (state.status === "loading") {
@@ -149,7 +150,7 @@ export default function AccountSecurity({ currentUser }) {
   return (
     <div className="security-page">
       <header>
-        <h1>Security</h1>
+        <h2>Security</h2>
         <p>Protect your OmniBioAI account</p>
       </header>
 
@@ -200,8 +201,8 @@ export default function AccountSecurity({ currentUser }) {
             <div className="security-row" key={session.session_id}>
               <div>
                 <strong>{session.auth_method || "Authentication method not provided"}</strong>
-                <span>Created {formatDate(session.created_at)}</span>
-                <span>Last active {formatDate(session.last_activity_at)}</span>
+                {hasValidDate(session.created_at) && <span>Created {formatDate(session.created_at)}</span>}
+                {hasValidDate(session.last_activity_at) && <span>Last active {formatDate(session.last_activity_at)}</span>}
                 {session.user_agent && <span>{session.user_agent}</span>}
                 {session.client_ip && <span>IP {session.client_ip}</span>}
               </div>
@@ -240,7 +241,7 @@ export default function AccountSecurity({ currentUser }) {
               {apiKeys.data.map(key => (
                 <div className="security-row" key={key.id}>
                   <div><strong>{key.name || key.key_prefix}</strong><span><code>{key.key_prefix}…</code></span>
-                    <span>Created {formatDate(key.created_at)}</span>{key.last_used_at && <span>Last used {formatDate(key.last_used_at)}</span>}</div>
+                    {hasValidDate(key.created_at) && <span>Created {formatDate(key.created_at)}</span>}{hasValidDate(key.last_used_at) && <span>Last used {formatDate(key.last_used_at)}</span>}</div>
                   <div className="security-row-actions"><Badge variant={key.status === "active" ? "success" : "neutral"}>{key.status}</Badge>
                     {key.status === "active" && <Button variant="danger" size="sm" disabled={revokingKey === key.id} onClick={() => revokeKey(key)}>
                       {revokingKey === key.id ? "Revoking…" : "Revoke"}

@@ -35,6 +35,7 @@ export default function AccountLayout({ activeSection, currentUser, identity, on
   const visibleSections = useMemo(() => ACCOUNT_SECTIONS.map(group => ({
     ...group, items: group.items.filter(item => !item.permission || currentUser?.permissions?.includes(item.permission)),
   })), [currentUser?.permissions]);
+  const activeLabel = visibleSections.flatMap(group => group.items).find(item => item.id === activeSection)?.label || "Account";
   const selectedOrganization = organizations.find(org => String(org.organization_id) === organizationId);
   function changeOrganization(next) {
     setOrganizationId(next);
@@ -45,7 +46,7 @@ export default function AccountLayout({ activeSection, currentUser, identity, on
   return (
     <section className="account-shell" aria-labelledby="account-heading">
       <header className="account-shell-header">
-        <div><p className="account-shell-eyebrow">Settings</p><h1 id="account-heading">Account</h1></div>
+        <div><p className="account-shell-eyebrow">Account</p><h1 id="account-heading">{activeLabel}</h1></div>
         {organizations.length > 1 ? <div className="account-organization-switcher">
           <span>Organization</span>
           <button type="button" aria-haspopup="listbox" aria-expanded={switcherOpen} onClick={() => setSwitcherOpen(value => !value)}>

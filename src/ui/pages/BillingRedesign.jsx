@@ -51,7 +51,7 @@ export default function BillingRedesign({ currentUser, organizationId, view = "b
   if (!currentUser) return <Login title="Sign in required" description="Billing information requires an authenticated OmniBioAI account." />;
   const orgId = organizationId || currentUser.orgId;
   if (orgId == null) {
-    return <section className="billing-page"><header><h1>Organization plan</h1><p>Plan and invoices for your organization.</p></header><Card><p>No organization is associated with this session.</p></Card>{onMembershipPlans && <Button variant="secondary" onClick={onMembershipPlans}>Membership</Button>}</section>;
+    return <section className="billing-page"><header><h2>Organization plan</h2><p>Plan and invoices for your organization.</p></header><Card><p>No organization is associated with this session.</p></Card>{onMembershipPlans && <Button variant="secondary" onClick={onMembershipPlans}>Membership</Button>}</section>;
   }
   return <BillingDashboard key={`${orgId}:${view}`} orgId={orgId} view={view} onMembershipPlans={onMembershipPlans} onStorage={onStorage} />;
 }
@@ -124,13 +124,13 @@ function BillingDashboard({ orgId, view, onMembershipPlans, onStorage }) {
   }
 
   if (view === "usage") return <main className="billing-page">
-    <header className="billing-header"><div><h1>Usage</h1><p className="billing-subtitle">Request limits and metered costs for your organization.</p></div></header>
+    <header className="billing-header"><div><h2>Usage</h2><p className="billing-subtitle">Request limits and metered costs for your organization.</p></div></header>
     <UsageDetails orgId={orgId} rows={usageRows} summary={summary} />
   </main>;
 
   return <main className="billing-page">
     <header className="billing-header">
-      <div><h1>Organization plan</h1><p className="billing-subtitle">Plan, payment method and invoices for your organization.</p></div>
+      <div><h2>Organization plan</h2><p className="billing-subtitle">Plan, payment method and invoices for your organization.</p></div>
     </header>
     <p className="billing-cross-link">Looking for your personal storage? <a href="/studio/account/membership-storage" onClick={event => { if (onMembershipPlans) { event.preventDefault(); onMembershipPlans(); } }}>View Membership &amp; storage</a></p>
 

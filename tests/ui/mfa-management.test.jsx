@@ -30,7 +30,7 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a, b)
 const click = name => fireEvent.click(screen.getByRole("button", { name }));
 const mount = (devices = [verified]) => render(<MfaManagement currentUser={user} devices={devices} onChanged={changed} />);
 const switchSession = token => act(() => { session.token = token; session.version++; session.listeners.forEach(callback => callback()); });
-async function start() { click("Add authenticator"); await screen.findByText(secret); }
+async function start() { click("Add authenticator"); click("Continue"); await screen.findByText(secret); }
 async function recovery() { click("Manage recovery codes"); await screen.findByText("2 unused recovery codes."); click("Regenerate recovery codes"); await screen.findByText(/TEST-RECOVERY-CODE-0001/, { selector: "pre" }); }
 
 beforeEach(() => {
@@ -49,6 +49,19 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("MFA enrollment", () => {
+  it("does not enrol until Continue and Cancel or Escape leaves no pending secret", () => {
+    mount(); const trigger = screen.getByRole("button", { name: "Add authenticator" });
+    fireEvent.click(trigger);
+    expect(api.startMfaEnrollment).not.toHaveBeenCalled();
+    expect(screen.queryByText(secret)).not.toBeInTheDocument();
+    click("Cancel");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(trigger);
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { bubbles: false, cancelable: true }));
+    expect(api.startMfaEnrollment).not.toHaveBeenCalled();
+    expect(api.removeMfaDevice).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
   it("uses a titled modal, manual setup, replay exclusion and canonical verification", async () => {
     mount(); await start();
     const dialog = screen.getByRole("dialog", { name: "Add authenticator" });
@@ -78,7 +91,7 @@ describe("MFA enrollment", () => {
   });
   it("handles start failure with safe retry and malformed responses without leaking payloads", async () => {
     api.startMfaEnrollment.mockRejectedValueOnce(new Error(secret)).mockResolvedValueOnce({ device_id: 1, otpauth_uri: "https://example.test/?secret=x" });
-    mount(); click("Add authenticator"); await screen.findByRole("alert");
+    mount(); click("Add authenticator"); click("Continue"); await screen.findByRole("alert");
     expect(screen.queryByText(secret)).not.toBeInTheDocument();
     click("Retry enrollment"); await screen.findByRole("alert");
     expect(screen.queryByText("x", { selector: "code" })).not.toBeInTheDocument();
@@ -102,9 +115,9 @@ describe("MFA enrollment", () => {
   });
   it("discards start responses after cancellation and prevents double start", async () => {
     const request = deferred(); api.startMfaEnrollment.mockReturnValue(request.promise);
-    mount(); click("Add authenticator");
+    mount(); click("Add authenticator"); const startButton = screen.getByRole("button", { name: "Continue" }); fireEvent.click(startButton); fireEvent.click(startButton);
     expect(screen.getByText("Updating MFA…")).toBeInTheDocument();
-    click("Add authenticator"); expect(api.startMfaEnrollment).toHaveBeenCalledOnce();
+    expect(api.startMfaEnrollment).toHaveBeenCalledOnce();
     click("Cancel"); await act(async () => request.resolve(enrollment));
     expect(screen.queryByText(secret)).not.toBeInTheDocument();
     expect(api.removeMfaDevice).not.toHaveBeenCalled();
@@ -143,7 +156,7 @@ describe("MFA enrollment", () => {
     await waitFor(() => expect(api.removeMfaDevice).toHaveBeenCalledWith(8));
   });
   it("discards a missing enrollment response without displaying setup material", async () => {
-    api.startMfaEnrollment.mockResolvedValue(null); mount(); click("Add authenticator");
+    api.startMfaEnrollment.mockResolvedValue(null); mount(); click("Add authenticator"); click("Continue");
     await screen.findByRole("button", { name: "Retry enrollment" });
     expect(screen.queryByText(secret)).not.toBeInTheDocument();
   });
@@ -250,7 +263,7 @@ describe("secret lifetime and session races", () => {
   });
   it("CASE A: rejects User A enrollment after switching to B", async () => {
     const request = deferred(); api.startMfaEnrollment.mockReturnValue(request.promise);
-    mount(); click("Add authenticator"); switchSession("TEST-B"); await act(async () => request.resolve(enrollment));
+    mount(); click("Add authenticator"); click("Continue"); switchSession("TEST-B"); await act(async () => request.resolve(enrollment));
     expect(screen.queryByText(secret)).not.toBeInTheDocument(); expect(changed).not.toHaveBeenCalled();
   });
   it("CASE B: rejects recovery regeneration after logout", async () => {
@@ -272,7 +285,7 @@ describe("secret lifetime and session races", () => {
   });
   it("ignores late errors and clipboard results after flow dismissal", async () => {
     const request = deferred(); api.startMfaEnrollment.mockReturnValueOnce(request.promise);
-    mount(); click("Add authenticator"); click("Cancel"); await act(async () => request.reject(new Error(secret)));
+    mount(); click("Add authenticator"); click("Continue"); click("Cancel"); await act(async () => request.reject(new Error(secret)));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await start(); const copied = deferred(); clipboard.mockReturnValueOnce(copied.promise); click("Copy setup key"); click("Cancel");
     await act(async () => copied.resolve()); expect(screen.queryByText("Copied")).not.toBeInTheDocument();

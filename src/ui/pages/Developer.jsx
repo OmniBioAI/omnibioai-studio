@@ -198,6 +198,7 @@ function ApiKeys({ currentUser }) {
   const [orgName, setOrgName] = useState(null);
   const [usage, setUsage] = useState(null);
   const [name, setName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(null);
   const [newKeyId, setNewKeyId] = useState(null);
@@ -260,13 +261,15 @@ function ApiKeys({ currentUser }) {
 
   async function create(event) {
     event.preventDefault();
+    setNameTouched(true);
+    if (!name.trim()) return;
     if (creating || created) return;
     const signal = controller.current.signal;
     const generation = secretGeneration.current;
     setCreating(true);
     setCreateError("");
     try {
-      const result = await apiKeysApi.createMyApiKey(name.trim() || "API key", { signal });
+      const result = await apiKeysApi.createMyApiKey(name.trim(), { signal });
       if (signal.aborted || generation !== secretGeneration.current || !result?.key) return;
       setCreated({ id: result.id, key: result.key });
       setNewKeyId(result.id);
@@ -317,7 +320,7 @@ function ApiKeys({ currentUser }) {
   }
 
   if (noOrgContext) return <section className="developer-page developer-no-org">
-    <Card className="developer-card"><h1>No organization context</h1><p className="developer-muted">Personal API keys belong to an organization your account is a member of. Your session isn’t associated with one, so there’s nothing to create a key in.</p></Card>
+    <Card className="developer-card"><h2>No organization context</h2><p className="developer-muted">Personal API keys belong to an organization your account is a member of. Your session isn’t associated with one, so there’s nothing to create a key in.</p></Card>
   </section>;
 
   const activeKeys = keys?.filter(row => row.status !== "revoked") || [];
@@ -327,7 +330,7 @@ function ApiKeys({ currentUser }) {
 
   return <div className="developer-page">
     <header className="developer-header">
-      <div><h1>API keys</h1><p>Call the Literature AI API from scripts, notebooks and MCP clients.</p></div>
+      <div><h2>API keys</h2><p>Call the Literature AI API from scripts, notebooks and MCP clients.</p></div>
       {usage && <a className="developer-usage" href="/studio/account/organization/usage" aria-label={`Literature answers ${usage.used} / ${usage.included}. View Usage`}>
         <span>Literature answers <strong>{usage.used.toLocaleString("en-US")} / {usage.included.toLocaleString("en-US")}</strong></span>
         <progress value={Math.min(usage.used, usage.included)} max={usage.included} aria-label="Literature answers used" />
@@ -340,9 +343,13 @@ function ApiKeys({ currentUser }) {
           <form onSubmit={create}>
             <label htmlFor="developer-key-name">Key name</label>
             <div className="developer-create-controls">
-              <input id="developer-key-name" ref={inputRef} value={name} onChange={event => setName(event.target.value)} placeholder="e.g. notebook" maxLength={100} disabled={creating || !!created} />
-              <button type="submit" className="developer-button developer-primary" disabled={creating || !!created}>{creating ? "Creating…" : "Create key"}</button>
+              <input id="developer-key-name" ref={inputRef} value={name}
+                onChange={event => { setName(event.target.value); setNameTouched(true); }} onBlur={() => setNameTouched(true)}
+                placeholder="e.g. notebook" maxLength={100} disabled={creating || !!created}
+                aria-invalid={nameTouched && !name.trim()} aria-describedby={nameTouched && !name.trim() ? "developer-key-name-error" : undefined} />
+              <button type="submit" className="developer-button developer-primary" disabled={creating || !!created || !name.trim()}>{creating ? "Creating…" : "Create key"}</button>
             </div>
+            {nameTouched && !name.trim() && <p id="developer-key-name-error" className="developer-field-error">Enter a name for this key.</p>}
           </form>
           <p className="developer-scope"><code>dataset.read</code><span>{orgName ? `in ${orgName} · ` : ""}usage is billed to this organization</span></p>
           {createError && <p className="developer-error" role="alert">{createError}</p>}

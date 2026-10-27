@@ -88,7 +88,7 @@ export default function AccountAppearance() {
   return (
     <section className="appearance-page" aria-labelledby="appearance-heading">
       <header>
-        <h1 id="appearance-heading">Appearance</h1>
+        <h2 id="appearance-heading">Appearance</h2>
         <p>Control how OmniBioAI Studio looks on this device. These choices never change how the AI responds — see Personalization for that.</p>
       </header>
 

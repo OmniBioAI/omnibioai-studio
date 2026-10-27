@@ -34,7 +34,7 @@ function ProfileSession({ orgId, onOrganizationPlan }) {
 
   return (
     <div className="profile-page">
-      <header><h1>Profile</h1><p className="profile-muted">Your OmniBioAI account</p></header>
+      <header><h2>Profile</h2><p className="profile-muted">Your OmniBioAI account</p></header>
       {failed ? (
         <Card>
           <AccountState variant="error" title="Couldn’t load profile" onRetry={() => setAttempt(value => value + 1)}>Your account details failed to load.</AccountState>
@@ -47,9 +47,9 @@ function ProfileSession({ orgId, onOrganizationPlan }) {
 }
 
 function memberSince(value) {
-  if (!value) return "Not provided";
+  if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not provided";
+  if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 }
 
@@ -62,6 +62,7 @@ function IdentityDetails({ identity, orgId, onOrganizationPlan }) {
   const { user, organizations = [], global_roles = [] } = identity;
   const selected = organizations.find(org => String(org.organization_id) === String(orgId)) || organizations[0];
   const initials = user.email.split("@")[0].replace(/[^\p{L}\p{N}]/gu, "").slice(0, 2).toUpperCase();
+  const joined = memberSince(user.created_at);
 
   return (
     <>
@@ -70,7 +71,7 @@ function IdentityDetails({ identity, orgId, onOrganizationPlan }) {
           <div className="profile-avatar" role="img" aria-label="Initials avatar">{initials}</div>
           <div className="profile-identity-text">
             <h2>{user.email}</h2>
-            <p className="profile-muted">Member since <span className="profile-value">{memberSince(user.created_at)}</span></p>
+            {joined && <p className="profile-muted">Member since <span className="profile-value">{joined}</span></p>}
           </div>
         </div>
       </Card>
