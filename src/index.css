@@ -165,10 +165,23 @@
   /* Phase 2 unified token aliases */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --color-accent: var(--accent);
+  --color-accent-dim: rgba(0,229,160,0.10);
+  --color-accent-surface: rgba(0,229,160,0.07);
+  --color-accent-border: rgba(0,229,160,0.30);
   --color-danger: var(--danger);
+  --color-danger-solid: #b42332;
+  --color-danger-dim: rgba(255,71,87,0.10);
+  --color-danger-border: rgba(255,71,87,0.30);
   --color-warning: var(--warn);
+  --color-warning-dim: rgba(255,165,2,0.12);
+  --color-warning-border: rgba(255,165,2,0.30);
+  --color-on-accent: #07130f;
+  --color-on-danger: #ffffff;
   --color-text-muted: var(--muted);
   --color-text-secondary: #9ca3af;
+  --color-text: var(--text);
+  --color-text-soft: #e8eaf0;
+  --color-input-bg: #0c1118;
   --color-bg: var(--bg);
   --color-bg-surface: var(--bg2);
   --color-bg-elevated: var(--bg3);
@@ -183,6 +196,12 @@
   --font-size-md: 14px;
   --focus-ring: #3b82f6;
 }
+
+.studio-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+.studio-page-header > div:first-child { min-width: 0; }
+.studio-page-header h1 { margin: 0 0 3px; color: var(--text); font-size: var(--font-size-xl); font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.studio-page-header p { margin: 0; color: var(--color-text-muted); font-family: var(--mono); font-size: var(--font-size-sm); line-height: 1.5; }
+.studio-page-header__actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 
 :where(button, a[href], input, select, textarea, [role="radio"], [tabindex]):focus-visible {
   outline: 2px solid var(--focus-ring) !important;
@@ -220,9 +239,7 @@
    initial `true`). Light overrides the same variable names consumed both
    here and by @omnibioai/ui (packages/omnibioai-design-tokens/tokens.css) so
    every existing component re-themes without a second theme system. */
-/* Studio is locked to dark until PR C adds colour tokens (see LOCKED_THEME in
-   AppearanceProvider); color-scheme keeps native controls and scrollbars dark. */
-:root { color-scheme: dark; }
+:root { color-scheme: light dark; }
 
 html[data-theme="light"] {
   color-scheme: light;
@@ -233,6 +250,30 @@ html[data-theme="light"] {
   --border2: rgba(15, 23, 42, 0.14);
   --text: #0f172a;
   --muted: #53657d;
+  --accent: #006b4d;
+  --accent2: #075fa8;
+  --accent3: #a33a10;
+  --accent-platform: #087481;
+  --danger: #b42332;
+  --warn: #854d0e;
+  --color-accent: var(--accent);
+  --color-accent-dim: rgba(0,107,77,.12);
+  --color-accent-surface: rgba(0,107,77,.08);
+  --color-accent-border: rgba(0,107,77,.35);
+  --color-blue: var(--accent2);
+  --color-info: var(--accent2);
+  --color-info-dim: rgba(7,95,168,.12);
+  --color-info-border: rgba(7,95,168,.35);
+  --color-purple: #7130a8;
+  --color-danger: var(--danger);
+  --color-danger-dim: rgba(180,35,50,.10);
+  --color-danger-border: rgba(180,35,50,.30);
+  --color-warning: var(--warn);
+  --color-warning-dim: rgba(133,77,14,.10);
+  --color-warning-border: rgba(133,77,14,.30);
+  --color-success: #14733b;
+  --color-success-dim: rgba(20,115,59,.10);
+  --color-success-border: rgba(20,115,59,.30);
   --color-text-muted: #53657d;
   --color-text-secondary: #475569;
 
@@ -247,6 +288,9 @@ html[data-theme="light"] {
   --color-text: #0f172a;
   --color-text-soft: #1e293b;
   --color-text-dim: #94a3b8;
+  --color-input-bg: #ffffff;
+  --color-on-accent: #ffffff;
+  --color-on-danger: #ffffff;
 
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.10);
   --shadow-card: 0 4px 24px rgba(15, 23, 42, 0.10);
@@ -271,6 +315,9 @@ html[data-accent="orange"] {
   --accent: #ff6b35; --color-accent: #ff6b35;
   --color-accent-dim: rgba(255,107,53,0.12); --color-accent-surface: rgba(255,107,53,0.08); --color-accent-border: rgba(255,107,53,0.30);
 }
+html[data-theme="light"][data-accent="blue"] { --accent: #075fa8; --color-accent: #075fa8; }
+html[data-theme="light"][data-accent="purple"] { --accent: #7130a8; --color-accent: #7130a8; }
+html[data-theme="light"][data-accent="orange"] { --accent: #a33a10; --color-accent: #a33a10; }
 
 /* ── Appearance: workspace density ──
    GLOBAL_DENSITY_APPLICATION=DEFERRED — Studio's layout spacing is inline
@@ -509,7 +556,7 @@ a:focus:not(:focus-visible) {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--color-bg-surface);
   transition: left 0.2s;
 }
 .toggle.on::after  { left: 23px; }
@@ -660,10 +707,15 @@ a:focus:not(:focus-visible) {
 .appearance-swatch[aria-checked="true"] { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg2), 0 0 0 4px var(--border2); }
 .appearance-swatch-check { opacity: 0; }
 .appearance-swatch[aria-checked="true"] .appearance-swatch-check { opacity: 1; }
-.appearance-swatch--teal   { background: #00e5a0; }
-.appearance-swatch--blue   { background: #0094ff; }
-.appearance-swatch--purple { background: #a855f7; }
-.appearance-swatch--orange { background: #ff6b35; }
+.appearance-swatch--teal   { background: var(--color-accent); }
+.appearance-swatch--blue   { background: var(--color-blue); }
+.appearance-swatch--purple { background: var(--color-purple); }
+.appearance-swatch--orange { background: var(--accent3); }
+
+@media (max-width: 599px) {
+  .studio-page-header { align-items: stretch; flex-direction: column; gap: 12px; }
+  .studio-page-header__actions { justify-content: flex-start; }
+}
 
 .appearance-density-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .appearance-density-card {

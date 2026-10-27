@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { isElectron, getToken } from "../lib/session";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
+import PageHeader from "../components/PageHeader";
 
 function getHost() {
   return (
@@ -171,17 +172,8 @@ export default function Jobs() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
-            Jobs
-          </div>
-          <div style={{ fontSize: 'var(--font-size-sm)', color: "var(--color-text-muted)", ...mono }}>
-            TES execution engine — port 8081
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
+      <PageHeader title="Jobs" description="TES execution engine — port 8081" actions={
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={loadData} style={{
             padding: "6px 12px", borderRadius: 5, fontSize: 'var(--font-size-xs)', ...mono,
             background: "var(--bg3)", border: "1px solid var(--border2)",
@@ -190,10 +182,9 @@ export default function Jobs() {
           <button onClick={() => setShowSubmit(s => !s)} style={{
             padding: "6px 16px", borderRadius: 5, fontSize: 'var(--font-size-xs)',
             fontFamily: "var(--font)", fontWeight: 600,
-            background: "var(--accent)", border: "none", color: "#000", cursor: "pointer",
+            background: "var(--accent)", border: "none", color: "var(--color-on-accent)", cursor: "pointer",
           }}>+ Submit Run</button>
-        </div>
-      </div>
+        </div>} />
 
       {/* Error banner */}
       {error && (

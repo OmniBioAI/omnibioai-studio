@@ -24,7 +24,7 @@ function AccessDenied({ email }) {
       <div style={{ width: "100%", maxWidth: 360, textAlign: "center", boxSizing: "border-box" }}>
         <Card elevated>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Access denied</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>Access denied</div>
           <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)", marginBottom: 12 }}>
             {email} does not have permission to manage roles.
           </div>
@@ -65,7 +65,7 @@ function RoleManagementConsole() {
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em", marginBottom: 3 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em", marginBottom: 3 }}>
             Role Management
           </div>
           <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)", fontFamily: "var(--mono)" }}>

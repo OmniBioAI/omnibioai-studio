@@ -3,6 +3,7 @@ import { Spinner } from "@omnibioai/ui";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 import ProjectCollaboration from "../components/projects/ProjectCollaboration";
 import Modal from "../components/Modal";
+import PageHeader from "../components/PageHeader";
 import { archiveProject, createProject, getProject, listProjects, updateProject } from "../lib/projectsApi";
 import "./Projects.css";
 
@@ -61,10 +62,9 @@ export default function Projects() {
   }
 
   return <section className="projects-page" aria-labelledby="projects-heading">
-    <header className="projects-header"><div>
-      <h1 id="projects-heading">Projects</h1>
-      <p>Organize scientific work using organization-scoped project identities managed by Workbench.</p>
-    </div><button type="button" className="omni-btn omni-btn--primary omni-btn--sm" onClick={() => setCreating(true)}>Create project</button></header>
+    <PageHeader headingId="projects-heading" title="Projects"
+      description="Organize scientific work using organization-scoped project identities managed by Workbench."
+      actions={<button type="button" className="omni-btn omni-btn--primary omni-btn--sm" onClick={() => setCreating(true)}>Create project</button>} />
 
     <div className="projects-toolbar" role="group" aria-label="Project status filters">
       {FILTERS.map(value => <button key={value} type="button" className={buttonClass} aria-pressed={filter === value}

@@ -3,6 +3,7 @@ import { Badge, Spinner } from "@omnibioai/ui";
 import { Panel, PanelBody } from "../components/UI";
 import { loadExploreResources } from "../lib/exploreApi";
 import { openDomainDataset } from "../lib/exploreDomains";
+import PageHeader from "../components/PageHeader";
 
 const FILTERS = [["all", "All"], ["tool", "Tools"], ["workflow", "Workflows"], ["service", "Services"], ["domain", "Domains"], ["capability", "Capabilities"]];
 const MAX_RESULTS = 200;
@@ -31,7 +32,7 @@ export default function Explore({ onOpen }) {
   }, [filter, query, resources]);
 
   return <div className="explore-page">
-    <header className="explore-header"><h1>Explore</h1><p>Discover tools, workflows, services, domains and scientific capabilities across OmniBioAI.</p></header>
+    <PageHeader title="Explore" description="Discover tools, workflows, services, domains and scientific capabilities across OmniBioAI." />
     <Panel><PanelBody>
       <label className="explore-search">Search OmniBioAI
         <input type="search" value={query} placeholder="Search OmniBioAI..." aria-label="Search OmniBioAI" onChange={event => setQuery(event.target.value)} />

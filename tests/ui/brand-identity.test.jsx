@@ -15,11 +15,12 @@ afterEach(() => {
 });
 
 describe("canonical OmniBioAI identity", () => {
-  it.each(["mark", "full", "wordmark"])("renders the %s variant from its canonical asset", (variant) => {
+  it.each(["mark", "full", "wordmark"])("renders the %s variant with theme-aware identity", (variant) => {
     const { container } = render(<OmniBioAILogo variant={variant} size="sm" />);
     const logo = container.querySelector(`[data-omnibioai-logo="${variant}"]`);
     expect(logo).toHaveAttribute("aria-hidden", "true");
-    expect(logo.querySelector("img").getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
+    if (variant !== "wordmark") expect(logo.querySelector("img").getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
+    if (variant !== "mark") expect(logo.querySelector(".omnibioai-logo__wordmark")).toHaveTextContent("OmniBioAI");
   });
 
   it("announces linked or semantic identity once and keeps its inner artwork decorative", () => {
@@ -27,7 +28,7 @@ describe("canonical OmniBioAI identity", () => {
     const identity = screen.getByRole("img", { name: "OmniBioAI" });
     expect(identity).toHaveAttribute("data-omnibioai-logo", "full");
     expect(container.querySelector("img")).toHaveAttribute("alt", "");
-    expect(container.querySelector("img")).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector(".omnibioai-logo__wordmark")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("uses the canonical logo in desktop and mobile shells", () => {

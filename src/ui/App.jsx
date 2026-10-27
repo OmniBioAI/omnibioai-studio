@@ -40,7 +40,6 @@ import Integrations from "./pages/Integrations";
 import PreferencesProvider from "./components/PreferencesProvider";
 import AppearanceProvider from "./components/AppearanceProvider";
 import AccountLayout from "./components/AccountLayout";
-import WorkbenchModuleHeader from "./components/WorkbenchModuleHeader";
 import OAuthLinkConfirm from "./components/OAuthLinkConfirm";
 import Login from "./components/Login";
 import OmniBioAILogo from "./components/brand/OmniBioAILogo";
@@ -523,13 +522,6 @@ export default function App() {
     }
   }
 
-  function handleModuleBack() {
-    const url = new URL(window.location.href);
-    url.pathname = STUDIO_PATH;
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-    handleStudioClick();
-  }
-
   // Electron webview bypasses Vite proxy for relative URLs; prefix /_svc/*
   // with the Vite dev server so the proxy routes them correctly.
   const resolveServiceUrl = (url) => {
@@ -729,12 +721,6 @@ export default function App() {
                       onBack={() => setService(null)} />
             : (
               <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
-                {step === 7 || Object.values(ACCOUNT_PAGES).includes(step) ? null : (
-                  <WorkbenchModuleHeader
-                    title={PAGE_LABELS[step] || currentName}
-                    onBack={handleModuleBack}
-                  />
-                )}
                 {pages[step]}
               </div>
             )

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
 import { getToken, isElectron } from "../lib/session";
 import RequirePermission from "../components/RequirePermission";
+import PageHeader from "../components/PageHeader";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -288,17 +289,9 @@ function ServicesConsole({ config }) {
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
 
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
-        <div>
-          <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
-            Services
-          </div>
-          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
-            {isBeta ? "monitoring remote cloud services via tunnel" : "monitor and control individual docker services"}
-          </div>
-        </div>
-        <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+      <PageHeader title="Services"
+        description={isBeta ? "monitoring remote cloud services via tunnel" : "monitor and control individual docker services"}
+        actions={<div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
           <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
             last check: {lastCheck}
           </span>
@@ -315,8 +308,7 @@ function ServicesConsole({ config }) {
             fontFamily:"var(--mono)", background:"var(--bg3)",
             border:"1px solid var(--border2)", color:"var(--color-text-muted)", cursor:"pointer",
           }}>↻ Refresh</button>
-        </div>
-      </div>
+        </div>} />
 
       {/* Service Groups */}
       {grouped.map(({ group, services }) => (

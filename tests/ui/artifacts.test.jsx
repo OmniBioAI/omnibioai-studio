@@ -149,6 +149,9 @@ describe("Artifacts page", () => {
     api.listArtifacts.mockResolvedValue({ artifacts: [report, table, image], total: 3 });
     render(<Artifacts />);
     await screen.findByText(report.name);
+    const tableRegion = screen.getByLabelText("Artifacts table, scroll horizontally for more columns");
+    expect(tableRegion).toHaveAttribute("tabindex", "0");
+    expect(tableRegion).toHaveClass("artifact-table-wrap");
     fireEvent.click(screen.getByRole("button", { name: "Tables" }));
     expect(screen.getByText(table.name)).toBeInTheDocument();
     expect(screen.queryByText(report.name)).not.toBeInTheDocument();

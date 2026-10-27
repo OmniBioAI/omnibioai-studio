@@ -4,6 +4,8 @@
   align-items: center;
   line-height: 0;
   vertical-align: middle;
+  gap: calc(var(--omnibioai-logo-height) * .2);
+  color: var(--text);
 }
 
 .omnibioai-logo img {
@@ -13,6 +15,20 @@
   height: var(--omnibioai-logo-height);
   object-fit: contain;
 }
+
+.omnibioai-logo__wordmark {
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: var(--omnibioai-logo-height);
+  font-weight: 700;
+  letter-spacing: .01em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.omnibioai-logo__wordmark > span { color: var(--accent-platform); }
+
+.omnibioai-logo--full img { height: calc(var(--omnibioai-logo-height) * 1.35); }
 
 .omnibioai-logo--xs { --omnibioai-logo-height: 16px; }
 .omnibioai-logo--sm { --omnibioai-logo-height: 22px; }

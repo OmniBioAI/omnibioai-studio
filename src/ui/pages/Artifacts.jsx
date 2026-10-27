@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ProgressBar, Spinner } from "@omnibioai/ui";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 import { useStorageUsage } from "../lib/useStorageUsage";
+import PageHeader from "../components/PageHeader";
 import {
   downloadArtifact,
   getArtifact,
@@ -128,12 +129,8 @@ export default function Artifacts() {
   }
 
   return <section className="artifacts-page" aria-labelledby="artifacts-heading">
-    <header className="artifacts-header">
-      <div>
-        <h1 id="artifacts-heading">Artifacts</h1>
-        <p>Discover authorized scientific outputs, inspect their metadata and lineage, and securely download available files.</p>
-      </div>
-    </header>
+    <PageHeader headingId="artifacts-heading" title="Artifacts"
+      description="Discover authorized scientific outputs, inspect their metadata and lineage, and securely download available files." />
 
     <StorageUsage state={usage} />
 
@@ -169,7 +166,7 @@ export default function Artifacts() {
       </div>}
       {result.status === "success" && visible.length > 0 && <>
         <p className="artifact-summary" role="status">Showing {visible.length} of {result.items.length} authorized artifacts{request.query ? ` matching “${request.query}”` : ""}.</p>
-        <div className="artifact-table-wrap"><table className="artifact-table">
+        <div className="artifact-table-wrap" tabIndex={0} aria-label="Artifacts table, scroll horizontally for more columns"><table className="artifact-table">
           <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Created</th><th>Size</th><th><span className="sr-only">Actions</span></th></tr></thead>
           <tbody>{visible.map(item => <tr key={item.artifactId}>
             <td><button type="button" className="artifact-name" onClick={() => setSelected(item)}>{item.name}</button>

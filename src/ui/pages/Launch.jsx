@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Panel, PanelHeader, PanelBody, Btn } from "../components/UI";
+import PageHeader from "../components/PageHeader";
 
 const SERVICES = [
   { key: "mysql",     label: "MySQL",     port: ":3306"  },
@@ -187,22 +188,13 @@ export default function Launch({ config, onStatusChange }) {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
-        <div>
-          <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
-            Execution Console
-          </div>
-          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
-            {isBeta ? "connected to cloud — monitoring tunnel services" : "review configuration and boot the runtime stack"}
-          </div>
-        </div>
-
-        {isBeta ? (
+      <PageHeader title="Execution Console"
+        description={isBeta ? "connected to cloud — monitoring tunnel services" : "review configuration and boot the runtime stack"}
+        actions={isBeta ? (
           <div style={{
             display:"flex", alignItems:"center", gap:8,
             padding:"8px 16px", borderRadius:'var(--radius)',
-            background:"rgba(0,229,160,0.08)", border:"1px solid rgba(0,229,160,0.25)",
+            background:"var(--color-accent-surface)", border:"1px solid var(--color-accent-border)",
           }}>
             <div style={{ width:7, height:7, borderRadius:"50%", background:"var(--accent)", animation:"pulse 2s infinite" }} />
             <span style={{ fontSize:'var(--font-size-sm)', fontFamily:"var(--mono)", fontWeight:500, color:"var(--accent)" }}>
@@ -217,14 +209,13 @@ export default function Launch({ config, onStatusChange }) {
             <Btn variant="ghost" onClick={stopSystem}>Stop Stack</Btn>
             <Btn variant="primary" onClick={startSystem} disabled={status === "starting"}
               style={status === "running" ? {
-                background:"rgba(0,229,160,0.12)", color:"var(--accent)",
-                border:"1px solid rgba(0,229,160,0.25)",
+                background:"var(--color-accent-dim)", color:"var(--accent)",
+                border:"1px solid var(--color-accent-border)",
               } : {}}>
               {status === "starting" ? "Booting..." : status === "running" ? "● Running" : "Boot System"}
             </Btn>
           </div>
-        )}
-      </div>
+        )} />
 
       {/* Health Cards */}
       <div className="studio-health-grid" style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:8 }}>

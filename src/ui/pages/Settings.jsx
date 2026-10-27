@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, Toggle, Btn } from "../components/UI";
 import RequirePermission from "../components/RequirePermission";
 import { openExternal } from "../lib/externalLink";
+import PageHeader from "../components/PageHeader";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -132,28 +133,18 @@ function SettingsConsole({ config, setConfig }) {
       {config.provider_credential_retirement_pending && <p role="alert">Studio could not retire the old configuration file. Check file permissions and save settings again.</p>}
 
 
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
-        <div>
-          <div style={{ fontSize:20, fontWeight:700, color:"#fff", letterSpacing:"-0.01em", marginBottom:3 }}>
-            Settings
-          </div>
-          <div style={{ fontSize:'var(--font-size-sm)', color:"var(--color-text-muted)", fontFamily:"var(--mono)" }}>
-            application preferences and system configuration
-          </div>
-        </div>
-        <div style={{ display:"flex", gap:8 }}>
+      <PageHeader title="Settings" description="application preferences and system configuration" actions={
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           <Btn variant="danger" onClick={resetAll}>Reset All</Btn>
           <Btn variant="primary" onClick={saveSettings}
             style={saved ? {
-              background:"rgba(0,229,160,0.15)",
+              background:"var(--color-accent-dim)",
               color:"var(--accent)",
-              border:"1px solid rgba(0,229,160,0.3)"
+              border:"1px solid var(--color-accent-border)"
             } : {}}>
             {saved ? "✓ Saved" : "Save Settings"}
           </Btn>
-        </div>
-      </div>
+        </div>} />
 
       {/* First run banner */}
       {isFirstRun && (
