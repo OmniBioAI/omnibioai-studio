@@ -58,14 +58,15 @@ describe("RoleManagement console — roles list", () => {
     expect(screen.getByText("Writer")).toBeInTheDocument();
     cleanup();
 
-    rolesApi.listRoles.mockRejectedValueOnce(new Error("boom"));
+    rolesApi.listRoles.mockRejectedValueOnce(Object.assign(new Error("boom"), { status: 400 }));
     render(<RoleManagement currentUser={admin} />);
-    await waitFor(() => expect(screen.getByText("boom")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Failed to load roles. Please try again.")).toBeInTheDocument());
+    expect(screen.queryByText("boom")).not.toBeInTheDocument();
     cleanup();
 
     rolesApi.listRoles.mockRejectedValueOnce(new Error());
     render(<RoleManagement currentUser={admin} />);
-    await waitFor(() => expect(screen.getByText("Failed to load roles")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Failed to load roles. Please try again.")).toBeInTheDocument());
   });
 
   it("shows the empty-state message with no roles", async () => {
@@ -103,13 +104,14 @@ describe("RoleManagement console — roles list", () => {
   it("shows a generic delete failure message, falling back when the error has no message", async () => {
     render(<RoleManagement currentUser={admin} />);
     await waitFor(() => expect(screen.getByText("Reader")).toBeInTheDocument());
-    rolesApi.deleteRole.mockRejectedValueOnce(new Error("network down"));
+    rolesApi.deleteRole.mockRejectedValueOnce(Object.assign(new Error("network down"), { status: 400 }));
     fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]);
-    await waitFor(() => expect(screen.getByText("network down")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Delete failed. Please try again.")).toBeInTheDocument());
+    expect(screen.queryByText("network down")).not.toBeInTheDocument();
 
     rolesApi.deleteRole.mockRejectedValueOnce(new Error());
     fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]);
-    await waitFor(() => expect(screen.getByText("Delete failed")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Delete failed. Please try again.")).toBeInTheDocument());
   });
 });
 
@@ -155,23 +157,25 @@ describe("RoleManagement console — role detail", () => {
     expect(await screen.findByText(/Edit Role — Reader/)).toBeInTheDocument();
     expect(screen.getByText("read:samples")).toBeInTheDocument();
 
-    const conflict = new Error("dup"); conflict.status = 409;
+    const conflict = new Error("Role already exists"); conflict.status = 409;
     rolesApi.updateRole.mockRejectedValueOnce(conflict);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.getByText("A role with that name already exists.")).toBeInTheDocument());
+    expect(screen.queryByText("Role already exists")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "← Back to roles" }));
     await waitFor(() => expect(screen.getByText("Role Management")).toBeInTheDocument());
 
-    rolesApi.getRole.mockRejectedValueOnce(new Error("not found"));
+    rolesApi.getRole.mockRejectedValueOnce(Object.assign(new Error("not found"), { status: 400 }));
     fireEvent.click(screen.getAllByRole("button", { name: "Edit" })[1]);
-    await waitFor(() => expect(screen.getByText("not found")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Failed to load role. Please try again.")).toBeInTheDocument());
+    expect(screen.queryByText("not found")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.getByText("Role Management")).toBeInTheDocument());
 
     rolesApi.getRole.mockRejectedValueOnce(new Error());
     fireEvent.click(screen.getAllByRole("button", { name: "Edit" })[1]);
-    await waitFor(() => expect(screen.getByText("Failed to load role")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Failed to load role. Please try again.")).toBeInTheDocument());
   });
 
   it("falls back to a generic save-failed message when the error carries no message", async () => {
@@ -179,9 +183,10 @@ describe("RoleManagement console — role detail", () => {
     await waitFor(() => expect(screen.getByText("Reader")).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "+ New Role" }));
     fireEvent.change(screen.getByPlaceholderText("e.g. data_scientist"), { target: { value: "x" } });
-    rolesApi.createRole.mockRejectedValueOnce(new Error());
+    rolesApi.createRole.mockRejectedValueOnce(Object.assign(new Error("internal create detail"), { status: 400 }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(screen.getByText("Save failed")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Save failed. Please try again.")).toBeInTheDocument());
+    expect(screen.queryByText("internal create detail")).not.toBeInTheDocument();
   });
 });
 
@@ -202,9 +207,10 @@ describe("RoleManagement console — assign to user", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load" }));
     await waitFor(() => expect(screen.getByText("No user with id 42.")).toBeInTheDocument());
 
-    rolesApi.getUserRoles.mockRejectedValueOnce(new Error("server error"));
+    rolesApi.getUserRoles.mockRejectedValueOnce(Object.assign(new Error("server error"), { status: 400 }));
     fireEvent.submit(idInput.closest("form"));
-    await waitFor(() => expect(screen.getByText("server error")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Lookup failed. Please try again.")).toBeInTheDocument());
+    expect(screen.queryByText("server error")).not.toBeInTheDocument();
 
     rolesApi.getUserRoles.mockResolvedValueOnce({ user_id: 42, roles: ["Reader"] });
     fireEvent.click(screen.getByRole("button", { name: "Load" }));
@@ -226,9 +232,10 @@ describe("RoleManagement console — assign to user", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save Assignment" }));
     await waitFor(() => expect(screen.getByText(/Cannot modify your own roles/)).toBeInTheDocument());
 
-    rolesApi.setUserRoles.mockRejectedValueOnce(new Error("server exploded"));
+    rolesApi.setUserRoles.mockRejectedValueOnce(Object.assign(new Error("server exploded"), { status: 400 }));
     fireEvent.click(screen.getByRole("button", { name: "Save Assignment" }));
-    await waitFor(() => expect(screen.getByText("server exploded")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Save failed. Please try again.")).toBeInTheDocument());
+    expect(screen.queryByText("server exploded")).not.toBeInTheDocument();
 
     rolesApi.setUserRoles.mockResolvedValueOnce({ roles: ["Writer"] });
     fireEvent.click(screen.getByRole("button", { name: "Save Assignment" }));

@@ -194,7 +194,10 @@ export async function activateLicense(key, email, platform = "web") {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.valid) {
-    throw new Error(LICENSE_ERROR_MESSAGES[data.reason] || data.detail || "License activation failed");
+    const error = new Error(LICENSE_ERROR_MESSAGES[data.reason] || data.detail || "License activation failed");
+    error.code = data.reason;
+    error.status = res.status;
+    throw error;
   }
   // Activation is an entitlement operation, never an authentication grant.
   // Ignore any token-shaped fields from an older backend response rather

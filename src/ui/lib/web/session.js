@@ -219,7 +219,10 @@ export async function activateLicense(key, email, platform = "web") {
   if (!res.ok || !data?.valid) {
     const reasonMessage = data?.reason && LICENSE_ERROR_MESSAGES[data.reason];
     const backendMessage = data?.error || data?.message || data?.detail;
-    throw new Error(reasonMessage || backendMessage || `License activation failed (${res.status})`);
+    const error = new Error(reasonMessage || backendMessage || `License activation failed (${res.status})`);
+    error.code = data?.reason;
+    error.status = res.status;
+    throw error;
   }
   return data;
 }
