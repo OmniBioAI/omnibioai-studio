@@ -1813,6 +1813,13 @@ services:
       #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
       CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:-}
 
+      # Manual-license issuance (fail-closed until both are set) and explicit
+      # admin bootstrap identity (user id 1). Pepper is a 0600 secret file,
+      # never inline; back it up — losing it invalidates issued license keys.
+      ADMIN_BOOTSTRAP_EMAIL: "admin@omnibioai.org"
+      LICENSE_KEY_PEPPER_FILE: /run/secrets/license_key_pepper
+      LICENSE_ALLOWED_VALIDITY_DAYS: "30,90,365"
+
       # Must exactly match Workbench. Auth compares this value in constant
       # time on its internal resolver and supplies it to Workbench's internal
       # provider-policy endpoint; neither endpoint permits an empty value.
@@ -1836,6 +1843,9 @@ services:
       # forwarded to this service at all so the bootstrap was unreachable
       # here even with the var set in .env.
       BIO_AGENT_SVC_EMAIL: ${BIO_AGENT_SVC_EMAIL:-}
+
+    volumes:
+      - ./.secrets/license_key_pepper:/run/secrets/license_key_pepper:ro
 
     depends_on:
       mysql:
