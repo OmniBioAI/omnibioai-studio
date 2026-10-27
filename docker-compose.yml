@@ -1847,6 +1847,16 @@ services:
     volumes:
       - ./.secrets/license_key_pepper:/run/secrets/license_key_pepper:ro
 
+    healthcheck:
+      # /health is liveness-only ({"status":"ok"}); schema validation and admin
+      # bootstrap run at import time, so a 200 here also means startup passed.
+      # Does not detect DB/Redis loss after startup — see follow-up /ready.
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8001/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 30s
+
     depends_on:
       mysql:
         condition: service_healthy
