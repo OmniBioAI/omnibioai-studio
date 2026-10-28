@@ -109,7 +109,7 @@ function buildCategories(BASE) {
     },
     {
       name: "Security Control Plane",
-      color: "#f87171",
+      color: "var(--color-status-danger)",
       links: [
         { label:"API Gateway",      url:"/_svc/gateway/docs",        icon:"🔐", desc:"Entry point · JWT enforcement"    },
         { label:"Auth Service",     url:"/_svc/auth/docs",           icon:"🪪", desc:"JWT · Login · Register"           },
