@@ -22,12 +22,5 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "@omnibioai:registry": "https://npm.pkg.github.com"
-  },
-  "scripts": {
-    "test": "node --test",
-    "test:coverage": "c8 --temp-directory /tmp/omnibioai-design-tokens-coverage --reports-dir /tmp/omnibioai-design-tokens-coverage/report --reporter=text --reporter=html node --test"
-  },
-  "devDependencies": {
-    "c8": "^12.0.0"
   }
 }
