@@ -3,6 +3,8 @@ import { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } from 
 import { applicationUrl } from "../lib/workbenchApi";
 import OmniBioAILogo from "../components/brand/OmniBioAILogo";
 import { useAppearance } from "../components/AppearanceProvider";
+import { openExternal } from "../lib/externalLink";
+import { getStandaloneOnlyApp, standaloneAppUrl } from "../lib/standaloneApps";
 
 // Permission gate for the Admin Console tile — reuses the same permission
 // string control-center's own backend gates its core admin routes on
@@ -19,13 +21,6 @@ const MANAGE_LICENSES_PERMISSION = "manage_licenses";
 const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
 const PROVENANCE_SLUG = "provenance";
 const PROVENANCE_LAUNCH_PATH = "/plugins/provenance/";
-
-function adminConsoleUrl(url, resolvedTheme) {
-  const target = new URL(url, window.location.origin);
-  target.search = "";
-  target.searchParams.set("obai_theme", resolvedTheme === "light" ? "light" : "dark");
-  return target.toString();
-}
 
 function openWorkbenchApplication(slug, launchPath, label) {
   window.dispatchEvent(new CustomEvent("open-service", {
@@ -82,7 +77,7 @@ function buildCategories(BASE) {
         // URL, same reason as Getting Started above: AdminApp's own Vite
         // build has no `base` set either, so it's root-absolute-path and
         // can't be proxied under a /_svc/ prefix without breaking assets.
-        { label:"Admin Console",    url:"https://admin.omnibioai.org/", icon:"🛡️", desc:"Org/user/IAM · Billing · Compliance", requiresPermission: ADMIN_CONSOLE_PERMISSION, openInNewTab: true },
+        { label:"Admin Console",    url:"https://admin.omnibioai.org/", icon:"🛡️", desc:"Org/user/IAM · Billing · Compliance", requiresPermission: ADMIN_CONSOLE_PERMISSION },
         // Neo4j Browser uses the same authenticated, same-origin
         // ServiceViewer path as the other Workbench services. Neo4j serves
         // its Browser UI below /browser/ (the root is JSON discovery), so
@@ -270,6 +265,10 @@ export default function Studio() {
     } else {
       absolute = url;
     }
+    if (getStandaloneOnlyApp(absolute)) {
+      openExternal(standaloneAppUrl(absolute, resolvedTheme));
+      return;
+    }
     window.dispatchEvent(new CustomEvent("open-service", { detail: { url: absolute, label: label || url } }));
   };
 
@@ -416,6 +415,7 @@ export default function Studio() {
               {links.map(({ label, url, icon, desc, action, openInNewTab }) => {
                 const isLocal = !url.startsWith(BASE);
                 const clickable = isLocal || online;
+                const standaloneOnly = !!getStandaloneOnlyApp(url);
                 const tileContent = <>
                   <span aria-hidden="true" style={{ fontSize:20 }}>{icon}</span>
                   <div style={{ fontSize:'var(--font-size-xs)', fontWeight:500, color, lineHeight:1.3 }}>{label}</div>
@@ -438,8 +438,8 @@ export default function Studio() {
                   onMouseLeave: e => { e.currentTarget.style.background="var(--bg3)"; },
                 };
                 return (
-                  openInNewTab ? (
-                    <a {...tileProps} href={adminConsoleUrl(url, resolvedTheme)} target="_blank" rel="noopener noreferrer">
+                  openInNewTab || standaloneOnly ? (
+                    <a {...tileProps} href={standaloneOnly ? standaloneAppUrl(url, resolvedTheme) : url} target="_blank" rel="noopener noreferrer">
                       {tileContent}
                     </a>
                   ) : (

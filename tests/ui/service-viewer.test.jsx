@@ -40,6 +40,19 @@ it("snapshots only validated appearance values and removes hostile or private qu
 });
 
 describe("ServiceViewer", () => {
+  it("never frames a standalone Admin Console URL and offers its safe new-tab link", () => {
+    render(<ServiceViewer url="https://admin.omnibioai.org/iam/service-accounts" label="API Keys & Service Accounts" onBack={vi.fn()} />);
+
+    expect(screen.queryByTitle("API Keys & Service Accounts")).not.toBeInTheDocument();
+    expect(document.querySelector("iframe")).toBeNull();
+    expect(document.querySelector("webview")).toBeNull();
+    expect(screen.getByText("Admin Console runs as a standalone app and cannot be embedded in Studio.")).toBeInTheDocument();
+    const launch = screen.getByRole("link", { name: "Open Admin Console in a new tab" });
+    expect(launch).toHaveAttribute("target", "_blank");
+    expect(launch.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
+    expect(new URL(launch.href).origin).toBe("https://admin.omnibioai.org");
+  });
+
   it("keeps the canonical Launcher iframe stable until an explicit reopen", () => {
     const onBack = vi.fn();
     const { rerender } = render(<ServiceViewer key={1} url="/_svc/sdk" label="Code" onBack={onBack} />);

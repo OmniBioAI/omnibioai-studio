@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { isElectron } from "../lib/session";
 import { useAppearance } from "../components/AppearanceProvider";
 import { buildEmbeddedUrl, createThemeSetMessage, EMBED_READY_EVENT, getExactOrigin } from "../lib/embedAppearance";
+import { getStandaloneOnlyApp, standaloneAppUrl } from "../lib/standaloneApps";
 import "./ServiceViewer.css";
 
 export default function ServiceViewer({ url, label, onBack, backLabel = "Back to Studio" }) {
@@ -11,6 +12,7 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
   const [iframeReady, setIframeReady] = useState(false);
   const [webviewReady, setWebviewReady] = useState(false);
   const electron = isElectron();
+  const standaloneApp = getStandaloneOnlyApp(url);
   const mobileFullScreen = label === "Workflows" || /Lit AI/i.test(label || "");
   const appearance = useAppearance();
   const themeMessage = createThemeSetMessage({
@@ -125,7 +127,24 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
           Open full screen
         </a>}
       </div>
-      {electron ? (
+      {standaloneApp ? (
+        <div role="status" style={{ margin: "auto", maxWidth: 620, padding: 24, textAlign: "center" }}>
+          <p>{standaloneApp.label} runs as a standalone app and cannot be embedded in Studio.</p>
+          <a
+            href={standaloneAppUrl(url, appearance.resolvedTheme)}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${standaloneApp.label} in a new tab`}
+            style={{
+              display: "inline-flex", alignItems: "center", minHeight: 44, padding: "8px 14px",
+              borderRadius: "var(--radius-sm)", background: "var(--accent)", color: "var(--bg)",
+              fontWeight: 600, textDecoration: "none",
+            }}
+          >
+            Open {standaloneApp.label} in a new tab
+          </a>
+        </div>
+      ) : electron ? (
         <webview
           ref={webviewRef}
           src={embeddedUrl}
