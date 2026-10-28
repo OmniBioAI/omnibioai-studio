@@ -37,6 +37,7 @@ import Projects from "./pages/Projects";
 import Artifacts from "./pages/Artifacts";
 import Explore from "./pages/Explore";
 import Integrations from "./pages/Integrations";
+import StandaloneAppLaunch from "./pages/StandaloneAppLaunch";
 import PreferencesProvider from "./components/PreferencesProvider";
 import AppearanceProvider from "./components/AppearanceProvider";
 import AccountLayout from "./components/AccountLayout";
@@ -49,6 +50,8 @@ import * as session from "./lib/session";
 const { getCurrentUser, onSessionChange, consumeOAuthRedirectParams, isElectron, refresh, getRefreshToken } = session;
 import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 import { safeErrorMessage } from "./lib/safeErrorMessage";
+import { openExternal } from "./lib/externalLink";
+import { getStandaloneOnlyApp, standaloneAppUrl } from "./lib/standaloneApps";
 
 // idx values: 0-17 are real `step` pages (see `pages` below); 18/19 are the
 // Code/Workflows service aliases (never a real step -- see
@@ -61,6 +64,7 @@ const ARTIFACTS_PAGE = 21;
 const EXPLORE_PAGE = 22;
 const INTEGRATIONS_PAGE = 30;
 const MEMBERSHIP_PLANS_PAGE = 31;
+const ADMIN_CONSOLE_PAGE = 33;
 
 const BASE_NAV = [
   { section: null, items: [{ name:"Studio", idx:7 }] },
@@ -116,7 +120,7 @@ const PAGE_NAMES = [
   "services","logs","studio","settings","jobs",null,"roles","billing","workbench","developer","profile","security","preferences",
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
   "projects","artifacts","explore","notifications","personalization","appearance","organization-connections",
-  "privacy","plan","help","integrations","membership-plans","storage",
+  "privacy","plan","help","integrations","membership-plans","storage","admin-console",
 ];
 
 const PAGE_LABELS = [
@@ -124,7 +128,7 @@ const PAGE_LABELS = [
   "Studio", "Settings", "Jobs", null, "Roles", "Organization plan", "Workbench", "API keys", "Profile", "Security", "Preferences",
   "Code", "Workflows",
   "Projects", "Artifacts", "Explore", null, null, null, "Connections",
-  "Privacy & data", "Usage", "Help & support", "Integrations", null, "Membership & storage",
+  "Privacy & data", "Usage", "Help & support", "Integrations", null, "Membership & storage", "Admin Console",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -158,6 +162,7 @@ const PROJECTS_PATH = "/studio/projects";
 const ARTIFACTS_PATH = "/studio/artifacts";
 const EXPLORE_PATH = "/studio/explore";
 const VIDEO_STUDIO_PATH = "/studio/videos";
+const ADMIN_CONSOLE_PATH = "/studio/admin";
 const LEGACY_PORTAL_PATH = "/workbench";
 
 // Every native page with its own bookmarkable URL, in both directions --
@@ -179,6 +184,7 @@ const PATH_TO_PAGE = {
   [INTEGRATIONS_PATH]: INTEGRATIONS_PAGE,
   [BILLING_PATH]: 12,
   [DEVELOPER_PATH]: 14,
+  [ADMIN_CONSOLE_PATH]: ADMIN_CONSOLE_PAGE,
 };
 const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([path, page]) => [page, path]));
 const KNOWN_PAGE_PATHS = Object.keys(PATH_TO_PAGE);
@@ -197,6 +203,7 @@ export const LEGACY_ACCOUNT_REDIRECTS = {
   "/studio/storage": STORAGE_PATH,
   "/studio/billing/plans": STORAGE_PATH,
   "/studio/help": HELP_PATH,
+  "/studio/admin-console": ADMIN_CONSOLE_PATH,
 };
 
 export function resolveInitialPage() {
@@ -341,7 +348,15 @@ export default function App() {
 
   // ─── Listen for service open events (from Workbench tiles) ──
   useEffect(() => {
-    const handler = (e) => setService(e.detail);
+    const handler = (e) => {
+      const serviceUrl = e.detail?.url;
+      if (getStandaloneOnlyApp(serviceUrl)) {
+        openExternal(standaloneAppUrl(serviceUrl));
+        setService(null);
+        return;
+      }
+      setService(e.detail);
+    };
     window.addEventListener("open-service", handler);
     return () => window.removeEventListener("open-service", handler);
   }, []);
@@ -477,6 +492,7 @@ export default function App() {
     <AccountLayout activeSection="membership" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountMembershipStorage currentUser={currentUser} />
     </AccountLayout>,
+    <StandaloneAppLaunch />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");

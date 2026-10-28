@@ -204,7 +204,7 @@ describe("Studio portal", () => {
       usePermissions([permission]);
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
       render(<Studio />);
-      expect(screen.getByRole("button", { name: "API Keys & Service Accounts — API Keys · OAuth · Revocation" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "API Keys & Service Accounts — API Keys · OAuth · Revocation" })).toBeInTheDocument();
     },
   );
 
@@ -213,19 +213,13 @@ describe("Studio portal", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
 
-    const tile = screen.getByRole("button", { name: "API Keys & Service Accounts — API Keys · OAuth · Revocation" });
+    const tile = screen.getByRole("link", { name: "API Keys & Service Accounts — API Keys · OAuth · Revocation" });
     expect(screen.getByText("API Keys · OAuth · Revocation")).toBeInTheDocument();
     expect(tile.outerHTML).not.toMatch(/AUTH_SECRET_KEY|MYSQL|\.env|client_secret|8099|8001|vault|keyvault|kms/i);
 
-    const opened = vi.fn();
-    window.addEventListener("open-service", opened);
-    fireEvent.click(tile);
-    expect(opened).toHaveBeenCalledTimes(1);
-    expect(opened.mock.calls[0][0].detail).toEqual({
-      url: "https://admin.omnibioai.org/iam/service-accounts",
-      label: "API Keys & Service Accounts",
-    });
-    window.removeEventListener("open-service", opened);
+    expect(tile).toHaveAttribute("href", "https://admin.omnibioai.org/iam/service-accounts?obai_theme=dark");
+    expect(tile).toHaveAttribute("target", "_blank");
+    expect(tile.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
   });
 
   it("hides API Keys & Service Accounts without any accepted permission", () => {
@@ -248,16 +242,11 @@ describe("Studio portal", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
 
-    const tile = screen.getByRole("button", { name: "Compliance Center — HIPAA · Controls · Evidence" });
+    const tile = screen.getByRole("link", { name: "Compliance Center — HIPAA · Controls · Evidence" });
     expect(screen.getByText("HIPAA · Controls · Evidence")).toBeInTheDocument();
-    const opened = vi.fn();
-    window.addEventListener("open-service", opened);
-    fireEvent.click(tile);
-    expect(opened.mock.calls[0][0].detail).toEqual({
-      url: "https://admin.omnibioai.org/hipaa-compliance",
-      label: "Compliance Center",
-    });
-    window.removeEventListener("open-service", opened);
+    expect(tile).toHaveAttribute("href", "https://admin.omnibioai.org/hipaa-compliance?obai_theme=dark");
+    expect(tile).toHaveAttribute("target", "_blank");
+    expect(tile.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
   });
 
   it("hides Compliance Center without manage_all_orgs", () => {
@@ -272,16 +261,11 @@ describe("Studio portal", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
 
-    const tile = screen.getByRole("button", { name: "Security Posture — Controls · Enforcement · Readiness" });
+    const tile = screen.getByRole("link", { name: "Security Posture — Controls · Enforcement · Readiness" });
     expect(screen.getByText("Controls · Enforcement · Readiness")).toBeInTheDocument();
-    const opened = vi.fn();
-    window.addEventListener("open-service", opened);
-    fireEvent.click(tile);
-    expect(opened.mock.calls[0][0].detail).toEqual({
-      url: "https://admin.omnibioai.org/security-posture",
-      label: "Security Posture",
-    });
-    window.removeEventListener("open-service", opened);
+    expect(tile).toHaveAttribute("href", "https://admin.omnibioai.org/security-posture?obai_theme=dark");
+    expect(tile).toHaveAttribute("target", "_blank");
+    expect(tile.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
   });
 
   it("hides Security Posture without manage_all_orgs", () => {
@@ -296,16 +280,10 @@ describe("Studio portal", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
 
-    const tile = screen.getByRole("button", { name: "Audit Explorer \u2014 Events \u00b7 Evidence \u00b7 Investigation" });
-    const opened = vi.fn();
-    window.addEventListener("open-service", opened);
-    fireEvent.click(tile);
-    expect(opened).toHaveBeenCalledTimes(1);
-    expect(opened.mock.calls[0][0].detail).toEqual({
-      url: "https://admin.omnibioai.org/audit-explorer",
-      label: "Audit Explorer",
-    });
-    window.removeEventListener("open-service", opened);
+    const tile = screen.getByRole("link", { name: "Audit Explorer \u2014 Events \u00b7 Evidence \u00b7 Investigation" });
+    expect(tile).toHaveAttribute("href", "https://admin.omnibioai.org/audit-explorer?obai_theme=dark");
+    expect(tile).toHaveAttribute("target", "_blank");
+    expect(tile.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
   });
 
   it("shows Audit Logs to manage_all_orgs users and opens its canonical page", () => {
@@ -313,16 +291,10 @@ describe("Studio portal", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
 
-    const tile = screen.getByRole("button", { name: "Audit Logs \u2014 Identity \u00b7 Access \u00b7 Changes" });
-    const opened = vi.fn();
-    window.addEventListener("open-service", opened);
-    fireEvent.click(tile);
-    expect(opened).toHaveBeenCalledTimes(1);
-    expect(opened.mock.calls[0][0].detail).toEqual({
-      url: "https://admin.omnibioai.org/audit-logs",
-      label: "Audit Logs",
-    });
-    window.removeEventListener("open-service", opened);
+    const tile = screen.getByRole("link", { name: "Audit Logs \u2014 Identity \u00b7 Access \u00b7 Changes" });
+    expect(tile).toHaveAttribute("href", "https://admin.omnibioai.org/audit-logs?obai_theme=dark");
+    expect(tile).toHaveAttribute("target", "_blank");
+    expect(tile.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
   });
 
   it("hides Audit Explorer and Audit Logs without manage_all_orgs", () => {
@@ -369,18 +341,11 @@ describe("Studio portal", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
 
-    const tile = screen.getByRole("button", { name: "Entitlements — Plans · Licenses · Access" });
+    const tile = screen.getByRole("link", { name: "Entitlements — Plans · Licenses · Access" });
     expect(screen.getByText("Plans · Licenses · Access")).toBeInTheDocument();
-
-    const opened = vi.fn();
-    window.addEventListener("open-service", opened);
-    fireEvent.click(tile);
-    expect(opened).toHaveBeenCalledTimes(1);
-    expect(opened.mock.calls[0][0].detail).toEqual({
-      url: "https://admin.omnibioai.org/billing",
-      label: "Entitlements",
-    });
-    window.removeEventListener("open-service", opened);
+    expect(tile).toHaveAttribute("href", "https://admin.omnibioai.org/billing?obai_theme=dark");
+    expect(tile).toHaveAttribute("target", "_blank");
+    expect(tile.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
   });
 
   it("hides Entitlements without manage_licenses", () => {
