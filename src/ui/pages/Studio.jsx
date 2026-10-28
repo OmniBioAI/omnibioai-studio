@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } from "../lib/session";
 import { applicationUrl } from "../lib/workbenchApi";
 import OmniBioAILogo from "../components/brand/OmniBioAILogo";
+import { useAppearance } from "../components/AppearanceProvider";
 
 // Permission gate for the Admin Console tile — reuses the same permission
 // string control-center's own backend gates its core admin routes on
@@ -18,6 +19,13 @@ const MANAGE_LICENSES_PERMISSION = "manage_licenses";
 const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
 const PROVENANCE_SLUG = "provenance";
 const PROVENANCE_LAUNCH_PATH = "/plugins/provenance/";
+
+function adminConsoleUrl(url, resolvedTheme) {
+  const target = new URL(url, window.location.origin);
+  target.search = "";
+  target.searchParams.set("obai_theme", resolvedTheme === "light" ? "light" : "dark");
+  return target.toString();
+}
 
 function openWorkbenchApplication(slug, launchPath, label) {
   window.dispatchEvent(new CustomEvent("open-service", {
@@ -74,7 +82,7 @@ function buildCategories(BASE) {
         // URL, same reason as Getting Started above: AdminApp's own Vite
         // build has no `base` set either, so it's root-absolute-path and
         // can't be proxied under a /_svc/ prefix without breaking assets.
-        { label:"Admin Console",    url:"https://admin.omnibioai.org/", icon:"🛡️", desc:"Org/user/IAM · Billing · Compliance", requiresPermission: ADMIN_CONSOLE_PERMISSION },
+        { label:"Admin Console",    url:"https://admin.omnibioai.org/", icon:"🛡️", desc:"Org/user/IAM · Billing · Compliance", requiresPermission: ADMIN_CONSOLE_PERMISSION, openInNewTab: true },
         // Neo4j Browser uses the same authenticated, same-origin
         // ServiceViewer path as the other Workbench services. Neo4j serves
         // its Browser UI below /browser/ (the root is JSON discovery), so
@@ -194,6 +202,7 @@ function buildCategories(BASE) {
 }
 
 export default function Studio() {
+  const { resolvedTheme } = useAppearance();
   const [host,     setHost]     = useState(getInitialHost);
   const [online,   setOnline]   = useState(false);
   const [checking, setChecking] = useState(true);
@@ -404,31 +413,40 @@ export default function Studio() {
             </div>
 
             <div className="app-grid">
-              {links.map(({ label, url, icon, desc, action }) => {
+              {links.map(({ label, url, icon, desc, action, openInNewTab }) => {
                 const isLocal = !url.startsWith(BASE);
                 const clickable = isLocal || online;
+                const tileContent = <>
+                  <span aria-hidden="true" style={{ fontSize:20 }}>{icon}</span>
+                  <div style={{ fontSize:'var(--font-size-xs)', fontWeight:500, color, lineHeight:1.3 }}>{label}</div>
+                  <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--font-mono)", color:"var(--color-text-muted)" }}>{desc}</div>
+                </>;
+                const tileProps = {
+                  key: label,
+                  "aria-label": `${label} — ${desc}`,
+                  "aria-disabled": !clickable,
+                  title: desc,
+                  style: {
+                    padding:"12px 8px", background:"var(--bg3)",
+                    cursor: clickable ? "pointer" : "not-allowed",
+                    opacity: clickable ? 1 : 0.5,
+                    border:"none", transition:"background 0.15s",
+                    display:"flex", flexDirection:"column",
+                    alignItems:"center", gap:5, textAlign:"center", textDecoration:"none",
+                  },
+                  onMouseEnter: e => { if(clickable) e.currentTarget.style.background="rgba(255,255,255,0.03)"; },
+                  onMouseLeave: e => { e.currentTarget.style.background="var(--bg3)"; },
+                };
                 return (
-                  <button
-                    key={label}
-                    onClick={() => clickable && (action ? action() : open(url, label))}
-                    aria-label={`${label} — ${desc}`}
-                    aria-disabled={!clickable}
-                    title={desc}
-                    style={{
-                      padding:"12px 8px", background:"var(--bg3)",
-                      cursor: clickable ? "pointer" : "not-allowed",
-                      opacity: clickable ? 1 : 0.5,
-                      border:"none", transition:"background 0.15s",
-                      display:"flex", flexDirection:"column",
-                      alignItems:"center", gap:5, textAlign:"center",
-                    }}
-                    onMouseEnter={e => { if(clickable) e.currentTarget.style.background="rgba(255,255,255,0.03)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background="var(--bg3)"; }}
-                  >
-                    <span aria-hidden="true" style={{ fontSize:20 }}>{icon}</span>
-                    <div style={{ fontSize:'var(--font-size-xs)', fontWeight:500, color, lineHeight:1.3 }}>{label}</div>
-                    <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--font-mono)", color:"var(--color-text-muted)" }}>{desc}</div>
-                  </button>
+                  openInNewTab ? (
+                    <a {...tileProps} href={adminConsoleUrl(url, resolvedTheme)} target="_blank" rel="noopener noreferrer">
+                      {tileContent}
+                    </a>
+                  ) : (
+                    <button {...tileProps} onClick={() => clickable && (action ? action() : open(url, label))}>
+                      {tileContent}
+                    </button>
+                  )
                 );
               })}
             </div>
