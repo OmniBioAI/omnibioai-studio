@@ -1,88 +1,166 @@
-:root {
-  /* Backgrounds */
+/*
+ * Canonical runtime selectors:
+ *   data-theme="light|dark" (dark is the default)
+ *   data-accent="teal|blue|purple|orange" (teal is the default)
+ *   data-density="comfortable|compact" (comfortable is the default)
+ *   data-motion="system|reduce" (system is the default)
+ * The existing --color-* properties remain the compatibility API.
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Semantic surfaces and text */
   --color-bg:           #0f1117;
   --color-bg-surface:   #1a1d2e;
   --color-bg-surface2:  #20243a;
   --color-bg-surface3:  #222536;
   --color-bg-elevated:  #13161f;
-
-  /* Borders */
-  --color-border:        rgba(255,255,255,0.08);
-  --color-border-muted:  rgba(255,255,255,0.07);
-  --color-border-bright: rgba(255,255,255,0.12);
-
-  /* Text */
+  --color-border:        rgba(255,255,255,0.16);
+  --color-border-muted:  rgba(255,255,255,0.12);
+  --color-border-bright: rgba(255,255,255,0.24);
   --color-text:           #ffffff;
   --color-text-soft:      #e8eaf0;
-  --color-text-secondary: #9ca3af;
-  --color-text-muted:     #6b7280;
-  --color-text-dim:       #4b5563;
+  --color-text-secondary: #c2c8d2;
+  --color-text-muted:     #aab2c0;
+  --color-text-dim:       #9099a8;
 
-  /* Brand */
+  /* Brand and status foregrounds are readable on the page background. */
   --color-accent:         #00e5a0;
-  --color-accent-dim:     rgba(0,229,160,0.10);
-  --color-accent-surface: rgba(0,229,160,0.07);
-  --color-accent-border:  rgba(0,229,160,0.30);
-  --color-blue:           #0094ff;
-  --color-blue-dim:       rgba(0,148,255,0.10);
-  --color-purple:         #a855f7;
-  --color-purple-dim:     rgba(168,85,247,0.12);
+  --color-accent-dim:     rgba(0,229,160,0.20);
+  --color-accent-surface: rgba(0,229,160,0.14);
+  --color-accent-border:  rgba(0,229,160,0.55);
+  --color-blue:           #145bb5;
+  --color-blue-dim:       rgba(20,91,181,0.22);
+  --color-purple:         #7030a0;
+  --color-purple-dim:     rgba(112,48,160,0.22);
+  --color-orange:         #a34100;
+  --color-orange-dim:     rgba(163,65,0,0.22);
   --color-on-accent:      #000000;
-
-  /* Status */
-  --color-danger:         #ef4444;
-  --color-danger-dim:     rgba(239,68,68,0.12);
-  --color-danger-border:  rgba(239,68,68,0.30);
-  --color-warning:        #f59e0b;
-  --color-warning-dim:    rgba(245,158,11,0.12);
-  --color-warning-border: rgba(245,158,11,0.30);
-  --color-success:        #22c55e;
-  --color-success-dim:    rgba(34,197,94,0.12);
-  --color-success-border: rgba(34,197,94,0.30);
-  --color-info:           #0094ff;
-  --color-info-dim:       rgba(0,148,255,0.10);
-  --color-info-border:    rgba(0,148,255,0.30);
-
-  /* Shadows */
-  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
-  --shadow-card:   0 4px 24px rgba(0,0,0,0.3);
-  --shadow-header: 0 2px 8px rgba(0,0,0,0.4);
-
-  /* Typography */
+  --color-danger:         #ff6b72;
+  --color-danger-dim:     rgba(255,107,114,0.18);
+  --color-danger-border:  rgba(255,107,114,0.48);
+  --color-warning:        #ffd166;
+  --color-warning-dim:    rgba(255,209,102,0.18);
+  --color-warning-border: rgba(255,209,102,0.48);
+  --color-success:        #5ce0a0;
+  --color-success-dim:    rgba(92,224,160,0.18);
+  --color-success-border: rgba(92,224,160,0.48);
+  --color-info:           #75b8ff;
+  --color-info-dim:       rgba(117,184,255,0.18);
+  --color-info-border:    rgba(117,184,255,0.48);
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
-  --font-size-xs:   11px;
-  --font-size-sm:   12px;
-  --font-size-base: 13px;
-  --font-size-md:   14px;
-  --font-size-lg:   16px;
-  --font-size-xl:   20px;
-  --font-size-2xl:  24px;
-
-  /* Border radius */
-  --radius-xs:   4px;
-  --radius-sm:   6px;
-  --radius:      8px;
-  --radius-lg:   10px;
-  --radius-xl:   14px;
-  --radius-pill: 9999px;
-
-  /* Layout */
-  --sidebar-w:   200px;
-  --topbar-h:    48px;
-  --scrollbar-w: 4px;
 }
 
-/* Scrollbar baseline */
-::-webkit-scrollbar { width: var(--scrollbar-w); }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: var(--radius-xs);
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg:           #ffffff;
+  --color-bg-surface:   #f8fafc;
+  --color-bg-surface2:  #f1f5f9;
+  --color-bg-surface3:  #e8edf3;
+  --color-bg-elevated:  #ffffff;
+  --color-border:        #cbd5e1;
+  --color-border-muted:  #d8e0e9;
+  --color-border-bright: #94a3b8;
+  --color-text:           #17202e;
+  --color-text-soft:      #263449;
+  --color-text-secondary: #34445b;
+  --color-text-muted:     #475569;
+  --color-text-dim:       #58677a;
+
+  --color-accent:         #00e5a0;
+  --color-accent-dim:     rgba(0,229,160,0.12);
+  --color-accent-surface: rgba(0,229,160,0.08);
+  --color-accent-border:  rgba(0,229,160,0.45);
+  --color-blue:           #145bb5;
+  --color-blue-dim:       rgba(20,91,181,0.12);
+  --color-purple:         #7030a0;
+  --color-purple-dim:     rgba(112,48,160,0.12);
+  --color-orange:         #a34100;
+  --color-orange-dim:     rgba(163,65,0,0.12);
+  --color-on-accent:      #000000;
+  --color-danger:         #b42318;
+  --color-danger-dim:     rgba(180,35,24,0.10);
+  --color-danger-border:  rgba(180,35,24,0.35);
+  --color-warning:        #7a4a00;
+  --color-warning-dim:    rgba(122,74,0,0.10);
+  --color-warning-border: rgba(122,74,0,0.35);
+  --color-success:        #18794e;
+  --color-success-dim:    rgba(24,121,78,0.10);
+  --color-success-border: rgba(24,121,78,0.35);
+  --color-info:           #175cd3;
+  --color-info-dim:       rgba(23,92,211,0.10);
+  --color-info-border:    rgba(23,92,211,0.35);
 }
 
-/* Aliases for @man4ish/ui component compatibility */
-:root {
+/* Accent choices retain the same AA foreground/background pairing in both themes. */
+[data-accent="teal"] {
+  --color-accent: #007f68;
+  --color-on-accent: #ffffff;
+}
+[data-accent="blue"] {
+  --color-accent: #145bb5;
+  --color-on-accent: #ffffff;
+}
+[data-accent="purple"] {
+  --color-accent: #7030a0;
+  --color-on-accent: #ffffff;
+}
+[data-accent="orange"] {
+  --color-accent: #a34100;
+  --color-on-accent: #ffffff;
+}
+
+:root,
+[data-density="comfortable"] {
+  --density-scale: 1;
+  --density-control-height: 44px;
+  --density-space: 16px;
+}
+[data-density="compact"] {
+  --density-scale: 0.875;
+  --density-control-height: 40px;
+  --density-space: 12px;
+}
+
+:root,
+[data-motion="system"] {
+  --motion-duration: 180ms;
+  --motion-easing: cubic-bezier(0.2, 0, 0, 1);
+}
+[data-motion="reduce"] {
+  --motion-duration: 0ms;
+  --motion-easing: linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="reduce"]),
+  [data-motion="system"] {
+    --motion-duration: 0ms;
+    --motion-easing: linear;
+  }
+}
+
+/* Legacy short names and @man4ish/ui aliases remain available. */
+:root,
+[data-theme] {
+  --bg: var(--color-bg);
+  --bg-surface: var(--color-bg-surface);
+  --bg-surface2: var(--color-bg-surface2);
+  --bg-surface3: var(--color-bg-surface3);
+  --bg-elevated: var(--color-bg-elevated);
+  --text: var(--color-text);
+  --text-soft: var(--color-text-soft);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --accent: var(--color-accent);
+  --on-accent: var(--color-on-accent);
+  --danger: var(--color-danger);
+  --warning: var(--color-warning);
+  --success: var(--color-success);
+  --info: var(--color-info);
+
   --color-background-primary:   var(--color-bg-elevated);
   --color-background-secondary: var(--color-bg-surface);
   --color-background-tertiary:  var(--color-bg);
@@ -90,15 +168,12 @@
   --color-background-danger:    var(--color-danger-dim);
   --color-background-success:   var(--color-success-dim);
   --color-background-warning:   var(--color-warning-dim);
-
   --color-text-primary:   var(--color-text);
-  --color-text-secondary: var(--color-text-soft);
   --color-text-tertiary:  var(--color-text-muted);
   --color-text-info:      var(--color-blue);
   --color-text-danger:    var(--color-danger);
   --color-text-success:   var(--color-success);
   --color-text-warning:   var(--color-warning);
-
   --color-border-primary:   var(--color-border-bright);
   --color-border-secondary: var(--color-border);
   --color-border-tertiary:  var(--color-border-muted);
@@ -112,4 +187,34 @@
   --border-radius-xl: 16px;
   --font-sans: system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Shared non-colour tokens */
+:root {
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.3);
+  --shadow-card:   0 4px 24px rgba(0,0,0,0.3);
+  --shadow-header: 0 2px 8px rgba(0,0,0,0.4);
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 13px;
+  --font-size-md:   14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  24px;
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius:      8px;
+  --radius-lg:   10px;
+  --radius-xl:   14px;
+  --radius-pill: 9999px;
+  --sidebar-w:   200px;
+  --topbar-h:    48px;
+  --scrollbar-w: 4px;
+}
+
+::-webkit-scrollbar { width: var(--scrollbar-w); }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-xs);
 }
