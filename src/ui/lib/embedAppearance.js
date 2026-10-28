@@ -9,7 +9,12 @@ const ALLOWED = {
 };
 
 const DEFAULTS = { theme: "dark", accent: "teal", density: "comfortable", motion: "system" };
-const SENSITIVE_QUERY_KEY = /token|secret|password|credential|authorization|auth|session|user|email|api[_-]?key|organization|account/i;
+const SENSITIVE_QUERY_KEYS = new Set([
+  "token", "access_token", "refresh_token", "id_token",
+  "password", "api_key", "api-key", "session", "session_id",
+  "secret", "client_secret", "credential", "authorization", "auth",
+  "user_id", "email", "organization", "organization_id", "account", "account_id",
+]);
 
 export function createEmbedAppearance(appearance = {}) {
   return Object.fromEntries(Object.keys(DEFAULTS).map((key) => [
@@ -25,7 +30,7 @@ export function createThemeSetMessage(appearance) {
 export function buildEmbeddedUrl(url, appearance, baseUrl = globalThis.location?.href || "http://localhost/") {
   const target = new URL(url, baseUrl);
   for (const key of [...target.searchParams.keys()]) {
-    if (key.startsWith("obai_") || SENSITIVE_QUERY_KEY.test(key)) target.searchParams.delete(key);
+    if (key.startsWith("obai_") || SENSITIVE_QUERY_KEYS.has(key.toLowerCase())) target.searchParams.delete(key);
   }
   const snapshot = createEmbedAppearance(appearance);
   target.searchParams.set("obai_theme", snapshot.theme);

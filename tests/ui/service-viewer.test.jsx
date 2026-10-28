@@ -18,17 +18,21 @@ afterEach(() => { cleanup(); delete window.api; delete window.electronAPI; vi.re
 
 it("snapshots only validated appearance values and removes hostile or private query parameters", () => {
   const src = buildEmbeddedUrl(
-    "/_svc/rag/?view=chat&obai_theme=evil&obai_accent=orange&access_token=sentinel&user_id=private",
+    "/_svc/rag/?view=chat&author=Ada&username=reader&obai_theme=evil&obai_accent=orange&token=x&access_token=x&password=x&api_key=x&session=x&user_id=private",
     { theme: "light", accent: "purple", density: "compact", motion: "reduce" },
     "https://studio.example/",
   );
   const parsed = new URL(src);
   expect(parsed.searchParams.get("view")).toBe("chat");
+  expect(parsed.searchParams.get("author")).toBe("Ada");
+  expect(parsed.searchParams.get("username")).toBe("reader");
   expect(parsed.searchParams.get("obai_theme")).toBe("light");
   expect(parsed.searchParams.get("obai_accent")).toBe("purple");
   expect(parsed.searchParams.get("obai_density")).toBe("compact");
   expect(parsed.searchParams.get("obai_motion")).toBe("reduce");
-  expect(src).not.toMatch(/sentinel|private|access_token|user_id/);
+  for (const key of ["token", "access_token", "password", "api_key", "session", "user_id"]) {
+    expect(parsed.searchParams.has(key)).toBe(false);
+  }
   expect(createEmbedAppearance({ theme: "evil", accent: "javascript:alert(1)", density: "huge", motion: "secret" }))
     .toEqual({ theme: "dark", accent: "teal", density: "comfortable", motion: "system" });
   expect(createThemeSetMessage({ theme: "light", accent: "blue", density: "compact", motion: "reduce", userId: "private", token: "sentinel" }))
