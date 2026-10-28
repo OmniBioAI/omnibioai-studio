@@ -3,18 +3,19 @@ set -euo pipefail
 
 readonly IMAGE="ghcr.io/gitleaks/gitleaks:v8.30.1"
 readonly REPOSITORY_ROOT="$(git rev-parse --show-toplevel)"
-# In a linked worktree (scripts/ci-local.sh) .git is a file pointing into the main
-# repository's git dir; mount that dir at the same absolute path so gitleaks can
-# read the history. In a normal checkout it is /repo/.git and nothing is added.
-readonly GIT_COMMON_DIR="$(cd "${REPOSITORY_ROOT}" && realpath "$(git rev-parse --git-common-dir)")"
-extra_volumes=()
-if [[ "${GIT_COMMON_DIR}" != "${REPOSITORY_ROOT}/.git" ]]; then
-  extra_volumes=(--volume "${GIT_COMMON_DIR}:${GIT_COMMON_DIR}:ro")
-fi
+readonly SCAN_DIR="$(mktemp -d)"
+trap 'rm -rf "${SCAN_DIR}"' EXIT
+
+# ci-local runs this script from a linked worktree, whose common Git directory
+# contains unrelated local branches and tags. Bundle only HEAD's reachable
+# history into a temporary repository so the scan is exactly the ref under test.
+git -C "${REPOSITORY_ROOT}" bundle create "${SCAN_DIR}/ref.bundle" HEAD
+git init --quiet "${SCAN_DIR}/repo"
+git -C "${SCAN_DIR}/repo" fetch --quiet "${SCAN_DIR}/ref.bundle" HEAD:refs/heads/scan-ref
+git -C "${SCAN_DIR}/repo" checkout --quiet scan-ref
 
 docker run --rm \
-  --volume "${REPOSITORY_ROOT}:/repo:ro" \
-  ${extra_volumes[@]+"${extra_volumes[@]}"} \
+  --volume "${SCAN_DIR}/repo:/repo:ro" \
   "${IMAGE}" git \
   --redact=100 \
   --no-banner \

@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { chromiumLaunchOptions } from "./chromium-launch-options.mjs";
 
 const { chromium } = createRequire(new URL("../../packages/omnibioai-ui/package.json", import.meta.url))("playwright");
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
@@ -38,7 +39,7 @@ before(async () => {
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   origin = `http://127.0.0.1:${server.address().port}`;
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(chromiumLaunchOptions({ headless: true }));
 });
 
 after(async () => {

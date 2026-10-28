@@ -8,6 +8,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { extname, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { chromiumLaunchOptions } from "./chromium-launch-options.mjs";
 
 const { chromium } = createRequire(new URL("../../packages/omnibioai-ui/package.json", import.meta.url))("playwright");
 
@@ -28,7 +29,7 @@ before(async () => {
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   origin = `http://127.0.0.1:${server.address().port}`;
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(chromiumLaunchOptions({ headless: true }));
 });
 after(async () => {
   await browser?.close();
@@ -60,7 +61,7 @@ test("Report Bug control no longer overlaps the Account footer at a desktop view
     // currentUser must actually be non-null for this assertion to mean
     // anything -- the Account footer itself is proof of that (its render
     // condition is `{currentUser && ...}`, see Sidebar.jsx).
-    const accountTrigger = page.getByRole("button", { name: "Account menu" });
+    const accountTrigger = page.getByRole("button", { name: "Open Account" });
     await accountTrigger.waitFor();
 
     const reportBug = page.getByRole("button", { name: /Report Bug/ });
