@@ -60,9 +60,24 @@ after(async () => {
 async function openDeveloper({ width, empty = false, billingFailure = false }) {
   const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 1000 }, colorScheme: "dark", serviceWorkers: "block" });
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin });
-  await context.addInitScript(() => localStorage.setItem("omnibioai_access_token", "FAKE-DEVELOPER-SESSION"));
+  await context.addInitScript(() => {
+    localStorage.setItem("omnibioai_access_token", "FAKE-DEVELOPER-SESSION");
+    const fixedNow = new Date("2026-10-21T12:00:00Z").valueOf();
+    const NativeDate = Date;
+    window.Date = new Proxy(NativeDate, {
+      apply(target, thisArg, args) {
+        return args.length ? Reflect.apply(target, thisArg, args) : new NativeDate(fixedNow).toString();
+      },
+      construct(target, args, newTarget) {
+        return Reflect.construct(target, args.length ? args : [fixedNow], newTarget);
+      },
+      get(target, property, receiver) {
+        if (property === "now") return () => fixedNow;
+        return Reflect.get(target, property, receiver);
+      },
+    });
+  });
   const page = await context.newPage();
-  await page.clock.setFixedTime(new Date("2026-10-21T12:00:00Z"));
   const errors = [], outbound = [];
   let rows = empty ? [] : keyRows.map(row => ({ ...row }));
   page.on("pageerror", error => errors.push(error.message));
