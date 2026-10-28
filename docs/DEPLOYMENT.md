@@ -378,7 +378,6 @@ to now. `docker restart` and host reboots are fine: they reuse the container.
 | Service | Running image | Tag now points to | Release issue |
 |---|---|---|---|
 | tes | `f9670fc7f664` | `omnibioai-tes-local` → `b17e0a7257cf` | OmniBioAI/omnibioai-tes#48 |
-| launcher | `f8b256b1d214` | `omnibioai-studio-launcher` → `1f17a123a127` (older build) | OmniBioAI/omnibioai-launcher#10 |
 | security-audit-worker | `a5af294baeef` | `omnibioai-studio-security-audit-worker` → `96c8270c7534` | OmniBioAI/omnibioai-security-audit#25 |
 
 - `obai-deploy check` and `obai-deploy status` list every such service.
