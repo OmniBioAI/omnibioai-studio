@@ -36,14 +36,15 @@ describe("Services page", () => {
     expect(screen.getByText(/last check:/)).toBeInTheDocument();
   });
 
-  it("maps window.api.checkHealth results including the ollama warn branch", async () => {
+  it("maps window.api.checkHealth results including the Ollama degraded branch and reasons", async () => {
     window.api = {
       checkHealth: vi.fn().mockResolvedValue({ mysql: true, redis: false, workbench: true, tes: true, toolserver: false, ollama: false, rag: true }),
     };
     vi.stubGlobal("fetch", mockFetch());
     render(<Services config={{ mode: "local" }} currentUser={admin} />);
     await waitFor(() => expect(window.api.checkHealth).toHaveBeenCalled());
-    await waitFor(() => expect(screen.getByText("◐ Starting")).toBeInTheDocument()); // ollama -> warn
+    await waitFor(() => expect(screen.getByText("◐ Degraded")).toBeInTheDocument());
+    expect(screen.getByText(/Ollama is still starting or not ready/)).toBeInTheDocument();
     cleanup();
 
     // Inverted health: covers the other half of every up/down ternary above.
@@ -64,7 +65,7 @@ describe("Services page", () => {
     }));
     render(<Services config={{ mode: "local" }} currentUser={admin} />);
     await waitFor(() => expect(screen.getByText("Open ↗")).toBeInTheDocument()); // jupyter running
-    expect(screen.getByText("Starting...")).toBeInTheDocument(); // rstudio starting
+    expect(screen.getByText("Starting...")).toBeInTheDocument(); // rstudio degraded while starting
     expect(screen.getAllByText("Start").length).toBeGreaterThan(0); // vscode down/unknown
   });
 

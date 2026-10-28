@@ -53,7 +53,7 @@ export default function Explore({ onOpen }) {
             {resource.type === "domain" && <div className="explore-tags"><span>{resource.corpus} • {resource.provider}</span></div>}
             {resource.tags?.length > 0 && <div className="explore-tags">{resource.tags.map(tag => <span key={tag}>{tag}</span>)}</div>}
             {resource.type === "domain" ? <>
-              <div className="explore-tags">{resource.sources.map(source => <span key={source.kind}>{source.label} · {source.availability === "remote" ? "Remote" : "Unavailable"}</span>)}</div>
+              <div className="explore-tags">{resource.sources.map(source => <span key={source.kind}>{source.label} · {source.availability === "remote" ? "Remote" : "Not provided for this domain"}</span>)}</div>
               {resource.sources.filter(source => source.destination).map(source => <button key={source.kind} type="button" className="explore-action" onClick={() => openDomainDataset(source.destination)} aria-label={`${source.destination.label} for ${resource.name}`}>{source.destination.label} <span aria-hidden="true">→</span></button>)}
             </> : <button type="button" className="explore-action" onClick={() => onOpen?.(resource.destination, resource)} aria-label={`Open ${resource.name}`}>{resource.destination?.label || "View"} <span aria-hidden="true">→</span></button>}
           </PanelBody></Panel>)}</div>}

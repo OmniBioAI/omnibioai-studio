@@ -244,4 +244,50 @@ describe("Jobs page", () => {
     fireEvent.click(screen.getByRole("button", { name: "↻ Refresh" }));
     await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(before));
   });
+
+  it("paginates long histories, announces the count, and keeps paging focus stable", async () => {
+    const manyRuns = Array.from({ length: 31 }, (_, index) => ({
+      ...run1,
+      run_id: `run-${String(index + 1).padStart(20, "0")}`,
+      tool_id: `tool-${index + 1}`,
+    }));
+    vi.stubGlobal("fetch", mockFetchByPath([
+      ["/api/runs", () => jsonRes(manyRuns)],
+      ["/api/tools", () => jsonRes([])],
+      ["/api/servers", () => jsonRes([])],
+    ]));
+    render(<Jobs />);
+    expect(await screen.findByRole("status", { name: "Run count" })).toHaveTextContent("31 runs; showing 1–25");
+    expect(screen.getByText("tool-31")).toBeInTheDocument();
+    expect(screen.queryByText("tool-6")).not.toBeInTheDocument();
+
+    const next = screen.getByRole("button", { name: "Next" });
+    next.focus();
+    fireEvent.click(next);
+    expect(next).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Run count" })).toHaveTextContent("31 runs; showing 26–31");
+    expect(screen.getByText("tool-6")).toBeInTheDocument();
+    expect(screen.queryByText("tool-31")).not.toBeInTheDocument();
+  });
+
+  it("paginates the registered tool list, announces its count, and retains focus", async () => {
+    const manyTools = Array.from({ length: 121 }, (_, index) => ({ tool_id: `registered-tool-${index + 1}` }));
+    vi.stubGlobal("fetch", mockFetchByPath([
+      ["/api/runs", () => jsonRes([])],
+      ["/api/tools", () => jsonRes(manyTools)],
+      ["/api/servers", () => jsonRes([])],
+    ]));
+    render(<Jobs />);
+    expect(await screen.findByRole("status", { name: "Registered tool count" })).toHaveTextContent("121 tools; showing 1–50");
+    expect(screen.getByText("registered-tool-50")).toBeInTheDocument();
+    expect(screen.queryByText("registered-tool-51")).not.toBeInTheDocument();
+
+    const next = screen.getByRole("button", { name: "Next" });
+    next.focus();
+    fireEvent.click(next);
+    expect(next).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Registered tool count" })).toHaveTextContent("121 tools; showing 51–100");
+    expect(screen.getByText("registered-tool-51")).toBeInTheDocument();
+    expect(screen.queryByText("registered-tool-50")).not.toBeInTheDocument();
+  });
 });

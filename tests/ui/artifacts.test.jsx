@@ -101,6 +101,18 @@ describe("Artifacts page", () => {
     expect(screen.queryByText(/^0 B$/)).not.toBeInTheDocument();
   });
 
+  it("names unreported artifact and membership fields precisely", async () => {
+    api.getStorageUsage.mockResolvedValue({
+      usedBytes: 0, reservedBytes: 0, quotaBytes: null, availableBytes: null,
+      plan: null, overQuota: false, quotaMode: "off", enforcementActive: false,
+      entitlementStatus: "unknown",
+    });
+    api.listArtifacts.mockResolvedValue({ artifacts: [{ ...report, sizeBytes: null }], total: 1 });
+    render(<Artifacts />);
+    expect(await screen.findByText("Membership: Membership not reported")).toBeInTheDocument();
+    expect(await screen.findByText("Size not reported")).toBeInTheDocument();
+  });
+
   it("renders loading and then a truthful empty state without fake records", async () => {
     let resolve;
     api.listArtifacts.mockReturnValue(new Promise(done => { resolve = done; }));

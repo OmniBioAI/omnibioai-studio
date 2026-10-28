@@ -31,13 +31,19 @@ describe("Mode page", () => {
     expect(setConfig.mock.calls.at(-1)[0]({ mode: "beta" })).toEqual({ mode: "beta" });
   });
 
-  it("does not select a disabled mode, and shows its tooltip and coming-soon label", () => {
+  it("hides runtime modes that are not implemented", () => {
     const setConfig = vi.fn();
     render(<Mode config={{ mode: "beta" }} setConfig={setConfig} currentUser={admin} />);
-    expect(screen.getAllByText("(coming soon)").length).toBe(4); // Local, HPC, Cloud, Hybrid
-    const disabledCards = screen.getAllByTitle("Available in future release");
-    expect(disabledCards).toHaveLength(4);
-    fireEvent.click(disabledCards[0]);
-    expect(setConfig).not.toHaveBeenCalled();
+    expect(screen.getAllByRole("radio")).toHaveLength(1);
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    for (const name of ["Local", "HPC", "Cloud", "Hybrid"]) {
+      expect(screen.queryByText(name, { exact: true })).not.toBeInTheDocument();
+    }
+  });
+
+  it("renders canonical health states with reasons instead of static claims", () => {
+    render(<Mode config={{ mode: "beta" }} setConfig={vi.fn()} currentUser={admin} />);
+    expect(screen.getAllByText("— UNKNOWN")).toHaveLength(5);
+    expect(screen.getAllByText(/has not been checked yet|No health check is configured/).length).toBeGreaterThan(0);
   });
 });

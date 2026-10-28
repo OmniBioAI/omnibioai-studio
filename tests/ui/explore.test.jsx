@@ -75,4 +75,14 @@ describe("Explore page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open FastQC" }));
     expect(onOpen).toHaveBeenCalledWith(resources[0].destination, resources[0]);
   });
+
+  it("describes a missing domain source without a generic unavailable label", async () => {
+    loadExploreResources.mockResolvedValueOnce({ resources: [{
+      id: "domain:example", type: "domain", name: "Example domain", corpus: "PubMed", provider: "RAG",
+      sources: [{ kind: "corpus", label: "Corpus", availability: "remote" }, { kind: "index", label: "Index", availability: "unavailable" }],
+    }], failures: [] });
+    render(<Explore />);
+    expect(await screen.findByText("Index · Not provided for this domain")).toBeInTheDocument();
+    expect(screen.queryByText("Index · Unavailable")).not.toBeInTheDocument();
+  });
 });

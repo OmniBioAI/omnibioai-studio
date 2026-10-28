@@ -196,14 +196,15 @@ export function ToggleRow({ label, sub, value, onChange }) {
   );
 }
 
-export function HealthCard({ label, status, port }) {
+export function HealthCard({ label, status, port, reason }) {
   const colorMap = {
     up: "var(--color-status-success)",
-    warn: "var(--color-status-warning)",
+    degraded: "var(--color-status-warning)",
     down: "var(--color-status-danger)",
+    unknown: "var(--color-text-muted)",
   };
-  const labelMap = { up: "● UP", warn: "◐ INIT", down: "✕ DOWN" };
-  const color = colorMap[status];
+  const labelMap = { up: "● UP", degraded: "◐ DEGRADED", down: "✕ DOWN", unknown: "— UNKNOWN" };
+  const color = colorMap[status] || colorMap.unknown;
   return (
     <div style={{
       background: "var(--bg3)",
@@ -224,11 +225,14 @@ export function HealthCard({ label, status, port }) {
         {label}
       </div>
       <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, fontFamily: "var(--mono)", color }}>
-        {labelMap[status]}
+        {labelMap[status] || labelMap.unknown}
       </div>
       <div style={{ fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", fontFamily: "var(--mono)", marginTop: 2 }}>
         {port}
       </div>
+      {reason && <div title={reason} style={{ fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", marginTop: 6 }}>
+        {reason}
+      </div>}
     </div>
   );
 }

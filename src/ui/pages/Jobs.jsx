@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { isElectron, getToken } from "../lib/session";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
@@ -53,6 +53,9 @@ const STATE_COLOR = {
   CANCELLED:  "var(--color-text-muted)",
 };
 
+export const JOBS_PAGE_SIZE = 25;
+export const JOBS_TOOL_PAGE_SIZE = 50;
+
 function requireArray(value, label) {
   if (!Array.isArray(value)) throw new Error(`Invalid ${label} response`);
   return value;
@@ -88,6 +91,8 @@ export default function Jobs() {
   const [detail,   setDetail]   = useState(null);
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(true);
+  const [page, setPage] = useState(1);
+  const [toolsPage, setToolsPage] = useState(1);
 
   // Submit form state
   const [showSubmit,  setShowSubmit]  = useState(false);
@@ -122,6 +127,24 @@ export default function Jobs() {
     pollRef.current = setInterval(loadData, 5000);
     return () => clearInterval(pollRef.current);
   }, [loadData]);
+
+  const orderedRuns = useMemo(() => [...runs].reverse(), [runs]);
+  const pageCount = Math.max(1, Math.ceil(orderedRuns.length / JOBS_PAGE_SIZE));
+  const visibleRuns = useMemo(
+    () => orderedRuns.slice((page - 1) * JOBS_PAGE_SIZE, page * JOBS_PAGE_SIZE),
+    [orderedRuns, page],
+  );
+  useEffect(() => { setPage(current => Math.min(current, pageCount)); }, [pageCount]);
+  const firstVisible = orderedRuns.length ? (page - 1) * JOBS_PAGE_SIZE + 1 : 0;
+  const lastVisible = Math.min(page * JOBS_PAGE_SIZE, orderedRuns.length);
+  const toolsPageCount = Math.max(1, Math.ceil(tools.length / JOBS_TOOL_PAGE_SIZE));
+  const visibleTools = useMemo(
+    () => tools.slice((toolsPage - 1) * JOBS_TOOL_PAGE_SIZE, toolsPage * JOBS_TOOL_PAGE_SIZE),
+    [tools, toolsPage],
+  );
+  useEffect(() => { setToolsPage(current => Math.min(current, toolsPageCount)); }, [toolsPageCount]);
+  const firstVisibleTool = tools.length ? (toolsPage - 1) * JOBS_TOOL_PAGE_SIZE + 1 : 0;
+  const lastVisibleTool = Math.min(toolsPage * JOBS_TOOL_PAGE_SIZE, tools.length);
 
   const openDetail = async (run_id) => {
     setSelected(run_id);
@@ -328,8 +351,8 @@ export default function Jobs() {
             <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
               Run History
             </span>
-            <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
-              {runs.length} runs
+            <span role="status" aria-label="Run count" aria-live="polite" style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
+              {runs.length} {runs.length === 1 ? "run" : "runs"}{runs.length ? `; showing ${firstVisible}–${lastVisible}` : ""}
             </span>
           </div>
 
@@ -356,11 +379,11 @@ export default function Jobs() {
                 </tr>
               </thead>
               <tbody>
-                {[...runs].reverse().map((run, i) => (
+                {visibleRuns.map((run, i) => (
                   <tr key={run.run_id}
                     onClick={() => openDetail(run.run_id)}
                     style={{
-                      borderBottom: i < runs.length - 1 ? "1px solid var(--border)" : "none",
+                      borderBottom: i < visibleRuns.length - 1 ? "1px solid var(--border)" : "none",
                       background: selected === run.run_id ? "rgba(0,229,160,0.04)" : "transparent",
                       cursor: "pointer", transition: "background 0.1s",
                     }}
@@ -391,6 +414,20 @@ export default function Jobs() {
             </table>
             </div>
           )}
+          {!loading && runs.length > JOBS_PAGE_SIZE && <nav aria-label="Run history pages" style={{
+            padding: "10px 16px", borderTop: "1px solid var(--border)", display: "flex",
+            alignItems: "center", justifyContent: "flex-end", gap: 8,
+          }}>
+            <button type="button" disabled={page === 1} onClick={() => setPage(current => Math.max(1, current - 1))}>
+              Previous
+            </button>
+            <span aria-current="page" style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
+              Page {page} of {pageCount}
+            </span>
+            <button type="button" disabled={page === pageCount} onClick={() => setPage(current => Math.min(pageCount, current + 1))}>
+              Next
+            </button>
+          </nav>}
         </div>
 
         {/* Detail panel */}
@@ -537,13 +574,15 @@ export default function Jobs() {
             <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
               Registered Tools
             </span>
-            <span style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>{tools.length}</span>
+            <span role="status" aria-label="Registered tool count" aria-live="polite" style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
+              {tools.length} {tools.length === 1 ? "tool" : "tools"}{tools.length ? `; showing ${firstVisibleTool}–${lastVisibleTool}` : ""}
+            </span>
           </div>
           {tools.length === 0 ? (
             <div style={{ padding: 14, fontSize: 'var(--font-size-xs)', color: "var(--color-text-muted)", ...mono }}>No tools registered</div>
           ) : (
             <div style={{ padding: "4px 0", maxHeight: 220, overflowY: "auto" }}>
-              {tools.map(t => (
+              {visibleTools.map(t => (
                 <div key={t.tool_id} style={{
                   padding: "7px 14px", borderBottom: "1px solid var(--border)",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -556,6 +595,20 @@ export default function Jobs() {
               ))}
             </div>
           )}
+          {tools.length > 0 && <nav aria-label="Registered tools pages" style={{
+            padding: "10px 14px", borderTop: "1px solid var(--border)", display: "flex",
+            alignItems: "center", justifyContent: "flex-end", gap: 8,
+          }}>
+            <button type="button" disabled={toolsPage === 1} onClick={() => setToolsPage(current => Math.max(1, current - 1))}>
+              Previous
+            </button>
+            <span aria-current="page" style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
+              Page {toolsPage} of {toolsPageCount}
+            </span>
+            <button type="button" disabled={toolsPage === toolsPageCount} onClick={() => setToolsPage(current => Math.min(toolsPageCount, current + 1))}>
+              Next
+            </button>
+          </nav>}
         </div>
       </div>
 
