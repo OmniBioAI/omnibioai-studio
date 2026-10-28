@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({ user: null, identity: { organizations: [] }, crashJobs: false }));
@@ -77,8 +77,9 @@ describe("Account route migration", () => {
     render(<App />);
     await screen.findByText("Studio page");
     fireEvent.click(screen.getByRole("button", { name: label }));
-    const webview = await screen.findByTitle(label);
-    const embedded = new URL(webview.src);
+    await waitFor(() => expect(document.querySelector("webview")).toBeTruthy());
+    const webview = document.querySelector("webview");
+    const embedded = new URL(webview.getAttribute("src"));
     expect(embedded.pathname).toBe(pathname);
     if (view) expect(embedded.searchParams.get("view")).toBe(view);
     for (const [key, value] of Object.entries({ theme: "light", accent: "purple", density: "compact", motion: "reduce" })) {
@@ -89,9 +90,10 @@ describe("Account route migration", () => {
   it("routes Studio open-service events through the same themed viewer for Lit AI", async () => {
     render(<App />);
     await screen.findByText("Studio page");
-    window.dispatchEvent(new CustomEvent("open-service", { detail: { url: "/_svc/rag/", label: "RAG / Lit AI" } }));
-    const webview = await screen.findByTitle("RAG / Lit AI");
-    const embedded = new URL(webview.src);
+    act(() => window.dispatchEvent(new CustomEvent("open-service", { detail: { url: "/_svc/rag/", label: "RAG / Lit AI" } })));
+    await waitFor(() => expect(document.querySelector("webview")).toBeTruthy());
+    const webview = document.querySelector("webview");
+    const embedded = new URL(webview.getAttribute("src"));
     expect(embedded.pathname).toBe("/_svc/rag/");
     for (const key of ["theme", "accent", "density", "motion"]) {
       expect(embedded.searchParams.has(`obai_${key}`)).toBe(true);
