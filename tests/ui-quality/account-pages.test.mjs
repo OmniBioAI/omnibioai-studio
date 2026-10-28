@@ -3,6 +3,7 @@ import { after, before, test } from "node:test";
 import { createServer } from "node:http";
 import { mkdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { chromiumLaunchOptions } from "../browser/chromium-launch-options.mjs";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -70,10 +71,9 @@ before(async () => {
   });
   await new Promise(done => server.listen(0, "127.0.0.1", done));
   origin = `http://127.0.0.1:${server.address().port}`;
-  browser = await chromium.launch({
+  browser = await chromium.launch(chromiumLaunchOptions({
     headless: true,
-    ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}),
-  });
+  }));
 });
 
 after(async () => {

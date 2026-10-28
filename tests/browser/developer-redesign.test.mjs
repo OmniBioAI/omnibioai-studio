@@ -8,6 +8,7 @@ import { readFile, mkdir } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { chromiumLaunchOptions } from "./chromium-launch-options.mjs";
 
 const { chromium } = createRequire(new URL("../../packages/omnibioai-ui/package.json", import.meta.url))("playwright");
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -49,7 +50,7 @@ before(async () => {
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   origin = `http://127.0.0.1:${server.address().port}`;
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(chromiumLaunchOptions({ headless: true }));
 });
 after(async () => {
   await browser?.close();
@@ -89,20 +90,12 @@ async function openDeveloper({ width, empty = false, billingFailure = false }) {
       return route.fulfill({ status: 204 });
     }
     if (url.pathname.startsWith("/_svc/") || url.pathname.startsWith("/billing/")) return json({}, 503);
-    if (url.pathname === "/studio" || url.pathname.startsWith("/assets/") || /\.(js|png|svg|ico|webmanifest)$/.test(url.pathname)) return route.continue();
+    if (url.pathname.startsWith("/studio") || url.pathname.startsWith("/assets/") || /\.(js|png|svg|ico|webmanifest)$/.test(url.pathname)) return route.continue();
     return json({}, 404);
   });
-  await page.goto(`${origin}/studio`);
-  if (width === 390) {
-    await page.getByRole("button", { name: "Open navigation" }).click();
-    const drawer = page.getByRole("dialog", { name: "Navigation", exact: true });
-    await drawer.locator('[data-nav-item="Developer"]').click();
-    await drawer.waitFor({ state: "hidden" });
-    await page.waitForTimeout(300); // allow the drawer's 250ms exit transition to finish before capture
-  } else {
-    await page.locator('.studio-sidebar-wrap [data-nav-item="Developer"]').click();
-  }
-  await page.getByRole("heading", { name: "API keys", exact: true }).waitFor();
+  await page.goto(`${origin}/studio/account/organization/api-keys`);
+  await page.locator("#account-heading").waitFor();
+  assert.equal(await page.locator("#account-heading").innerText(), "API keys");
   await page.getByText("in Northstar Research · usage is billed to this organization").waitFor();
   if (empty) await page.getByText("No API keys yet.").waitFor();
   else await page.getByRole("rowheader", { name: "notebook", exact: true }).waitFor();
@@ -132,23 +125,16 @@ for (const width of [1440, 390]) {
     test(`${state} at ${width}px: responsive layout and review image`, async () => {
       const { context, page, errors, outbound } = await openDeveloper({ width, empty: state !== "keys" });
       try {
-        if (state === "new-key") {
-          await page.getByLabel("Key name", { exact: true }).fill("research-notebook");
-          await page.getByRole("button", { name: "Create key", exact: true }).click();
-          await page.getByTestId("new-key").waitFor();
-          await page.getByText("New", { exact: true }).waitFor();
-          assert.equal(await page.getByTestId("new-key").textContent(), FAKE_KEY);
-          assert.equal(await page.getByRole("button", { name: "Done", exact: true }).isDisabled(), true);
-          assert.equal(await page.getByText(FAKE_KEY, { exact: true }).count(), 1);
-          assert.equal(await page.getByRole("tabpanel").textContent().then(text => text.includes(FAKE_KEY)), false);
-        }
+        await page.getByRole("button", { name: "New key", exact: true }).click();
+        await page.getByLabel("Key name", { exact: true }).waitFor();
         const layout = await page.locator(".developer-page").evaluate(element => {
           window.scrollTo(9999, 0);
           const pageScrollX = window.scrollX;
           window.scrollTo(0, 0);
           const grid = element.querySelector(".developer-grid");
           const [left, right] = [...grid.children].map(child => child.getBoundingClientRect());
-          const input = element.querySelector("#developer-key-name"), create = element.querySelector('[type="submit"]');
+          const input = document.querySelector(".developer-create-dialog #developer-key-name");
+          const create = document.querySelector(".developer-create-dialog [type=submit]");
           const table = element.querySelector(".developer-table-scroll");
           return { left: { x: left.x, y: left.y, width: left.width }, right: { x: right.x, y: right.y, width: right.width },
             inputHeight: input.getBoundingClientRect().height, buttonHeight: create.getBoundingClientRect().height,
@@ -165,7 +151,17 @@ for (const width of [1440, 390]) {
           assert.ok(Math.abs(layout.left.width / layout.right.width - 1.5) < 0.05, "Columns should be about 60/40");
         } else {
           assert.ok(layout.right.y > layout.left.y, "Cards should stack on phones");
-          if (state !== "empty") assert.equal(layout.tableScrolls, true);
+          if (state === "keys") assert.equal(layout.tableScrolls, true);
+        }
+        if (state === "new-key") {
+          await page.getByLabel("Key name", { exact: true }).fill("research-notebook");
+          await page.getByRole("button", { name: "Create key", exact: true }).click();
+          await page.getByTestId("new-key").waitFor();
+          await page.getByText("New", { exact: true }).waitFor();
+          assert.equal(await page.getByTestId("new-key").textContent(), FAKE_KEY);
+          assert.equal(await page.getByRole("button", { name: "Done", exact: true }).isDisabled(), true);
+          assert.equal(await page.getByText(FAKE_KEY, { exact: true }).count(), 1);
+          assert.equal(await page.getByRole("tabpanel").textContent().then(text => text.includes(FAKE_KEY)), false);
         }
         await capture(page, state, width);
         if (state === "new-key") {
@@ -185,7 +181,7 @@ for (const width of [1440, 390]) {
           assert.equal(JSON.stringify(storage.session).includes(FAKE_KEY), false);
           await page.evaluate(() => window.dispatchEvent(new CustomEvent("navigate", { detail: 7 })));
           await page.evaluate(() => window.dispatchEvent(new CustomEvent("navigate", { detail: 14 })));
-          await page.getByRole("heading", { name: "API keys", exact: true }).waitFor();
+          await page.locator("#account-heading").waitFor();
           assert.equal(await page.getByTestId("new-key").count(), 0);
         }
         assert.equal(outbound.some(request => request.includes(FAKE_KEY)), false, "Secret must not be sent to logs or telemetry");

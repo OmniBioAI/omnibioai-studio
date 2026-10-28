@@ -21,8 +21,12 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG_DIR="${OBAI_CI_LOG_ROOT:-$HOME/omnibioai-ci-logs}/$STAMP"
 mkdir -p "$LOG_DIR"
 HOST_PY="$(command -v python3)"   # reads ci.yml; the venv below has no PyYAML until CI's pip step
-# Playwright browsers live in their own persistent cache, so the download happens once.
+# Use the already-installed browser cache; local CI must never download Chromium.
 export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/omnibioai-ci-playwright}"
+if [[ -z "${PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH:-}" ]]; then
+  PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="$(find "$PLAYWRIGHT_BROWSERS_PATH" -path '*/chrome-linux/chrome' -type f -print -quit 2>/dev/null || true)"
+fi
+export PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
 
 git -C "$REPO" fetch --quiet origin || { echo "ci-local: git fetch origin failed" >&2; exit 1; }
 SHA="$(git -C "$REPO" rev-parse --verify --quiet "$REF^{commit}")" || { echo "ci-local: not a commit: $REF" >&2; exit 1; }
@@ -115,7 +119,11 @@ done
 # ---- UI tests (not in ci.yml yet)
 step "npm ci (packages/omnibioai-ui)" npm --prefix packages/omnibioai-ui ci --no-audit --no-fund
 step "UI unit tests (npm run test:ui)" npm run test:ui
-step "Playwright Chromium (install if missing)" npm --prefix packages/omnibioai-ui exec -- playwright install chromium
+if [[ -n "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH" && -x "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH" ]]; then
+  skip "Playwright Chromium" "using existing browser: $PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"
+else
+  skip "Playwright Chromium" "no existing Chromium found; downloads are intentionally disabled"
+fi
 step "UI-quality suite (npm run test:ui-quality)" npm run test:ui-quality
 step "Browser tests (tests/browser)" bash -c 'node --test tests/browser/*.test.mjs'
 

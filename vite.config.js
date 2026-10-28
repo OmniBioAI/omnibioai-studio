@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
               // e.g. an OAuth redirect's "/?status=...", still match "/").
               // `/studio` is the canonical portal path and `/workbench` is a
               // legacy alias. Service paths remain network-only.
-              navigateFallbackAllowlist: [/^\/(?:studio(?:\/(?:profile|security|preferences|notifications|personalization|appearance|integrations|organization\/connections))?|workbench)?$/],
+              navigateFallbackAllowlist: [/^\/(?:studio(?:\/account(?:\/(?:profile|security|preferences|privacy-data|membership-storage|help|organization\/(?:billing|usage|api-keys|members-roles)))?|\/(?:profile|security|preferences|notifications|personalization|appearance|integrations|organization\/connections))?|workbench)?$/],
               // Keep OAuth and other router-owned navigations out of the
               // cached app shell even if the SPA allowlist is broadened.
               // Navigation fallback only decides from the pathname; when it

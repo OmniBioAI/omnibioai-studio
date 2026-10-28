@@ -12,6 +12,7 @@ import { readFile } from "node:fs/promises";
 import { extname, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { chromiumLaunchOptions } from "./chromium-launch-options.mjs";
 
 const { chromium } = createRequire(new URL("../../packages/omnibioai-ui/package.json", import.meta.url))("playwright");
 
@@ -49,7 +50,7 @@ before(async () => {
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   origin = `http://127.0.0.1:${server.address().port}`;
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(chromiumLaunchOptions({ headless: true }));
 });
 after(async () => {
   await browser?.close();
@@ -76,13 +77,13 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 1440, height: 900
     try {
       await page.goto(`${origin}/studio`);
 
-      const accountTrigger = page.getByRole("button", { name: "Account menu" });
+      const accountTrigger = page.getByRole("button", { name: "Open Account" });
       await accountTrigger.waitFor();
 
       assert.equal(await page.locator('[data-nav-item="IDE Services"]').count(), 0);
       assert.deepEqual(await page.locator('.studio-sidebar-wrap [data-nav-section="Runtime"] [data-nav-item]').evaluateAll(
         items => items.map(item => item.dataset.navItem),
-      ), ["Launch", "Services", "Logs", "Billing", "Developer"]);
+      ), ["Launch", "Services", "Logs"]);
 
       // 1 + 2. Footer exists and is fully contained inside the Sidebar's
       // viewport-clipped wrapper, not pushed past it.
@@ -160,12 +161,13 @@ test("mobile navigation keeps Runtime and Account without IDE Services", async (
     assert.equal(await drawer.locator('[data-nav-item="Roles"]').count(), 0);
     assert.deepEqual(await drawer.locator('[data-nav-section="Runtime"] [data-nav-item]').evaluateAll(
       items => items.map(item => item.dataset.navItem),
-    ), ["Launch", "Services", "Logs", "Billing", "Developer"]);
-    const account = drawer.getByRole("button", { name: "Account menu" });
+    ), ["Launch", "Services", "Logs"]);
+    const account = drawer.getByRole("button", { name: "Open Account" });
     const box = await account.boundingBox();
     assert.ok(box && box.y >= 0 && box.y + box.height <= 844, "Mobile Account is within the viewport");
     await account.click();
-    assert.equal(await page.getByRole("menuitem", { name: /Profile/ }).isVisible(), true);
+    assert.equal(new URL(page.url()).pathname, "/studio/account/profile");
+    assert.equal(await page.locator("#account-heading").getByText("Profile", { exact: true }).isVisible(), true);
   } finally {
     await context.close();
   }

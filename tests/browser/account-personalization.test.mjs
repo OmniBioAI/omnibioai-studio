@@ -6,6 +6,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { chromiumLaunchOptions } from "./chromium-launch-options.mjs";
 
 // Playwright is already a development dependency of the shared UI package.
 const { chromium } = createRequire(new URL("../../packages/omnibioai-ui/package.json", import.meta.url))("playwright");
@@ -30,7 +31,7 @@ before(async () => {
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   origin = `http://127.0.0.1:${server.address().port}`;
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(chromiumLaunchOptions({ headless: true }));
 });
 after(async () => {
   await browser?.close();
@@ -62,7 +63,7 @@ async function pageFor(width) {
     if (url.pathname.startsWith("/_svc/")) return json({}, 503);
     return route.continue();
   });
-  await page.goto(`${origin}/studio/personalization`);
+  await page.goto(`${origin}/studio/account/preferences`);
   await page.getByLabel("Response style", { exact: true }).waitFor();
   return { context, page, state };
 }
@@ -125,37 +126,34 @@ test("keyboard validation and load/save retry preserve the draft", async () => {
     await page.keyboard.press("Tab"); assert.equal(await page.getByLabel("Preferred language", { exact: true }).evaluate(el => el === document.activeElement), true);
     await page.keyboard.press("Tab"); assert.equal(await page.getByLabel("Personal instructions", { exact: true }).evaluate(el => el === document.activeElement), true);
     await page.getByLabel("Personal instructions", { exact: true }).fill("🧬".repeat(2001));
-    assert.match(await page.getByRole("alert").innerText(), /2,000 characters/);
+    assert.match(await page.locator("#personalization-instructions-error").innerText(), /2,000 characters/);
     assert.equal(await page.getByRole("button", { name: "Save personalization", exact: true }).isDisabled(), true);
     await page.getByLabel("Personal instructions", { exact: true }).fill("Keep my draft."); state.failSave = true;
     await page.getByRole("button", { name: "Save personalization", exact: true }).click();
-    await page.getByRole("alert").waitFor(); assert.equal(await page.getByLabel("Personal instructions", { exact: true }).inputValue(), "Keep my draft.");
+    await page.locator(".personalization-page [role=alert]").waitFor(); assert.equal(await page.getByLabel("Personal instructions", { exact: true }).inputValue(), "Keep my draft.");
     assert.equal(await page.getByText("Personalization saved.", { exact: true }).count(), 0);
     state.failSave = false; await page.getByRole("button", { name: "Save personalization", exact: true }).click();
     await page.getByText("Personalization saved.", { exact: true }).waitFor();
-    state.failLoad = true; await page.reload(); await page.getByRole("alert").waitFor();
-    state.failLoad = false; await page.getByRole("button", { name: "Retry", exact: true }).click();
+    state.failLoad = true; await page.reload(); await page.locator(".personalization-page [role=alert]").waitFor();
+    state.failLoad = false; await page.getByLabel("Personalization").getByRole("button", { name: "Retry", exact: true }).click();
     await page.getByLabel("Personal instructions", { exact: true }).waitFor();
     assert.equal(await page.getByLabel("Personal instructions", { exact: true }).inputValue(), "Keep my draft.");
     assert.deepEqual(state.errors, []);
   } finally { await context.close(); }
 });
 
-test("mobile Account menu routes to Personalization and closes its drawer", async () => {
+test("mobile Account settings navigation opens Preferences", async () => {
   const { context, page } = await pageFor(390);
   try {
-    await page.getByRole("button", { name: "Preferences", exact: true }).click();
-    await page.getByLabel("Time zone", { exact: true }).waitFor();
-    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-    const dialog = page.getByRole("dialog"); await dialog.getByRole("button", { name: "Account menu" }).click();
-    await dialog.getByRole("menuitem", { name: /Personalization/ }).click();
+    await page.goto(`${origin}/studio/account/profile`);
+    const accountSettings = page.getByRole("navigation", { name: "Account settings" });
+    await accountSettings.getByRole("link", { name: "Preferences", exact: true }).click();
     await page.getByLabel("Response style", { exact: true }).waitFor();
-    assert.equal(new URL(page.url()).pathname, "/studio/personalization");
-    assert.equal(await dialog.count(), 0);
+    assert.equal(new URL(page.url()).pathname, "/studio/account/preferences");
   } finally { await context.close(); }
 });
 
 test("production PWA allows the Personalization route", async () => {
   const worker = await readFile(resolve(build, "sw.js"), "utf8");
-  assert.match(worker, /profile\|security\|preferences\|notifications\|personalization/);
+  assert.match(worker, /privacy-data/);
 });

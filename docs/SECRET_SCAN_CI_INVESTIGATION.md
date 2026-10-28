@@ -58,6 +58,14 @@ this has no effect on which leaks are found, confirmed).
 **Net effect:** CI is not scanning `main`. It's (unintentionally) scanning
 two abandoned release tags that predate a history-scrub, every single run.
 
+## Operator rule: keep the local cleanup backup private
+
+Never push the local `backup/studio-before-secret-cleanup` branch. It is a
+recovery-only snapshot and may retain pre-cleanup secret-bearing history; it
+must not be published or included in a PR. The secret scanner now isolates the
+exact checked-out `HEAD` history before scanning, so unrelated local refs are
+not part of a CI or `ci-local.sh` scan.
+
 ## Part 2 — Triage of the 7 findings: 5 of 7 have a provenance answer, liveness is NOT verified for any
 
 | # | File | Rule | Tag-only commit | Status |
