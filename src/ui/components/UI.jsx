@@ -87,6 +87,8 @@ export function Input({ type = "text", placeholder, value, onChange, ...props })
       onBlur={(e)  => (e.target.style.borderColor = "var(--border2)")}
       style={{
         width: "100%",
+        minHeight: 44,
+        boxSizing: "border-box",
         background: "var(--bg2)",
         border: "1px solid var(--border2)",
         borderRadius: 'var(--radius-sm)',
@@ -112,6 +114,7 @@ export function Textarea({ placeholder, value, onChange, rows = 4, ...props }) {
       onBlur={(e)  => (e.target.style.borderColor = "var(--border2)")}
       style={{
         width: "100%",
+        minHeight: 44,
         background: "var(--bg2)",
         border: "1px solid var(--border2)",
         borderRadius: 'var(--radius-sm)',
@@ -136,6 +139,8 @@ export function Select({ value, onChange, options, ...props }) {
       className="studio-field"
       style={{
         width: "100%",
+        minHeight: 44,
+        boxSizing: "border-box",
         background: "var(--bg2)",
         border: "1px solid var(--border2)",
         borderRadius: 'var(--radius-sm)',
@@ -192,7 +197,11 @@ export function ToggleRow({ label, sub, value, onChange }) {
 }
 
 export function HealthCard({ label, status, port }) {
-  const colorMap = { up: "var(--accent)", warn: "var(--warn)", down: "var(--danger)" };
+  const colorMap = {
+    up: "var(--color-status-success)",
+    warn: "var(--color-status-warning)",
+    down: "var(--color-status-danger)",
+  };
   const labelMap = { up: "● UP", warn: "◐ INIT", down: "✕ DOWN" };
   const color = colorMap[status];
   return (
@@ -227,7 +236,7 @@ export function HealthCard({ label, status, port }) {
 export function Btn({ children, variant = "ghost", onClick, disabled, style }) {
   const variants = {
     ghost:   { background: "transparent", border: "1px solid var(--border2)", color: "var(--color-text-muted)" },
-    primary: { background: "var(--accent)", border: "none", color: "#000" },
+    primary: { background: "var(--accent)", border: "none", color: "var(--color-on-accent)" },
     danger:  { background: "rgba(255,71,87,0.12)", border: "1px solid rgba(255,71,87,0.25)", color: "var(--danger)" },
   };
   return (
@@ -236,7 +245,7 @@ export function Btn({ children, variant = "ghost", onClick, disabled, style }) {
       disabled={disabled}
       className="studio-field"
       style={{
-        padding: "7px 16px", borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-xs)',
+        minHeight: 44, padding: "7px 16px", borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-xs)',
         fontFamily: "var(--font)", fontWeight: 500,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,

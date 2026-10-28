@@ -3,7 +3,13 @@ import { Panel, PanelHeader, PanelBody } from "../components/UI";
 import PageHeader from "../components/PageHeader";
 
 const SOURCES = ["all", "mysql", "redis", "workbench", "tes", "toolserver", "ollama", "rag", "opa"];
-const LEVEL_COLOR = { INFO:"#0094ff", OK:"var(--accent)", WARN:"var(--color-warning)", ERR:"var(--color-danger)", DEBUG:"var(--color-text-muted)" };
+const LEVEL_COLOR = {
+  INFO: "var(--color-status-info)",
+  OK: "var(--color-status-success)",
+  WARN: "var(--color-status-warning)",
+  ERR: "var(--color-status-danger)",
+  DEBUG: "var(--color-text-muted)",
+};
 
 const DEMO_LOGS = [
   { time:"08:14:01", source:"workbench",  level:"INFO", msg:"Starting OmniBioAI Workbench v0.8.0" },

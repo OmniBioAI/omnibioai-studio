@@ -9,14 +9,14 @@ import { safeErrorMessage } from "../lib/safeErrorMessage";
 
 const PROVIDER_LABELS = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
-const ACCENT = "#00d4aa";
-const CARD_BG = "#0f1d2e";
-const PAGE_BG = "#04080f";
-const FIELD_BG = "#080e1a";
-const FIELD_BORDER = "rgba(0, 212, 170, 0.12)";
-const TEXT = "#e8f0fe";
-const MUTED = "#7a9bbf";
-const LABEL_MUTED = "#3d5a78";
+const ACCENT = "var(--login-accent)";
+const CARD_BG = "var(--login-card-bg)";
+const PAGE_BG = "var(--login-page-bg)";
+const FIELD_BG = "var(--login-field-bg)";
+const FIELD_BORDER = "var(--login-field-border)";
+const TEXT = "var(--login-text)";
+const MUTED = "var(--login-muted)";
+const LABEL_MUTED = "var(--login-label)";
 
 function GoogleIcon() {
   return (
@@ -156,6 +156,7 @@ export default function Login({ title, description }) {
 
   return (
     <div
+      className="studio-login-page"
       style={{
         minHeight: "100vh",
         width: "100vw",

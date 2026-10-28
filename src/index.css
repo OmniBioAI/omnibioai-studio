@@ -177,6 +177,12 @@
   --color-warning-border: rgba(255,165,2,0.30);
   --color-on-accent: #07130f;
   --color-on-danger: #ffffff;
+  /* Foreground-only status tokens. These are selected for AA contrast on
+     the Studio surfaces; background/border status tokens remain separate. */
+  --color-status-success: #00e5a0;
+  --color-status-info: #0094ff;
+  --color-status-warning: #ffa502;
+  --color-status-danger: #f87171;
   --color-text-muted: var(--muted);
   --color-text-secondary: #9ca3af;
   --color-text: var(--text);
@@ -291,6 +297,10 @@ html[data-theme="light"] {
   --color-input-bg: #ffffff;
   --color-on-accent: #ffffff;
   --color-on-danger: #ffffff;
+  --color-status-success: #14733b;
+  --color-status-info: #075fa8;
+  --color-status-warning: #854d0e;
+  --color-status-danger: #b42332;
 
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.10);
   --shadow-card: 0 4px 24px rgba(15, 23, 42, 0.10);
@@ -596,7 +606,27 @@ a:focus:not(:focus-visible) {
   .studio-hamburger { display: inline-flex; }
 }
 
-/* ── Login: mobile touch-target + card padding polish ── */
+/* ── Login: one intentionally dark, self-contained theme ── */
+/* Login does not mix the signed-in light-theme tokens with a hard-coded dark
+   surface. Everything inside, including the shared wordmark, inherits this
+   AA-qualified token set regardless of the OS or saved application theme. */
+.studio-login-page {
+  color-scheme: dark;
+  --login-page-bg: #04080f;
+  --login-card-bg: #0f1d2e;
+  --login-field-bg: #080e1a;
+  --login-field-border: rgba(0, 212, 170, 0.24);
+  --login-text: #e8f0fe;
+  --login-muted: #9db5cf;
+  --login-label: #afc4da;
+  --login-accent: #00d4aa;
+  --login-wordmark-accent: #67e8f9;
+  --text: var(--login-text);
+  --color-text: var(--login-text);
+  --color-text-muted: var(--login-muted);
+  --accent: var(--login-accent);
+  --accent-platform: var(--login-wordmark-accent);
+}
 /* Base (desktop) value matches Login.jsx's previous inline 2.5rem exactly;
    pulled into a class only so the mobile media query below has something
    to override without an !important fight against the inline style. */
@@ -649,8 +679,7 @@ a:focus:not(:focus-visible) {
 .explore-search input { display: block; width: 100%; margin-top: 7px; box-sizing: border-box; padding: 11px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); color: var(--text); font: var(--font-size-sm) var(--mono); }
 .explore-search input:focus-visible, .explore-filters button:focus-visible, .explore-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .explore-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.explore-filters button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 7px 11px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); color: var(--text); font: var(--font-size-xs) var(--mono); cursor: pointer; }
-.explore-filters button { min-height: 44px; }
+.explore-filters button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 7px 11px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg2); color: var(--text); font: var(--font-size-xs) var(--mono); cursor: pointer; }
 .explore-filters button[aria-pressed="true"] { border-color: var(--accent); background: var(--color-accent-dim); color: var(--accent); }
 .explore-summary, .explore-partial { margin: 0; color: var(--color-text-muted); font-size: var(--font-size-xs); font-family: var(--mono); }
 .explore-partial { color: var(--color-warning); }
@@ -661,7 +690,7 @@ a:focus:not(:focus-visible) {
 .explore-description { min-height: 42px; margin: 8px 0 0; color: var(--color-text-secondary); line-height: 1.45; overflow-wrap: anywhere; }
 .explore-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .explore-tags span { padding: 3px 7px; border: 1px solid var(--border); border-radius: 3px; color: var(--color-text-muted); font: var(--font-size-xs) var(--mono); }
-.explore-action { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 40px; margin-top: 16px; padding: 7px 0 0; border: 0; border-top: 1px solid var(--border); background: transparent; color: var(--accent); font: 600 var(--font-size-xs) var(--mono); cursor: pointer; text-align: left; }
+.explore-action { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; margin-top: 16px; padding: 7px 0 0; border: 0; border-top: 1px solid var(--border); background: transparent; color: var(--accent); font: 600 var(--font-size-xs) var(--mono); cursor: pointer; text-align: left; }
 .explore-message { display: flex; align-items: center; gap: 10px; margin: 0; padding: 4px 0; color: var(--color-text-muted); }
 @media (max-width: 480px) { .explore-filters { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 3px; } .explore-filters button { flex: 0 0 auto; } }
 .native-plugin-shell, .native-plugin-page { min-width: 0; display: flex; flex-direction: column; gap: 16px; }

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { dirname, extname, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const requireFromUi = createRequire(new URL("../../packages/omnibioai-ui/package.json", import.meta.url));
@@ -11,6 +11,13 @@ const { chromium } = requireFromUi("playwright");
 const axeSource = requireFromUi("axe-core").source;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const build = resolve(root, "dist/web");
+const screenshotDir = process.env.UI_QUALITY_SCREENSHOTS_DIR;
+
+const FIXED_ISSUES = Object.freeze({
+  contrast: "B4/N1",
+  targets: "B8",
+  login: "B13/R1",
+});
 
 const ACCOUNT_PAGES = [
   ["Profile", "/studio/account/profile"],
@@ -35,12 +42,12 @@ const EXPECTED_FAILURES = {
 
 const member = {
   valid: true, user_id: 7, email: "quality@example.test", roles: ["admin"],
-  permissions: ["manage_roles", "manage_billing"], org_id: 42,
+  permissions: ["manage_roles", "manage_billing", "manage_config"], org_id: 42,
   org_role: ["org_admin"], schema_version: 2,
 };
 const identity = {
   user: { id: 7, email: member.email, status: "active", created_at: "2025-04-12T00:00:00Z" },
-  global_roles: [{ name: "admin" }], global_permissions: ["manage_roles"],
+  global_roles: [{ name: "admin" }], global_permissions: ["manage_roles", "manage_config"],
   organizations: [{ organization_id: 42, organization_name: "Quality Lab", roles: ["org_admin"], effective_permissions: ["manage_roles", "manage_billing"] }],
 };
 
@@ -134,6 +141,24 @@ async function openAccountPage(path, width, theme = "dark") {
   return { context, page, counters };
 }
 
+async function openLoginPage(width, theme) {
+  const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, colorScheme: theme, serviceWorkers: "block" });
+  const counters = { enroll: 0, createKey: 0 };
+  const page = await context.newPage();
+  await page.route("**/*", route => fixtureRoute(route, counters));
+  await page.goto(`${origin}/studio`);
+  await page.locator(".studio-login-page").waitFor();
+  await page.waitForTimeout(50);
+  return { context, page };
+}
+
+async function clickNav(page, width, name) {
+  const navigation = width === 390
+    ? page.getByRole("dialog", { name: "Navigation" })
+    : page.locator(".studio-sidebar-wrap");
+  await navigation.locator(`[data-nav-item="${name}"]`).click();
+}
+
 function checkResult(pageName, width, theme, check, failures) {
   const key = `${pageName}|${width}|${theme}|${check}`;
   const issue = EXPECTED_FAILURES[key];
@@ -150,6 +175,21 @@ async function axeFailures(page) {
     runOnly: { type: "rule", values: ["color-contrast", "label", "button-name"] },
   }));
   return result.violations.map(violation => ({ id: violation.id, targets: violation.nodes.map(node => node.target.join(" ")) }));
+}
+
+async function contrastFailures(page) {
+  await page.addScriptTag({ content: axeSource });
+  const result = await page.evaluate(async () => window.axe.run(document, {
+    runOnly: { type: "rule", values: ["color-contrast"] },
+  }));
+  return result.violations.map(violation => ({ id: violation.id, targets: violation.nodes.map(node => node.target.join(" ")) }));
+}
+
+async function undersizedTargets(page, selector) {
+  return page.locator(selector).evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect();
+    return { name: element.getAttribute("aria-label") || element.textContent.trim().slice(0, 50) || element.id, width: Math.round(box.width), height: Math.round(box.height) };
+  }).filter(box => box.width < 44 || box.height < 44));
 }
 
 async function targetFailures(page) {
@@ -205,6 +245,82 @@ for (const [pageName, path] of ACCOUNT_PAGES) {
     });
   }
 }
+
+for (const width of [1440, 390]) {
+  for (const theme of ["dark", "light"]) test(`${FIXED_ISSUES.login}: sign-in keeps its AA dark token contract at ${width}px in ${theme} mode`, async () => {
+    const { context, page } = await openLoginPage(width, theme);
+    try {
+      const tokens = await page.locator(".studio-login-page").evaluate(element => {
+        const style = getComputedStyle(element);
+        return {
+          scheme: style.colorScheme,
+          page: style.getPropertyValue("--login-page-bg").trim(),
+          card: style.getPropertyValue("--login-card-bg").trim(),
+          text: style.getPropertyValue("--login-text").trim(),
+          label: style.getPropertyValue("--login-label").trim(),
+          wordmark: style.getPropertyValue("--login-wordmark-accent").trim(),
+        };
+      });
+      assert.deepEqual(tokens, {
+        scheme: "dark", page: "#04080f", card: "#0f1d2e", text: "#e8f0fe",
+        label: "#afc4da", wordmark: "#67e8f9",
+      });
+      assert.deepEqual(await contrastFailures(page), []);
+      if (screenshotDir) {
+        await mkdir(screenshotDir, { recursive: true });
+        await page.screenshot({ path: join(screenshotDir, `pr-u1-${theme}-${width}.png`), fullPage: true });
+      }
+    } finally { await context.close(); }
+  });
+}
+
+for (const width of [1440, 390]) {
+  for (const theme of ["dark", "light"]) test(`${FIXED_ISSUES.contrast}: Studio, Logs, and primary UI actions pass AA contrast at ${width}px in ${theme} mode`, async () => {
+    const { context, page } = await openAccountPage("/studio", width, theme);
+    try {
+      assert.deepEqual(await contrastFailures(page), [], "Studio dashboard contrast");
+      if (screenshotDir) await page.screenshot({ path: join(screenshotDir, `pr-u1-studio-${theme}-${width}.png`), fullPage: true });
+
+      if (width === 390) await page.getByRole("button", { name: "Open navigation" }).click();
+      await clickNav(page, width, "Logs");
+      await page.getByRole("heading", { name: "Live Logs" }).waitFor();
+      assert.deepEqual(await contrastFailures(page), [], "Logs contrast");
+      if (screenshotDir) await page.screenshot({ path: join(screenshotDir, `pr-u1-logs-${theme}-${width}.png`), fullPage: true });
+
+      if (width === 390) await page.getByRole("button", { name: "Open navigation" }).click();
+      await clickNav(page, width, "Settings");
+      await page.getByRole("heading", { name: "Settings" }).waitFor();
+      assert.deepEqual(await contrastFailures(page), [], "shared primary button contrast");
+    } finally { await context.close(); }
+  });
+}
+
+for (const width of [1440, 390]) test(`${FIXED_ISSUES.targets}: shared fields and Explore actions honor the 44px contract at ${width}px`, async () => {
+  const { context, page } = await openAccountPage("/studio", width);
+  try {
+    if (width === 390) {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+      await clickNav(page, 390, "LLM");
+    } else await clickNav(page, 1440, "LLM");
+    await page.getByRole("heading", { name: "LLM Configuration" }).waitFor();
+    assert.deepEqual(await undersizedTargets(page, ".studio-field"), [], "shared Input and Select controls");
+
+    if (width === 390) {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+      await clickNav(page, 390, "Settings");
+    } else await clickNav(page, 1440, "Settings");
+    await page.getByRole("heading", { name: "Settings" }).waitFor();
+    assert.deepEqual(await undersizedTargets(page, "button.studio-field"), [], "shared buttons");
+
+    if (width === 390) {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+      await clickNav(page, 390, "Explore");
+    } else await clickNav(page, 1440, "Explore");
+    await page.getByRole("heading", { name: "Explore" }).waitFor();
+    await page.locator(".explore-action").first().waitFor();
+    assert.deepEqual(await undersizedTargets(page, ".explore-filters button, .explore-action"), [], "Explore filters and actions");
+  } finally { await context.close(); }
+});
 
 test("N9: API key creation requires a valid name and reports the field error inline", async () => {
   const { context, page, counters } = await openAccountPage("/studio/account/organization/api-keys", 1440);

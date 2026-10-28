@@ -109,7 +109,7 @@ function buildCategories(BASE) {
     },
     {
       name: "Security Control Plane",
-      color: "#f87171",
+      color: "var(--color-status-danger)",
       links: [
         { label:"API Gateway",      url:"/_svc/gateway/docs",        icon:"🔐", desc:"Entry point · JWT enforcement"    },
         { label:"Auth Service",     url:"/_svc/auth/docs",           icon:"🪪", desc:"JWT · Login · Register"           },
@@ -338,7 +338,7 @@ export default function Studio() {
               opacity: online ? 1 : 0.4,
               background: online ? "var(--accent)" : "var(--bg2)",
               border: online ? "none" : "1px solid var(--border2)",
-              color: online ? "#000" : "var(--color-text-muted)",
+              color: online ? "var(--color-on-accent)" : "var(--color-text-muted)",
             }}
           >↗ Launch Workbench</button>
         </div>
@@ -480,7 +480,7 @@ export default function Studio() {
               cursor: online ? "pointer" : "not-allowed",
               opacity: online ? 1 : 0.4,
               background: online ? "var(--accent)" : "var(--bg2)",
-              border:"none", color: online ? "#000" : "var(--color-text-muted)",
+              border:"none", color: online ? "var(--color-on-accent)" : "var(--color-text-muted)",
             }}
           >↗ Launch Workbench</button>
         </div>
