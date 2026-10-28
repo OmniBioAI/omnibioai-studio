@@ -82,11 +82,47 @@ describe("ServiceViewer", () => {
 
   it("offers full-screen escape hatches only for embedded Lit AI and Workflows", () => {
     const { rerender } = render(<ServiceViewer url="/_svc/workflows" label="Workflows" onBack={vi.fn()} />);
-    expect(screen.getByRole("link", { name: "Open full screen" })).toHaveAttribute("href", "/_svc/workflows");
+    const workflowUrl = new URL(screen.getByRole("link", { name: "Open full screen" }).href);
+    expect(workflowUrl.pathname).toBe("/_svc/workflows");
+    expect(workflowUrl.searchParams.get("obai_theme")).toBe("dark");
+    expect(workflowUrl.searchParams.get("obai_accent")).toBe("teal");
+    expect(workflowUrl.searchParams.get("obai_density")).toBe("comfortable");
+    expect(workflowUrl.searchParams.get("obai_motion")).toBe("system");
     rerender(<ServiceViewer url="/_svc/rag/" label="RAG / Lit AI" onBack={vi.fn()} />);
-    expect(screen.getByRole("link", { name: "Open full screen" })).toHaveAttribute("href", "/_svc/rag/");
+    const ragUrl = new URL(screen.getByRole("link", { name: "Open full screen" }).href);
+    expect(ragUrl.pathname).toBe("/_svc/rag/");
+    expect(ragUrl.searchParams.get("obai_theme")).toBe("dark");
+    expect(ragUrl.searchParams.get("obai_accent")).toBe("teal");
+    expect(ragUrl.searchParams.get("obai_density")).toBe("comfortable");
+    expect(ragUrl.searchParams.get("obai_motion")).toBe("system");
     rerender(<ServiceViewer url="/_svc/sdk" label="Code" onBack={vi.fn()} />);
     expect(screen.queryByRole("link", { name: "Open full screen" })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["Lit AI", "/_svc/rag/"],
+    ["Ask", "/_svc/devhub?view=chat"],
+    ["Code", "/_svc/sdk"],
+    ["Workflows", "/_svc/workflows"],
+  ])("passes every appearance parameter and the ready/theme handshake to %s", async (label, url) => {
+    const { act } = await import("@testing-library/react");
+    render(<ServiceViewer url={url} label={label} onBack={vi.fn()} />);
+    const frame = screen.getByTitle(label);
+    const embedded = new URL(frame.src);
+    expect(embedded.pathname).toBe(new URL(url, window.location.href).pathname);
+    for (const [key, value] of Object.entries({ theme: "dark", accent: "teal", density: "comfortable", motion: "system" })) {
+      expect(embedded.searchParams.get(`obai_${key}`)).toBe(value);
+    }
+    if (label === "Ask") expect(embedded.searchParams.get("view")).toBe("chat");
+
+    const postMessage = vi.spyOn(frame.contentWindow, "postMessage").mockImplementation(() => {});
+    act(() => window.dispatchEvent(new MessageEvent("message", {
+      origin: embedded.origin, source: frame.contentWindow, data: { type: EMBED_READY_EVENT },
+    })));
+    expect(postMessage).toHaveBeenCalledWith(
+      { type: EMBED_THEME_EVENT, theme: "dark", accent: "teal", density: "comfortable", motion: "system" },
+      embedded.origin,
+    );
   });
 
   it("calls onBack", () => {

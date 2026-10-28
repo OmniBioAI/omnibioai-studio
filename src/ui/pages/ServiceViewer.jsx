@@ -123,7 +123,7 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
         }}>
           {url}
         </span>
-        {mobileFullScreen && <a className="service-viewer-fullscreen" href={url} target="_blank" rel="noopener noreferrer">
+        {mobileFullScreen && <a className="service-viewer-fullscreen" href={embeddedUrl} target="_blank" rel="noopener noreferrer">
           Open full screen
         </a>}
       </div>
