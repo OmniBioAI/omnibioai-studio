@@ -152,6 +152,13 @@ async function openLoginPage(width, theme) {
   return { context, page };
 }
 
+async function clickNav(page, width, name) {
+  const navigation = width === 390
+    ? page.getByRole("dialog", { name: "Navigation" })
+    : page.locator(".studio-sidebar-wrap");
+  await navigation.locator(`[data-nav-item="${name}"]`).click();
+}
+
 function checkResult(pageName, width, theme, check, failures) {
   const key = `${pageName}|${width}|${theme}|${check}`;
   const issue = EXPECTED_FAILURES[key];
@@ -271,10 +278,10 @@ for (const theme of ["dark", "light"]) test(`${FIXED_ISSUES.contrast}: Studio, L
   const { context, page } = await openAccountPage("/studio", 1440, theme);
   try {
     assert.deepEqual(await contrastFailures(page), [], "Studio dashboard contrast");
-    await page.locator('[data-nav-item="Logs"]').click();
+    await clickNav(page, 1440, "Logs");
     await page.getByRole("heading", { name: "Live Logs" }).waitFor();
     assert.deepEqual(await contrastFailures(page), [], "Logs contrast");
-    await page.locator('[data-nav-item="Settings"]').click();
+    await clickNav(page, 1440, "Settings");
     await page.getByRole("heading", { name: "Settings" }).waitFor();
     assert.deepEqual(await contrastFailures(page), [], "shared primary button contrast");
   } finally { await context.close(); }
@@ -285,22 +292,22 @@ for (const width of [1440, 390]) test(`${FIXED_ISSUES.targets}: shared fields an
   try {
     if (width === 390) {
       await page.getByRole("button", { name: "Open navigation" }).click();
-      await page.locator('[data-nav-item="LLM"]').click();
-    } else await page.locator('[data-nav-item="LLM"]').click();
+      await clickNav(page, 390, "LLM");
+    } else await clickNav(page, 1440, "LLM");
     await page.getByRole("heading", { name: "LLM Configuration" }).waitFor();
     assert.deepEqual(await undersizedTargets(page, ".studio-field"), [], "shared Input and Select controls");
 
     if (width === 390) {
       await page.getByRole("button", { name: "Open navigation" }).click();
-      await page.locator('[data-nav-item="Settings"]').click();
-    } else await page.locator('[data-nav-item="Settings"]').click();
+      await clickNav(page, 390, "Settings");
+    } else await clickNav(page, 1440, "Settings");
     await page.getByRole("heading", { name: "Settings" }).waitFor();
     assert.deepEqual(await undersizedTargets(page, "button.studio-field"), [], "shared buttons");
 
     if (width === 390) {
       await page.getByRole("button", { name: "Open navigation" }).click();
-      await page.locator('[data-nav-item="Explore"]').click();
-    } else await page.locator('[data-nav-item="Explore"]').click();
+      await clickNav(page, 390, "Explore");
+    } else await clickNav(page, 1440, "Explore");
     await page.getByRole("heading", { name: "Explore" }).waitFor();
     await page.locator(".explore-action").first().waitFor();
     assert.deepEqual(await undersizedTargets(page, ".explore-filters button, .explore-action"), [], "Explore filters and actions");
