@@ -2,13 +2,15 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } = vi.hoisted(() => ({
+const { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange, useAppearance } = vi.hoisted(() => ({
   isElectron: vi.fn(() => false),
   getCurrentUserSync: vi.fn(() => null),
   getCurrentUser: vi.fn().mockResolvedValue(null),
   onSessionChange: vi.fn(() => vi.fn()),
+  useAppearance: vi.fn(() => ({ resolvedTheme: "dark" })),
 }));
 vi.mock("../../src/ui/lib/session", () => ({ isElectron, getCurrentUserSync, getCurrentUser, onSessionChange }));
+vi.mock("../../src/ui/components/AppearanceProvider", () => ({ useAppearance }));
 
 import Studio from "../../src/ui/pages/Studio";
 
@@ -23,6 +25,7 @@ beforeEach(() => {
   getCurrentUserSync.mockReturnValue(null);
   getCurrentUser.mockResolvedValue(null);
   onSessionChange.mockReturnValue(vi.fn());
+  useAppearance.mockReturnValue({ resolvedTheme: "dark" });
   delete window.api;
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); delete window.api; });
@@ -160,6 +163,39 @@ describe("Studio portal", () => {
     getCurrentUser.mockResolvedValue(null);
     render(<Studio />);
     await waitFor(() => expect(screen.getByText("Admin Console")).toBeInTheDocument());
+  });
+
+  it("opens Admin in a safe new tab with only the resolved theme in its URL", () => {
+    usePermissions(["platform.manage_infra"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    useAppearance.mockReturnValue({ resolvedTheme: "light" });
+    const { container } = render(<Studio />);
+
+    const tile = screen.getByRole("link", { name: "Admin Console — Org/user/IAM · Billing · Compliance" });
+    expect(tile).toHaveAttribute("href", "https://admin.omnibioai.org/?obai_theme=light");
+    expect(tile).toHaveAttribute("target", "_blank");
+    expect(tile.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
+    expect(tile).not.toHaveAttribute("onclick");
+    const adminUrl = new URL(tile.href);
+    expect([...adminUrl.searchParams.keys()]).toEqual(["obai_theme"]);
+    expect(["light", "dark"]).toContain(adminUrl.searchParams.get("obai_theme"));
+    expect(adminUrl.search).not.toMatch(/token|authorization|email|user|org/i);
+    expect(container.querySelector("iframe")).not.toBeInTheDocument();
+
+    const opened = vi.fn();
+    window.addEventListener("open-service", opened);
+    fireEvent.click(tile);
+    expect(opened).not.toHaveBeenCalled();
+    window.removeEventListener("open-service", opened);
+  });
+
+  it("passes dark as the Admin launch theme when Studio is dark", () => {
+    usePermissions(["platform.manage_infra"]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    useAppearance.mockReturnValue({ resolvedTheme: "dark" });
+    render(<Studio />);
+    expect(screen.getByRole("link", { name: "Admin Console — Org/user/IAM · Billing · Compliance" }))
+      .toHaveAttribute("href", "https://admin.omnibioai.org/?obai_theme=dark");
   });
 
   it.each(["manage_api_keys", "manage_oauth_clients", "manage_all_orgs"])(
