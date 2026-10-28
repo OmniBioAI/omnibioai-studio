@@ -274,18 +274,26 @@ for (const width of [1440, 390]) {
   });
 }
 
-for (const theme of ["dark", "light"]) test(`${FIXED_ISSUES.contrast}: Studio, Logs, and primary UI actions pass AA contrast in ${theme} mode`, async () => {
-  const { context, page } = await openAccountPage("/studio", 1440, theme);
-  try {
-    assert.deepEqual(await contrastFailures(page), [], "Studio dashboard contrast");
-    await clickNav(page, 1440, "Logs");
-    await page.getByRole("heading", { name: "Live Logs" }).waitFor();
-    assert.deepEqual(await contrastFailures(page), [], "Logs contrast");
-    await clickNav(page, 1440, "Settings");
-    await page.getByRole("heading", { name: "Settings" }).waitFor();
-    assert.deepEqual(await contrastFailures(page), [], "shared primary button contrast");
-  } finally { await context.close(); }
-});
+for (const width of [1440, 390]) {
+  for (const theme of ["dark", "light"]) test(`${FIXED_ISSUES.contrast}: Studio, Logs, and primary UI actions pass AA contrast at ${width}px in ${theme} mode`, async () => {
+    const { context, page } = await openAccountPage("/studio", width, theme);
+    try {
+      assert.deepEqual(await contrastFailures(page), [], "Studio dashboard contrast");
+      if (screenshotDir) await page.screenshot({ path: join(screenshotDir, `pr-u1-studio-${theme}-${width}.png`), fullPage: true });
+
+      if (width === 390) await page.getByRole("button", { name: "Open navigation" }).click();
+      await clickNav(page, width, "Logs");
+      await page.getByRole("heading", { name: "Live Logs" }).waitFor();
+      assert.deepEqual(await contrastFailures(page), [], "Logs contrast");
+      if (screenshotDir) await page.screenshot({ path: join(screenshotDir, `pr-u1-logs-${theme}-${width}.png`), fullPage: true });
+
+      if (width === 390) await page.getByRole("button", { name: "Open navigation" }).click();
+      await clickNav(page, width, "Settings");
+      await page.getByRole("heading", { name: "Settings" }).waitFor();
+      assert.deepEqual(await contrastFailures(page), [], "shared primary button contrast");
+    } finally { await context.close(); }
+  });
+}
 
 for (const width of [1440, 390]) test(`${FIXED_ISSUES.targets}: shared fields and Explore actions honor the 44px contract at ${width}px`, async () => {
   const { context, page } = await openAccountPage("/studio", width);
