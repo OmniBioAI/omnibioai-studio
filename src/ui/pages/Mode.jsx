@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Panel, PanelHeader, PanelBody, HealthCard } from "../components/UI";
 import RequirePermission from "../components/RequirePermission";
 import PageHeader from "../components/PageHeader";
+import { getServiceHealth, refreshServiceHealth, useServiceHealth } from "../lib/serviceHealth";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -11,42 +12,14 @@ const MODES = [
     title: "Beta Cloud",
     desc: "Connects to webstudio.omnibioai.org\nNo local docker needed",
   },
-  {
-    id: "local",
-    title: "Local",
-    desc: "Docker + local GPU/CPU\nOffline-first, Ollama support",
-    disabled: true,
-    tooltip: "Available in future release",
-  },
-  {
-    id: "hpc",
-    title: "HPC",
-    desc: "Slurm / PBS / LSF\nApptainer + remote execution",
-    disabled: true,
-    tooltip: "Available in future release",
-  },
-  {
-    id: "cloud",
-    title: "Cloud",
-    desc: "AWS Batch / Azure Batch\nElastic auto-scaling compute",
-    disabled: true,
-    tooltip: "Available in future release",
-  },
-  {
-    id: "hybrid",
-    title: "Hybrid",
-    desc: "Multi-backend orchestration\nPolicy-driven scheduling",
-    disabled: true,
-    tooltip: "Available in future release",
-  },
 ];
 
-const HEALTH = [
-  { label: "MySQL",    status: "up",   port: ":3306"  },
-  { label: "Redis",    status: "up",   port: ":6379"  },
-  { label: "TES",      status: "up",   port: ":8081"  },
-  { label: "Ollama",   status: "warn", port: ":11434" },
-  { label: "RAG",      status: "unknown", port: ":8090"  },
+const MODE_SERVICES = [
+  { key: "mysql", label: "MySQL", port: ":3306" },
+  { key: "redis", label: "Redis", port: ":6379" },
+  { key: "tes", label: "TES", port: ":8081" },
+  { key: "ollama", label: "Ollama", port: ":11434" },
+  { key: "rag", label: "RAG", port: ":8090" },
 ];
 
 export default function Mode({ config, setConfig, currentUser }) {
@@ -62,12 +35,23 @@ export default function Mode({ config, setConfig, currentUser }) {
 }
 
 function ModeConsole({ config, setConfig }) {
+  const health = useServiceHealth();
+  const [lastCheck, setLastCheck] = useState("never");
   const selected = config.mode;
+  const refreshHealth = useCallback(async () => {
+    await refreshServiceHealth(MODE_SERVICES.map(service => service.key));
+    setLastCheck(new Date().toTimeString().slice(0, 8));
+  }, []);
+  useEffect(() => {
+    refreshHealth();
+    const id = setInterval(refreshHealth, 5000);
+    return () => clearInterval(id);
+  }, [refreshHealth]);
   const selectMode = (modeId) => setConfig((previous) => ({ ...previous, mode: modeId }));
   const onModeKeyDown = (event) => {
     if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const available = MODES.filter(mode => !mode.disabled);
+    const available = MODES;
     if (!available.length) return;
     const current = Math.max(0, available.findIndex(mode => mode.id === selected));
     const next = event.key === "Home" ? 0 : event.key === "End" ? available.length - 1
@@ -96,7 +80,6 @@ function ModeConsole({ config, setConfig }) {
       >
         {MODES.map((m) => {
           const isSelected = selected === m.id;
-          const isDisabled = !!m.disabled;
           return (
             <button
               key={m.id}
@@ -104,10 +87,8 @@ function ModeConsole({ config, setConfig }) {
               type="button"
               role="radio"
               aria-checked={isSelected}
-              aria-disabled={isDisabled || undefined}
-              tabIndex={isDisabled || (selected !== m.id && MODES.some(mode => !mode.disabled && mode.id === selected)) ? -1 : 0}
-              onClick={() => !isDisabled && selectMode(m.id)}
-              title={isDisabled ? m.tooltip : undefined}
+              tabIndex={selected !== m.id && MODES.some(mode => mode.id === selected) ? -1 : 0}
+              onClick={() => selectMode(m.id)}
               style={{
                 width: "100%", textAlign: "left", fontFamily: "inherit",
                 background: isSelected ? "rgba(0,229,160,0.04)" : "var(--bg2)",
@@ -116,8 +97,7 @@ function ModeConsole({ config, setConfig }) {
                   : "1px solid var(--border)",
                 borderRadius: 'var(--radius)',
                 padding: "10px 12px",
-                cursor: isDisabled ? "not-allowed" : "pointer",
-                opacity: isDisabled ? 0.45 : 1,
+                cursor: "pointer",
                 transition: "all 0.15s",
               }}
             >
@@ -134,11 +114,6 @@ function ModeConsole({ config, setConfig }) {
               >
                 <span>
                   {m.title}
-                  {isDisabled && (
-                    <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)", marginLeft:6 }}>
-                      (coming soon)
-                    </span>
-                  )}
                 </span>
                 <div
                   style={{
@@ -171,14 +146,15 @@ function ModeConsole({ config, setConfig }) {
       <Panel>
         <PanelHeader title="Service Health" icon iconColor="teal">
           <span style={{ fontSize: 'var(--font-size-xs)', fontFamily: "var(--mono)", color: "var(--color-text-muted)" }}>
-            last check: 2s ago
+            last check: {lastCheck}
           </span>
         </PanelHeader>
         <PanelBody style={{ padding: "10px 16px" }}>
           <div className="studio-health-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
-            {HEALTH.map((h) => (
-              <HealthCard key={h.label} {...h} />
-            ))}
+            {MODE_SERVICES.map((service) => {
+              const record = health[service.key] || getServiceHealth(service.key);
+              return <HealthCard key={service.key} {...service} status={record.state} reason={record.reason} />;
+            })}
           </div>
         </PanelBody>
       </Panel>

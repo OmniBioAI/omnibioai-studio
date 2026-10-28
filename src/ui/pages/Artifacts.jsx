@@ -34,7 +34,7 @@ function typeLabel(value = "") {
 }
 
 function formatBytes(value) {
-  if (value === null) return "Unavailable";
+  if (value === null) return "Size not reported";
   if (value < 1000) return `${value} B`;
   const units = ["KB", "MB", "GB", "TB"];
   let amount = value / 1000;
@@ -205,7 +205,7 @@ export function StorageUsage({ state }) {
   const percent = value.quotaBytes ? Math.min(100, (heldBytes / value.quotaBytes) * 100) : heldBytes > 0 ? 100 : 0;
   return <section className={`storage-usage${value.overQuota ? " storage-usage--over" : ""}`}>
     <div className="storage-usage__heading"><div><h2>Personal managed storage</h2>
-      <p>Membership: {value.plan ? value.plan[0].toUpperCase() + value.plan.slice(1) : "Unavailable"}</p></div>
+      <p>Membership: {value.plan ? value.plan[0].toUpperCase() + value.plan.slice(1) : "Membership not reported"}</p></div>
       <a className="omni-btn omni-btn--secondary omni-btn--sm" href="/studio/billing/plans">View upgrade options</a></div>
     {value.quotaBytes === null ? <p role="alert">Your current storage allowance is unavailable.</p>
       : <ProgressBar value={percent} variant={value.overQuota ? "danger" : percent >= 85 ? "warning" : "accent"} />}

@@ -156,10 +156,10 @@ describe('Corpus and FAISS reconciliation', () => {
     const card = name => within(screen.getByRole('heading', { name, exact: true }).parentElement);
     expect(card('Hematology').getByText('Corpus · Remote')).toBeInTheDocument();
     expect(card('Hematology').getByText('FAISS Index · Remote')).toBeInTheDocument();
-    expect(card('Corpus Only').getByText('FAISS Index · Unavailable')).toBeInTheDocument();
+    expect(card('Corpus Only').getByText('FAISS Index · Not provided for this domain')).toBeInTheDocument();
     expect(card('Corpus Only').queryByRole('button', { name: /Open index/ })).not.toBeInTheDocument();
     expect(card('Corpus Only').getByRole('button', { name: /Open corpus/ })).toBeInTheDocument();
-    expect(card('Index Only').getByText('Corpus · Unavailable')).toBeInTheDocument();
+    expect(card('Index Only').getByText('Corpus · Not provided for this domain')).toBeInTheDocument();
     expect(card('Index Only').queryByRole('button', { name: /Open corpus/ })).not.toBeInTheDocument();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     fireEvent.click(card('Hematology').getByRole('button', { name: /Open index/ }));

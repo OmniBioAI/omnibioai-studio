@@ -43,7 +43,7 @@ function ConnectionSession({ orgId }) {
       <ProviderShowcase provider="openai" name="OpenAI" data={data} unavailable={!!error} />
       <ProviderShowcase provider="claude" name="Anthropic Claude" data={data} unavailable={!!error} />
       <div className="connections-card connections-shared-card" data-connection-card="shared">
-        <div className="connections-card-heading"><h2>AI provider</h2><span className="connections-status">{error ? "Unavailable" : !data ? "Checking status" : data.configured ? "Connected" : "Not connected"}</span></div>
+        <div className="connections-card-heading"><h2>AI provider</h2><span className="connections-status">{error ? "Status not confirmed" : !data ? "Checking status" : data.configured ? "Connected" : "Not connected"}</span></div>
         {error ? <>
           <p role="alert">{error}</p><button onClick={reload}>Retry connection</button>
           <p className="connections-note">Connection state could not be confirmed. No credential status has been inferred.</p>

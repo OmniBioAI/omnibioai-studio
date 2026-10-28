@@ -3,6 +3,7 @@ import { Panel, PanelHeader, PanelBody } from "../components/UI";
 import { getToken, isElectron } from "../lib/session";
 import RequirePermission from "../components/RequirePermission";
 import PageHeader from "../components/PageHeader";
+import { getServiceHealth, refreshServiceHealth, setServiceHealth, useServiceHealth } from "../lib/serviceHealth";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -103,17 +104,15 @@ const GROUP_ICONS = {
 
 const statusColor = {
   up:         "var(--accent)",
-  warn:       "var(--color-warning)",
+  degraded:   "var(--color-warning)",
   down:       "var(--color-danger)",
   unknown:    "var(--color-text-muted)",
-  restarting: "#0094ff",
 };
 const statusLabel = {
   up:         "● Running",
-  warn:       "◐ Starting",
+  degraded:   "◐ Degraded",
   down:       "✕ Stopped",
   unknown:    "— Unknown",
-  restarting: "↻ Restarting",
 };
 
 function StatusDot({ status }) {
@@ -122,39 +121,9 @@ function StatusDot({ status }) {
       display:"inline-block", width:6, height:6, borderRadius:"50%",
       background: statusColor[status] || statusColor.unknown,
       marginRight:6, flexShrink:0,
-      animation: (status === "restarting" || status === "warn") ? "pulse 1s infinite" : "none",
+      animation: status === "degraded" ? "pulse 1s infinite" : "none",
     }} />
   );
-}
-
-// Direct health check URLs per service
-const HEALTH_URLS = {
-  "api-gateway":       "/_svc/gateway",
-  "auth-service":      "/_svc/auth",
-  "policy-engine":     "/_svc/policy",
-  "hpc-policy-engine": "/_svc/hpc",
-  "security-audit":    "/_svc/audit",
-  "workbench":         "/_svc/workbench",
-  "tes":               "/_svc/tes",
-  "toolserver":        "/_svc/toolserver",
-  "rag":               "/_svc/rag",
-  "model-registry":    "/_svc/modelregistry",
-  "dev-hub":           "/_svc/devhub",
-  // /_svc/control/health is one of the public, no-JWT-required routes
-  // carved out in nginx-router.conf; the rest of /_svc/control needs auth.
-  "control-center":    "/_svc/control/health",
-  "ollama":            "/_svc/ollama",
-  "lims":              "/_svc/lims/",
-}
-
-async function checkUrl(url) {
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
-    // treat any response < 500 as up (some services return 404 on /)
-    return res.status < 500;
-  } catch (_) {
-    return false;
-  }
 }
 
 export default function Services({ config, currentUser }) {
@@ -171,9 +140,7 @@ export default function Services({ config, currentUser }) {
 
 function ServicesConsole({ config }) {
   const isBeta = config?.mode === "beta";
-  const [statuses, setStatuses] = useState(() =>
-    Object.fromEntries(SERVICES.map(s => [s.key, "unknown"]))
-  );
+  const health = useServiceHealth();
   const [restarting, setRestarting] = useState({});
   const [ideBusy,    setIdeBusy]    = useState({});
   const [lastCheck,  setLastCheck]  = useState("never");
@@ -188,43 +155,20 @@ function ServicesConsole({ config }) {
           signal: AbortSignal.timeout(2000),
         }
       );
-      if (!res.ok) { setStatuses(s => ({ ...s, [key]: "down" })); return; }
+      if (!res.ok) { setServiceHealth(key, "down", `The launcher returned HTTP ${res.status}.`); return; }
       const data = await res.json();
       const raw = (data?.status || "stopped").toLowerCase();
-      const mapped = raw === "running" ? "up" : raw === "starting" ? "warn" : "down";
-      setStatuses(s => ({ ...s, [key]: mapped }));
+      if (raw === "running") setServiceHealth(key, "up", "The launcher reports this IDE is running.");
+      else if (raw === "starting") setServiceHealth(key, "degraded", "The launcher reports this IDE is starting.");
+      else setServiceHealth(key, "down", `The launcher reports this IDE as ${raw}.`);
     } catch (_) {
-      setStatuses(s => ({ ...s, [key]: "down" }));
+      setServiceHealth(key, "unknown", "The launcher status could not be reached.");
     }
   }, []);
 
   const poll = async () => {
     try {
-      // Direct health checks for all services with known URLs
-      const directChecks = await Promise.all(
-        Object.entries(HEALTH_URLS).map(async ([key, url]) => {
-          const up = await checkUrl(url);
-          return [key, up ? "up" : "down"];
-        })
-      );
-      const directStatuses = Object.fromEntries(directChecks);
-
-      if (window.api?.checkHealth) {
-        const r = await window.api.checkHealth();
-        setStatuses(prev => ({
-          ...prev,
-          ...directStatuses,
-          mysql:     r.mysql      ? "up" : "down",
-          redis:     r.redis      ? "up" : "down",
-          workbench: r.workbench  ? "up" : "down",
-          tes:       r.tes        ? "up" : "down",
-          toolserver:r.toolserver ? "up" : "down",
-          ollama:    r.ollama     ? "up" : "warn",
-          rag:       r.rag        ? "up" : "down",
-        }));
-      } else {
-        setStatuses(prev => ({ ...prev, ...directStatuses }));
-      }
+      await refreshServiceHealth(SERVICES.map(service => service.key));
       setLastCheck(new Date().toTimeString().slice(0, 8));
     } catch (_) {}
 
@@ -240,16 +184,16 @@ function ServicesConsole({ config }) {
 
   const restartService = async (key) => {
     setRestarting(r => ({ ...r, [key]: true }));
-    setStatuses(s => ({ ...s, [key]: "restarting" }));
+    setServiceHealth(key, "degraded", "A restart is in progress.");
     try {
       if (window.api?.restartService) {
         await window.api.restartService(key);
       } else {
         await new Promise(r => setTimeout(r, 2000));
       }
-      setStatuses(s => ({ ...s, [key]: "up" }));
+      setServiceHealth(key, "up", "The service restart completed.");
     } catch (_) {
-      setStatuses(s => ({ ...s, [key]: "down" }));
+      setServiceHealth(key, "down", "The service restart failed.");
     } finally {
       setRestarting(r => ({ ...r, [key]: false }));
     }
@@ -258,7 +202,7 @@ function ServicesConsole({ config }) {
   const ideAction = async (key, tool, action) => {
     setIdeBusy(b => ({ ...b, [key]: true }));
     if (action === "start" || action === "restart") {
-      setStatuses(s => ({ ...s, [key]: "warn" }));
+      setServiceHealth(key, "degraded", `The IDE ${action} is in progress.`);
     }
     try {
       if (action === "restart") {
@@ -283,8 +227,7 @@ function ServicesConsole({ config }) {
     services: SERVICES.filter(s => s.group === g),
   }));
 
-  const totalUp   = SERVICES.filter(s => statuses[s.key] === "up").length;
-  const totalDown = SERVICES.filter(s => statuses[s.key] === "down" || statuses[s.key] === "unknown").length;
+  const count = state => SERVICES.filter(service => (health[service.key] || getServiceHealth(service.key)).state === state).length;
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -297,10 +240,16 @@ function ServicesConsole({ config }) {
           </span>
           <div style={{ display:"flex", gap:8 }}>
             <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--accent)" }}>
-              ● {totalUp} up
+              ● {count("up")} up
             </span>
             <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-danger)" }}>
-              ✕ {totalDown} down
+              ✕ {count("down")} down
+            </span>
+            <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-warning)" }}>
+              ◐ {count("degraded")} degraded
+            </span>
+            <span style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
+              — {count("unknown")} unknown
             </span>
           </div>
           <button onClick={poll} style={{
@@ -334,7 +283,8 @@ function ServicesConsole({ config }) {
               </thead>
               <tbody>
                 {services.map((s, i) => {
-                  const st = statuses[s.key] || "unknown";
+                  const record = health[s.key] || getServiceHealth(s.key);
+                  const st = record.state;
                   const isRestarting = restarting[s.key];
                   const isBusyIde    = ideBusy[s.key];
                   const isIde        = s.group === "IDE Layer";
@@ -357,6 +307,9 @@ function ServicesConsole({ config }) {
                         }}>
                           <StatusDot status={st} />
                           {statusLabel[st]}
+                        </span>
+                        <span title={record.reason} style={{ display:"block", marginTop:3, fontSize:'var(--font-size-xs)', color:"var(--color-text-muted)" }}>
+                          {record.reason}
                         </span>
                       </td>
                       <td style={{ padding:"10px 14px", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
@@ -428,7 +381,7 @@ function ServicesConsole({ config }) {
                                 }}
                               >Start</button>
                             )}
-                            {st === "warn" && (
+                            {st === "degraded" && (
                               <button disabled style={{
                                 padding:"4px 10px", borderRadius:'var(--radius-xs)', fontSize:'var(--font-size-xs)',
                                 fontFamily:"var(--mono)", cursor:"not-allowed",

@@ -37,17 +37,15 @@ function CheckoutNotice({ notice }) {
   return <p className="membership-notice membership-notice-error" role="alert">Checkout could not be completed. No membership change was made.</p>;
 }
 
-function PlanAction({ plan, currentPlan, eligiblePlans, busyPlan, interval, onUpgrade }) {
+function PlanAction({ plan, currentPlan, eligiblePlans, busyPlan, onUpgrade }) {
   if (currentPlan === plan.id) return <button type="button" disabled aria-label={`${plan.name} is your current plan`}>Current plan</button>;
   if (plan.id === "free") return <button type="button" disabled>Included</button>;
   if (plan.id === "enterprise") return <AccountState variant="setup" href="mailto:sales@omnibioai.org" linkLabel="Contact sales">An organization owner can arrange this tier with Sales.</AccountState>;
-  if (interval === "yearly") return <button type="button" disabled aria-label={`${plan.name} annual billing unavailable`}>Annual billing coming soon</button>;
   if (eligiblePlans.includes(plan.id)) return <button type="button" disabled={!!busyPlan} onClick={() => onUpgrade(plan.id)}>{busyPlan === plan.id ? "Opening checkout…" : `Upgrade to ${plan.name}`}</button>;
   return <AccountState variant="plan" href="#compare-membership" linkLabel="Compare">{plan.name} includes this upgrade path when eligible.</AccountState>;
 }
 
 export default function MembershipPlans({ currentUser, membershipState, onBillingOverview, embedded = false }) {
-  const [interval, setInterval] = useState("monthly");
   const [loadedState, setLoadedState] = useState(() => membershipState || (currentUser ? { status: "loading" } : { status: "unauthorized" }));
   const [busyPlan, setBusyPlan] = useState("");
   const [actionError, setActionError] = useState("");
@@ -92,16 +90,10 @@ export default function MembershipPlans({ currentUser, membershipState, onBillin
     {actionError && <p className="membership-notice membership-notice-error" role="alert">{actionError}</p>}
     {state.status === "ready" && state.portal_available && <div className="membership-manage"><button type="button" disabled={!!busyPlan} onClick={() => openSession(billingApi.createUserMembershipPortal, "portal")}>{busyPlan === "portal" ? "Opening billing portal…" : "Manage personal subscription"}</button></div>}
 
-    <div className="membership-toggle" aria-label="Billing interval">
-      <button type="button" aria-pressed={interval === "monthly"} onClick={() => setInterval("monthly")}>Monthly</button>
-      <button type="button" aria-pressed={interval === "yearly"} onClick={() => setInterval("yearly")}>Yearly</button>
-    </div>
-    {interval === "yearly" && <p className="membership-annual" role="status">Yearly billing is coming soon. No annual Stripe prices are configured.</p>}
-
     <div className="membership-grid">
       {MEMBERSHIP_PLANS.map(plan => <article key={plan.id} className={`membership-card${plan.highlighted ? " membership-card-highlighted" : ""}`}>
         <div className="membership-card-heading"><h2>{plan.name}</h2>{plan.highlighted && <Badge variant="info">Advanced individual plan</Badge>}</div>
-        <div className="membership-price">{interval === "yearly" ? <><strong>Coming soon</strong><span>annual billing</span></> : plan.monthlyPrice == null ? <><strong>Custom</strong><span>pricing</span></> : <><strong>${plan.monthlyPrice}</strong><span>/month</span></>}</div>
+        <div className="membership-price">{plan.monthlyPrice == null ? <><strong>Custom</strong><span>pricing</span></> : <><strong>${plan.monthlyPrice}</strong><span>/month</span></>}</div>
         <p>{plan.summary}</p>
         <ul>
           <li>{plan.storageGb == null ? "Organization-owned storage" : `${plan.storageGb} GB personal storage allowance (not yet enforced)`}</li>
@@ -110,7 +102,7 @@ export default function MembershipPlans({ currentUser, membershipState, onBillin
             <li>Cloud, on-premises storage, and compute costs are not included unless specified in a contract.</li>
           </> : <li>Plan-specific limits are planned and are not currently enforced by this page.</li>}
         </ul>
-        <div className="membership-card-action"><PlanAction plan={plan} currentPlan={currentPlan} eligiblePlans={eligiblePlans} busyPlan={busyPlan} interval={interval} onUpgrade={planId => openSession(() => billingApi.createUserMembershipCheckout(planId), planId)} /></div>
+        <div className="membership-card-action"><PlanAction plan={plan} currentPlan={currentPlan} eligiblePlans={eligiblePlans} busyPlan={busyPlan} onUpgrade={planId => openSession(() => billingApi.createUserMembershipCheckout(planId), planId)} /></div>
       </article>)}
     </div>
 

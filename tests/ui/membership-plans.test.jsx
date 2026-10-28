@@ -82,16 +82,11 @@ describe("MembershipPlans", () => {
     expect(screen.getByText("Sign in to view your membership.")).toBeInTheDocument();
   });
 
-  it("makes annual billing visibly unavailable without inventing prices", () => {
+  it("does not offer annual billing until annual checkout exists", () => {
     render(<MembershipPlans currentUser={user} />);
-    fireEvent.click(screen.getByRole("button", { name: "Yearly" }));
-    expect(screen.getByRole("button", { name: "Yearly" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getAllByRole("status").some(item => item.textContent.includes("No annual Stripe prices are configured"))).toBe(true);
-    expect(screen.getAllByText("Coming soon")).toHaveLength(4);
-    expect(screen.getByRole("button", { name: "Plus annual billing unavailable" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Pro annual billing unavailable" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Yearly" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/annual billing|coming soon/i)).not.toBeInTheDocument();
     expect(screen.queryByText("$228")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Monthly" }));
     expect(screen.getByText("$19")).toBeInTheDocument();
   });
 
