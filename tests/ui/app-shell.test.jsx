@@ -13,7 +13,10 @@ vi.mock("../../src/ui/lib/session", () => ({
 vi.mock("../../src/ui/lib/web/webApi", () => ({ loadConfig: vi.fn(async () => ({ mode: "beta" })) }));
 vi.mock("../../src/ui/components/LicenseGate", () => ({ default: ({ children }) => <>{children}</> }));
 vi.mock("../../src/ui/components/PreferencesProvider", () => ({ default: ({ children }) => <>{children}</>, usePreferences: () => ({ owner: "test", authenticated: true, status: "success", data: { timezone: null } }), useAccountDateTime: () => value => value || "Not provided" }));
-vi.mock("../../src/ui/components/AppearanceProvider", () => ({ default: ({ children }) => <>{children}</> }));
+vi.mock("../../src/ui/components/AppearanceProvider", () => ({
+  default: ({ children }) => <>{children}</>,
+  useAppearance: () => ({ resolvedTheme: "light", accent: "purple", density: "compact", resolvedMotion: "reduce" }),
+}));
 vi.mock("../../src/ui/components/BugReport", () => ({ default: () => null }));
 vi.mock("../../src/ui/components/UpdateBanner", () => ({ default: () => null }));
 vi.mock("../../src/ui/components/MobileNav", () => ({ default: () => null }));
@@ -66,6 +69,35 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Account route migration", () => {
+  it.each([
+    ["Ask OmniBioAI", "/_svc/devhub", "chat"],
+    ["Code", "/_svc/sdk", null],
+    ["Workflows", "/_svc/workflows", null],
+  ])("routes the %s nav entry into the themed embedded-app viewer", async (label, pathname, view) => {
+    render(<App />);
+    await screen.findByText("Studio page");
+    fireEvent.click(screen.getByRole("button", { name: label }));
+    const webview = await screen.findByTitle(label);
+    const embedded = new URL(webview.src);
+    expect(embedded.pathname).toBe(pathname);
+    if (view) expect(embedded.searchParams.get("view")).toBe(view);
+    for (const [key, value] of Object.entries({ theme: "light", accent: "purple", density: "compact", motion: "reduce" })) {
+      expect(embedded.searchParams.get(`obai_${key}`)).toBe(value);
+    }
+  });
+
+  it("routes Studio open-service events through the same themed viewer for Lit AI", async () => {
+    render(<App />);
+    await screen.findByText("Studio page");
+    window.dispatchEvent(new CustomEvent("open-service", { detail: { url: "/_svc/rag/", label: "RAG / Lit AI" } }));
+    const webview = await screen.findByTitle("RAG / Lit AI");
+    const embedded = new URL(webview.src);
+    expect(embedded.pathname).toBe("/_svc/rag/");
+    for (const key of ["theme", "accent", "density", "motion"]) {
+      expect(embedded.searchParams.has(`obai_${key}`)).toBe(true);
+    }
+  });
+
   it("keeps the shell usable when a route crashes", async () => {
     session.crashJobs = true;
     vi.spyOn(console, "error").mockImplementation(() => {});
