@@ -1,11 +1,73 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { isElectron } from "../lib/session";
+import { useAppearance } from "../components/AppearanceProvider";
+import { buildEmbeddedUrl, createThemeSetMessage, EMBED_READY_EVENT, getExactOrigin } from "../lib/embedAppearance";
 import "./ServiceViewer.css";
 
 export default function ServiceViewer({ url, label, onBack, backLabel = "Back to Studio" }) {
   const webviewRef = useRef(null);
+  const iframeRef = useRef(null);
+  const readyRef = useRef(false);
+  const [iframeReady, setIframeReady] = useState(false);
+  const [webviewReady, setWebviewReady] = useState(false);
   const electron = isElectron();
   const mobileFullScreen = label === "Workflows" || /Lit AI/i.test(label || "");
+  const appearance = useAppearance();
+  const themeMessage = createThemeSetMessage({
+    theme: appearance.resolvedTheme,
+    accent: appearance.accent,
+    density: appearance.density,
+    motion: appearance.resolvedMotion,
+  });
+  const initialLocation = useRef({ url: null, src: null });
+  if (initialLocation.current.url !== url) {
+    initialLocation.current = { url, src: buildEmbeddedUrl(url, themeMessage) };
+    readyRef.current = false;
+  }
+  const embeddedUrl = initialLocation.current.src;
+
+  useEffect(() => {
+    readyRef.current = false;
+    setIframeReady(false);
+    setWebviewReady(false);
+  }, [embeddedUrl]);
+
+  const sendIframeTheme = () => {
+    const frame = iframeRef.current;
+    if (!frame?.contentWindow || !readyRef.current) return;
+    const origin = getExactOrigin(embeddedUrl);
+    frame.contentWindow.postMessage(themeMessage, origin);
+  };
+
+  useEffect(() => {
+    const onMessage = (event) => {
+      const frame = iframeRef.current;
+      if (!frame?.contentWindow || event.origin !== getExactOrigin(embeddedUrl)) return;
+      if (event.source !== frame.contentWindow) return;
+      if (!event.data || typeof event.data !== "object" || event.data.type !== EMBED_READY_EVENT) return;
+      if (Object.keys(event.data).length !== 1 || !Object.hasOwn(event.data, "type")) return;
+      readyRef.current = true;
+      setIframeReady(true);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [embeddedUrl]);
+
+  useEffect(() => {
+    if (iframeReady) sendIframeTheme();
+  }, [iframeReady, themeMessage.theme, themeMessage.accent, themeMessage.density, themeMessage.motion]);
+
+  const sendWebviewTheme = () => {
+    const webview = webviewRef.current;
+    if (!webview || typeof webview.executeJavaScript !== "function") return;
+    const origin = getExactOrigin(embeddedUrl);
+    const payload = JSON.stringify(themeMessage);
+    Promise.resolve(webview.executeJavaScript(`window.postMessage(${payload}, ${JSON.stringify(origin)})`)).catch(() => {});
+  };
+
+  useEffect(() => {
+    if (webviewReady) sendWebviewTheme();
+  }, [webviewReady, themeMessage.theme, themeMessage.accent, themeMessage.density, themeMessage.motion]);
 
   useEffect(() => {
     if (!electron) return;
@@ -17,8 +79,13 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
       }
     };
     wv.addEventListener('ipc-message', handler);
-    return () => wv.removeEventListener('ipc-message', handler);
-  }, [electron]);
+    const themeHandler = () => setWebviewReady(true);
+    wv.addEventListener('dom-ready', themeHandler);
+    return () => {
+      wv.removeEventListener('ipc-message', handler);
+      wv.removeEventListener('dom-ready', themeHandler);
+    };
+  }, [electron, embeddedUrl, themeMessage.theme, themeMessage.accent, themeMessage.density, themeMessage.motion]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 0 }}>
@@ -61,7 +128,7 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
       {electron ? (
         <webview
           ref={webviewRef}
-          src={url}
+          src={embeddedUrl}
           nodeintegration="true"
           style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
         />
@@ -70,7 +137,8 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
         // tab (web build) it isn't a recognized custom element and renders
         // nothing, which is why service pages appeared blank there.
         <iframe
-          src={url}
+          ref={iframeRef}
+          src={embeddedUrl}
           title={label || url}
           style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
         />
