@@ -13,10 +13,9 @@ def _location(source: str, marker: str) -> str:
 def test_org_routes_have_an_independent_authenticated_api_rate_limit():
     nginx = ROUTER.read_text()
     orgs = _location(nginx, "location ^~ /orgs {")
-    auth = _location(nginx, "location ^~ /auth/ {")
-
     assert "zone=org_api_limit:10m rate=30r/m" in nginx
     assert "limit_req zone=org_api_limit burst=10 nodelay;" in orgs
-    assert "limit_req zone=auth_limit burst=5 nodelay;" in auth
+    assert "zone=auth_login:10m rate=10r/m" in nginx
+    assert "zone=auth_session:10m rate=120r/m" in nginx
     assert "set $auth_upstream auth-service:8001;" in orgs
     assert "proxy_pass http://$auth_upstream;" in orgs
