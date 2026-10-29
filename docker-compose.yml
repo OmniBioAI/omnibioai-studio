@@ -1464,6 +1464,9 @@ services:
       JWT_AUDIENCE: ${JWT_AUDIENCE:-omnibioai-platform}
       JWT_ISSUER: ${JWT_ISSUER:-omnibioai-auth}
       AUTH_ENABLED: "true"
+    secrets:
+      - source: devhub_internal_proxy_secret
+        target: devhub_internal_proxy_secret
     volumes:
       - type: bind
         source: ${MACHINE_DIR}/omnibioai-dev-hub/data/faiss_index
@@ -2280,6 +2283,9 @@ services:
     restart: unless-stopped
 
 secrets:
+  devhub_internal_proxy_secret:
+    # Owner 10001:10001, mode 0400 on the host (dev-hub refuses anything else).
+    file: /etc/omnibioai/runtime-secrets/devhub_internal_proxy_secret
   # BuildKit secret for the private omnibioai-iam-client git+https install
   # (tes, model-registry, lims, rag). Sourced from the same GHCR_PULL_TOKEN
   # already used for @man4ish npm auth -- requires repo/Contents:Read scope
