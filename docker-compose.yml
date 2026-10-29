@@ -167,8 +167,8 @@ services:
   tes:
     image: omnibioai-tes-local
     build:
-      context: ${MACHINE_DIR}
-      dockerfile: omnibioai-tes/Dockerfile
+      context: ${MACHINE_DIR}/omnibioai-tes
+      dockerfile: Dockerfile
       target: backend
       secrets:
         - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
