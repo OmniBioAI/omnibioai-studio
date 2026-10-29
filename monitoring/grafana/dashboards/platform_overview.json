@@ -59,7 +59,7 @@
           "refId": "A"
         },
         {
-          "expr": "sum(rate(http_request_duration_seconds_count{status_code=~\"5..\"}[5m])) by (job) / sum(rate(http_request_duration_seconds_count[5m])) by (job)",
+          "expr": "sum(rate(http_request_duration_seconds_count{status=~\"5..\"}[5m])) by (job) / sum(rate(http_request_duration_seconds_count[5m])) by (job)",
           "legendFormat": "{{job}} 5xx rate (fastapi)",
           "refId": "B"
         }
@@ -129,11 +129,11 @@
       "targets": [
         {
           "expr": "sum(django_http_requests_total_by_view_transport_method_total) by (job)",
-          "legendFormat": "{{job}} active",
+          "legendFormat": "{{job}} cumulative",
           "refId": "A"
         }
       ],
-      "title": "Active Connections (cumulative requests in flight proxy)",
+      "title": "Cumulative HTTP Requests per Service",
       "type": "timeseries"
     },
     {
@@ -172,7 +172,6 @@
   ],
   "refresh": "30s",
   "schemaVersion": 36,
-  "style": "dark",
   "tags": ["omnibioai", "overview"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },

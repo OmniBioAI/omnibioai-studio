@@ -410,7 +410,6 @@
   ],
   "refresh": "30s",
   "schemaVersion": 36,
-  "style": "dark",
   "tags": ["omnibioai", "services"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
