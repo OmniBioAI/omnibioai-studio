@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import importlib.util
 import json
 import os
 import subprocess
@@ -119,6 +120,65 @@ def capacity(st, reserve_percent: float) -> dict:
             "admissible_bytes": max(0, available - reserve)}
 
 
+def _flatten_findmnt(records: list[dict]) -> list[dict]:
+    """Flatten findmnt's nested JSON tree into the validator's record shape."""
+    flattened: list[dict] = []
+    pending = list(records)
+    while pending:
+        record = pending.pop()
+        if not isinstance(record, dict):
+            raise PreflightError("mount_snapshot_invalid", "findmnt entry is not an object")
+        flattened.append({key: record.get(key) for key in ("target", "source", "fstype", "uuid", "options")})
+        children = record.get("children") or []
+        if not isinstance(children, list):
+            raise PreflightError("mount_snapshot_invalid", "findmnt children is not a list")
+        pending.extend(children)
+    return flattened
+
+
+def storage_v1_snapshot() -> list[dict]:
+    """Read the live mount table only; never creates or changes a mount."""
+    try:
+        completed = subprocess.run(
+            ["findmnt", "--json", "--list", "--output", "TARGET,SOURCE,FSTYPE,UUID,OPTIONS"],
+            check=True, capture_output=True, text=True, timeout=10,
+        )
+        payload = json.loads(completed.stdout)
+        filesystems = payload["filesystems"]
+        if not isinstance(filesystems, list):
+            raise ValueError("filesystems is not a list")
+        return _flatten_findmnt(filesystems)
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError) as exc:
+        raise PreflightError("mount_snapshot_unavailable", str(exc)) from exc
+
+
+def run_storage_v1_check(expected_primary_b_uuid: str) -> dict:
+    """Validate the complete future Storage V1 topology without mutation.
+
+    This is opt-in and is deliberately not wired into current Compose startup.
+    Deployment enablement requires a separately approved maintenance plan.
+    """
+    if not expected_primary_b_uuid:
+        raise PreflightError("configuration_missing", "STORAGE_V1_PRIMARY_B_FS_UUID is required")
+    script = Path(__file__).resolve().with_name("storage_v1_mount_contract.py")
+    spec = importlib.util.spec_from_file_location("_storage_v1_mount_contract", script)
+    if spec is None or spec.loader is None:
+        raise PreflightError("validator_unavailable", str(script))
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+        result = module.validate_storage_v1(
+            storage_v1_snapshot(), expected_primary_b_uuid=expected_primary_b_uuid,
+        )
+    except module.MountContractError as exc:
+        raise PreflightError("storage_v1_topology_invalid", str(exc)) from exc
+    finally:
+        sys.modules.pop(spec.name, None)
+    result["mode"] = "read-only-preflight"
+    return result
+
+
 def write_marker_atomically(root: Path, body: dict) -> None:
     """Create MARKER_NAME without ever replacing an existing marker."""
     tmp = root / f".{MARKER_NAME}.{os.getpid()}.tmp"
@@ -199,7 +259,7 @@ def run(args) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("command", nargs="?", choices=("check", "init"), default="check")
+    ap.add_argument("command", nargs="?", choices=("check", "init", "storage-v1-check"), default="check")
     ap.add_argument("--env-file", type=Path, default=Path(__file__).resolve().parents[1] / ".env")
     ap.add_argument("--root", help="host storage root (default: MANAGED_STORAGE_ROOT)")
     ap.add_argument("--fs-uuid", help="expected filesystem UUID (default: MANAGED_STORAGE_FS_UUID)")
@@ -207,9 +267,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--expected-mount", help="expected mountpoint, e.g. /mnt/wdpro26tb")
     ap.add_argument("--reserve-percent", type=float)
     ap.add_argument("--storage-id", default="omnibioai-managed")
+    ap.add_argument("--primary-b-fs-uuid", help="expected initialized Primary B UUID; may also be set with STORAGE_V1_PRIMARY_B_FS_UUID")
     args = ap.parse_args(argv)
     try:
-        result = run(args)
+        if args.command == "storage-v1-check":
+            env = load_env(args.env_file)
+            expected_b_uuid = args.primary_b_fs_uuid or env.get("STORAGE_V1_PRIMARY_B_FS_UUID") or os.environ.get("STORAGE_V1_PRIMARY_B_FS_UUID")
+            result = run_storage_v1_check(expected_b_uuid or "")
+        else:
+            result = run(args)
     except PreflightError as exc:
         print(json.dumps({"status": "failed", "reason": exc.reason, "detail": str(exc)}), file=sys.stderr)
         return 2 if exc.reason.startswith("configuration") else 1

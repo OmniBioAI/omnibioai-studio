@@ -1,0 +1,37 @@
+# Opt-in secure NAS SFTP overlay. Do not include this file until the owner has
+# provisioned the dedicated NAS account, verified the host fingerprint through
+# an independent channel, and installed both host-side files below.
+services:
+  workbench:
+    environment:
+      NAS_SFTP_ENABLED: ${NAS_SFTP_ENABLED:-false}
+      NAS_SFTP_HOST: ${NAS_SFTP_HOST:-}
+      NAS_SFTP_PORT: ${NAS_SFTP_PORT:-22}
+      NAS_SFTP_USERNAME: ${NAS_SFTP_USERNAME:-}
+      NAS_SFTP_PRIVATE_KEY_PATH: /run/secrets/nas-sftp/id_ed25519
+      NAS_SFTP_KNOWN_HOSTS_PATH: /run/secrets/nas-sftp/known_hosts
+      NAS_SFTP_REMOTE_ROOT: ${NAS_SFTP_REMOTE_ROOT:-}
+      NAS_SFTP_CONNECT_TIMEOUT: ${NAS_SFTP_CONNECT_TIMEOUT:-5}
+      NAS_SFTP_OPERATION_TIMEOUT: ${NAS_SFTP_OPERATION_TIMEOUT:-15}
+      NAS_SFTP_ALLOWED_OPERATIONS: ${NAS_SFTP_ALLOWED_OPERATIONS:-}
+    volumes:
+      - type: bind
+        source: ${NAS_SFTP_PRIVATE_KEY_HOST_PATH:?Set the absolute host path to the dedicated NAS SFTP private key}
+        target: /run/secrets/nas-sftp/id_ed25519
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NAS_SFTP_KNOWN_HOSTS_HOST_PATH:?Set the absolute host path to the dedicated pinned known_hosts file}
+        target: /run/secrets/nas-sftp/known_hosts
+        read_only: true
+        bind:
+          create_host_path: false
+    command:
+      - bash
+      - -lc
+      - >-
+        set -e;
+        python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate);
+        python manage.py nas_sftp_preflight;
+        exec python manage.py runserver 0.0.0.0:8000 --noreload

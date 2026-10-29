@@ -5,6 +5,7 @@ import { useStorageUsage } from "../lib/useStorageUsage";
 import { MEMBERSHIP_PLANS } from "../lib/membershipCatalog";
 import { formatStorageBytes, storageSegments } from "../lib/storageDashboard";
 import AccountState from "../components/AccountState";
+import ManagedStorageFiles from "../components/ManagedStorageFiles";
 import "./AccountStorage.css";
 
 const ERROR_MESSAGES = {
@@ -101,6 +102,7 @@ export default function AccountStorage({ embedded = false }) {
       <AccountState variant="error" title="Couldn’t load personal storage" onRetry={() => setReload(value => value + 1)}>{ERROR_MESSAGES[state.error] || "Storage usage failed to load."} No usage value has been assumed.</AccountState>
     </section> : <StorageSummary value={state.data} onRetry={() => setReload(value => value + 1)} />}
     <StoragePlans currentPlan={state.status === "success" ? state.data.plan : null} />
+    <ManagedStorageFiles onChanged={() => setReload(value => value + 1)} />
     <section className="storage-dashboard__scope" aria-labelledby="storage-scope-heading">
       <h3 id="storage-scope-heading">What counts toward your storage?</h3>
       <div className="storage-dashboard__scope-grid">

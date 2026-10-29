@@ -74,3 +74,19 @@
 html[data-theme="light"] .storage-dashboard { --danger: #b42332; }
 html[data-theme="light"] .storage-dashboard :is(.storage-dashboard__eyebrow, .storage-dashboard__membership, .storage-dashboard__link, .storage-dashboard__plan-heading > span, .storage-dashboard__metric--available dd:first-of-type) { color: var(--text); }
 html[data-theme="light"] .storage-dashboard .omni-btn--secondary { color: var(--color-text); }
+.managed-files {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle, #d9dee7);
+  border-radius: 0.75rem;
+}
+.managed-files__upload { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 1rem 0; }
+.managed-files__upload label { font-weight: 600; }
+.managed-files__upload progress { flex-basis: 100%; height: 0.75rem; }
+.managed-files__error { color: var(--color-danger, #a61b1b); }
+.managed-files__list { list-style: none; padding: 0; margin: 0; }
+.managed-files__list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.75rem 0; border-top: 1px solid var(--border-subtle, #d9dee7); }
+.managed-files__list li > span { display: grid; gap: 0.25rem; min-width: 0; overflow-wrap: anywhere; }
+.managed-files__list small, .managed-files__note { color: var(--text-muted, #5d6878); }
+.managed-files__list li > div { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+@media (max-width: 600px) { .managed-files__list li { align-items: flex-start; flex-direction: column; } }

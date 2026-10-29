@@ -167,8 +167,8 @@ services:
   tes:
     image: omnibioai-tes-local
     build:
-      context: ${MACHINE_DIR}
-      dockerfile: omnibioai-tes/Dockerfile
+      context: ${MACHINE_DIR}/omnibioai-tes
+      dockerfile: Dockerfile
       target: backend
       secrets:
         - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
@@ -347,8 +347,8 @@ services:
 
   model-registry:
     build:
-      context: ${MACHINE_DIR}
-      dockerfile: omnibioai-model-registry/Dockerfile
+      context: ${MACHINE_DIR}/omnibioai-model-registry
+      dockerfile: Dockerfile
       target: backend
       secrets:
         - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
@@ -642,6 +642,8 @@ services:
       HYBRID_SEARCH_ENABLED: "true"
       KG_EXTRACT_MODEL: "llama3:latest"
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      DISCORD_EVENT_ROUTER_URL: http://control-center:7070
+      DISCORD_EVENT_SOURCE_SECRET: ${DISCORD_EVENT_RAG_SECRET:-}
       RAG_CACHE_ENABLED: "true"
       RAG_CACHE_TTL: "3600"
     volumes:
@@ -947,6 +949,8 @@ services:
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_ML_TUTORIALS_DIR: /workspace/omnibioai-docs/tutorials/ml
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      DISCORD_EVENT_ROUTER_URL: http://control-center:7070
+      DISCORD_EVENT_SOURCE_SECRET: ${DISCORD_EVENT_WORKBENCH_SECRET:-}
       MS_GRAPH_ENABLED: ${MS_GRAPH_ENABLED:-false}
       MS_GRAPH_TENANT_ID: ${MS_GRAPH_TENANT_ID:-}
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
@@ -1079,6 +1083,8 @@ services:
     restart: on-failure
     # image: ghcr.io/omnibioai/omnibioai-app:latest
     environment:
+      DISCORD_EVENT_ROUTER_URL: http://control-center:7070
+      DISCORD_EVENT_SOURCE_SECRET: ${DISCORD_EVENT_WORKBENCH_SECRET:-}
       # issue #38: was DEBUG: "1" -- vestigial, settings.py never read it.
       # Now wired to the real env var (omnibioai/settings.py:143), default off.
       DJANGO_DEBUG: "false"
@@ -1287,6 +1293,23 @@ services:
       # fires only for genuinely new high-severity known-issue entries.
       # Empty default disables alerting gracefully, same as SENTRY_DSN.
       DISCORD_ALERT_WEBHOOK_URL: ${DISCORD_ALERT_WEBHOOK_URL:-}
+      DISCORD_CHANNEL_WEBHOOKS: ${DISCORD_CHANNEL_WEBHOOKS:-}
+      DISCORD_EVENT_GITHUB_SECRET: ${DISCORD_EVENT_GITHUB_SECRET:-}
+      DISCORD_EVENT_GITHUB_PREVIOUS_SECRET: ${DISCORD_EVENT_GITHUB_PREVIOUS_SECRET:-}
+      DISCORD_EVENT_RAG_SECRET: ${DISCORD_EVENT_RAG_SECRET:-}
+      DISCORD_EVENT_RAG_PREVIOUS_SECRET: ${DISCORD_EVENT_RAG_PREVIOUS_SECRET:-}
+      DISCORD_EVENT_WORKBENCH_SECRET: ${DISCORD_EVENT_WORKBENCH_SECRET:-}
+      DISCORD_EVENT_WORKBENCH_PREVIOUS_SECRET: ${DISCORD_EVENT_WORKBENCH_PREVIOUS_SECRET:-}
+      DISCORD_EVENT_DOCUMENTATION_SECRET: ${DISCORD_EVENT_DOCUMENTATION_SECRET:-}
+      DISCORD_EVENT_DOCUMENTATION_PREVIOUS_SECRET: ${DISCORD_EVENT_DOCUMENTATION_PREVIOUS_SECRET:-}
+      DISCORD_EVENT_VIDEO_SECRET: ${DISCORD_EVENT_VIDEO_SECRET:-}
+      DISCORD_EVENT_VIDEO_PREVIOUS_SECRET: ${DISCORD_EVENT_VIDEO_PREVIOUS_SECRET:-}
+      DISCORD_EVENT_INFRASTRUCTURE_SECRET: ${DISCORD_EVENT_INFRASTRUCTURE_SECRET:-}
+      DISCORD_EVENT_INFRASTRUCTURE_PREVIOUS_SECRET: ${DISCORD_EVENT_INFRASTRUCTURE_PREVIOUS_SECRET:-}
+      DISCORD_EVENT_SUPPORT_SECRET: ${DISCORD_EVENT_SUPPORT_SECRET:-}
+      DISCORD_EVENT_SUPPORT_PREVIOUS_SECRET: ${DISCORD_EVENT_SUPPORT_PREVIOUS_SECRET:-}
+      DISCORD_EVENT_APPROVAL_SOURCES: ${DISCORD_EVENT_APPROVAL_SOURCES:-}
+      DISCORD_DELIVERY_STATE_DIR: /workspace/work/discord
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
       MYSQL_USER: root
@@ -1464,6 +1487,9 @@ services:
       JWT_AUDIENCE: ${JWT_AUDIENCE:-omnibioai-platform}
       JWT_ISSUER: ${JWT_ISSUER:-omnibioai-auth}
       AUTH_ENABLED: "true"
+    secrets:
+      - source: devhub_internal_proxy_secret
+        target: devhub_internal_proxy_secret
     volumes:
       - type: bind
         source: ${MACHINE_DIR}/omnibioai-dev-hub/data/faiss_index
@@ -1639,9 +1665,11 @@ services:
       # Dockerfile can COPY in omnibioai-iam-client -- same pattern as
       # model-registry below. All COPY paths inside the Dockerfile are
       # now repo-prefixed (omnibioai-workflow-bundles/...) accordingly.
-      context: ${MACHINE_DIR}
-      dockerfile: omnibioai-workflow-bundles/Dockerfile
+      context: ${MACHINE_DIR}/omnibioai-workflow-bundles
+      dockerfile: Dockerfile
       target: backend
+      secrets:
+        - github_token      # private omnibioai-iam-client install (askpass, never in a layer)
     # image: ghcr.io/omnibioai/omnibioai-workflow-bundles:latest
     ports:
       - "${HOST_IP:-0.0.0.0}:8098:8098"
@@ -2104,7 +2132,6 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-omnibioai}
       GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_USERS_DEFAULT_THEME: "dark"
       # Grafana only ever exists here to be embedded read-only, kiosk-mode,
       # inside webstudio's Metrics tile -- anonymous access is scoped to
       # Viewer (no edit/admin/datasource capability), matching exactly what
@@ -2300,6 +2327,9 @@ services:
     restart: unless-stopped
 
 secrets:
+  devhub_internal_proxy_secret:
+    # Owner 10001:10001, mode 0400 on the host (dev-hub refuses anything else).
+    file: /etc/omnibioai/runtime-secrets/devhub_internal_proxy_secret
   # BuildKit secret for the private omnibioai-iam-client git+https install
   # (tes, model-registry, lims, rag). Sourced from the same GHCR_PULL_TOKEN
   # already used for @man4ish npm auth -- requires repo/Contents:Read scope
