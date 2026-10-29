@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Card, Button, Badge, Spinner } from "@omnibioai/ui";
 import { isElectron } from "../../lib/session";
 import { safeErrorMessage } from "../../lib/safeErrorMessage";
+import { useAppearance } from "../AppearanceProvider";
+import { buildGrafanaUrl } from "../../lib/grafanaUrl";
 
 // Electron talks to Grafana directly; a browser tab (web build) can't reach
 // that LAN/localhost port, so it goes through nginx-router's /_svc/monitor
@@ -17,8 +19,8 @@ const TABS = [
   { label: "RAG",               uid: "omnibioai-rag" },
 ];
 
-function dashboardUrl(uid) {
-  return `${GRAFANA_BASE}/d/${uid}/${uid}${QUERY_SUFFIX}`;
+function dashboardUrl(uid, theme) {
+  return buildGrafanaUrl(`${GRAFANA_BASE}/d/${uid}/${uid}${QUERY_SUFFIX}`, theme);
 }
 
 export function GrafanaViewer({ onBack, label }) {
@@ -27,6 +29,7 @@ export function GrafanaViewer({ onBack, label }) {
   const [busy,      setBusy]      = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const webviewRef                 = useRef(null);
+  const { resolvedTheme }         = useAppearance();
 
   const authenticate = async () => {
     // grafanaLogin() is an Electron-only IPC call (electron/preload.js) that
@@ -63,7 +66,9 @@ export function GrafanaViewer({ onBack, label }) {
 
   /* ── authenticated: show dashboard with tab bar ── */
   if (phase === "ok") {
-    const currentUrl = dashboardUrl(TABS[activeTab].uid);
+    // Grafana is a third-party embed: it consumes theme from the URL and does
+    // not participate in Studio's postMessage appearance handshake.
+    const currentUrl = dashboardUrl(TABS[activeTab].uid, resolvedTheme);
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
 

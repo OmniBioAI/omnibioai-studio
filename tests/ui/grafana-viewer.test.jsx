@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // GRAFANA_BASE is computed once at module load from isElectron(), so each
 // variant needs its own fresh module instance (vi.resetModules + a dynamic
@@ -8,11 +8,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 async function loadWith(isElectron) {
   vi.resetModules();
   vi.doMock("../../src/ui/lib/session", () => ({ isElectron: () => isElectron }));
+  vi.doMock("../../src/ui/components/AppearanceProvider", () => ({ useAppearance: () => appearance }));
   const mod = await import("../../src/ui/components/GrafanaViewer/GrafanaViewer");
   return mod.GrafanaViewer;
 }
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.doUnmock("../../src/ui/lib/session"); delete window.electronAPI; });
+let appearance;
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.doUnmock("../../src/ui/lib/session");
+  vi.doUnmock("../../src/ui/components/AppearanceProvider");
+  delete window.electronAPI;
+});
+
+beforeEach(() => {
+  appearance = { resolvedTheme: "dark", accent: "teal", density: "comfortable", resolvedMotion: "system" };
+});
 
 describe("GrafanaViewer — web build", () => {
   it("skips login, renders the dashboard in an iframe, and switches tabs", async () => {
@@ -23,6 +36,7 @@ describe("GrafanaViewer — web build", () => {
     const iframe = document.querySelector("iframe");
     expect(iframe).toBeTruthy();
     expect(iframe.title).toBe("My Dashboard");
+    expect(new URL(iframe.src).searchParams.get("theme")).toBe("dark");
     expect(document.querySelector("webview")).toBeNull();
 
     fireEvent.click(screen.getByText("RAG"));
@@ -30,6 +44,28 @@ describe("GrafanaViewer — web build", () => {
 
     fireEvent.click(screen.getByText("← Back to Studio"));
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it("reloads the iframe for a theme change but not for an accent change", async () => {
+    const GrafanaViewer = await loadWith(false);
+    const { rerender } = render(<GrafanaViewer onBack={vi.fn()} />);
+    const iframe = await screen.findByTitle("Metrics Dashboard");
+    const darkUrl = new URL(iframe.src);
+
+    appearance = { ...appearance, resolvedTheme: "light" };
+    rerender(<GrafanaViewer onBack={vi.fn()} />);
+    const lightIframe = screen.getByTitle("Metrics Dashboard");
+    const lightUrl = new URL(lightIframe.src);
+    expect(lightIframe).toBe(iframe);
+    expect(lightUrl.searchParams.get("theme")).toBe("light");
+    expect([...lightUrl.searchParams.entries()].filter(([key]) => key !== "theme"))
+      .toEqual([...darkUrl.searchParams.entries()].filter(([key]) => key !== "theme"));
+    expect(lightUrl.pathname).toBe(darkUrl.pathname);
+
+    appearance = { ...appearance, accent: "orange" };
+    rerender(<GrafanaViewer onBack={vi.fn()} />);
+    expect(screen.getByTitle("Metrics Dashboard")).toBe(iframe);
+    expect(screen.getByTitle("Metrics Dashboard").src).toBe(lightUrl.href);
   });
 
   it("falls back to the default dashboard title with no label", async () => {
