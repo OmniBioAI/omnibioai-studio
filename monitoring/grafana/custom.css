@@ -1,14 +1,16 @@
 /*
  * OmniBioAI Grafana Theme — v4
  * Token source: omnibioai-design-tokens/tokens.css
- * All literal values declared ONCE in :root; all rules use var() only.
+ * Theme-specific values follow Grafana's resolved light/dark marker; all
+ * component rules use var() only.
  *
  * Injected last by the patched index.html (after emotion CSS-in-JS) so
  * document order gives us higher cascade priority at equal specificity.
  */
 
 /* ── 1. Design tokens — re-declared from tokens.css ──────────────────────── */
-:root {
+.theme-dark,
+[data-theme="dark"] {
   /* Backgrounds */
   --color-bg:           #0f1117;
   --color-bg-surface:   #1a1d2e;
@@ -97,12 +99,102 @@
   --shadow-dropdown:          0 4px 24px rgba(0,0,0,0.5);
 }
 
+.theme-light,
+[data-theme="light"] {
+  /* Backgrounds */
+  --color-bg:           #ffffff;
+  --color-bg-surface:   #f8fafc;
+  --color-bg-surface2:  #f1f5f9;
+  --color-bg-surface3:  #e8edf3;
+  --color-bg-elevated:  #ffffff;
+
+  /* Borders */
+  --color-border:        #cbd5e1;
+  --color-border-muted:  #d8e0e9;
+  --color-border-bright: #94a3b8;
+
+  /* Text */
+  --color-text:           #17202e;
+  --color-text-soft:      #263449;
+  --color-text-secondary: #34445b;
+  --color-text-muted:     #475569;
+  --color-text-dim:       #58677a;
+
+  /* Brand */
+  --color-accent:         #007f68;
+  --color-accent-dim:     rgba(0,127,104,0.12);
+  --color-accent-surface: rgba(0,127,104,0.08);
+  --color-accent-border:  rgba(0,127,104,0.45);
+  --color-blue:           #145bb5;
+  --color-blue-dim:       rgba(20,91,181,0.12);
+  --color-purple:         #7030a0;
+  --color-purple-dim:     rgba(112,48,160,0.12);
+  --color-on-accent:      #ffffff;
+
+  /* Status */
+  --color-danger:         #b42318;
+  --color-danger-dim:     rgba(180,35,24,0.10);
+  --color-danger-border:  rgba(180,35,24,0.35);
+  --color-warning:        #7a4a00;
+  --color-warning-dim:    rgba(122,74,0,0.10);
+  --color-warning-border: rgba(122,74,0,0.35);
+  --color-success:        #18794e;
+  --color-success-dim:    rgba(24,121,78,0.10);
+  --color-success-border: rgba(24,121,78,0.35);
+  --color-info:           #175cd3;
+  --color-info-dim:       rgba(23,92,211,0.10);
+  --color-info-border:    rgba(23,92,211,0.35);
+
+  /* Shadows */
+  --shadow-sm:     0 1px 3px rgba(15,23,42,0.12);
+  --shadow-card:   0 4px 24px rgba(15,23,42,0.12);
+  --shadow-header: 0 2px 8px rgba(15,23,42,0.14);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 13px;
+  --font-size-md:   14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  24px;
+
+  /* Border radius */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius:      8px;
+  --radius-lg:   10px;
+  --radius-xl:   14px;
+  --radius-pill: 9999px;
+
+  /* Layout */
+  --sidebar-w:   200px;
+  --topbar-h:    48px;
+  --scrollbar-w: 4px;
+
+  /* Local derived tokens */
+  --color-accent-hover:       #006b58;
+  --color-focus-border:       rgba(0,127,104,0.50);
+  --color-focus-ring:         rgba(0,127,104,0.20);
+  --color-focus-selected:     rgba(0,127,104,0.15);
+  --color-action-hover:       rgba(15,23,42,0.06);
+  --color-action-disabled-bg: rgba(15,23,42,0.04);
+  --color-border-medium:      #cbd5e1;
+  --color-border-strong:      #94a3b8;
+  --color-table-stripe:       rgba(15,23,42,0.02);
+  --color-table-hover:        rgba(0,127,104,0.06);
+  --shadow-login:             0 4px 32px rgba(15,23,42,0.18);
+  --shadow-dropdown:          0 4px 24px rgba(15,23,42,0.16);
+}
+
 /* ── 2. Override Grafana's --color-* CSS variable namespace ───────────────── */
-/* Grafana v13 declares these on :root in grafana.dark.*.css.
-   We re-declare here (loaded after) to override via document order. */
-:root,
+/* Map OmniBioAI tokens only after Grafana has resolved the URL/user theme. */
 .theme-dark,
-[data-theme="dark"] {
+.theme-light,
+[data-theme="dark"],
+[data-theme="light"] {
   /* Canvas / surface */
   --color-bg-canvas:                  var(--color-bg);
   --color-bg-primary:                 var(--color-bg-surface);
@@ -169,19 +261,19 @@ body.theme-dark {
   background-color: var(--color-bg) !important;
 }
 
-#reactRoot > div,
-#reactRoot > div > div:first-child {
+body.theme-dark #reactRoot > div,
+body.theme-dark #reactRoot > div > div:first-child {
   background-color: var(--color-bg) !important;
   background-image: none !important;
 }
 
 /* Target inline style="background-image:..." set by Grafana v13 React login page */
-#reactRoot > div > div[style] {
+body.theme-dark #reactRoot > div > div[style] {
   background-image: none !important;
   background: #0f1117 !important;
 }
 
-#reactRoot [style*="background-image"] {
+body.theme-dark #reactRoot [style*="background-image"] {
   background-image: none !important;
   background: #0f1117 !important;
 }
