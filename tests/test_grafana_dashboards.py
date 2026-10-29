@@ -1,8 +1,12 @@
 import json
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
+DASHBOARD_DIR = ROOT / "monitoring/grafana/dashboards"
+DATASOURCE_PROVISIONING_DIR = ROOT / "monitoring/grafana/provisioning/datasources"
 DASHBOARDS = [
     ROOT / "monitoring/grafana/dashboards/omnibioai-services.json",
     ROOT / "monitoring/grafana/dashboards/platform_overview.json",
@@ -11,12 +15,45 @@ DASHBOARDS = [
 ]
 
 
+def _datasource_uids(value):
+    if isinstance(value, dict):
+        datasource = value.get("datasource")
+        if isinstance(datasource, dict) and datasource.get("uid"):
+            yield datasource["uid"]
+        for child in value.values():
+            yield from _datasource_uids(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _datasource_uids(child)
+
+
+def _provisioned_datasource_uids():
+    uids = set()
+    for pattern in ("*.yml", "*.yaml"):
+        for path in DATASOURCE_PROVISIONING_DIR.glob(pattern):
+            provisioning = yaml.safe_load(path.read_text()) or {}
+            uids.update(
+                datasource["uid"]
+                for datasource in provisioning.get("datasources", [])
+                if datasource.get("uid")
+            )
+    return uids
+
+
 def _panels(dashboard):
     pending = list(dashboard.get("panels", []))
     while pending:
         panel = pending.pop()
         yield panel
         pending.extend(panel.get("panels", []))
+
+
+def test_dashboard_datasource_uids_are_provisioned():
+    provisioned_uids = _provisioned_datasource_uids()
+
+    for path in DASHBOARD_DIR.glob("*.json"):
+        dashboard = json.loads(path.read_text())
+        assert set(_datasource_uids(dashboard)) <= provisioned_uids, path
 
 
 def test_provisioned_dashboards_follow_the_requested_grafana_theme():
