@@ -1,0 +1,12 @@
+[Unit]
+Description=Check OmniBioAI primary NAS every 60 seconds
+
+[Timer]
+OnBootSec=15s
+OnUnitActiveSec=60s
+AccuracySec=1s
+Persistent=true
+Unit=omnibioai-nas-health.service
+
+[Install]
+WantedBy=timers.target

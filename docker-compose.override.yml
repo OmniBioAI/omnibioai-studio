@@ -34,19 +34,43 @@ services:
 
   celery-worker:
     environment:
+      FTM_LOCAL_ROOT: /mnt/nas/omnibioai/tenants/managed
+      STORAGE_TENANT_ROOT: /mnt/nas/omnibioai/tenants
+      OMNI_OBJECT_STORAGE_DIR: /mnt/nas/omnibioai/tenants/objects
+      OMNI_OBJECT_REGISTRY_PATH: /mnt/nas/omnibioai/tenants/object_registry.json
+      STORAGE_BACKEND_KIND: nfs
+      STORAGE_EXPECTED_FS_TYPE: nfs
+      STORAGE_EXPECTED_NFS_SOURCE: 192.168.86.24:/volume1/omnibioai
+      STORAGE_EXPECTED_FS_UUID: f9b2ec0f-7e62-4ee0-85fd-ea0c8d5fbbd5
+      STORAGE_HEALTH_STATE_FILE: /run/omnibioai/nas-health.json
       DB_HOST: omnibioai-full-mac-dev-v1
       DB_NAME: omnibioai
       DB_USER: omnibioai_dev_celery
       DB_PASSWORD: ${DEV_CELERY_DB_PASSWORD:?DEV_CELERY_DB_PASSWORD is required}
       OMNIBIOAI_MYSQL_PASSWORD: ${DEV_CELERY_DB_PASSWORD:?DEV_CELERY_DB_PASSWORD is required}
     networks: [default, development_database]
+    volumes:
+      - type: bind
+        source: /mnt/nas/omnibioai
+        target: /mnt/nas/omnibioai
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /run/omnibioai
+        target: /run/omnibioai
+        read_only: true
+        bind:
+          create_host_path: false
 
   control-center:
     environment:
+      TENANT_STORAGE_POOL_CAPACITY_BYTES: "49967892791296"
       MYSQL_HOST: omnibioai-full-mac-dev-v1
       MYSQL_USER: omnibioai_dev_control_center
       MYSQL_PASSWORD: ${DEV_CONTROL_CENTER_DB_PASSWORD:?DEV_CONTROL_CENTER_DB_PASSWORD is required}
     networks: [default, development_database]
+    volumes:
+      - /mnt/nas/omnibioai:/mnt/nas/omnibioai
 
   hpc-policy-engine:
     environment:
@@ -85,6 +109,7 @@ services:
     networks: [default, development_database]
     volumes:
       - ../omnibioai-model-registry/omnibioai_model_registry/db.py:/app/omnibioai_model_registry/db.py:ro
+      - /mnt/nas/omnibioai:/mnt/nas/omnibioai
 
   tes:
     environment:
@@ -93,10 +118,21 @@ services:
       DB_USER: omnibioai_dev_tes
       DB_PASSWORD: ${DEV_TES_DB_PASSWORD:?DEV_TES_DB_PASSWORD is required}
     networks: [default, development_database]
+    volumes:
+      - /mnt/nas/omnibioai:/mnt/nas/omnibioai
 
   workbench:
     command: ["bash", "-lc", "python manage.py runserver 0.0.0.0:8000 --noreload"]
     environment:
+      FTM_LOCAL_ROOT: /mnt/nas/omnibioai/tenants/managed
+      STORAGE_TENANT_ROOT: /mnt/nas/omnibioai/tenants
+      OMNI_OBJECT_STORAGE_DIR: /mnt/nas/omnibioai/tenants/objects
+      OMNI_OBJECT_REGISTRY_PATH: /mnt/nas/omnibioai/tenants/object_registry.json
+      STORAGE_BACKEND_KIND: nfs
+      STORAGE_EXPECTED_FS_TYPE: nfs
+      STORAGE_EXPECTED_NFS_SOURCE: 192.168.86.24:/volume1/omnibioai
+      STORAGE_EXPECTED_FS_UUID: f9b2ec0f-7e62-4ee0-85fd-ea0c8d5fbbd5
+      STORAGE_HEALTH_STATE_FILE: /run/omnibioai/nas-health.json
       DB_HOST: omnibioai-full-mac-dev-v1
       DB_NAME: omnibioai
       DB_USER: omnibioai_dev_workbench
@@ -106,6 +142,18 @@ services:
       OMNIBIOAI_MYSQL_USER: omnibioai_dev_workbench
       OMNIBIOAI_MYSQL_PASSWORD: ${DEV_WORKBENCH_DB_PASSWORD:?DEV_WORKBENCH_DB_PASSWORD is required}
     networks: [default, development_database]
+    volumes:
+      - type: bind
+        source: /mnt/nas/omnibioai
+        target: /mnt/nas/omnibioai
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /run/omnibioai
+        target: /run/omnibioai
+        read_only: true
+        bind:
+          create_host_path: false
 
   workflow-bundles:
     environment:
@@ -116,6 +164,32 @@ services:
     networks: [default, development_database]
     volumes:
       - ../omnibioai-workflow-bundles/api/run_store.py:/app/api/run_store.py:ro
+
+  toolserver:
+    volumes:
+      - /mnt/nas/omnibioai:/mnt/nas/omnibioai
+
+  dev-hub:
+    volumes:
+      - /mnt/nas/omnibioai:/mnt/nas/omnibioai
+
+  vscode:
+    volumes:
+      - /mnt/nas/omnibioai/reference-genomes:/mnt/nas/omnibioai/reference-genomes:ro
+      - /mnt/nas/omnibioai/datasets:/mnt/nas/omnibioai/datasets:ro
+      - /mnt/nas/omnibioai/sif-images:/mnt/nas/omnibioai/sif-images:ro
+
+  rstudio:
+    volumes:
+      - /mnt/nas/omnibioai/reference-genomes:/mnt/nas/omnibioai/reference-genomes:ro
+      - /mnt/nas/omnibioai/datasets:/mnt/nas/omnibioai/datasets:ro
+      - /mnt/nas/omnibioai/sif-images:/mnt/nas/omnibioai/sif-images:ro
+
+  jupyter:
+    volumes:
+      - /mnt/nas/omnibioai/reference-genomes:/mnt/nas/omnibioai/reference-genomes:ro
+      - /mnt/nas/omnibioai/datasets:/mnt/nas/omnibioai/datasets:ro
+      - /mnt/nas/omnibioai/sif-images:/mnt/nas/omnibioai/sif-images:ro
 
 networks:
   development_database:
