@@ -1,0 +1,49 @@
+import React from "react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../../src/ui/components/workbench/AsyncAnalysisRenderer", () => ({
+  default: ({ descriptor }) => <div data-testid="async-workflow">Async {descriptor.plugin.slug}</div>,
+}));
+vi.mock("../../src/ui/components/workbench/QueryRenderer", () => ({
+  default: ({ descriptor }) => <div data-testid="query-workflow">Query {descriptor.plugin.slug}</div>,
+}));
+vi.mock("../../src/ui/components/workbench/InformationalRenderer", () => ({
+  default: ({ descriptor }) => <div data-testid="informational-workflow">Information {descriptor.plugin.slug}</div>,
+}));
+
+import {
+  NEXT_CENTURY_PLUGIN_GROUPS,
+  NEXT_CENTURY_PLUGIN_MODES,
+  NEXT_CENTURY_PLUGIN_RENDERERS,
+  NEXT_CENTURY_PLUGIN_SLUGS,
+} from "../../src/ui/components/workbench/NextCenturyPluginRenderers";
+import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+
+afterEach(cleanup);
+
+describe("next one-hundred promoted plugin React renderers", () => {
+  it("defines twenty complete Studio groups and one hundred unique plugins", () => {
+    expect(NEXT_CENTURY_PLUGIN_GROUPS).toHaveLength(20);
+    expect(NEXT_CENTURY_PLUGIN_GROUPS.every(group => group.plugins.length === 5)).toBe(true);
+    expect(NEXT_CENTURY_PLUGIN_SLUGS).toHaveLength(100);
+    expect(new Set(NEXT_CENTURY_PLUGIN_SLUGS).size).toBe(100);
+    expect(Object.keys(NEXT_CENTURY_PLUGIN_RENDERERS).sort()).toEqual([...NEXT_CENTURY_PLUGIN_SLUGS].sort());
+    expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "query")).toHaveLength(40);
+    expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "async_analysis")).toHaveLength(5);
+    expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "generic_runner")).toHaveLength(7);
+    expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "informational")).toHaveLength(48);
+  });
+
+  it.each(NEXT_CENTURY_PLUGIN_SLUGS)("uses the live lifecycle and dedicated override for %s", slug => {
+    const renderer = NEXT_CENTURY_PLUGIN_MODES[slug];
+    const Renderer = NEXT_CENTURY_PLUGIN_RENDERERS[slug];
+    render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);
+    const testId = renderer === "query"
+      ? "query-workflow"
+      : renderer === "informational" ? "informational-workflow" : "async-workflow";
+    expect(screen.getByTestId(testId)).toHaveTextContent(slug);
+    expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);
+    expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(resolveWorkbenchRenderer(renderer));
+  });
+});
