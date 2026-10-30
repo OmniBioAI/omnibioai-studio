@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Button, Spinner } from "@omnibioai/ui";
-import ServiceViewer from "./ServiceViewer";
 import { resolveWorkbenchRenderer } from "../components/workbench/rendererRegistry";
 import { loadPluginDescriptor } from "../lib/pluginApi";
 import WorkbenchBase from "../components/WorkbenchBase";
 import OmniPage from "../components/OmniPage";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
 
-export default function PluginPage({ slug, url, label, onBack, backLabel = "Back to Workbench" }) {
+export default function PluginPage({ slug, label, onBack, backLabel = "Back to Workbench" }) {
   const [descriptor, setDescriptor] = useState(null);
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -21,14 +20,13 @@ export default function PluginPage({ slug, url, label, onBack, backLabel = "Back
     return () => controller.abort();
   }, [slug, attempt]);
 
-  const Renderer = descriptor?.native_supported ? resolveWorkbenchRenderer(descriptor.renderer) : null;
-  const invalidDescriptor = error?.name === "PluginDescriptorError" && error.status === 0;
-  if (error?.status === 404 || invalidDescriptor || (descriptor && (descriptor.native_supported === false || !Renderer))) {
-    return <ServiceViewer url={url} label={label} onBack={onBack} backLabel={backLabel} />;
-  }
-  if (error) {
+  const Renderer = descriptor ? resolveWorkbenchRenderer(descriptor.renderer, descriptor.plugin?.slug || slug) : null;
+  const renderError = error || (descriptor && !Renderer
+    ? new Error("This plugin does not expose a supported React interface.")
+    : null);
+  if (renderError) {
     return <WorkbenchBase className="native-plugin-error">
-      <OmniPage title={label} error={safeErrorMessage(error, "Unable to load plugin UI. Please try again.")}>
+      <OmniPage title={label} error={safeErrorMessage(renderError, "Unable to load plugin UI. Please try again.")}>
         <Button onClick={() => setAttempt(value => value + 1)}>Retry</Button>
       </OmniPage>
     </WorkbenchBase>;
