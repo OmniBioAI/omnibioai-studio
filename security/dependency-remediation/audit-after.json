@@ -1,0 +1,710 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@electron/asar": {
+      "name": "@electron/asar",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "glob",
+        "minimatch"
+      ],
+      "effects": [
+        "@electron/universal",
+        "app-builder-lib",
+        "electron-winstaller"
+      ],
+      "range": ">=3.2.1",
+      "nodes": [
+        "node_modules/@electron/asar"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "@electron/universal": {
+      "name": "@electron/universal",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@electron/asar",
+        "dir-compare",
+        "minimatch"
+      ],
+      "effects": [
+        "app-builder-lib"
+      ],
+      "range": ">=1.0.1",
+      "nodes": [
+        "node_modules/@electron/universal"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "@joshwooding/vite-plugin-react-docgen-typescript": {
+      "name": "@joshwooding/vite-plugin-react-docgen-typescript",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "glob"
+      ],
+      "effects": [
+        "@storybook/react-vite"
+      ],
+      "range": "0.4.0 || >=0.5.0",
+      "nodes": [
+        "node_modules/@joshwooding/vite-plugin-react-docgen-typescript"
+      ],
+      "fixAvailable": {
+        "name": "@storybook/react-vite",
+        "version": "8.5.3",
+        "isSemVerMajor": true
+      }
+    },
+    "@rollup/plugin-node-resolve": {
+      "name": "@rollup/plugin-node-resolve",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "deepmerge"
+      ],
+      "effects": [
+        "workbox-build"
+      ],
+      "range": ">=8.0.0",
+      "nodes": [
+        "node_modules/@rollup/plugin-node-resolve"
+      ],
+      "fixAvailable": {
+        "name": "vite-plugin-pwa",
+        "version": "1.1.0",
+        "isSemVerMajor": true
+      }
+    },
+    "@storybook/react-vite": {
+      "name": "@storybook/react-vite",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@joshwooding/vite-plugin-react-docgen-typescript"
+      ],
+      "effects": [],
+      "range": "<=0.0.0-pr-36141-sha-6ddbeb4a || >=8.5.4",
+      "nodes": [
+        "node_modules/@storybook/react-vite"
+      ],
+      "fixAvailable": {
+        "name": "@storybook/react-vite",
+        "version": "8.5.3",
+        "isSemVerMajor": true
+      }
+    },
+    "@trickfilm400/rollup-plugin-off-main-thread": {
+      "name": "@trickfilm400/rollup-plugin-off-main-thread",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "ejs"
+      ],
+      "effects": [
+        "workbox-build"
+      ],
+      "range": "<=3.1.0-pre2",
+      "nodes": [
+        "node_modules/@trickfilm400/rollup-plugin-off-main-thread"
+      ],
+      "fixAvailable": {
+        "name": "vite-plugin-pwa",
+        "version": "1.1.0",
+        "isSemVerMajor": true
+      }
+    },
+    "@vitest/browser": {
+      "name": "@vitest/browser",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@vitest/mocker",
+        "vitest"
+      ],
+      "effects": [],
+      "range": "2.1.0-beta.1 - 4.1.10",
+      "nodes": [
+        "node_modules/@vitest/browser"
+      ],
+      "fixAvailable": true
+    },
+    "@vitest/browser-playwright": {
+      "name": "@vitest/browser-playwright",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@vitest/browser",
+        "@vitest/mocker",
+        "vitest"
+      ],
+      "effects": [
+        "vitest"
+      ],
+      "range": "<=4.1.10",
+      "nodes": [
+        "node_modules/@vitest/browser-playwright"
+      ],
+      "fixAvailable": true
+    },
+    "@vitest/coverage-v8": {
+      "name": "@vitest/coverage-v8",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@vitest/browser",
+        "vitest"
+      ],
+      "effects": [
+        "vitest"
+      ],
+      "range": "2.1.0-beta.1 - 4.1.10",
+      "nodes": [
+        "node_modules/@vitest/coverage-v8"
+      ],
+      "fixAvailable": true
+    },
+    "@vitest/mocker": {
+      "name": "@vitest/mocker",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1193684,
+          "name": "@vitest/mocker",
+          "dependency": "@vitest/mocker",
+          "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+          "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-22"
+          ],
+          "cvss": {
+            "score": 5.9,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+          },
+          "range": ">=2.1.0 <4.1.11"
+        },
+        {
+          "source": 1242767,
+          "name": "@vitest/mocker",
+          "dependency": "@vitest/mocker",
+          "title": "Vitest: Code injection via unauthenticated manual mock registration",
+          "url": "https://github.com/advisories/GHSA-qxg6-89mg-rqv8",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-94",
+            "CWE-116",
+            "CWE-306"
+          ],
+          "cvss": {
+            "score": 4.7,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": ">=2.1.0-beta.7 <4.1.12"
+        }
+      ],
+      "effects": [
+        "@vitest/browser",
+        "@vitest/browser-playwright",
+        "vitest"
+      ],
+      "range": "<=4.1.11",
+      "nodes": [
+        "node_modules/@vitest/mocker"
+      ],
+      "fixAvailable": true
+    },
+    "app-builder-lib": {
+      "name": "app-builder-lib",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@electron/asar",
+        "@electron/universal",
+        "dmg-builder",
+        "ejs",
+        "electron-builder-squirrel-windows",
+        "minimatch"
+      ],
+      "effects": [
+        "dmg-builder",
+        "electron-builder",
+        "electron-builder-squirrel-windows"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/app-builder-lib"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "deepmerge": {
+      "name": "deepmerge",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1243505,
+          "name": "deepmerge",
+          "dependency": "deepmerge",
+          "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
+          "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+          "severity": "low",
+          "cwe": [
+            "CWE-1321"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N"
+          },
+          "range": ">=4.2.0 <=4.3.1"
+        }
+      ],
+      "effects": [
+        "@rollup/plugin-node-resolve"
+      ],
+      "range": ">=4.2.0",
+      "nodes": [
+        "node_modules/deepmerge"
+      ],
+      "fixAvailable": {
+        "name": "vite-plugin-pwa",
+        "version": "1.1.0",
+        "isSemVerMajor": true
+      }
+    },
+    "dir-compare": {
+      "name": "dir-compare",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "minimatch"
+      ],
+      "effects": [
+        "@electron/universal"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/dir-compare"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "dmg-builder": {
+      "name": "dmg-builder",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "app-builder-lib"
+      ],
+      "effects": [
+        "electron-builder"
+      ],
+      "range": ">=5.0.0",
+      "nodes": [
+        "node_modules/dmg-builder"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "dotgitignore": {
+      "name": "dotgitignore",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "minimatch"
+      ],
+      "effects": [
+        "standard-version"
+      ],
+      "range": ">=1.0.3",
+      "nodes": [
+        "node_modules/dotgitignore"
+      ],
+      "fixAvailable": {
+        "name": "standard-version",
+        "version": "4.2.0",
+        "isSemVerMajor": true
+      }
+    },
+    "ejs": {
+      "name": "ejs",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "jake"
+      ],
+      "effects": [
+        "@trickfilm400/rollup-plugin-off-main-thread",
+        "app-builder-lib"
+      ],
+      "range": "3.1.2 - 4.0.1",
+      "nodes": [
+        "node_modules/ejs"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "electron-builder": {
+      "name": "electron-builder",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "app-builder-lib",
+        "dmg-builder"
+      ],
+      "effects": [],
+      "range": "19.25.0 || >=20.24.0",
+      "nodes": [
+        "node_modules/electron-builder"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "electron-builder-squirrel-windows": {
+      "name": "electron-builder-squirrel-windows",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "app-builder-lib",
+        "electron-winstaller"
+      ],
+      "effects": [
+        "app-builder-lib"
+      ],
+      "range": ">=20.24.0",
+      "nodes": [
+        "node_modules/electron-builder-squirrel-windows"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "electron-winstaller": {
+      "name": "electron-winstaller",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@electron/asar",
+        "temp"
+      ],
+      "effects": [
+        "electron-builder-squirrel-windows"
+      ],
+      "range": ">=3.0.0",
+      "nodes": [
+        "node_modules/electron-winstaller"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "filelist": {
+      "name": "filelist",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "minimatch"
+      ],
+      "effects": [
+        "jake"
+      ],
+      "range": ">=0.0.2",
+      "nodes": [
+        "node_modules/filelist"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "glob": {
+      "name": "glob",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1244013,
+          "name": "glob",
+          "dependency": "glob",
+          "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+          "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=9.0.0 <=14.0.1"
+        },
+        "minimatch"
+      ],
+      "effects": [
+        "@joshwooding/vite-plugin-react-docgen-typescript",
+        "rimraf",
+        "workbox-build"
+      ],
+      "range": "3.0.0 - 14.0.1",
+      "nodes": [
+        "node_modules/@joshwooding/vite-plugin-react-docgen-typescript/node_modules/glob",
+        "node_modules/glob",
+        "node_modules/workbox-build/node_modules/glob"
+      ],
+      "fixAvailable": {
+        "name": "@storybook/react-vite",
+        "version": "8.5.3",
+        "isSemVerMajor": true
+      }
+    },
+    "jake": {
+      "name": "jake",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "filelist"
+      ],
+      "effects": [
+        "ejs"
+      ],
+      "range": ">=10.6.1",
+      "nodes": [
+        "node_modules/jake"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "minimatch": {
+      "name": "minimatch",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1244012,
+          "name": "minimatch",
+          "dependency": "minimatch",
+          "title": "minimatch has potential denial of service via globparts amplification",
+          "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-405"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<11.0.1"
+        }
+      ],
+      "effects": [
+        "@electron/asar",
+        "@electron/universal",
+        "app-builder-lib",
+        "dir-compare",
+        "dotgitignore",
+        "filelist",
+        "glob"
+      ],
+      "range": "<11.0.1",
+      "nodes": [
+        "node_modules/@electron/asar/node_modules/minimatch",
+        "node_modules/@electron/universal/node_modules/minimatch",
+        "node_modules/dir-compare/node_modules/minimatch",
+        "node_modules/dotgitignore/node_modules/minimatch",
+        "node_modules/filelist/node_modules/minimatch",
+        "node_modules/glob/node_modules/minimatch",
+        "node_modules/minimatch"
+      ],
+      "fixAvailable": {
+        "name": "standard-version",
+        "version": "4.2.0",
+        "isSemVerMajor": true
+      }
+    },
+    "rimraf": {
+      "name": "rimraf",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "glob"
+      ],
+      "effects": [
+        "temp"
+      ],
+      "range": "2.3.0 - 3.0.2 || >=4.2.0",
+      "nodes": [
+        "node_modules/rimraf"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "standard-version": {
+      "name": "standard-version",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "dotgitignore"
+      ],
+      "effects": [],
+      "range": ">=4.3.0-candidate.0",
+      "nodes": [
+        "node_modules/standard-version"
+      ],
+      "fixAvailable": {
+        "name": "standard-version",
+        "version": "4.2.0",
+        "isSemVerMajor": true
+      }
+    },
+    "temp": {
+      "name": "temp",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "rimraf"
+      ],
+      "effects": [
+        "electron-winstaller"
+      ],
+      "range": ">=0.8.4",
+      "nodes": [
+        "node_modules/temp"
+      ],
+      "fixAvailable": {
+        "name": "electron-builder",
+        "version": "20.23.1",
+        "isSemVerMajor": true
+      }
+    },
+    "vite-plugin-pwa": {
+      "name": "vite-plugin-pwa",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "workbox-build"
+      ],
+      "effects": [],
+      "range": ">=1.2.0",
+      "nodes": [
+        "node_modules/vite-plugin-pwa"
+      ],
+      "fixAvailable": {
+        "name": "vite-plugin-pwa",
+        "version": "1.1.0",
+        "isSemVerMajor": true
+      }
+    },
+    "vitest": {
+      "name": "vitest",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@vitest/browser-playwright",
+        "@vitest/coverage-v8",
+        "@vitest/mocker",
+        {
+          "source": 1193683,
+          "name": "vitest",
+          "dependency": "vitest",
+          "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+          "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-22"
+          ],
+          "cvss": {
+            "score": 5.9,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+          },
+          "range": ">=2.1.0 <4.1.11"
+        }
+      ],
+      "effects": [
+        "@vitest/coverage-v8"
+      ],
+      "range": "2.1.0-beta.1 - 4.1.10",
+      "nodes": [
+        "node_modules/vitest"
+      ],
+      "fixAvailable": true
+    },
+    "workbox-build": {
+      "name": "workbox-build",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@rollup/plugin-node-resolve",
+        "@trickfilm400/rollup-plugin-off-main-thread",
+        "glob"
+      ],
+      "effects": [
+        "vite-plugin-pwa"
+      ],
+      "range": ">=6.0.0-alpha.0",
+      "nodes": [
+        "node_modules/workbox-build"
+      ],
+      "fixAvailable": {
+        "name": "vite-plugin-pwa",
+        "version": "1.1.0",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 2,
+      "moderate": 27,
+      "high": 0,
+      "critical": 0,
+      "total": 29
+    },
+    "dependencies": {
+      "prod": 39,
+      "dev": 1098,
+      "optional": 147,
+      "peer": 42,
+      "peerOptional": 0,
+      "total": 1136
+    }
+  }
+}
