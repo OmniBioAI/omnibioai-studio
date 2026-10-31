@@ -22,7 +22,7 @@ import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rend
 import { ANALYSIS_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/AnalysisPluginRenderers";
 import { ML_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
 import { GENOMICS_TEMPLATE_RENDERERS } from "../../src/ui/components/workbench/GenomicsTemplateRenderers";
-import { OMICS_CATEGORY_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/OmicsCategoryReactRenderers";
+import { OMICS_CATEGORY_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/OmicsCategoryPluginRenderers";
 
 afterEach(cleanup);
 
