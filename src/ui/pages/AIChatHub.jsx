@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ServiceViewer from "./ServiceViewer";
+import PluginPage from "./PluginPage";
 import { isElectron } from "../lib/session";
 import "./AIChatHub.css";
 
@@ -11,7 +12,6 @@ const CHAT_DESTINATIONS = {
   },
   agent: {
     label: "OmniBioAI Agent",
-    url: "/_svc/workbench/plugins/bio_agent/",
     description: "Analyze data, run bioinformatics tools, search literature, and plan workflows. Ask history is not shared; Agent model and data policies apply.",
   },
 };
@@ -60,8 +60,8 @@ export default function AIChatHub({ initialMode = "ask", onBack }) {
       <div id="ai-chat-panel-ask" role="tabpanel" aria-labelledby="ai-chat-tab-ask" hidden={activeMode !== "ask"}>
         <ServiceViewer url={resolveEmbeddedServiceUrl(CHAT_DESTINATIONS.ask.url)} label={CHAT_DESTINATIONS.ask.label} onBack={onBack} hideHeader />
       </div>
-      {agentVisited && <div id="ai-chat-panel-agent" role="tabpanel" aria-labelledby="ai-chat-tab-agent" hidden={activeMode !== "agent"}>
-        <ServiceViewer url={resolveEmbeddedServiceUrl(CHAT_DESTINATIONS.agent.url)} label={CHAT_DESTINATIONS.agent.label} onBack={onBack} hideHeader />
+      {agentVisited && <div id="ai-chat-panel-agent" className="ai-chat-hub__agent" role="tabpanel" aria-labelledby="ai-chat-tab-agent" hidden={activeMode !== "agent"}>
+        <PluginPage slug="bio_agent" label={CHAT_DESTINATIONS.agent.label} backLabel="Back to Ask OmniBioAI" onBack={() => selectMode("ask")} />
       </div>}
     </div>
   </section>;
