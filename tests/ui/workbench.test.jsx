@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { render, screen, within, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Workbench, { categoriesForDiscoveryView } from "../../src/ui/pages/Workbench";
+import Workbench, { appVisual, categoriesForDiscoveryView } from "../../src/ui/pages/Workbench";
 import { catalog, catalogResponse } from "./workbench-fixture";
 
 function Harness({ onOpen = vi.fn(), initial = {}, view = "all" }) {
@@ -13,6 +13,12 @@ beforeEach(() => vi.stubGlobal("fetch", vi.fn().mockResolvedValue(catalogRespons
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("Native Workbench catalog", () => {
+  it("uses a distinct biology emoji for every Omics & Analysis category", () => {
+    const categories = ["analysis", "genomics", "epigenomics", "metabolomics", "single_cell", "proteomics", "spatial", "microbiome", "circrna"];
+    const icons = categories.map(category => appVisual(category).icon);
+    expect(icons).toEqual(["📊", "🧬", "🧫", "⚗️", "🔬", "🧪", "🗺️", "🦠", "🌀"]);
+    expect(new Set(icons).size).toBe(categories.length);
+  });
   it("partitions the catalog into integrations, general plugins, omics, and agentic entries without duplicates", () => {
     const categories = [
       { key: "integration", title: "Integrations", plugins: [{ slug: "github", category: "integration" }] },

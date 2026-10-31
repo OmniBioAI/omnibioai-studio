@@ -21,9 +21,21 @@ const APP_CATEGORY_VISUALS = {
   utilities: ["#8fa8ff", "⚙"], utility: ["#8fa8ff", "⚙"],
 };
 
-function appVisual(category) {
+const OMICS_CATEGORY_EMOJI = {
+  analysis: "📊",
+  genomics: "🧬",
+  epigenomics: "🧫",
+  metabolomics: "⚗️",
+  single_cell: "🔬",
+  proteomics: "🧪",
+  spatial: "🗺️",
+  microbiome: "🦠",
+  circrna: "🌀",
+};
+
+export function appVisual(category) {
   const [accent, icon] = APP_CATEGORY_VISUALS[category] || ["#7d9cff", "✦"];
-  return { accent, icon };
+  return { accent, icon: OMICS_CATEGORY_EMOJI[category] || icon };
 }
 
 const AGENTIC_PALETTE = ["#ad8cff", "#67a7ff", "#e08cff", "#69d6ce"];
