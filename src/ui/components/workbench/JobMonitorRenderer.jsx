@@ -56,15 +56,14 @@ export default function JobMonitorRenderer() {
       const runPath = `/plugins/job_monitor/api/run/${encodeURIComponent(selected.run_id)}/`;
       const suffix = `?plugin=${encodeURIComponent(selected.plugin)}`;
       try {
-        const [status, logs, artifacts] = await Promise.all([
-          getJson(`${runPath}status/${suffix}`, controller.signal),
+        const [detail, logs] = await Promise.all([
+          getJson(`${runPath}detail/${suffix}`, controller.signal),
           getJson(`${runPath}logs/${suffix}`, controller.signal),
-          getJson(`${runPath}artifacts/${suffix}`, controller.signal),
         ]);
         if (active) {
-          setDetails({ status, logs: logs.logs || [], artifacts: artifacts.outputs || [] });
-          setSelected(previous => previous && previous.run_id === selected.run_id && previous.plugin === selected.plugin && previous.state !== status.state
-            ? { ...previous, state: status.state }
+          setDetails({ status: detail.status, run: detail.run, artifacts: detail.artifacts, logs: logs.logs || [] });
+          setSelected(previous => previous && previous.run_id === selected.run_id && previous.plugin === selected.plugin && previous.state !== detail.status?.state
+            ? { ...previous, state: detail.status?.state }
             : previous);
         }
       } catch (failure) {
@@ -105,8 +104,9 @@ export default function JobMonitorRenderer() {
           <PanelBody>
             {details ? <>
               <h3>Status</h3><pre>{JSON.stringify(details.status, null, 2)}</pre>
-              <h3>Logs</h3><pre>{details.logs.join("\n") || "No logs found."}</pre>
+              <h3>Run Config</h3><pre>{JSON.stringify(details.run, null, 2)}</pre>
               <h3>Artifacts</h3><pre>{JSON.stringify(details.artifacts, null, 2)}</pre>
+              <h3>Logs</h3><pre>{details.logs.join("\n") || "No logs found."}</pre>
             </> : <p role="status">Loading run details…</p>}
           </PanelBody>
         </Panel>
