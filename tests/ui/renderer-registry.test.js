@@ -3,6 +3,9 @@ import { RENDERER_REGISTRY, normalizeRendererName, resolveWorkbenchRenderer } fr
 import JobMonitorRenderer from "../../src/ui/components/workbench/JobMonitorRenderer";
 import GenomeViewerRenderer from "../../src/ui/components/workbench/GenomeViewerRenderer";
 import DatasetCatalogRenderer from "../../src/ui/components/workbench/DatasetCatalogRenderer";
+import PluginManagerRenderer from "../../src/ui/components/workbench/PluginManagerRenderer";
+import AuditLogRenderer from "../../src/ui/components/workbench/AuditLogRenderer";
+import WorkflowRunnerRenderer from "../../src/ui/components/workbench/WorkflowRunnerRenderer";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -22,6 +25,11 @@ describe("allowlisted Workbench renderer registry", () => {
   });
   it("uses the dedicated React catalog for Dataset Catalog", () => {
     expect(resolveWorkbenchRenderer("query", "dataset_catalog")).toBe(DatasetCatalogRenderer);
+  });
+  it.each([
+    ["plugin_manager", PluginManagerRenderer], ["audit_log", AuditLogRenderer], ["workflow_runner", WorkflowRunnerRenderer],
+  ])("uses a dedicated React renderer for %s", (slug, component) => {
+    expect(resolveWorkbenchRenderer("query", slug)).toBe(component);
   });
   it.each([
     ["dataset_ingest", "generic_runner"],
