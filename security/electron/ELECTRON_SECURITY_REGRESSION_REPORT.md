@@ -58,3 +58,17 @@ Commands and results:
 - A compatible RPM builder/test environment if RPM is in v0.8.1 release scope.
 
 No credentials, tokens, or private endpoint values are included in this report.
+
+## Authentication boundary reassessment — 2026-10-31
+
+Fresh source inspection for release qualification confirmed the blocker remains unresolved:
+
+- The desktop Auth URL in `src/ui/lib/session.js` is still `http://<configured-host>:8001`.
+- `setSession` persists both access and refresh tokens in renderer `localStorage` and mirrors the access token to a JavaScript-readable cookie.
+- At least 20 UI modules depend on session token access, and 21 renderer call sites build bearer headers. A main-only `safeStorage` wrapper that returns tokens to these callers would not protect them from renderer JavaScript.
+- Read-only inspection of the adjacent Auth service found that login/refresh/MFA responses still return token values in JSON. Auth also sets an HttpOnly Secure refresh cookie for `.omnibioai.org`; this cookie does not match the packaged `localhost` UI origin. Logout currently requires the refresh token in its JSON body. No Auth source was changed.
+- No staging Auth origin or approved test-account injection mechanism was found in this Studio checkout or environment. Production credentials/endpoints were not used.
+
+Fresh execution: `node --test tests/electron/*.test.js` passed 10/10 when run with host permissions. The initial sandbox run could not bind the test's temporary loopback server (`EPERM`); no test was skipped. The complete UI suite passed 2,434 tests with the same two existing `WORKBENCH_SOURCE` skips. Desktop and web/PWA builds passed on Node 22.23.3. Fresh npm audit was blocked by registry DNS (`EAI_AGAIN`). The official Git-history Gitleaks script was blocked by Docker socket permissions; a fresh directory scan was not run because no standalone scanner was available. See `security/release-qualification/RELEASE_QUALIFICATION_V4_REPORT.md` for exact command evidence and the current NO-GO decision.
+
+No authentication-storage, Auth-transport, staging-login, or packaged-login behavior is claimed as fixed or verified.

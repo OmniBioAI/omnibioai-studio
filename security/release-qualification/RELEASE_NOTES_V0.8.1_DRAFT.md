@@ -22,9 +22,10 @@
 - Packaged login, Auth origin/CORS behavior, session recovery, refresh, and logout have not been verified against staging Auth with a non-production account. No staging endpoint or test account was available in this workstream.
 - Auth access/refresh tokens remain in renderer `localStorage` and a JavaScript-readable cookie; Auth requests still use HTTP. A secure Auth-side session contract or reviewed main-process broker is required before this risk can be closed.
 - 27 moderate and 2 low development/build-tool advisories remain; explicit release-owner risk acceptance is outstanding.
-- The previous full-directory secret scan reported 23 matches with documented redacted dispositions; a fresh scan of this changed worktree was blocked by Docker socket permissions. Do not treat the current scan as clean.
+- The previous full-directory secret scan reported 23 matches with documented redacted dispositions. The official Git-history scan was blocked by Docker socket permissions in the final pass; no fresh directory scan ran because standalone Gitleaks is unavailable. Do not treat the current scan as clean.
 - Current ARM64 AppImage and DEB were built locally; RPM is blocked because `rpmbuild` is unavailable. The builder warns that `desktopName` is unset. Artifacts are unsigned and packaged login was not tested.
-- Current full dependency audit: 0 critical, 0 high, 27 moderate and 2 low; production-only audit: 0 findings. Node 20 was unavailable for this hardening run; builds/tests used Node 22.23.3.
+- Last completed full dependency audit at the implementation source commit: 0 critical, 0 high, 27 moderate and 2 low; production-only audit: 0 findings. A fresh audit in the final qualification pass was blocked by npm registry DNS and must not be treated as current verification. Node 20 is unavailable in this final environment; fresh builds/tests used Node 22.23.3.
+- Final qualification report V4 remains NO-GO: no approved staging HTTPS Auth origin or non-production test account was available, so secure session migration and actual packaged login were not verified. Do not publish these notes or artifacts.
 
 ## Install, upgrade, and rollback guidance (draft)
 
