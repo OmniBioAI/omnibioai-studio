@@ -109,6 +109,15 @@ describe("plugin descriptor API boundary", () => {
     expect(() => endpointUrl("/plugins/celltype_classification_sc/train/other/")).toThrow("Invalid plugin endpoint");
   });
 
+  it("allows only the OnboardAI documentation browser and ask endpoints", () => {
+    expect(endpointUrl("/plugins/onboardai/api/index/")).toContain("/plugins/onboardai/api/index/");
+    expect(endpointUrl("/plugins/onboardai/api/doc/?id=plugins_onboardai_README.md")).toContain("/plugins/onboardai/api/doc/");
+    expect(endpointUrl("/plugins/onboardai/api/ask/")).toContain("/plugins/onboardai/api/ask/");
+    expect(endpointUrl("/plugins/onboardai/api/reindex/")).toContain("/plugins/onboardai/api/reindex/");
+    expect(() => endpointUrl("/plugins/other_plugin/api/doc/?id=README.md")).toThrow("Invalid plugin endpoint");
+    expect(() => endpointUrl("/plugins/onboardai/api/secret/")).toThrow("Invalid plugin endpoint");
+  });
+
   it("limits Variant Effect download links to a single opaque object identifier", () => {
     expect(endpointUrl("/plugins/variant_effect_intelligence/download/vei-output-1/")).toContain("/plugins/variant_effect_intelligence/download/vei-output-1/");
     expect(() => endpointUrl("/plugins/variant_effect_intelligence/download/../secret/")).toThrow("Invalid plugin endpoint");

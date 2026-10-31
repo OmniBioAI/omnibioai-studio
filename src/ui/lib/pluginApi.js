@@ -12,6 +12,7 @@ const EXACT_PLUGIN_ENDPOINTS = new Set([
   "/plugins/celltype_classification_sc/train/",
   "/plugins/celltype_classification_sc/predict/",
 ]);
+const ONBOARD_AI_ENDPOINT = /^\/plugins\/onboardai\/api\/(?:index|reindex|ask)\/$|^\/plugins\/onboardai\/api\/doc\/\?id=[A-Za-z0-9_.%-]+$/;
 const OPENBABEL_ACTIONS = new Set([
   "convert_structure", "validate_structure", "normalize_structure", "calculate_descriptors",
   "generate_fingerprint", "generate_3d", "batch_convert", "smiles_to_inchi", "inchi_to_smiles",
@@ -49,7 +50,7 @@ export function endpointUrl(path, options) {
   const openBabelAction = typeof path === "string" && path.match(/^\/plugins\/openbabel\/api\/actions\/([a-z_]+)\/$/);
   if (typeof path !== "string" || path.includes("..") || path.includes("//") ||
       (path.startsWith("/plugins/openbabel/api/actions/") && (!openBabelAction || !OPENBABEL_ACTIONS.has(openBabelAction[1]))) ||
-      (!EXACT_PLUGIN_ENDPOINTS.has(path) && !/^\/plugins\/variant_effect_intelligence\/download\/[A-Za-z0-9_.:-]+\/?$/.test(path) && !ENDPOINT.test(path))) {
+      (!EXACT_PLUGIN_ENDPOINTS.has(path) && !ONBOARD_AI_ENDPOINT.test(path) && !/^\/plugins\/variant_effect_intelligence\/download\/[A-Za-z0-9_.:-]+\/?$/.test(path) && !ENDPOINT.test(path))) {
     throw new Error("Invalid plugin endpoint.");
   }
   return serviceUrl(path, options);
