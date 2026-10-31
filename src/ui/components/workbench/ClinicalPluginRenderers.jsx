@@ -36,8 +36,8 @@ function useApi(slug) {
 function Result({ data }) { return data ? <Panel><PanelHeader title="Response"/><PanelBody><pre style={{ margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 460, overflow: "auto", color: "var(--text)", fontSize: 12 }}>{JSON.stringify(data, null, 2)}</pre></PanelBody></Panel> : null; }
 function Feedback({ busy, error }) { return <>{error && <p role="alert" className="plugin-error">{error}</p>}{busy && <p role="status" style={muted}>Working…</p>}</>; }
 
-function RunProgress({ slug, runId, statusPath }) {
-  const [status, setStatus] = useState(null); const [error, setError] = useState("");
+function RunProgress({ slug, runId, statusPath, logsPath, artifactsPath }) {
+  const [status, setStatus] = useState(null); const [error, setError] = useState(""); const [details, setDetails] = useState(null);
   useEffect(() => {
     if (!runId) return undefined;
     let cancelled = false; let timer;
@@ -49,13 +49,24 @@ function RunProgress({ slug, runId, statusPath }) {
         if (!response.ok) throw new Error(next.error || `Status request failed (${response.status}).`);
         if (cancelled) return;
         setStatus(next);
-        if (["COMPLETE", "COMPLETED", "FAILED", "ERROR", "CANCELED", "CANCELLED"].includes(String(next.state || "").toUpperCase())) window.clearInterval(timer);
+        if (["COMPLETE", "COMPLETED", "FAILED", "ERROR", "CANCELED", "CANCELLED"].includes(String(next.state || "").toUpperCase())) {
+          window.clearInterval(timer);
+          if (["COMPLETE", "COMPLETED"].includes(String(next.state || "").toUpperCase()) && logsPath && artifactsPath) {
+            const [logResponse, artifactResponse] = await Promise.all([
+              fetch(pluginEndpoint(`/plugins/${slug}/${logsPath.replace("{run_id}", encodeURIComponent(runId))}`), { credentials: "same-origin", headers: { Accept: "application/json" } }),
+              fetch(pluginEndpoint(`/plugins/${slug}/${artifactsPath.replace("{run_id}", encodeURIComponent(runId))}`), { credentials: "same-origin", headers: { Accept: "application/json" } }),
+            ]);
+            const [logs, artifacts] = await Promise.all([logResponse.json().catch(() => ({})), artifactResponse.json().catch(() => ({}))]);
+            if (!logResponse.ok || !artifactResponse.ok) throw new Error("Run finished, but its logs or outputs could not be loaded.");
+            if (!cancelled) setDetails({ logs, artifacts });
+          }
+        }
       } catch (e) { if (!cancelled) { setError(e.message); window.clearInterval(timer); } }
     };
     poll(); timer = window.setInterval(poll, 2500);
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [slug, runId, statusPath]);
-  return runId ? <Panel><PanelHeader title="Run progress"/><PanelBody><p role="status">Run <code>{runId}</code> · {status?.state || "QUEUED"}</p>{status?.detail && <p style={muted}>{status.detail}</p>}{error && <p role="alert" className="plugin-error">{error}</p>}</PanelBody></Panel> : null;
+  return runId ? <><Panel><PanelHeader title="Run progress"/><PanelBody><p role="status">Run <code>{runId}</code> · {status?.state || "QUEUED"}</p>{status?.detail && <p style={muted}>{status.detail}</p>}{error && <p role="alert" className="plugin-error">{error}</p>}</PanelBody></Panel>{details && <Panel><PanelHeader title="Run outputs and log"/><PanelBody><h4>Artifacts</h4><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(details.artifacts, null, 2)}</pre><h4>Log</h4><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 300, overflow: "auto" }}>{JSON.stringify(details.logs.lines || details.logs, null, 2)}</pre></PanelBody></Panel>}</> : null;
 }
 
 function TrialMatching() {
@@ -91,7 +102,7 @@ function Redcap() {
   async function run(e) { e.preventDefault(); let payload = {}; try { payload = JSON.parse(records); } catch { api.setResult(null); return; } await api.request("api/run/", { method: "POST", body: { action, url, token, ...payload } }); }
   return <ClinicalShell icon="🔐" title="REDCap Connector" summary="Connect to an authorized REDCap API. The API token is kept only in this page's memory and is never saved in browser storage; clear it when finished. Follow your institution's data handling policy.">
     <Panel><PanelHeader title="Connection"/><PanelBody><form onSubmit={test}><div style={fieldStyle}><FormRow label="REDCap API URL"><Input type="url" value={url} onChange={e => setUrl(e.target.value)} required placeholder="https://redcap.example.org/api/"/></FormRow><FormRow label="API token"><Input type="password" autoComplete="new-password" value={token} onChange={e => setToken(e.target.value)} required /></FormRow></div><button style={primary} disabled={api.busy}>Test connection</button></form></PanelBody></Panel>
-    <Panel><PanelHeader title="Data operation"/><PanelBody><form onSubmit={run}><FormRow label="Action"><Select value={action} onChange={e => setAction(e.target.value)} options={["import_records","export_results"]}/></FormRow><FormRow label="Operation options (JSON)"><Textarea rows={5} value={records} onChange={e => setRecords(e.target.value)} /></FormRow><button style={primary} disabled={api.busy || !token}>Start operation</button></form><p style={muted}>Never paste participant identifiers into support requests or screenshots.</p></PanelBody></Panel><Feedback busy={api.busy} error={api.error}/><RunProgress slug="redcap" runId={api.result?.run_id} statusPath="api/status/{run_id}/"/><Result data={api.result}/>
+    <Panel><PanelHeader title="Data operation"/><PanelBody><form onSubmit={run}><FormRow label="Action"><Select value={action} onChange={e => setAction(e.target.value)} options={["import_records","export_results"]}/></FormRow><FormRow label="Operation options (JSON)"><Textarea rows={5} value={records} onChange={e => setRecords(e.target.value)} /></FormRow><button style={primary} disabled={api.busy || !token}>Start operation</button></form><p style={muted}>Never paste participant identifiers into support requests or screenshots.</p></PanelBody></Panel><Feedback busy={api.busy} error={api.error}/><RunProgress slug="redcap" runId={api.result?.run_id} statusPath="api/status/{run_id}/" logsPath="api/log/{run_id}/" artifactsPath="api/artifacts/{run_id}/"/><Result data={api.result}/>
   </ClinicalShell>;
 }
 
@@ -99,13 +110,31 @@ function ClinicalDbMapping() {
   const api = useApi("clinical_db_mapping"); const [objectId, setObjectId] = useState(""); const [file, setFile] = useState(null);
   async function submit(e) { e.preventDefault(); const form = new FormData(); if (file) form.append("upload", file); else form.append("pathogenicity_object_id", objectId.trim()); await api.request("api/run/create/", { method: "POST", form }); }
   return <ClinicalShell icon="🗺️" title="Clinical Database Mapping" summary="Map pathogenicity/variant evidence against supported clinical databases and return a traceable mapping table. Provide an OmniObject ID or upload a supported input file.">
-    <Panel><PanelHeader title="Mapping input"/><PanelBody><form onSubmit={submit}><FormRow label="Pathogenicity OmniObject ID"><Input value={objectId} onChange={e => { setObjectId(e.target.value); setFile(null); }} placeholder="Use an existing object ID" /></FormRow><p style={{ ...muted, textAlign: "center" }}>or upload an input</p><FormRow label="Variant/scoring file"><Input type="file" onChange={e => { setFile(e.target.files?.[0] || null); if (e.target.files?.length) setObjectId(""); }} accept=".vcf,.tsv,.csv,.json,.txt" /></FormRow><button style={primary} disabled={api.busy || (!file && !objectId.trim())}>Start mapping</button></form></PanelBody></Panel><Feedback busy={api.busy} error={api.error}/><RunProgress slug="clinical_db_mapping" runId={api.result?.run_id} statusPath="api/run/{run_id}/status/"/><Result data={api.result}/>
+    <Panel><PanelHeader title="Mapping input"/><PanelBody><form onSubmit={submit}><FormRow label="Pathogenicity OmniObject ID"><Input value={objectId} onChange={e => { setObjectId(e.target.value); setFile(null); }} placeholder="Use an existing object ID" /></FormRow><p style={{ ...muted, textAlign: "center" }}>or upload an input</p><FormRow label="Variant/scoring file"><Input type="file" onChange={e => { setFile(e.target.files?.[0] || null); if (e.target.files?.length) setObjectId(""); }} accept=".vcf,.tsv,.csv,.json,.txt" /></FormRow><button style={primary} disabled={api.busy || (!file && !objectId.trim())}>Start mapping</button></form></PanelBody></Panel><Feedback busy={api.busy} error={api.error}/><RunProgress slug="clinical_db_mapping" runId={api.result?.run_id} statusPath="api/run/{run_id}/status/" logsPath="api/run/{run_id}/log/?n=400" artifactsPath="api/run/{run_id}/artifacts/"/><Result data={api.result}/>
   </ClinicalShell>;
 }
 
-function ClinicalReportGenerator({ descriptor }) {
+function ClinicalReportGenerator() {
+  const api = useApi("clinical_report_generator"); const [fields, setFields] = useState([]); const [values, setValues] = useState({});
+  const [caseId, setCaseId] = useState(""); const [reportStatus, setReportStatus] = useState("draft"); const [reviewer, setReviewer] = useState(""); const [notes, setNotes] = useState(""); const [signedOff, setSignedOff] = useState(false); const [loadingChoices, setLoadingChoices] = useState(true); const [choiceError, setChoiceError] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    fetch(pluginEndpoint("/plugins/clinical_report_generator/api/configure/"), { credentials: "same-origin", headers: { Accept: "application/json" } })
+      .then(async response => { const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.error || `Unable to load report inputs (${response.status}).`); return payload; })
+      .then(payload => { if (!cancelled) { setFields(Array.isArray(payload.fields) ? payload.fields : []); setChoiceError(""); } })
+      .catch(error => { if (!cancelled) setChoiceError(error.message || "Unable to load report inputs."); })
+      .finally(() => { if (!cancelled) setLoadingChoices(false); });
+    return () => { cancelled = true; };
+  }, []);
+  async function submit(event) {
+    event.preventDefault();
+    const artifactObjectIds = Object.fromEntries(fields.filter(field => values[field.name]).map(field => [field.name, values[field.name]]));
+    await api.request("api/run/", { method: "POST", body: { case_id: caseId.trim(), report_status: reportStatus, artifact_object_ids: artifactObjectIds, reviewer_name: reviewer, reviewer_notes: notes, sign_off: signedOff } });
+  }
   return <ClinicalShell icon="📋" title="Clinical Report Generator" summary="Build a research-use-only variant evidence report from upstream analysis artifacts. This report is not a diagnosis or a substitute for clinician review.">
-    <Panel><PanelHeader title="Report workspace"/><PanelBody><p style={muted}>Select required upstream OmniObject artifacts in your workflow: ranked variants, pathogenicity scores, and clinical database mappings. Optional phenotype, literature, QC, and annotation evidence can be added as workflow inputs.</p><p style={muted}>The legacy page exposed registry-backed artifact selectors, but the JSON API currently exposes run/status/artifact routes only. The React page therefore keeps the documented workflow path available without submitting incomplete or fabricated object references.</p><AsyncAnalysisRenderer descriptor={descriptor}/></PanelBody></Panel>
+    <Panel><PanelHeader title="Case and review"/><PanelBody><form onSubmit={submit}><div style={fieldStyle}><FormRow label="Case ID"><Input value={caseId} onChange={e => setCaseId(e.target.value)} required placeholder="CASE-2026-001"/></FormRow><FormRow label="Report status"><Select value={reportStatus} onChange={e => setReportStatus(e.target.value)} options={["draft","final"]}/></FormRow><FormRow label="Reviewer name"><Input value={reviewer} onChange={e => setReviewer(e.target.value)} placeholder="Optional"/></FormRow></div><FormRow label="Reviewer notes"><Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}/></FormRow><label style={{ display: "flex", gap: 8, alignItems: "center", margin: "12px 0 20px", color: "var(--text)" }}><input type="checkbox" checked={signedOff} onChange={e => setSignedOff(e.target.checked)}/> Reviewer sign-off</label>
+      <h3 style={{ margin: "16px 0 8px" }}>Upstream OmniObjects</h3><p style={muted}>Required: ranked variants, pathogenicity scoring, clinical database mapping. Optional evidence enriches the report.</p>{loadingChoices && <p role="status" style={muted}>Loading available objects…</p>}{choiceError && <p role="alert" className="plugin-error">{choiceError}</p>}{fields.map(field => <FormRow key={field.name} label={`${field.label.replace(/\s*\*$/, "")} · ${field.required ? "required" : "optional"}`}><Select required={field.required} value={values[field.name] || ""} onChange={e => setValues(previous => ({ ...previous, [field.name]: e.target.value }))} options={[{ value: "", label: "Select an available object" }, ...(field.options || []).map(option => ({ value: option.id, label: `${option.label} (${option.id})` }))]}/></FormRow>)}<button style={primary} disabled={api.busy || loadingChoices || Boolean(choiceError) || fields.length === 0}>Generate report</button></form></PanelBody></Panel>
+    <Feedback busy={api.busy} error={api.error}/><RunProgress slug="clinical_report_generator" runId={api.result?.run_id} statusPath="api/status/{run_id}/" logsPath="api/log/{run_id}/" artifactsPath="api/artifacts/{run_id}/"/><Result data={api.result}/>
   </ClinicalShell>;
 }
 
