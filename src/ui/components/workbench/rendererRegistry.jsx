@@ -64,6 +64,7 @@ import {
 } from "./PipelinePluginReactRenderers";
 import { ML_PLUGIN_RENDERERS } from "./MLPluginReactRenderer";
 import { CRISPR_DRUG_PLUGIN_RENDERERS } from "./CrisprDrugReactRenderers";
+import { SEARCH_STRUCTURE_PLUGIN_RENDERERS } from "./SearchStructureReactRenderers";
 import {
   AlertingRenderer,
   ApiAnalyticsRenderer,
@@ -132,6 +133,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...CLINICAL_PLUGIN_RENDERERS,
   ...ML_PLUGIN_RENDERERS,
   ...CRISPR_DRUG_PLUGIN_RENDERERS,
+  ...SEARCH_STRUCTURE_PLUGIN_RENDERERS,
   genome_viewer: GenomeViewerRenderer,
   dataset_catalog: DatasetCatalogRenderer,
   plugin_manager: PluginManagerRenderer,

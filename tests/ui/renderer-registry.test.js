@@ -11,6 +11,7 @@ import { PipelineDashboardRenderer, WorkflowExplorerRenderer, WorkflowRegistryAd
 import { AlertingRenderer, ApiAnalyticsRenderer, DataManagerRenderer, HomeDashboardRenderer, IntegrationConnectionsRenderer, NotificationCenterRenderer, ProvenanceRenderer, ResourceMonitoringRenderer, SecurityDashboardRenderer } from "../../src/ui/components/workbench/DashboardPluginRenderers";
 import { CLINICAL_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/ClinicalPluginRenderers";
 import { CRISPR_DRUG_PLUGIN_RENDERERS, CRISPR_DRUG_PLUGIN_SLUGS } from "../../src/ui/components/workbench/CrisprDrugReactRenderers";
+import { SEARCH_STRUCTURE_PLUGIN_RENDERERS, SEARCH_STRUCTURE_PLUGIN_SLUGS } from "../../src/ui/components/workbench/SearchStructureReactRenderers";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -75,6 +76,16 @@ describe("allowlisted Workbench renderer registry", () => {
     for (const slug of CRISPR_DRUG_PLUGIN_SLUGS) {
       const component = resolveWorkbenchRenderer("async_analysis", slug);
       expect(component).toBe(CRISPR_DRUG_PLUGIN_RENDERERS[slug]);
+      expect(component).not.toBe(resolveWorkbenchRenderer("async_analysis"));
+    }
+  });
+
+  it("registers a dedicated React workflow for every Search and Structure plugin", () => {
+    expect(SEARCH_STRUCTURE_PLUGIN_SLUGS).toHaveLength(13);
+    expect(Object.keys(SEARCH_STRUCTURE_PLUGIN_RENDERERS)).toEqual(SEARCH_STRUCTURE_PLUGIN_SLUGS);
+    for (const slug of SEARCH_STRUCTURE_PLUGIN_SLUGS) {
+      const component = resolveWorkbenchRenderer("async_analysis", slug);
+      expect(component).toBe(SEARCH_STRUCTURE_PLUGIN_RENDERERS[slug]);
       expect(component).not.toBe(resolveWorkbenchRenderer("async_analysis"));
     }
   });
