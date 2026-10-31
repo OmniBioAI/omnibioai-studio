@@ -157,8 +157,8 @@ tree is clean.
   `security-artifacts/*` reports). None of those files is modified or staged
   by this workstream. Treat the full-worktree scan as NOT CLEAN; the matches
   were not independently classified as real secrets versus false positives.
-- The repository's history scanner scans committed history; its result will
-  be recorded after the local remediation commit.
+- Official repository history scanner (`bash scripts/secret-scan.sh`): PASS,
+  721 commits / approximately 240.18 MB scanned, no leaks found.
 - Node 20: BLOCKED; only Node 22.23.3 is available in checked environments.
   Node 20 CI qualification was not claimed.
 - `npm run check-docs`: PASS; service catalog matches 42 Compose services.
