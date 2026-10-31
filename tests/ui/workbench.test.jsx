@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { render, screen, within, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Workbench, { appVisual, categoriesForDiscoveryView } from "../../src/ui/pages/Workbench";
+import Workbench, { agenticVisual, appVisual, categoriesForDiscoveryView } from "../../src/ui/pages/Workbench";
 import { catalog, catalogResponse } from "./workbench-fixture";
 
 function Harness({ onOpen = vi.fn(), initial = {}, view = "all" }) {
@@ -24,6 +24,20 @@ describe("Native Workbench catalog", () => {
     const icons = categories.map(category => appVisual(category).icon);
     expect(icons).toEqual(["⚛️", "🩺", "✂️", "📈", "💊", "🧠", "🔀", "🔎", "🧩", "🧰", "🛠️"]);
     expect(new Set(icons).size).toBe(categories.length);
+  });
+  it("uses a function-specific emoji for every Agentic plugin", () => {
+    const plugins = [
+      ["onboardai", "📚"], ["ai_evidence", "🧾"], ["bio_narrator_ai", "📝"], ["bio_hypothesis_ai", "💡"],
+      ["agent_workflow_studio", "🗺️"], ["multi_agent_bio_orchestrator", "🕸️"], ["bio_agent", "🤖"],
+      ["infra_ai_copilot", "🛠️"], ["llm_fine_tuner", "🎛️"], ["clinical_bert_finetuner", "🩺"],
+      ["literature_summarizer", "📖"], ["literature_evidence_agent", "🔎"], ["experimental_design_agent", "🧪"],
+      ["biomarker_discovery_agent", "🎯"], ["variant_interpretation_agent", "🧬"], ["multiomics_reasoning_agent", "🧩"],
+      ["pathway_reasoning_agent", "🛤️"], ["protocol_generation_agent", "📋"], ["hypothesis_evaluation_agent", "⚖️"],
+      ["omninotebook_ai", "📓"],
+    ];
+    const icons = plugins.map(([slug]) => agenticVisual({ slug }).icon);
+    expect(icons).toEqual(plugins.map(([, emoji]) => emoji));
+    expect(new Set(icons).size).toBe(plugins.length);
   });
   it("partitions the catalog into integrations, general plugins, omics, and agentic entries without duplicates", () => {
     const categories = [
@@ -164,6 +178,7 @@ describe("Native Workbench catalog", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Agentic" })).toBeInTheDocument();
     const agentCard = screen.getByRole("button", { name: "Open OmniBioAgent" });
     expect(agentCard).toHaveClass("native-agentic-launch");
+    expect(within(agentCard).getByText("🤖")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Tools that reason, plan, and act" })).toBeInTheDocument();
     expect(screen.getByText("AI AGENT")).toBeInTheDocument();
     expect(screen.getByText("1", { selector: "strong" })).toBeInTheDocument();
