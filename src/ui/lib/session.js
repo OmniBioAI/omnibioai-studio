@@ -13,6 +13,7 @@ const SESSION_EVENT = "omnibioai-session-changed";
 
 function getHostIp() {
   return (
+    window.electronAPI?.hostIp ||
     window.__OMNIBIOAI_CONFIG__?.hostIp ||
     localStorage.getItem("omnibioai_host_ip") ||
     "192.168.86.234"
@@ -66,19 +67,10 @@ export function getRefreshToken() {
 function setTokenCookie(token) {
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
   document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax${secure}`;
-  // The Electron service webview has a separate http://localhost session
-  // from the main renderer (which may be file://). Keep the same access token
-  // in that session without putting credentials in a URL.
-  if (window.api?.syncAuthCookie) {
-    Promise.resolve(window.api.syncAuthCookie(token)).catch(() => {});
-  }
 }
 
 function clearTokenCookie() {
   document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  if (window.api?.syncAuthCookie) {
-    Promise.resolve(window.api.syncAuthCookie(null)).catch(() => {});
-  }
 }
 
 export function setSession(accessToken, refreshToken) {
@@ -324,9 +316,8 @@ export function onSessionChange(callback) {
 }
 
 // ── OAuth2 SSO ────────────────────────────────────────────────────────────────
-// Web build only — the Electron app keeps email/password per its landing
-// page copy. Electron also disables webSecurity, so a provider's redirect
-// back to a browser origin wouldn't land inside the app window anyway.
+// Web build only — the Electron app currently has no registered deep-link
+// callback for returning an OAuth provider redirect into its local origin.
 export function isElectron() {
   return !!(window.electronAPI || window.api);
 }

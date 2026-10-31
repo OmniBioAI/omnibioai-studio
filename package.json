@@ -22,6 +22,7 @@
     "web:preview": "vite preview --mode web --port 4173",
     "check-routes": "python3 scripts/check_route_drift.py",
     "check-docs": "python3 scripts/check_service_catalog.py",
+    "test:electron-security": "node --test tests/electron/*.test.js",
     "test:secrets": "node --test tests/test_secret_generation.js",
     "test:ui": "npm --prefix packages/omnibioai-ui run test:app",
     "test:ui-quality": "npm run web:build && node --test tests/ui-quality/*.test.mjs",

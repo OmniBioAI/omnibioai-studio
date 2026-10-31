@@ -8,6 +8,30 @@ const os = require("os");
 const crypto = require("crypto");
 const { initAutoUpdater } = require("./updater");
 const { generateSecrets, parseEnvFile, writeRedisAclCredentialFiles } = require("./secrets");
+const {
+  APP_ORIGIN,
+  assertTrustedIpcSender,
+  isAllowedEmbeddedServiceUrl,
+  isSafeExternalUrl,
+  isTrustedAppUrl,
+  normalizeLicenseCredentials,
+  normalizeTrustedHost,
+  productionCspForHost,
+  restrictWebview,
+  secureWebPreferences,
+  validateConfigPayload,
+} = require("./security");
+const { startPackagedUiServer } = require("./staticServer");
+
+let packagedUiServer = null;
+let trustedServiceHost = "localhost";
+
+function handleIpc(channel, handler) {
+  ipcMain.handle(channel, (event, ...args) => {
+    assertTrustedIpcSender(event, mainWindow?.webContents);
+    return handler(event, ...args);
+  });
+}
 
 // In packaged app (DMG/AppImage/EXE) → always production mode
 // In dev (npm run dev) → use env var
@@ -310,14 +334,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1300,
     height: 850,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      nodeIntegration: false,
-      contextIsolation: true,
-      webSecurity: false,
-      allowRunningInsecureContent: true,
-      webviewTag: true,
-    },
+    webPreferences: secureWebPreferences(path.join(__dirname, "preload.js")),
   });
 
   const isDev = !app.isPackaged;
@@ -328,37 +345,37 @@ function createWindow() {
       setTimeout(() => mainWindow.loadURL(devUrl), 2000);
     });
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+    mainWindow.loadURL(APP_ORIGIN);
   }
-
 }
 
 app.on("web-contents-created", (_, contents) => {
-  // Block window.open() — open external URLs in the system browser, keep app URLs in Electron
+  // The main UI and service embeds may navigate only within their explicit
+  // local origins. HTTPS links are handed to the system browser; all other
+  // protocols and destinations remain blocked.
   contents.setWindowOpenHandler(({ url }) => {
-    const isAppUrl = url.startsWith("http://localhost:5174") ||
-                     url.startsWith("http://127.0.0.1:5174");
-    if (!isAppUrl && isExternalUrl(url)) shell.openExternal(url);
+    if (isSafeExternalUrl(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
 
-  // For the main window: allow any localhost navigation (service pages navigate freely),
-  // but redirect external URLs to the system browser instead of leaving Electron.
-  contents.on("will-navigate", (event, url) => {
-    if (contents !== mainWindow?.webContents) return;
-    try {
-      const { hostname } = new URL(url);
-      if (hostname !== "localhost" && hostname !== "127.0.0.1") {
-        event.preventDefault();
-        shell.openExternal(url);
-      }
-    } catch {
-      event.preventDefault();
-    }
+  const isMainContents = () => contents === mainWindow?.webContents;
+  const handleNavigation = (event, url) => {
+    const allowed = isMainContents()
+      ? isTrustedAppUrl(url)
+      : isAllowedEmbeddedServiceUrl(url, { devMode: DEV_MODE, trustedHost: trustedServiceHost });
+    if (allowed) return;
+    event.preventDefault();
+    if (isSafeExternalUrl(url)) void shell.openExternal(url);
+  };
+  contents.on("will-navigate", handleNavigation);
+  contents.on("will-redirect", handleNavigation);
+
+  contents.on("will-attach-webview", (event, webPreferences, params) => {
+    if (!isMainContents() || !restrictWebview(event, webPreferences, params, { devMode: DEV_MODE })) return;
   });
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Generate random secrets on first launch or when defaults are detected
   const repoEnvPath = getEnvPath();
   try {
@@ -410,54 +427,28 @@ app.whenReady().then(() => {
   });
   upProc.unref();
 
-  session.defaultSession.webRequest.onHeadersReceived(
-    (details, callback) => {
-      if (DEV_MODE) {
-        // Remove CSP entirely in dev mode
-        delete details.responseHeaders['content-security-policy'];
-        delete details.responseHeaders['Content-Security-Policy'];
-        callback({ responseHeaders: details.responseHeaders });
-      } else {
-        // Production CSP with Sentry allowed
-        delete details.responseHeaders['content-security-policy'];
-        delete details.responseHeaders['Content-Security-Policy'];
-        details.responseHeaders['Content-Security-Policy'] = [
-          [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com",
-            "img-src 'self' data: https:",
-            "connect-src 'self' ws: wss: http://localhost:* https://*.sentry.io https://o4511460178132992.ingest.us.sentry.io",
-            "media-src 'self'"
-          ].join("; ")
-        ];
-        callback({ responseHeaders: details.responseHeaders });
-      }
+  const initialConfig = readConfig();
+  trustedServiceHost = normalizeTrustedHost(initialConfig?.server?.host_ip);
+  if (app.isPackaged) {
+    try {
+      packagedUiServer = await startPackagedUiServer(path.join(__dirname, "../dist"), {
+        csp: productionCspForHost(trustedServiceHost),
+        runtimeConfig: { hostIp: trustedServiceHost, server: trustedServiceHost },
+      });
+    } catch {
+      dialog.showErrorBox("Studio UI could not start", "The packaged Studio interface could not bind its trusted local address. Close another Studio or development instance and try again.");
+      app.quit();
+      return;
     }
-  );
-
+  }
   createWindow();
   // Attempt to tail logs after window loads (only if docker is already running)
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(`
-      window.addEventListener('message', (e) => {
-        console.log('[Studio] received message:', JSON.stringify(e.data));
-        if (e.data && e.data.type === 'open-external' && e.data.url) {
-          console.log('[Studio] opening external URL:', e.data.url);
-          window.electronAPI.openExternal(e.data.url);
-        }
-      }, true);
-    `);
-  });
-
   mainWindow.webContents.once("did-finish-load", () => {
-    const cfg = readConfig();
-    const hostIp = cfg?.server?.host_ip || "localhost";
-    const server = DEV_MODE ? "webstudio.omnibioai.org" : (hostIp || "localhost");
-    mainWindow.webContents.executeJavaScript(
-      `window.__OMNIBIOAI_SERVER__ = ${JSON.stringify(server)}`
-    );
+    if (DEV_MODE) {
+      mainWindow.webContents.executeJavaScript(
+        'window.__OMNIBIOAI_SERVER__ = "webstudio.omnibioai.org"'
+      );
+    }
     if (!DEV_MODE) setTimeout(startLogStream, 6000);
     initAutoUpdater(mainWindow);
   });
@@ -467,43 +458,20 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-// ─── EXTERNAL LINKS ───────────────────────────────────────────────────────────
-function isExternalUrl(url) {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'https:' ||
-           (parsed.protocol === 'http:' && parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1');
-  } catch {
-    return false; // relative paths, malformed strings — never open externally
-  }
-}
-
-ipcMain.handle("open-external", async (_, url) => {
-  if (isExternalUrl(url)) shell.openExternal(url);
+app.on("will-quit", () => {
+  packagedUiServer?.close();
+  packagedUiServer = null;
 });
 
-// ServiceViewer's Electron webviews use http://localhost as a separate
-// browsing context from the main renderer (which may be file://). Mirror the
-// existing Studio access token into Electron's session cookie jar so the
-// router's established cookie fallback can authenticate protected services.
-ipcMain.handle("sync-auth-cookie", async (_, token) => {
-  const cookieUrl = "http://localhost/";
-  if (typeof token === "string" && token.length > 0) {
-    await session.defaultSession.cookies.set({
-      url: cookieUrl,
-      name: "omnibioai_access_token",
-      value: token,
-      path: "/",
-      sameSite: "lax",
-    });
-  } else {
-    await session.defaultSession.cookies.remove(cookieUrl, "omnibioai_access_token");
-  }
-  return true;
+// ─── EXTERNAL LINKS ───────────────────────────────────────────────────────────
+handleIpc("open-external", async (_, url) => {
+  if (isSafeExternalUrl(url)) return shell.openExternal(url);
+  return false;
 });
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-ipcMain.handle("save-config", async (_, config) => {
+handleIpc("save-config", async (_, config) => {
+  if (!validateConfigPayload(config)) throw new Error("Invalid Studio configuration payload");
   const result = writeConfig(config);
   try {
     writeEnvFile(config);
@@ -514,9 +482,9 @@ ipcMain.handle("save-config", async (_, config) => {
   return result;
 });
 
-ipcMain.handle("load-config", async () => readConfig());
+handleIpc("load-config", async () => readConfig());
 
-ipcMain.handle("reset-config", async () => {
+handleIpc("reset-config", async () => {
   resetConfig();
   const envPath = getEnvPath();
   if (fs.existsSync(envPath)) fs.unlinkSync(envPath);
@@ -525,7 +493,7 @@ ipcMain.handle("reset-config", async () => {
 // ─── DOCKER LIFECYCLE ─────────────────────────────────────────────────────────
 const DEV_RESPONSE = { devMode: true, message: "Not available in Dev mode — use release build" };
 
-ipcMain.handle("start-docker", async () => {
+handleIpc("start-docker", async () => {
   if (DEV_MODE) return DEV_RESPONSE;
   ensureDbInit();
   return new Promise(async (resolve, reject) => {
@@ -609,7 +577,7 @@ ipcMain.handle("start-docker", async () => {
   });
 });
 
-ipcMain.handle("stop-docker", async () => {
+handleIpc("stop-docker", async () => {
   if (DEV_MODE) return DEV_RESPONSE;
   return new Promise((resolve, reject) => {
     execFile("docker", composeArgs("down"), (err, _, stderr) => {
@@ -619,7 +587,7 @@ ipcMain.handle("stop-docker", async () => {
   });
 });
 
-ipcMain.handle("restart-docker", async () => {
+handleIpc("restart-docker", async () => {
   if (DEV_MODE) return DEV_RESPONSE;
   return new Promise((resolve, reject) => {
     execFile("docker", composeArgs("restart"), (err, _, stderr) => {
@@ -635,7 +603,7 @@ const ALLOWED_SERVICES = [
   "model-registry", "lims", "ollama", "opa", "control-center", "dev-hub",
 ];
 
-ipcMain.handle("restart-service", async (_, name) => {
+handleIpc("restart-service", async (_, name) => {
   if (DEV_MODE) return DEV_RESPONSE;
   if (!ALLOWED_SERVICES.includes(name)) throw new Error(`Unknown service: ${name}`);
   return new Promise((resolve, reject) => {
@@ -647,7 +615,7 @@ ipcMain.handle("restart-service", async (_, name) => {
 });
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
-ipcMain.handle("check-health", async () => {
+handleIpc("check-health", async () => {
   return new Promise((resolve) => {
     execFile("docker", ["ps", "--format", "{{.Names}}"], (err, stdout) => {
       if (err) return resolve({
@@ -713,26 +681,16 @@ function startLogStream() {
 }
 
 // ─── OPEN WORKBENCH ───────────────────────────────────────────────────────────
-ipcMain.handle("open-workbench", async () => {
+handleIpc("open-workbench", async () => {
   shell.openExternal("http://localhost:8000");
   return true;
 });
 
 // ─── NAVIGATE MAIN WINDOW IN-PLACE ────────────────────────────────────────────
-ipcMain.handle("load-url", async (_, url) => {
-  mainWindow.loadURL(url);
-});
-
-ipcMain.handle("go-home", async () => {
-  if (app.isPackaged) {
-    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
-  } else {
-    mainWindow.loadURL("http://localhost:5174");
-  }
-});
+handleIpc("go-home", async () => mainWindow.loadURL(APP_ORIGIN));
 
 // ─── GRAFANA AUTH ─────────────────────────────────────────────────────────────
-ipcMain.handle('grafana-login', async () => {
+handleIpc('grafana-login', async () => {
   const env = readEnvFile();
   let studioToken = env.GF_STUDIO_TOKEN;
   if (!studioToken) {
@@ -756,10 +714,8 @@ ipcMain.handle('grafana-login', async () => {
 });
 
 // ─── LICENSE ──────────────────────────────────────────────────────────────────
-ipcMain.handle('license-validate', async (event, credentials) => {
-  const { key, email } = typeof credentials === 'string'
-    ? { key: credentials, email: '' }
-    : credentials;
+handleIpc('license-validate', async (event, credentials) => {
+  const { key, email } = normalizeLicenseCredentials(credentials);
   const result = await validateLicense(key, email);
   if (result.valid) {
     // License activation never returns or persists an identity session.
@@ -773,11 +729,11 @@ ipcMain.handle('license-validate', async (event, credentials) => {
   return result;
 });
 
-ipcMain.handle('license-get-cached', async () => {
+handleIpc('license-get-cached', async () => {
   return loadCachedLicense();
 });
 
-ipcMain.handle('license-clear', async () => {
+handleIpc('license-clear', async () => {
   if (fs.existsSync(LICENSE_FILE)) {
     fs.unlinkSync(LICENSE_FILE);
   }
@@ -785,18 +741,13 @@ ipcMain.handle('license-clear', async () => {
 });
 
 // ─── CREDENTIALS ──────────────────────────────────────────────────────────────
-ipcMain.handle('get-credentials', async () => {
+handleIpc('credential-status', async () => {
   const envPath = getEnvPath();
-  if (!fs.existsSync(envPath)) return null;
+  if (!fs.existsSync(envPath)) return { configured: [] };
   const env = readEnvFile();
-  return {
-    grafanaPassword: env.GF_ADMIN_PASSWORD  || '',
-    grafanaToken:    env.GF_STUDIO_TOKEN    || '',
-    mysqlPassword:   env.MYSQL_ROOT_PASSWORD || '',
-    authSecretKey:   env.AUTH_SECRET_KEY     || '',
-    jupyterToken:    env.JUPYTER_TOKEN       || '',
-    rstudioPassword: env.RSTUDIO_PASSWORD    || '',
-    vscodePassword:  env.VSCODE_PASSWORD     || '',
-    envPath,
-  };
+  const credentialNames = [
+    "GF_ADMIN_PASSWORD", "GF_STUDIO_TOKEN", "MYSQL_ROOT_PASSWORD", "AUTH_SECRET_KEY",
+    "JUPYTER_TOKEN", "RSTUDIO_PASSWORD", "VSCODE_PASSWORD",
+  ];
+  return { configured: credentialNames.filter(name => Boolean(env[name])) };
 });

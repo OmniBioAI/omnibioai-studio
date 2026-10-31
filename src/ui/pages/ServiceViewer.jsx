@@ -148,7 +148,6 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
         <webview
           ref={webviewRef}
           src={embeddedUrl}
-          nodeintegration="true"
           style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
         />
       ) : (

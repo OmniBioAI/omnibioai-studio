@@ -19,15 +19,15 @@ describe("session boundary", () => {
     expect(localStorage.length).toBe(0);
   });
 
-  it("syncs the access token with the Electron service-webview session", () => {
+  it("does not send renderer-held access tokens over Electron IPC", () => {
     const syncAuthCookie = vi.fn(() => Promise.resolve());
     window.api = { syncAuthCookie };
-
     setSession("access", "refresh");
-    expect(syncAuthCookie).toHaveBeenLastCalledWith("access");
+    expect(syncAuthCookie).not.toHaveBeenCalled();
+    expect(document.cookie).toContain("omnibioai_access_token=access");
 
     clearSession();
-    expect(syncAuthCookie).toHaveBeenLastCalledWith(null);
+    expect(syncAuthCookie).not.toHaveBeenCalled();
   });
 
   it("validates and caches the current user, then clears invalid sessions", async () => {
