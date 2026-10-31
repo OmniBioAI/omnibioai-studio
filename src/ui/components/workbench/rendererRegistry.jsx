@@ -54,6 +54,7 @@ import DatasetCatalogRenderer from "./DatasetCatalogRenderer";
 import PluginManagerRenderer from "./PluginManagerRenderer";
 import AuditLogRenderer from "./AuditLogRenderer";
 import WorkflowRunnerRenderer from "./WorkflowRunnerRenderer";
+import OpenBabelReactRenderer from "./OpenBabelReactRenderer";
 import {
   PipelineDashboardRenderer,
   WorkflowExplorerRenderer,
@@ -132,6 +133,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   plugin_manager: PluginManagerRenderer,
   audit_log: AuditLogRenderer,
   workflow_runner: WorkflowRunnerRenderer,
+  openbabel: OpenBabelReactRenderer,
   pipeline_dashboard: PipelineDashboardRenderer,
   workflow_scheduler: WorkflowSchedulerRenderer,
   workflow_explorer: WorkflowExplorerRenderer,
