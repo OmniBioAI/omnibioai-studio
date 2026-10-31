@@ -723,7 +723,7 @@ export default function Studio() {
             <span aria-hidden="true">🚀</span> Explore all plugins, tools and pipelines
           </div>
           <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
-            OmniBioAI has 80+ bioinformatics modules — browse the full catalog inside the workbench
+            OmniBioAI has 500+ bioinformatics modules — browse the full catalog inside the workbench
           </div>
         </div>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
