@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validatePluginDescriptor } from "../../src/ui/lib/pluginApi";
+import { endpointUrl, validatePluginDescriptor } from "../../src/ui/lib/pluginApi";
 
 const text = (id, extra = {}) => ({ id, component: "text", label: id, description: "x", required: true, format: "text", ...extra });
 const number = (id = "page_size", extra = {}) => ({ id, component: "number", label: id, description: "x", required: false, format: "integer", default: 20, min: 1, max: 100, step: 1, ...extra });
@@ -66,5 +66,20 @@ describe("schema-v2 multi-operation descriptor validation", () => {
     const value = descriptor();
     mutate(value);
     expect(() => validatePluginDescriptor(value, "fixture_multi_op")).toThrow();
+  });
+});
+
+describe("clinical plugin endpoint allowlist", () => {
+  it.each([
+    "/plugins/clinical_db_mapping/api/run/create/",
+    "/plugins/clinical_db_mapping/api/run/abc123/status/",
+    "/plugins/clinical_trial_matching/api/run/",
+    "/plugins/gdc/projects/search/",
+    "/plugins/gdc/projects/TCGA-BRCA/summary/",
+    "/plugins/redcap/api/test/",
+    "/plugins/redcap/api/forms/",
+    "/plugins/fhir_hl7/query/",
+  ])("allows the scoped clinical API route %s", path => {
+    expect(endpointUrl(path, { electron: false, development: false })).toBe(`/_svc/workbench${path}`);
   });
 });

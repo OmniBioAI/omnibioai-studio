@@ -74,6 +74,7 @@ import {
   ResourceMonitoringRenderer,
   SecurityDashboardRenderer,
 } from "./DashboardPluginRenderers";
+import { CLINICAL_PLUGIN_RENDERERS } from "./ClinicalPluginRenderers";
 
 // Only a browser lifecycle with evidence in the current generic family is
 // registered. generic_runner is retained as a descriptor compatibility alias;
@@ -127,6 +128,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...CENTURY_PLUGIN_RENDERERS,
   ...NEXT_CENTURY_PLUGIN_RENDERERS,
   ...FINAL_PLUGIN_RENDERERS,
+  ...CLINICAL_PLUGIN_RENDERERS,
   ...ML_PLUGIN_RENDERERS,
   genome_viewer: GenomeViewerRenderer,
   dataset_catalog: DatasetCatalogRenderer,
