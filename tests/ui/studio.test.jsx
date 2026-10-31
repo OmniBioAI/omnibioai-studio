@@ -46,13 +46,16 @@ describe("Studio portal", () => {
     const coreSection = screen.getByText("Core Platform").parentElement.parentElement;
     expect(within(coreSection).getByText("6 modules")).toBeInTheDocument();
     expect(within(coreSection).getAllByRole("button").map(button => button.textContent)).toEqual([
-      "🤖OnboardAIAI developer tools",
-      "💬OmniBioAgentAI assistant",
+      "👁️Genome ViewerInspect genomic features",
+      "🗂️Dataset CatalogBrowse governed datasets",
       "📊Job MonitorMonitor jobs",
       "🔌Plugin ManagerManage plugins",
       "⚙️AdminDjango admin",
       "🧬ProvenanceTrack runs & lineage",
     ]);
+
+    const agenticSection = screen.getByText("Agentic").parentElement.parentElement;
+    expect(within(agenticSection).getByRole("button", { name: "OnboardAI — AI developer tools" })).toBeInTheDocument();
 
     const opened = vi.fn();
     window.addEventListener("open-service", opened);

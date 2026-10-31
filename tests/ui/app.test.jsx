@@ -35,6 +35,7 @@ vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings pag
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: () => <div>Service page</div> }));
+vi.mock("../../src/ui/pages/PluginPage", () => ({ default: ({ slug, url, label }) => <div>{label} · {slug} · {url}</div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: () => <div>Videos page</div> }));
 vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
 vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Security page</div> }));
@@ -56,5 +57,18 @@ describe("application shell", () => {
     expect(screen.getByText("Roles")).toBeInTheDocument();
     window.dispatchEvent(new CustomEvent("navigate", { detail: 9 }));
     await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
+  });
+
+  it("places OmniBioAgent beside Ask OmniBioAI and opens its native plugin page", async () => {
+    getCurrentUser.mockResolvedValueOnce({ userId: 1, email: "admin@test", permissions: ["manage_roles"] });
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+
+    const aiSection = document.querySelector('[data-nav-section="AI"]');
+    expect([...aiSection.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual([
+      "Ask OmniBioAI", "OmniBioAgent",
+    ]);
+    aiSection.querySelector('[data-nav-item="OmniBioAgent"]').click();
+    await waitFor(() => expect(screen.getByText("OmniBioAgent · bio_agent · /_svc/workbench/plugins/bio_agent/")).toBeInTheDocument());
   });
 });

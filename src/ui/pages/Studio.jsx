@@ -31,6 +31,13 @@ function openWorkbenchApplication(slug, launchPath, label) {
   }));
 }
 
+function workbenchPluginLink(label, slug, icon, desc, launchPath = `/plugins/${slug}/`) {
+  return {
+    label, icon, desc, url: applicationUrl(launchPath),
+    action: () => openWorkbenchApplication(slug, launchPath, label),
+  };
+}
+
 function getInitialHost() {
   return (
     window.__OMNIBIOAI_SERVER__ ||
@@ -146,12 +153,19 @@ function buildCategories(BASE) {
       name: "Core Platform",
       color: "var(--accent)",
       links: [
-        { label:"OnboardAI",        url:"/_svc/workbench/plugins/onboardai/",                  icon:"🤖", desc:"AI developer tools"     },
-        { label:"OmniBioAgent",     url:"/_svc/workbench/plugins/bio_agent/",                  icon:"💬", desc:"AI assistant"           },
-        { label:"Job Monitor",      url:"/_svc/workbench/plugins/job_monitor/",                icon:"📊", desc:"Monitor jobs"           },
-        { label:"Plugin Manager",   url:"/_svc/workbench/plugins/plugin_manager/",             icon:"🔌", desc:"Manage plugins"         },
+        workbenchPluginLink("Genome Viewer", "genome_viewer", "👁️", "Inspect genomic features"),
+        workbenchPluginLink("Dataset Catalog", "dataset_catalog", "🗂️", "Browse governed datasets"),
+        workbenchPluginLink("Job Monitor", "job_monitor", "📊", "Monitor jobs"),
+        workbenchPluginLink("Plugin Manager", "plugin_manager", "🔌", "Manage plugins"),
         { label:"Admin",            url:"/_svc/workbench/admin/",                              icon:"⚙️", desc:"Django admin"           },
-        { label:"Provenance",       url:applicationUrl(PROVENANCE_LAUNCH_PATH),                  icon:"🧬", desc:"Track runs & lineage", action:() => openWorkbenchApplication(PROVENANCE_SLUG, PROVENANCE_LAUNCH_PATH, "Provenance") },
+        workbenchPluginLink("Provenance", PROVENANCE_SLUG, "🧬", "Track runs & lineage", PROVENANCE_LAUNCH_PATH),
+      ]
+    },
+    {
+      name: "Agentic",
+      color: "var(--accent2)",
+      links: [
+        workbenchPluginLink("OnboardAI", "onboardai", "🤖", "AI developer tools"),
       ]
     },
     {

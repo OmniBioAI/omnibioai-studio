@@ -35,6 +35,7 @@ const IconSettings     = p => <svg {...base} {...p}><circle cx="12" cy="12" r="3
 export const NAV_ICONS = {
   "Studio":        IconHome,
   "Ask OmniBioAI": IconSparkles,
+  "OmniBioAgent":  IconBrain,
   "Projects":      IconFolder,
   "Code":          IconCode,
   "Workflows":     IconGitBranch,
