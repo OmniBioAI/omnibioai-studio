@@ -44,7 +44,7 @@ describe("Studio portal", () => {
     expect(screen.queryByText("Explore all plugins, tools and pipelines")).not.toBeInTheDocument();
   });
 
-  it("renders Provenance after Admin and launches the canonical Workbench application", async () => {
+  it("shows the curated Audit Log and Workflow Runner links in Core Platform", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
@@ -56,21 +56,26 @@ describe("Studio portal", () => {
       "🗂️Dataset CatalogBrowse governed datasets",
       "📊Job MonitorMonitor jobs",
       "🔌Plugin ManagerManage plugins",
-      "⚙️AdminDjango admin",
-      "🧬ProvenanceTrack runs & lineage",
+      "📜Audit LogReview governed activity",
+      "⚡Workflow RunnerRun workflows",
     ]);
-
-    const agenticSection = screen.getByText("Agentic").parentElement.parentElement;
-    expect(within(agenticSection).getByRole("button", { name: "OnboardAI — AI developer tools" })).toBeInTheDocument();
 
     const opened = vi.fn();
     window.addEventListener("open-service", opened);
-    fireEvent.click(within(coreSection).getByRole("button", { name: "Provenance — Track runs & lineage" }));
+    fireEvent.click(within(coreSection).getByRole("button", { name: "Audit Log — Review governed activity" }));
     expect(opened.mock.calls[0][0].detail).toEqual({
-      url: "/_svc/workbench/plugins/provenance/",
-      label: "Provenance",
+      url: "/_svc/workbench/plugins/audit_log/",
+      label: "Audit Log",
       source: "workbench",
-      pluginSlug: "provenance",
+      pluginSlug: "audit_log",
+      backLabel: "Back to Studio",
+    });
+    fireEvent.click(within(coreSection).getByRole("button", { name: "Workflow Runner — Run workflows" }));
+    expect(opened.mock.calls[1][0].detail).toEqual({
+      url: "/_svc/workbench/plugins/workflow_runner/",
+      label: "Workflow Runner",
+      source: "workbench",
+      pluginSlug: "workflow_runner",
       backLabel: "Back to Studio",
     });
     window.removeEventListener("open-service", opened);
@@ -382,7 +387,7 @@ describe("Studio portal", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
     expect(screen.getByText("18 modules")).toBeInTheDocument();
-    expect(screen.queryByText("Workflow Runner")).not.toBeInTheDocument();
+    expect(screen.getByText("Workflow Runner")).toBeInTheDocument();
     expect(screen.queryByText("Omics Analysis")).not.toBeInTheDocument();
     expect(screen.getByText("6 modules")).toBeInTheDocument();
   });
