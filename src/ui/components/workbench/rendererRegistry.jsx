@@ -24,6 +24,9 @@ import { NEXT_CENTURY_PLUGIN_RENDERERS } from "./NextCenturyPluginRenderers";
 import { FINAL_PLUGIN_RENDERERS } from "./FinalPluginRenderers";
 import GenomeViewerRenderer from "./GenomeViewerRenderer";
 import DatasetCatalogRenderer from "./DatasetCatalogRenderer";
+import PluginManagerRenderer from "./PluginManagerRenderer";
+import AuditLogRenderer from "./AuditLogRenderer";
+import WorkflowRunnerRenderer from "./WorkflowRunnerRenderer";
 
 // Only a browser lifecycle with evidence in the current generic family is
 // registered. generic_runner is retained as a descriptor compatibility alias;
@@ -58,6 +61,9 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...FINAL_PLUGIN_RENDERERS,
   genome_viewer: GenomeViewerRenderer,
   dataset_catalog: DatasetCatalogRenderer,
+  plugin_manager: PluginManagerRenderer,
+  audit_log: AuditLogRenderer,
+  workflow_runner: WorkflowRunnerRenderer,
 });
 
 export function normalizeRendererName(renderer) {

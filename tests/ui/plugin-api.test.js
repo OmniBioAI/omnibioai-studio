@@ -88,6 +88,21 @@ describe("plugin descriptor API boundary", () => {
     expect(() => pluginDescriptorUrl("../etc")).toThrow("Invalid plugin identifier");
   });
 
+  it.each([
+    "/plugins/audit_log/api/events?page=1&page_size=50",
+    "/plugins/audit_log/api/events/42",
+    "/plugins/plugin_manager/api/catalog/",
+    "/plugins/plugin_manager/api/toggle/demo_plugin/",
+    "/plugins/plugin_manager/api/bulk/",
+    "/plugins/workflow_runner/api/workflow-catalog/categories",
+    "/plugins/workflow_runner/api/workflow-catalog/engines?category=rnaseq",
+    "/plugins/workflow_runner/configure/?format=json&workflow_id=wf-1",
+    "/plugins/workflow_runner/run/run-1/tail/?n=300",
+    "/plugins/workflow_runner/api/runs/run-1/outputs/normalized",
+  ])("allows a finite native renderer endpoint %s", path => {
+    expect(endpointUrl(path)).toContain(path);
+  });
+
   it("accepts explicit legacy capability descriptors and rejects unknown native renderers", () => {
     expect(validatePluginDescriptor({ schema_version: 1, plugin: { slug: "workflow_builder" }, renderer: "legacy", native_supported: false }, "workflow_builder").native_supported).toBe(false);
     expect(() => validatePluginDescriptor({ ...descriptor, renderer: "unknown" }, "deseq2_analysis")).toThrow("Unsupported plugin renderer");

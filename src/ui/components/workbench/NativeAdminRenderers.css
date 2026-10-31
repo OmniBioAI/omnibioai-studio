@@ -1,0 +1,71 @@
+.native-admin-page { display:grid; gap:14px; color:var(--color-text,#e6edf5); }
+.native-admin-heading,.native-admin-table-header,.native-admin-event-detail > header { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.native-admin-heading h2 { margin:4px 0; font-size:1.35rem; }
+.native-admin-heading p,.native-admin-table-header p { margin:0; color:var(--color-muted,#94a3b8); font-size:.86rem; }
+.native-admin-eyebrow { color:var(--color-accent,#68d4c4); font-size:.68rem; font-weight:750; letter-spacing:.14em; }
+.native-admin-filter-card,.native-admin-table-card,.native-admin-note,.native-admin-success,.native-admin-bulk,.native-admin-workflow-card { border:1px solid var(--border,#263244); border-radius:13px; background:var(--bg3,#111a28); padding:14px; }
+.native-admin-filter-card { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; align-items:end; gap:10px; }
+.native-admin-filter-card label,.native-admin-advanced-grid label,.native-admin-toolbar label,.native-admin-workflow-grid label,.native-admin-input-editor label { display:grid; gap:5px; color:var(--color-muted,#94a3b8); font-size:.72rem; font-weight:700; }
+.native-admin-filter-card input,.native-admin-filter-card select,.native-admin-toolbar input,.native-admin-toolbar select,.native-admin-bulk select,.native-admin-workflow-grid select,.native-admin-input-editor textarea,.native-admin-input-editor select { min-height:38px; border:1px solid var(--border2,#34445c); border-radius:8px; background:var(--bg,#0b1220); color:var(--color-text,#e6edf5); padding:8px 10px; font:inherit; }
+.native-admin-advanced { grid-column:1 / -1; padding:9px 0 0; border-top:1px solid var(--border,#263244); }
+.native-admin-advanced summary { cursor:pointer; color:var(--color-accent,#68d4c4); font-size:.78rem; }
+.native-admin-advanced-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding-top:11px; }
+.native-admin-filter-actions { grid-column:1 / -1; display:flex; justify-content:flex-end; gap:8px; }
+.native-admin-table-card { min-width:0; padding:0; overflow:hidden; }
+.native-admin-table-header { padding:12px 14px; }
+.native-admin-table-header > div { display:flex; gap:6px; }
+.native-admin-table-wrap { max-width:100%; overflow:auto; }
+.native-admin-table { width:100%; min-width:1100px; border-collapse:collapse; text-align:left; }
+.native-admin-table th,.native-admin-table td { padding:9px 10px; border-top:1px solid var(--border,#263244); vertical-align:top; font-size:.76rem; }
+.native-admin-table th { color:var(--color-muted,#94a3b8); font-size:.66rem; text-transform:uppercase; letter-spacing:.05em; }
+.native-admin-table tbody tr { cursor:pointer; }
+.native-admin-table tbody tr:hover,.native-admin-table tbody tr:focus-visible { background:#68d4c40d; outline:none; }
+.native-admin-table code,.plugin-manager-card code { color:#9fb4cb; font-family:var(--font-mono,ui-monospace,monospace); font-size:.7rem; overflow-wrap:anywhere; }
+.native-admin-empty { padding:22px !important; text-align:center; color:var(--color-muted,#94a3b8); }
+.native-admin-severity,.plugin-manager-state { display:inline-flex; border:1px solid var(--border2,#34445c); border-radius:999px; padding:3px 8px; font-size:.66rem; font-weight:750; }
+.native-admin-severity.is-error { color:#f87171; border-color:#f8717144; background:#ef444418; }
+.native-admin-severity.is-warn { color:#fbbf24; border-color:#f59e0b44; background:#f59e0b18; }
+.native-admin-severity.is-info { color:#7db4ff; border-color:#3b82f644; background:#3b82f618; }
+.native-admin-severity.is-debug { color:#9ca3af; }
+.native-admin-event-detail { border-top:1px solid var(--border,#263244); padding:12px 14px; }
+.native-admin-event-detail h3 { margin:0; font-size:.9rem; }
+.native-admin-event-detail pre,.native-admin-preview { max-height:360px; overflow:auto; margin:10px 0 0; padding:11px; border:1px solid var(--border,#263244); border-radius:9px; background:#0b1220aa; color:var(--color-text,#e6edf5); font-size:.74rem; white-space:pre-wrap; overflow-wrap:anywhere; }
+.native-admin-note { color:var(--color-muted,#bac7d7); font-size:.8rem; }
+.native-admin-success { border-color:#16a34a55; color:#86efac; font-size:.8rem; }
+.native-admin-bulk { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.native-admin-bulk > div { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.native-admin-toolbar { display:flex; align-items:end; flex-wrap:wrap; gap:10px; }
+.native-admin-toolbar label:first-child { flex:1 1 260px; }
+.native-admin-toolbar label { min-width:170px; }
+.native-admin-toolbar > span { margin-left:auto; color:var(--color-muted,#94a3b8); font-size:.76rem; }
+.plugin-manager-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
+.plugin-manager-card { min-width:0; display:grid; align-content:start; gap:10px; padding:14px; border:1px solid var(--border,#263244); border-radius:13px; background:var(--bg3,#111a28); }
+.plugin-manager-card > header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.plugin-manager-card h3 { margin:0 0 4px; font-size:.95rem; }
+.plugin-manager-card header p,.plugin-manager-description { margin:0; color:var(--color-muted,#94a3b8); font-size:.75rem; }
+.plugin-manager-state.is-enabled { color:#86efac; border-color:#16a34a44; background:#16a34a15; }
+.plugin-manager-state.is-disabled { color:#fca5a5; border-color:#ef44444c; background:#ef444418; }
+.plugin-manager-actions { display:flex; gap:8px; }
+.plugin-manager-card details { padding-top:8px; border-top:1px dashed var(--border2,#34445c); font-size:.74rem; }
+.plugin-manager-card summary { cursor:pointer; color:var(--color-muted,#94a3b8); }
+.plugin-manager-card dl { display:grid; grid-template-columns:54px minmax(0,1fr); gap:5px 8px; margin:9px 0 0; }
+.plugin-manager-card dt { color:var(--color-muted,#94a3b8); }
+.plugin-manager-card dd { min-width:0; margin:0; }
+.native-workflow-layout { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr); gap:14px; align-items:start; }
+.native-admin-workflow-card { display:grid; gap:12px; }
+.native-admin-workflow-card h3 { margin:0; font-size:.95rem; }
+.native-admin-workflow-card > p { margin:0; color:var(--color-muted,#94a3b8); font-size:.78rem; }
+.native-admin-workflow-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.native-admin-workflow-grid select { width:100%; }
+.native-admin-workflow-actions { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:9px; }
+.native-admin-workflow-target-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.native-admin-preview { margin:0; max-height:420px; }
+.native-admin-input-editor textarea { width:100%; min-height:360px; box-sizing:border-box; resize:vertical; font-family:var(--font-mono,ui-monospace,monospace); font-size:.76rem; }
+.native-admin-run-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+.native-admin-run-metrics article { display:grid; gap:4px; padding:11px; border:1px solid var(--border,#263244); border-radius:10px; }
+.native-admin-run-metrics span { color:var(--color-muted,#94a3b8); font-size:.65rem; text-transform:uppercase; }
+.native-admin-run-metrics strong { font-size:.86rem; overflow-wrap:anywhere; }
+.native-admin-run-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.native-admin-run-files { max-height:260px; overflow:auto; padding-left:18px; color:var(--color-muted,#bac7d7); font-size:.75rem; }
+@media(max-width:850px) { .native-admin-filter-card { grid-template-columns:repeat(2,minmax(0,1fr)); } .native-admin-advanced-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .native-workflow-layout { grid-template-columns:1fr; } .native-admin-run-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:560px) { .native-admin-filter-card,.native-admin-workflow-grid,.native-admin-workflow-target-options,.native-admin-advanced-grid { grid-template-columns:1fr; } .native-admin-heading { align-items:flex-start; flex-direction:column; } .native-admin-filter-actions { justify-content:flex-start; } .native-admin-bulk { align-items:flex-start; flex-direction:column; } }
