@@ -3,74 +3,65 @@
   "version": "0.8.1",
   "qualification_status": "NO-GO",
   "release_published": false,
-  "source_commit": "6f6c8e8932e559d2a7305d37c7d32caadc0dfb9d",
-  "source_base_commit": "332a5df4dbbad40b86245faf55ee15c2b20bb93c",
-  "qualification_branch": "qualification/studio-v0.8.1-final",
+  "source_commit": "5f02cefb6595ce32d7a26ec1857618ae1ada830d",
+  "source_tree_clean": false,
+  "implementation_commit": "5f02cefb6595ce32d7a26ec1857618ae1ada830d",
+  "artifacts_built_from_commit": "5f02cefb6595ce32d7a26ec1857618ae1ada830d",
+  "source_tree_status_at_build": "implementation committed; report-only files remain uncommitted",
+  "source_base_commit": "e487f649c59669663bbcf783b00db1536772d837",
+  "qualification_branch": "security/studio-v0.8.1-electron-hardening",
   "scanner_exception_commit": "798fde0194bf2876efb59fb81fb3f0a67d91b139",
   "build_environment": {
     "architecture": "Linux ARM64 (aarch64)",
-    "node": "20.20.2",
-    "npm": "10.8.2",
+    "node": "22.23.3",
+    "npm": "10.9.9",
     "electron": "42.11.18",
     "electron_builder": "26.18.1",
-    "containerized": true
+    "isolated_worktree": "/tmp/omnibioai-studio-v0.8.1-electron-hardening"
   },
   "artifacts": [
     {
       "filename": "OmniBioAI Studio-0.8.1-arm64.AppImage",
       "architecture": "arm64",
-      "bytes": 95792562,
-      "sha256": "b9e7aa163c933190746d20569deaa5896b3eecdaac33bc167123eb91c9fa9aa1",
-      "path": "/tmp/obai-studio-node20-qual-results/installers/OmniBioAI Studio-0.8.1-arm64.AppImage",
+      "bytes": 96198429,
+      "sha256": "e0aedefcb0fdec84f2e1b3b4a90ec99b54474909528e427b34f814872e08785b",
+      "path": "/tmp/omnibioai-studio-v0.8.1-electron-hardening/release/OmniBioAI Studio-0.8.1-arm64.AppImage",
       "signature": null,
-      "install_login_verified": false
+      "packaged_login_verified": false
     },
     {
       "filename": "omnibioai-studio_0.8.1_arm64.deb",
       "architecture": "arm64",
-      "bytes": 96616072,
-      "sha256": "581cd76fabf424a78d4cfb2a20423f8656312a22554c16078b698ab97bf3612f",
-      "path": "/tmp/obai-studio-node20-qual-results/installers/omnibioai-studio_0.8.1_arm64.deb",
+      "bytes": 96638496,
+      "sha256": "f3b515810fccd8462c805c991cb2fb728681388483c633d03c5b103d74ec9cde",
+      "path": "/tmp/omnibioai-studio-v0.8.1-electron-hardening/release/omnibioai-studio_0.8.1_arm64.deb",
       "package_name": "omnibioai-studio",
       "signature": null,
-      "install_remove_verified_in_disposable_container": true,
-      "login_verified": false
-    },
-    {
-      "filename": "omnibioai-studio-0.8.1.aarch64.rpm",
-      "architecture": "aarch64",
-      "bytes": 84452501,
-      "sha256": "a6f833ba793cf88bc1fdfc4d8e72be573616b1a84012035d60e82d843bda9654",
-      "path": "/tmp/obai-studio-node20-qual-results/installers/omnibioai-studio-0.8.1.aarch64.rpm",
-      "package_name": "omnibioai-studio",
-      "signature": null,
-      "install_remove_verified_in_disposable_container": true,
-      "login_verified": false
+      "packaged_login_verified": false
     }
   ],
+  "previous_qualification_artifacts": "See the qualification report from source commit 6f6c8e8932e559d2a7305d37c7d32caadc0dfb9d; those checksums are not for the current hardening candidate.",
   "qualification_evidence": {
-    "focused_ui_tests": "51 passed",
     "full_ui_tests": "2434 passed, 2 skipped",
-    "node20_desktop_build": "passed",
-    "node20_web_pwa_build": "passed",
-    "node20_arm64_packaging_matrix": "unpacked, AppImage, DEB, RPM passed",
-    "full_dependency_audit": {
-      "critical": 0,
-      "high": 0,
-      "moderate": 27,
-      "low": 2
-    },
+    "current_node22_desktop_renderer_build": "passed",
+    "current_node22_web_pwa_build": "passed",
+    "current_arm64_packages": "AppImage and DEB built; RPM blocked because rpmbuild is unavailable",
+    "electron_security_tests": "10 passed; helper/config/static-server tests, not full Electron runtime integration",
+    "staging_auth": "blocked: no staging endpoint or test-account injection available",
+    "current_full_dependency_audit": {"critical": 0, "high": 0, "moderate": 27, "low": 2},
     "production_dependency_audit": "0 advisories",
     "packaged_login": "not tested",
-    "electron_security": "release blocker: insecure browser settings remain"
+    "electron_security": "source hardening implemented; packaged Auth/session verification remains blocked"
   },
   "platforms_not_qualified": ["Linux x64", "macOS x64", "macOS ARM64", "Windows x64"],
   "known_limitations": [
-    "Electron webSecurity is disabled and insecure content/webviews are enabled.",
-    "Packaged authentication and session lifecycle are unverified.",
+    "Auth access and refresh tokens remain in renderer localStorage and a JavaScript-readable cookie; Auth transport remains HTTP.",
+    "Staging authentication and packaged session lifecycle are unverified.",
     "27 moderate and 2 low dependency advisories remain.",
     "23 redacted full-directory Gitleaks findings are dispositioned but the scan is not clean.",
-    "No signing or notarization evidence."
+    "RPM build is blocked because rpmbuild is unavailable; no signing or notarization evidence.",
+    "The current worktree is not clean or committed; artifact hashes are candidate-only until tied to a reviewed implementation commit.",
+    "Public landing page still advertises v0.8.0-beta and must be synchronized after formal publication."
   ],
   "installation_and_rollback": "Do not install this NO-GO candidate. No production upgrade or rollback was performed."
 }

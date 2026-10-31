@@ -8,6 +8,7 @@
 - Correct the omics renderer test to import its registry from the owning module.
 - Refresh vulnerable dependencies. The recorded baseline-to-final npm audit moved from 4 critical / 11 high findings to zero critical / high; the final full-tree audit still reports 27 moderate and 2 low findings. The production-only audit reports zero findings.
 - Add the repository homepage to package metadata for Linux package generation and replace a static Grafana credential example with a required environment variable.
+- Harden Electron browser defaults, preload/IPC boundaries, navigation and packaged UI serving; remove renderer access to raw local service secrets and renderer-supplied Auth-cookie IPC. These changes are not release-qualified until staging Auth and packaged login/session tests pass.
 
 ## Compatibility and availability
 
@@ -17,11 +18,13 @@
 
 ## Known limitations — release blockers
 
-- Electron browser security settings still disable web security and permit insecure content/webviews. This must be fixed and tested before publication.
-- Packaged login, Auth origin/CORS behavior, session recovery, refresh, and logout have not been verified against staging Auth with a non-production account.
+- Electron source hardening is implemented and has focused helper/static-server regression tests, but a real Electron runtime/guest test has not been run.
+- Packaged login, Auth origin/CORS behavior, session recovery, refresh, and logout have not been verified against staging Auth with a non-production account. No staging endpoint or test account was available in this workstream.
+- Auth access/refresh tokens remain in renderer `localStorage` and a JavaScript-readable cookie; Auth requests still use HTTP. A secure Auth-side session contract or reviewed main-process broker is required before this risk can be closed.
 - 27 moderate and 2 low development/build-tool advisories remain; explicit release-owner risk acceptance is outstanding.
-- The full directory secret scan reports 23 matches. All have redacted documented dispositions, but the scanner result is not clean.
-- The Linux package builder warns that `desktopName` is unset. Artifact signatures/notarization were not produced.
+- The previous full-directory secret scan reported 23 matches with documented redacted dispositions; a fresh scan of this changed worktree was blocked by Docker socket permissions. Do not treat the current scan as clean.
+- Current ARM64 AppImage and DEB were built locally; RPM is blocked because `rpmbuild` is unavailable. The builder warns that `desktopName` is unset. Artifacts are unsigned and packaged login was not tested.
+- Current full dependency audit: 0 critical, 0 high, 27 moderate and 2 low; production-only audit: 0 findings. Node 20 was unavailable for this hardening run; builds/tests used Node 22.23.3.
 
 ## Install, upgrade, and rollback guidance (draft)
 
