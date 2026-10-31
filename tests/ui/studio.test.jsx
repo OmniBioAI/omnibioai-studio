@@ -39,6 +39,9 @@ describe("Studio portal", () => {
     expect(screen.getByText("Platform Services")).toBeInTheDocument();
     expect(screen.getByText("Security Control Plane")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Workbench — Application catalog" })).toBeInTheDocument();
+    expect(screen.getByText("Core Platform")).toBeInTheDocument();
+    expect(screen.queryByText("Omics Analysis")).not.toBeInTheDocument();
+    expect(screen.queryByText("Explore all plugins, tools and pipelines")).not.toBeInTheDocument();
   });
 
   it("renders Provenance after Admin and launches the canonical Workbench application", async () => {
@@ -77,22 +80,17 @@ describe("Studio portal", () => {
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
     expect(screen.queryByText(/Workbench offline/)).not.toBeInTheDocument();
 
-    const opened = vi.fn();
-    window.addEventListener("open-service", opened);
-    fireEvent.click(screen.getAllByRole("button", { name: "Open plugin catalog" })[0]);
-    expect(opened).toHaveBeenCalled();
-
     const navigated = vi.fn();
     window.addEventListener("navigate", navigated);
+    fireEvent.click(screen.getByRole("button", { name: "Browse plugins" }));
+    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([34]);
     const workbenchTile = screen.getByRole("button", { name: "Workbench — Application catalog" });
     fireEvent.mouseEnter(workbenchTile);
     expect(workbenchTile.style.background).toBe("rgba(255, 255, 255, 0.03)");
     fireEvent.mouseLeave(workbenchTile);
     expect(workbenchTile.style.background).toBe("var(--bg3)");
     fireEvent.click(workbenchTile);
-    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([13]);
-    expect(opened).toHaveBeenCalledTimes(1);
-    window.removeEventListener("open-service", opened);
+    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([34, 34]);
     window.removeEventListener("navigate", navigated);
   });
 
@@ -109,21 +107,20 @@ describe("Studio portal", () => {
     window.removeEventListener("navigate", navigated);
 
     // a non-local plugin tile is disabled while offline
-    const catalogTile = screen.getAllByRole("button", { name: "Open plugin catalog" })[0];
+    const catalogTile = screen.getByRole("button", { name: "Browse plugins" });
     expect(catalogTile).toHaveAttribute("aria-disabled", "true");
   });
 
-  it("opens the native Workbench catalog from both Studio launch actions", async () => {
+  it("opens the React Plugins view from both Studio catalog entry points", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
     const navigated = vi.fn();
     window.addEventListener("navigate", navigated);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Launch workbench dashboard" })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: "Open plugin catalog" })[1]);
-    fireEvent.click(screen.getAllByRole("button", { name: "Launch workbench dashboard" })[1]);
-    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([13, 13]);
+    fireEvent.click(screen.getByRole("button", { name: "Browse plugins" }));
+    fireEvent.click(screen.getByRole("button", { name: "Workbench — Application catalog" }));
+    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([34, 34]);
     window.removeEventListener("navigate", navigated);
   });
 
@@ -382,6 +379,9 @@ describe("Studio portal", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
     expect(screen.getByText("18 modules")).toBeInTheDocument();
+    expect(screen.queryByText("Workflow Runner")).not.toBeInTheDocument();
+    expect(screen.queryByText("Omics Analysis")).not.toBeInTheDocument();
+    expect(screen.getByText("6 modules")).toBeInTheDocument();
   });
 
   it("uses the Platform Services cyan accent for indicators and names only", () => {
@@ -443,20 +443,20 @@ describe("Studio portal", () => {
     expect(screen.queryByText("Neo4j Browser")).not.toBeInTheDocument();
   });
 
-  it("builds an absolute Electron webview URL for local links", async () => {
+  it("keeps the catalog entry inside the native React Studio view in Electron", async () => {
     isElectron.mockReturnValue(true);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
-    const opened = vi.fn();
-    window.addEventListener("open-service", opened);
-    fireEvent.click(screen.getAllByRole("button", { name: "Open plugin catalog" })[0]);
-    expect(opened.mock.calls[0][0].detail.url).toMatch(/^http:\/\/localhost/);
-    window.removeEventListener("open-service", opened);
+    const navigated = vi.fn();
+    window.addEventListener("navigate", navigated);
+    fireEvent.click(screen.getByRole("button", { name: "Browse plugins" }));
+    expect(navigated.mock.calls[0][0].detail).toBe(34);
+    window.removeEventListener("navigate", navigated);
   });
 });
 
-it("uses one Workbench catalog entry and keeps plugin catalog links separate", async () => {
+it("keeps catalog discovery on the native Plugins page", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
   const navigate = vi.fn(); window.addEventListener("navigate", navigate);
   try {
@@ -464,10 +464,10 @@ it("uses one Workbench catalog entry and keeps plugin catalog links separate", a
     await screen.findByText("Online");
     const workbenchTile = screen.getByRole("button", { name: "Workbench — Application catalog" });
     fireEvent.click(workbenchTile);
-    expect(navigate.mock.calls[0][0].detail).toBe(13);
+    expect(navigate.mock.calls[0][0].detail).toBe(34);
     expect(screen.queryByRole("button", { name: /Home — Dashboard/ })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Workbench — Application catalog" })).toHaveLength(1);
-    expect(screen.getAllByRole("button", { name: "Launch workbench dashboard" })).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: "Open plugin catalog" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Browse plugins" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Launch workbench dashboard" })).not.toBeInTheDocument();
   } finally { window.removeEventListener("navigate", navigate); }
 });

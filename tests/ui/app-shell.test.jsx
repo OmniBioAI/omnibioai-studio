@@ -36,7 +36,7 @@ vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings pag
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => { if (session.crashJobs) throw new Error("private crash detail"); return <div>Jobs page</div>; } }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Members &amp; roles page</div> }));
 vi.mock("../../src/ui/pages/Billing", () => ({ default: ({ view }) => <div>{view === "usage" ? "Usage page" : "Billing page"}</div> }));
-vi.mock("../../src/ui/pages/Workbench", () => ({ default: () => <div>Workbench page</div> }));
+vi.mock("../../src/ui/pages/Workbench", () => ({ default: ({ view }) => <div>{view === "agentic" ? "Agentic catalog page" : view === "plugins" ? "Plugins catalog page" : "Workbench page"}</div> }));
 vi.mock("../../src/ui/pages/Developer", () => ({ default: () => <div>API keys page</div> }));
 vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
 vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Security page</div> }));
@@ -86,6 +86,28 @@ describe("Account route migration", () => {
   it("opens plugin deep links on the Workbench page", () => {
     window.history.replaceState({}, "", "/studio/plugins/alpha_diversity");
     expect(resolveInitialPage()).toBe(13);
+  });
+
+  it.each([
+    ["/studio/plugins", 34], ["/studio/agentic", 35],
+  ])("resolves Discover catalog route %s", (path, page) => {
+    window.history.replaceState({}, "", path);
+    expect(resolveInitialPage()).toBe(page);
+  });
+
+  it("exposes Integrations, Plugins, and Agentic under Discover as native pages", async () => {
+    render(<App />);
+    await screen.findByText("Studio page");
+    const discover = document.querySelector('[data-nav-section="Discover"]');
+    expect([...discover.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual([
+      "Explore", "Integrations", "Plugins", "Agentic",
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Plugins" }));
+    await screen.findByText("Plugins catalog page");
+    expect(window.location.pathname).toBe("/studio/plugins");
+    fireEvent.click(screen.getByRole("button", { name: "Agentic" }));
+    await screen.findByText("Agentic catalog page");
+    expect(window.location.pathname).toBe("/studio/agentic");
   });
 
   it.each([

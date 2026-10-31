@@ -42,6 +42,8 @@ export const NAV_ICONS = {
   "Artifacts":     IconPackage,
   "Explore":       IconCompass,
   "Integrations":  IconPlug,
+  "Plugins":       IconPackage,
+  "Agentic":       IconSparkles,
   "Mode":          IconSliders,
   "LLM":           IconBrain,
   "Cloud":         IconCloud,

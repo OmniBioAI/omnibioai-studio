@@ -44,7 +44,7 @@ function messageFor(error) {
   return "Integrations are unavailable right now. Please retry.";
 }
 
-export default function Integrations({ onOrganizationConnections }) {
+export default function Integrations({ onOrganizationConnections, onProviderCountChange }) {
   const [providers, setProviders] = useState([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -59,7 +59,10 @@ export default function Integrations({ onOrganizationConnections }) {
     setLoading(true); setError("");
     try {
       const data = await loadIntegrationCatalog({ signal });
-      if (!signal?.aborted) setProviders(data);
+      if (!signal?.aborted) {
+        setProviders(data);
+        onProviderCountChange?.(data.length);
+      }
     } catch (failure) {
       if (!signal?.aborted && failure?.name !== "AbortError") setError(messageFor(failure));
     } finally {
@@ -71,7 +74,7 @@ export default function Integrations({ onOrganizationConnections }) {
     const controller = new AbortController();
     reload(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [onProviderCountChange]);
 
   const categories = useMemo(() => [...new Set(providers.map(provider => provider.category))].sort(), [providers]);
   const visible = useMemo(() => {
@@ -97,7 +100,7 @@ export default function Integrations({ onOrganizationConnections }) {
 
   return <section className="integrations-page" aria-labelledby="integrations-heading">
     <header className="integrations-header">
-      <div><p className="integrations-eyebrow">Studio</p><h1 id="integrations-heading">Integrations</h1>
+      <div><p className="integrations-eyebrow">Studio</p><h1 id="integrations-heading">Integrations{providers.length > 0 && <span> ({providers.length})</span>}</h1>
         <p>Connect provider accounts to the capabilities available in OmniBioAI Workbench.</p></div>
       <button type="button" className="integrations-org-link" onClick={onOrganizationConnections}>Organization connections</button>
     </header>

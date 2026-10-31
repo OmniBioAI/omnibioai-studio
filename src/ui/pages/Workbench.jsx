@@ -6,8 +6,24 @@ import { safeErrorMessage } from "../lib/safeErrorMessage";
 import WorkbenchBase from "../components/WorkbenchBase";
 import OmniPage from "../components/OmniPage";
 
+const INTEGRATION_CATEGORIES = new Set(["integration", "reference_db"]);
+
+export function categoriesForDiscoveryView(categories, view = "all") {
+  if (view === "all") return categories;
+  return categories
+    .map(category => ({
+      ...category,
+      plugins: category.plugins.filter(plugin => {
+        if (view === "integrations") return INTEGRATION_CATEGORIES.has(plugin.category);
+        if (view === "agentic") return plugin.category === "ai";
+        return !INTEGRATION_CATEGORIES.has(plugin.category) && plugin.category !== "ai";
+      }),
+    }))
+    .filter(category => category.plugins.length > 0);
+}
+
 // State lives in App so a ServiceViewer round trip preserves the user's place.
-export default function Workbench({ state, onStateChange, onOpen }) {
+export default function Workbench({ state, onStateChange, onOpen, view = "all" }) {
   const [catalog, setCatalog] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -30,7 +46,10 @@ export default function Workbench({ state, onStateChange, onOpen }) {
   }, [loading, error]);
 
   const query = state.query.trim().toLowerCase();
-  const categories = catalog?.categories || [];
+  const categories = categoriesForDiscoveryView(catalog?.categories || [], view);
+  const available = categories.reduce((sum, category) => sum + category.plugins.length, 0);
+  const title = view === "agentic" ? "Agentic" : view === "plugins" ? "Plugins" : "Workbench";
+  const panelTitle = view === "all" ? "Plugins" : title;
   // Preserve legacy search fields and its temporary all-category search mode.
   // Filtering never grants permission; launch destinations come from Django.
   const searched = categories.map(category => ({ ...category, plugins: category.plugins.filter(plugin =>
@@ -50,8 +69,8 @@ export default function Workbench({ state, onStateChange, onOpen }) {
   return (
     <WorkbenchBase className="native-workbench">
       <OmniPage
-        title="Workbench"
-        subtitle={catalog ? `${catalog.total_count} bioinformatics applications` : "Loading applications…"}
+        title={title}
+        subtitle={catalog ? (view === "all" ? `${catalog.total_count} bioinformatics applications` : `${available} bioinformatics plugins`) : "Loading applications…"}
         className="native-workbench-page"
       >
 
@@ -63,13 +82,13 @@ export default function Workbench({ state, onStateChange, onOpen }) {
         </PanelBody></Panel>
         : <>
           <Panel>
-            <PanelHeader title="Plugins" />
+            <PanelHeader title={panelTitle} />
             <PanelBody>
               <label className="native-workbench-search" onKeyDown={event => {
                 if (event.key === "Escape") onStateChange({ ...state, query: "", focusSlug: null });
               }}>
-                Search applications
-                <Input id="workbench-search" value={state.query} placeholder="Search applications…"
+                {view === "all" ? "Search applications" : `Search ${view === "agentic" ? "agentic plugins" : "plugins"}`}
+                <Input id="workbench-search" value={state.query} placeholder={view === "all" ? "Search applications…" : `Search ${view === "agentic" ? "agentic plugins" : "plugins"}…`}
                   onChange={event => onStateChange({ ...state, query: event.target.value, focusSlug: null })} />
               </label>
               <div role="group" aria-label="Plugin categories" className="native-workbench-filters">
@@ -83,11 +102,13 @@ export default function Workbench({ state, onStateChange, onOpen }) {
                   </button>
                 ))}
               </div>
-              <p role="status" className="native-workbench-summary">Showing {shown} of {catalog.total_count} applications</p>
+              <p role="status" className="native-workbench-summary">Showing {shown} of {view === "all" ? catalog.total_count : available} {view === "all" ? "applications" : "plugins"}</p>
             </PanelBody>
           </Panel>
           {shown === 0 ? <p className="native-workbench-message">
-            {catalog.total_count === 0 ? "No applications are available." : "No applications match your search or category."}
+            {available === 0
+              ? (view === "all" ? "No applications are available." : "No plugins are available in this category.")
+              : (view === "all" ? "No applications match your search or category." : "No plugins match your search or category.")}
           </p> : visible.filter(category => category.plugins.length).map(category => (
             <section key={category.key} aria-label={category.title}>
               <h2 className="native-workbench-category">{category.title} <Badge>{category.plugins.length}</Badge></h2>

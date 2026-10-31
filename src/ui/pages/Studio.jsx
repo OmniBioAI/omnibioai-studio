@@ -56,7 +56,7 @@ function getInitialHost() {
 }
 
 function buildCategories(BASE) {
-  return [
+  const categories = [
     {
       name: "Platform Services",
       color: "var(--accent-platform)",
@@ -73,7 +73,7 @@ function buildCategories(BASE) {
         // since the docs site moved to its current dist/user/... layout.
         { label:"Getting Started",  url:"/_svc/docs/user/getting-started/", icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
-        { label:"Workbench",        url:"",                          icon:"🏠", desc:"Application catalog", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 13 })) },
+        { label:"Workbench",        url:"",                          icon:"🏠", desc:"Application catalog", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 34 })) },
         // Same ControlApp as the standalone site, mounted through Studio's
         // JWT gate and the existing platform.manage_infra permission check.
         { label:"Control Center",   url:"/_svc/control/",            icon:"🖥️", desc:"Overview · Evidence · Ecosystem"   },
@@ -449,6 +449,10 @@ function buildCategories(BASE) {
       ]
     }
   ];
+  // Keep the Studio landing page focused on platform entry points and its
+  // six curated Core Platform plugins. The full catalog is discoverable from
+  // the dedicated Discover navigation pages.
+  return categories.filter(({ name }) => ["Platform Services", "Security Control Plane", "Core Platform"].includes(name));
 }
 
 export default function Studio() {
@@ -574,9 +578,9 @@ export default function Studio() {
           >↻</button>
 
           <button
-            onClick={() => openWorkbenchApplication("catalog", "/plugins/catalog/", "Plugin Catalog")}
+            onClick={() => online && window.dispatchEvent(new CustomEvent("navigate", { detail: 34 }))}
             aria-disabled={!online}
-            aria-label="Open plugin catalog"
+            aria-label="Browse plugins"
             style={{
               padding:"8px 16px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-sm)',
               fontFamily:"var(--font)", fontWeight:500,
@@ -587,23 +591,8 @@ export default function Studio() {
               color:"var(--accent2)",
             }}
           >
-            <span aria-hidden="true">📦</span> Catalog
+            <span aria-hidden="true">📦</span> Browse Plugins
           </button>
-
-          <button
-            onClick={() => online && window.dispatchEvent(new CustomEvent("navigate", { detail: 13 }))}
-            aria-disabled={!online}
-            aria-label="Launch workbench dashboard"
-            style={{
-              padding:"8px 20px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-sm)',
-              fontFamily:"var(--font)", fontWeight:600,
-              cursor: online ? "pointer" : "not-allowed",
-              opacity: online ? 1 : 0.4,
-              background: online ? "var(--accent)" : "var(--bg2)",
-              border: online ? "none" : "1px solid var(--border2)",
-              color: online ? "var(--color-on-accent)" : "var(--color-text-muted)",
-            }}
-          >↗ Launch Workbench</button>
         </div>
       </div>
 
@@ -708,55 +697,6 @@ export default function Studio() {
           </div>
           );
         })}
-      </div>
-
-      {/* Explore more banner */}
-      <div style={{
-        padding:"16px 20px", borderRadius:'var(--radius-lg)',
-        background:"linear-gradient(135deg, rgba(0,229,160,0.06), rgba(0,148,255,0.06))",
-        border:"1px solid rgba(0,229,160,0.15)",
-        display:"flex", alignItems:"center", justifyContent:"space-between",
-        flexWrap:"wrap", gap:12,
-      }}>
-        <div>
-          <div style={{ fontSize:'var(--font-size-base)', fontWeight:600, color:"var(--text)", marginBottom:4 }}>
-            <span aria-hidden="true">🚀</span> Explore all plugins, tools and pipelines
-          </div>
-          <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
-            OmniBioAI has 500+ bioinformatics modules — browse the full catalog inside the workbench
-          </div>
-        </div>
-        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          <button
-            onClick={() => online && openWorkbenchApplication("catalog", "/plugins/catalog/", "Plugin Catalog")}
-            aria-disabled={!online}
-            aria-label="Open plugin catalog"
-            style={{
-              padding:"9px 18px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-sm)',
-              fontFamily:"var(--font)", fontWeight:500,
-              cursor: online ? "pointer" : "not-allowed",
-              opacity: online ? 1 : 0.4,
-              background:"rgba(0,148,255,0.12)",
-              border:"1px solid rgba(0,148,255,0.25)",
-              color:"var(--accent2)",
-            }}
-          >
-            <span aria-hidden="true">📦</span> Open Catalog
-          </button>
-          <button
-            onClick={() => online && window.dispatchEvent(new CustomEvent("navigate", { detail: 13 }))}
-            aria-disabled={!online}
-            aria-label="Launch workbench dashboard"
-            style={{
-              padding:"9px 18px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-sm)',
-              fontFamily:"var(--font)", fontWeight:600,
-              cursor: online ? "pointer" : "not-allowed",
-              opacity: online ? 1 : 0.4,
-              background: online ? "var(--accent)" : "var(--bg2)",
-              border:"none", color: online ? "var(--color-on-accent)" : "var(--color-text-muted)",
-            }}
-          >↗ Launch Workbench</button>
-        </div>
       </div>
 
     </div>
