@@ -1,0 +1,34 @@
+.genome-viewer { --gv-line: color-mix(in srgb, var(--color-border, #263244) 78%, transparent); color: var(--color-text, #e6edf5); }
+.genome-viewer__heading { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin:4px 0 20px; }
+.genome-viewer__heading h2 { margin:5px 0 6px; font-size:clamp(1.35rem, 2vw, 1.8rem); letter-spacing:-.035em; }
+.genome-viewer__heading p, .genome-viewer__panel header p { margin:0; color:var(--color-muted, #94a3b8); font-size:.9rem; }
+.genome-viewer__eyebrow { color:var(--color-accent, #68d4c4); font-size:.7rem; font-weight:750; letter-spacing:.14em; }
+.genome-viewer__ready { display:inline-flex; align-items:center; gap:8px; padding:7px 11px; border:1px solid var(--gv-line); border-radius:999px; color:var(--color-muted, #a8b5c5); font-size:.78rem; white-space:nowrap; }
+.genome-viewer__ready i { width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px #22c55220; }
+.genome-viewer__grid { display:grid; grid-template-columns:minmax(310px, 390px) minmax(0, 1fr); gap:16px; align-items:stretch; }
+.genome-viewer__panel { min-width:0; overflow:hidden; border:1px solid var(--gv-line); border-radius:16px; background:var(--color-surface, #111a28); box-shadow:0 14px 40px #00000012; }
+.genome-viewer__panel > header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; border-bottom:1px solid var(--gv-line); }
+.genome-viewer__panel header h3 { margin:0 0 4px; font-size:1rem; }
+.genome-viewer__panel header > span { color:var(--color-muted, #94a3b8); font-size:.75rem; font-weight:700; letter-spacing:.06em; }
+.genome-viewer__fields { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px 12px; padding:18px; }
+.genome-viewer__fields > label { display:flex; min-width:0; flex-direction:column; gap:7px; color:var(--color-muted, #a8b5c5); font-size:.79rem; font-weight:600; }
+.genome-viewer__fields > label > span { display:inline; font-weight:400; }
+.genome-viewer__fields input:not([type=radio]):not([type=file]), .genome-viewer__fields select, .genome-viewer__fields textarea { box-sizing:border-box; width:100%; min-width:0; border:1px solid var(--gv-line); border-radius:9px; background:var(--color-background, #0b1220); color:var(--color-text, #e6edf5); padding:10px 11px; font:inherit; font-weight:450; outline:none; }
+.genome-viewer__fields input:focus, .genome-viewer__fields select:focus, .genome-viewer__fields textarea:focus { border-color:var(--color-accent, #68d4c4); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-accent, #68d4c4) 16%, transparent); }
+.genome-viewer__fields input[type=file] { width:100%; color:var(--color-muted, #a8b5c5); font-size:.8rem; }
+.genome-viewer__source { grid-column:1/-1; min-width:0; margin:0; padding:0; border:0; }
+.genome-viewer__source legend { margin-bottom:8px; color:var(--color-muted, #a8b5c5); font-size:.79rem; font-weight:600; }
+.genome-viewer__source > div { display:flex; flex-wrap:wrap; gap:7px; }
+.genome-viewer__source label { display:flex; align-items:center; gap:6px; padding:7px 10px; border:1px solid var(--gv-line); border-radius:999px; color:var(--color-muted, #b7c2d0); font-size:.78rem; cursor:pointer; }
+.genome-viewer__source input { accent-color:var(--color-accent, #68d4c4); }
+.genome-viewer__full { grid-column:1/-1; }
+.genome-viewer__fields small { color:var(--color-muted, #8c9bad); font-size:.73rem; font-weight:400; }
+.genome-viewer__submit { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; margin-top:2px; padding:11px 14px; border:0; border-radius:10px; background:var(--color-accent, #218b84); color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+.genome-viewer__submit:hover:not(:disabled) { filter:brightness(1.08); }
+.genome-viewer__submit:disabled { opacity:.65; cursor:wait; }
+.genome-viewer__canvas { min-height:570px; }
+.genome-viewer__viewport { min-height:520px; overflow:auto; padding:16px; }
+.genome-viewer__viewport > div { min-height:480px; }
+.genome-viewer__error { margin:0 0 14px; padding:11px 13px; border:1px solid #f8717155; border-radius:10px; background:#ef444410; color:#fca5a5; font-size:.86rem; }
+@media (max-width:1000px) { .genome-viewer__grid { grid-template-columns:1fr; } .genome-viewer__canvas { min-height:520px; } }
+@media (max-width:560px) { .genome-viewer__heading { flex-direction:column; } .genome-viewer__fields { grid-template-columns:1fr; } .genome-viewer__fields > label, .genome-viewer__source, .genome-viewer__full, .genome-viewer__submit { grid-column:1; } }
