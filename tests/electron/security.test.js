@@ -79,7 +79,7 @@ test("main-process request policy strips renderer bearer values and injects only
   }), {});
   assert.deepEqual(sessionAuthorizationHeaders(target, {
     mainWebContentsId: 8, packaged: true, accessToken: "main-owned-token",
-  }), { Authorization: "Bearer renderer-controlled" });
+  }), {});
   assert.deepEqual(sessionAuthorizationHeaders({ ...target, url: "http://localhost:3000/api/org" }, {
     mainWebContentsId: 7, grafanaToken: "grafana-only-token",
   }), { Authorization: "Bearer grafana-only-token" });

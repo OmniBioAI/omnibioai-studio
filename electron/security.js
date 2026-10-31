@@ -108,8 +108,8 @@ function sessionAuthorizationHeaders(details, {
     if (grafanaToken) headers.Authorization = `Bearer ${grafanaToken}`;
     return headers;
   }
-  if (typeof mainWebContentsId !== "number" || details.webContentsId !== mainWebContentsId) return headers;
   removeAuthorization();
+  if (typeof mainWebContentsId !== "number" || details.webContentsId !== mainWebContentsId) return headers;
   if (details.method !== "OPTIONS" && accessToken
     && isTrustedAuthenticatedRequestUrl(details.url, { trustedHost, packaged })) {
     headers.Authorization = `Bearer ${accessToken}`;
