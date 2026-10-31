@@ -22,6 +22,17 @@ function appVisual(category) {
   return { accent, icon };
 }
 
+const AGENTIC_PALETTE = ["#ad8cff", "#67a7ff", "#e08cff", "#69d6ce"];
+function agenticVisual(plugin) {
+  const key = `${plugin.slug} ${plugin.title}`.toLowerCase();
+  const icon = /orchestrat|workflow/.test(key) ? "⌘"
+    : /literature|evidence|narrat/.test(key) ? "◎"
+      : /reason|hypothes|design|evaluation/.test(key) ? "◈"
+        : /copilot|fine.?tun|notebook/.test(key) ? "⟡" : "✧";
+  const paletteIndex = [...plugin.slug].reduce((sum, char) => sum + char.charCodeAt(0), 0) % AGENTIC_PALETTE.length;
+  return { accent: AGENTIC_PALETTE[paletteIndex], icon };
+}
+
 export function categoriesForDiscoveryView(categories, view = "all") {
   if (view === "all") return categories;
   return categories
@@ -85,7 +96,7 @@ export default function Workbench({ state, onStateChange, onOpen, view = "all" }
       <OmniPage
         title={title}
         subtitle={catalog ? (view === "all" ? `${catalog.total_count} bioinformatics applications` : `${available} bioinformatics plugins`) : "Loading applications…"}
-        className={`native-workbench-page${view === "plugins" ? " native-workbench-page--apps" : ""}`}
+        className={`native-workbench-page${view === "plugins" ? " native-workbench-page--apps" : ""}${view === "agentic" ? " native-workbench-page--agentic" : ""}`}
       >
 
       {loading ? <div role="status" className="native-workbench-message"><Spinner /> Loading applications…</div>
@@ -95,6 +106,15 @@ export default function Workbench({ state, onStateChange, onOpen, view = "all" }
           <Button variant="ghost" onClick={() => onOpen(legacyWorkbenchUrl(), "Workbench Dashboard")}>Use legacy Workbench catalog</Button>
         </PanelBody></Panel>
         : <>
+          {view === "agentic" && <section className="native-agentic-intro" aria-label="Agentic AI catalog introduction">
+            <div className="native-agentic-intro-mark" aria-hidden="true"><span>✧</span><i /><i /><i /></div>
+            <div className="native-agentic-intro-copy">
+              <span className="native-agentic-eyebrow">AGENTIC AI · BIOINFORMATICS</span>
+              <h2>Tools that reason, plan, and act</h2>
+              <p>Explore AI agents and coordinated workflows for scientific discovery, evidence, and analysis.</p>
+            </div>
+            <div className="native-agentic-count"><strong>{available}</strong><span>AI tools</span></div>
+          </section>}
           <Panel>
             <PanelHeader title={panelTitle} />
             <PanelBody>
@@ -128,7 +148,21 @@ export default function Workbench({ state, onStateChange, onOpen, view = "all" }
               <h2 className="native-workbench-category">{category.title} <Badge>{category.plugins.length}</Badge></h2>
               <div className="native-workbench-grid">
                 {category.plugins.map(plugin => (
-                  view === "plugins" ? (() => {
+                  view === "agentic" ? (() => {
+                    const { accent, icon } = agenticVisual(plugin);
+                    return <div key={plugin.slug} className="native-agentic-card-shell" style={{ "--agent-accent": accent }}>
+                      <Card className="native-workbench-card native-agentic-card">
+                        <button type="button" className="native-agentic-launch" aria-label={`Open ${plugin.title}`}
+                          ref={element => { cards.current[plugin.slug] = element; }}
+                          onClick={() => openPlugin(plugin)}>
+                          <span className="native-agentic-card-top"><span className="native-agentic-card-icon" aria-hidden="true">{icon}</span><span className="native-agentic-type"><i /> AI AGENT</span></span>
+                          <span className="native-agentic-card-title">{plugin.title}</span>
+                          <span className="native-agentic-card-description">{plugin.description || "An AI-powered tool for scientific workflows."}</span>
+                          <span className="native-agentic-card-meta"><span>Agentic workflow</span>{plugin.version && <span>v{plugin.version}</span>}</span>
+                        </button>
+                      </Card>
+                    </div>;
+                  })() : view === "plugins" ? (() => {
                     const { accent, icon } = appVisual(plugin.category);
                     return <div key={plugin.slug} className="native-workbench-app-shell" style={{ "--plugin-accent": accent }}>
                       <Card className="native-workbench-card native-workbench-app-card">
