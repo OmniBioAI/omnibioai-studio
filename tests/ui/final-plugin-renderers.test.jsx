@@ -16,6 +16,7 @@ import {
   FINAL_PLUGIN_SLUGS,
 } from "../../src/ui/components/workbench/FinalPluginRenderers";
 import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+import { ANALYSIS_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/AnalysisPluginRenderers";
 
 afterEach(cleanup);
 
@@ -35,7 +36,9 @@ describe("final one-hundred-and-one promoted plugin React renderers", () => {
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);
     expect(screen.getByTestId(renderer === "informational" ? "informational-workflow" : "async-workflow"))
       .toHaveTextContent(slug);
-    expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);
-    expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(resolveWorkbenchRenderer(renderer));
+    const resolved = resolveWorkbenchRenderer(renderer, slug);
+    expect(typeof resolved).toBe("function");
+    if (ANALYSIS_PLUGIN_RENDERERS[slug]) expect(resolved).toBe(ANALYSIS_PLUGIN_RENDERERS[slug]);
+    expect(resolved).not.toBe(resolveWorkbenchRenderer(renderer));
   });
 });

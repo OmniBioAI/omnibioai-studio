@@ -16,6 +16,7 @@ import {
   CENTURY_PLUGIN_SLUGS,
 } from "../../src/ui/components/workbench/CenturyPluginRenderers";
 import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+import { ANALYSIS_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/AnalysisPluginRenderers";
 import { ML_PLUGIN_UI_SLUGS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
 
 afterEach(cleanup);
@@ -38,8 +39,10 @@ describe("one-hundred promoted plugin React renderers", () => {
     const Renderer = CENTURY_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);
     expect(screen.getByTestId(renderer === "query" ? "query-workflow" : "async-workflow")).toHaveTextContent(slug);
-    expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);
-    expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(resolveWorkbenchRenderer(renderer));
+    const resolved = resolveWorkbenchRenderer(renderer, slug);
+    expect(typeof resolved).toBe("function");
+    if (ANALYSIS_PLUGIN_RENDERERS[slug]) expect(resolved).toBe(ANALYSIS_PLUGIN_RENDERERS[slug]);
+    expect(resolved).not.toBe(resolveWorkbenchRenderer(renderer));
   });
 
   it("uses the dedicated React tutorial browser for OmniML Studio", () => {

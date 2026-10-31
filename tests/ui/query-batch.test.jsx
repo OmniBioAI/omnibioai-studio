@@ -4,10 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import QueryRenderer from "../../src/ui/components/workbench/QueryRenderer";
 import PluginPage from "../../src/ui/pages/PluginPage";
 
-vi.mock("../../src/ui/pages/ServiceViewer", () => ({
-  default: ({ url, label }) => <div data-testid="controlled-legacy-fallback" data-url={url}>{label}</div>,
-}));
-
 const descriptor = {
   schema_version: 2,
   plugin: { slug: "rcsb_pdb", name: "RCSB PDB", version: "1", description: "Structures", category: "reference_db" },
@@ -49,13 +45,14 @@ describe("validated Batch 1 page routing", () => {
     ["unknown renderer", value => { value.renderer = "custom_import"; }],
     ["reference type outside plugin policy", value => { value.detail.sections[2].reference_types = ["clinvar"]; }],
     ["reference destination template", value => { value.detail.sections[2].url_template = "https://evil.test/{id}"; }],
-  ])("uses the supplied compatibility fallback for %s without issuing a query", async (_name, mutate) => {
+  ])("keeps an invalid descriptor in the React recovery UI for %s", async (_name, mutate) => {
     const invalid = JSON.parse(JSON.stringify(descriptor));
     mutate(invalid);
     fetch.mockResolvedValue(response(invalid));
     render(<PluginPage slug="rcsb_pdb" url="/_svc/workbench/plugins/rcsb-pdb/" label="RCSB PDB" onBack={vi.fn()} />);
-    const fallback = await screen.findByTestId("controlled-legacy-fallback");
-    expect(fallback).toHaveAttribute("data-url", "/_svc/workbench/plugins/rcsb-pdb/");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load plugin UI.");
+    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
+    expect(screen.queryByTestId("controlled-legacy-fallback")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Search" })).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledOnce();
     expect(fetch.mock.calls[0][0]).toBe("/_svc/workbench/plugins/rcsb_pdb/api/ui-schema/");
