@@ -527,10 +527,10 @@ changing one requires a full stack restart.
 - `docker-compose.yml`'s `volumes:` block for each service is the ground
   truth for its exact mount paths (verified against commit `48c858d`).
 
-### About (v0.8.0)
+### About (v0.8.1)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.8.0 |
+| Studio Version | v0.8.1 |
 | Electron | Electron + Vite |
 | Node.js | See `package.json` toolchain |
 | Platform | Runtime-dependent (Linux, macOS, or Windows) |

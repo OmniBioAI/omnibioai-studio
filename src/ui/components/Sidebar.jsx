@@ -2,6 +2,7 @@ import React from "react";
 import AccountMenu from "./AccountMenuButton";
 import { NAV_ICONS } from "./NavIcons";
 import OmniBioAILogo from "./brand/OmniBioAILogo";
+import { STUDIO_VERSION_LABEL } from "../lib/appVersion";
 
 const statusColor = {
   idle:     "var(--color-text-muted)",
@@ -33,7 +34,7 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
           fontSize:'var(--font-size-xs)', color:"var(--color-text-muted)", fontFamily:"var(--mono)",
           letterSpacing:"0.06em", paddingLeft:30,
         }}>
-          STUDIO v0.8.0
+          STUDIO {STUDIO_VERSION_LABEL}
         </div>
       </div>
 

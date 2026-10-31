@@ -6,6 +6,7 @@ import {
 } from "../lib/session";
 import OmniBioAILogo from "./brand/OmniBioAILogo";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
+import { STUDIO_VERSION_LABEL } from "../lib/appVersion";
 
 const PROVIDER_LABELS = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
@@ -216,7 +217,7 @@ export default function Login({ title, description }) {
                 color: ACCENT,
               }}
             >
-              ● Private beta · v0.8.0
+              ● Private beta · {STUDIO_VERSION_LABEL}
             </div>
           </div>
 

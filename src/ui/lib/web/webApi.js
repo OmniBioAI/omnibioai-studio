@@ -11,6 +11,7 @@
 // `/api/config` or `/api/logs/:service` routes exist anywhere in this repo.
 // Per-service health is already checked directly by Launch.jsx/Services.jsx
 // via their own relative /_svc/* fetches; this file doesn't duplicate that.
+import { STUDIO_VERSION } from "../appVersion";
 
 // Cloud/beta mode config — nothing to load, since there's no local Docker
 // stack or data_dir to configure when connecting to an already-running
@@ -61,6 +62,6 @@ export async function checkUpdate() {
 export async function getPlatform() {
   return {
     platform: "web",
-    version: import.meta.env.VITE_VERSION || "0.8.0",
+    version: STUDIO_VERSION,
   };
 }

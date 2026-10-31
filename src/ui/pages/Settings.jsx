@@ -3,6 +3,7 @@ import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, Toggle, Btn } fr
 import RequirePermission from "../components/RequirePermission";
 import { openExternal } from "../lib/externalLink";
 import PageHeader from "../components/PageHeader";
+import { STUDIO_VERSION_LABEL } from "../lib/appVersion";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -365,7 +366,7 @@ function SettingsConsole({ config, setConfig }) {
               fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             }}>
               {[
-                ["Studio Version", "v0.8.0"],
+                ["Studio Version", STUDIO_VERSION_LABEL],
                 ["Electron",       typeof process !== "undefined" ? process.versions?.electron || "28.x" : "web"],
                 ["Node.js",        typeof process !== "undefined" ? process.versions?.node     || "18.x" : "web"],
                 ["Platform",       navigator.platform],

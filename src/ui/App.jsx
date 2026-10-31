@@ -20,6 +20,7 @@ import ServiceViewer from "./pages/ServiceViewer";
 import AIChatHub from "./pages/AIChatHub";
 import PluginPage from "./pages/PluginPage";
 import { resolveWorkbenchPluginDeepLink } from "./lib/pluginDeepLink";
+import { STUDIO_VERSION_LABEL } from "./lib/appVersion";
 import Videos        from "./pages/Videos";
 import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
@@ -790,7 +791,7 @@ export default function App() {
               borderRadius:'var(--radius-xs)', letterSpacing:"0.08em",
               background:"rgba(0,148,255,0.12)", color:"var(--accent2)",
               border:"1px solid rgba(0,148,255,0.2)",
-            }}>v0.8.0</span>
+            }}>{STUDIO_VERSION_LABEL}</span>
 
             <span style={{
               fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)', padding:"3px 8px",
