@@ -44,6 +44,19 @@ describe("Native Workbench catalog", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Showing 3 of 3 applications");
     expect(screen.queryByRole("button", { name: /legacy Workbench catalog/i })).not.toBeInTheDocument();
   });
+  it("renders the filtered Plugins view as a colorful app launcher", async () => {
+    const onOpen = vi.fn();
+    render(<Harness onOpen={onOpen} view="plugins" />);
+    const app = await screen.findByRole("button", { name: "Open RNA Analysis" });
+    expect(screen.getByRole("heading", { level: 1, name: "Plugins" })).toBeInTheDocument();
+    expect(app).toHaveClass("native-workbench-app-launch");
+    expect(app.closest(".native-workbench-app-shell")).toHaveStyle({ "--plugin-accent": "#5ad7c2" });
+    expect(within(app).getByText("Analysis")).toBeInTheDocument();
+    expect(within(app).getByText("Transcript processing")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Showing 3 of 3 plugins");
+    await userEvent.click(app);
+    expect(onOpen).toHaveBeenCalledWith("/_svc/workbench/plugins/rna/", "RNA Analysis", expect.objectContaining({ slug: "rna" }));
+  });
   it("searches title/slug/category, temporarily selects All, restores category on Escape and derives all counts from cards", async () => {
     const user = userEvent.setup(); render(<Harness />);
     await screen.findByRole("button", { name: "Open System Health" });

@@ -669,6 +669,20 @@ a:focus:not(:focus-visible) {
 .native-workbench-launch { min-height: 44px; text-align: left; padding: 4px 0; background: none; border: 0; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; overflow-wrap: anywhere; }
 .native-workbench-launch:hover { color: var(--accent); }
 .native-workbench-card p { margin-top: 8px; color: var(--color-text-secondary); line-height: 1.5; overflow-wrap: anywhere; }
+.native-workbench-page--apps .native-workbench-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 235px), 1fr)); gap: 14px; }
+.native-workbench-app-shell { min-height: 194px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--plugin-accent) 25%, var(--border2)); border-radius: var(--radius-lg); background: linear-gradient(145deg, color-mix(in srgb, var(--plugin-accent) 10%, var(--bg2)), var(--bg2) 64%); transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.native-workbench-app-shell:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--plugin-accent) 68%, var(--border2)); box-shadow: 0 10px 28px color-mix(in srgb, var(--plugin-accent) 13%, transparent); }
+.native-workbench-app-card { height: 100%; padding: 0; border: 0; background: transparent; }
+.native-workbench-app-card .omni-card__body { height: 100%; padding: 0; }
+.native-workbench-app-launch { display: flex; width: 100%; height: 100%; min-height: 194px; align-items: flex-start; gap: 14px; padding: 18px; text-align: left; border: 0; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.native-workbench-app-launch:focus-visible { outline: 2px solid var(--plugin-accent); outline-offset: -3px; border-radius: inherit; }
+.native-workbench-app-icon { display: grid; flex: 0 0 52px; width: 52px; height: 52px; place-items: center; border: 1px solid color-mix(in srgb, var(--plugin-accent) 45%, transparent); border-radius: 16px; background: color-mix(in srgb, var(--plugin-accent) 19%, var(--bg)); color: var(--plugin-accent); font-size: 27px; line-height: 1; box-shadow: inset 0 1px 0 color-mix(in srgb, white 10%, transparent); }
+.native-workbench-app-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; }
+.native-workbench-app-title { min-height: 42px; color: var(--text); font-size: var(--font-size-md); font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
+.native-workbench-app-launch:hover .native-workbench-app-title { color: var(--plugin-accent); }
+.native-workbench-app-description { display: -webkit-box; min-height: 42px; margin-top: 7px; overflow: hidden; color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: 1.45; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.native-workbench-app-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 15px; color: var(--plugin-accent); font-size: var(--font-size-xs); }
+.native-workbench-app-meta span { padding: 4px 8px; border: 1px solid color-mix(in srgb, var(--plugin-accent) 26%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--plugin-accent) 9%, transparent); }
 .native-workbench-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; font-size: var(--font-size-xs); color: var(--color-text-muted); }
 .native-workbench-message { display: flex; align-items: center; gap: 12px; padding: 20px; }
 .native-workbench-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
