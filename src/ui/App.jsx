@@ -328,7 +328,7 @@ export default function App() {
   const [integrationCount, setIntegrationCount] = useState(null);
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [accountIdentity, setAccountIdentity] = useState(null);
-  const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
+  const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved?
   const [oauthNotice,  setOauthNotice]  = useState(null); // result of an OAuth redirect: link_required | error
   const [returnTo,     setReturnTo]     = useState(() => getSafeReturnTo()); // ?return_to= target, captured once
   const [mobileNavOpen, setMobileNavOpen] = useState(false); // MobileNav drawer — mobile only, no desktop effect
@@ -640,10 +640,9 @@ export default function App() {
     return url;
   };
 
-  // ─── Don't render until config is loaded, and (web only) until we know ──
-  // whether there's a valid session — Electron gates access via LicenseGate
-  // instead, so it doesn't wait on authChecked.
-  if (!ready || (!isElectron() && !authChecked)) {
+  // Do not flash authenticated content or the sign-in form while a protected
+  // desktop session is still being restored.
+  if (!ready || !authChecked) {
     return (
       <div style={{
         display:"flex", height:"100vh",
@@ -658,8 +657,10 @@ export default function App() {
     );
   }
 
-  // Web only — Electron authenticates via LicenseGate's own license check.
-  const showLogin = !isElectron() && !currentUser;
+  // A desktop license is an entitlement, not an identity session. After the
+  // license gate succeeds, Electron must still establish the main-owned Auth
+  // session used by role- and organization-scoped features.
+  const showLogin = !currentUser;
 
   return (
     <AppearanceProvider userId={currentUser?.userId}>
@@ -668,7 +669,10 @@ export default function App() {
     {showLogin ? (
       <Login
         title="Welcome to OmniBioAI Studio"
-        description="Sign in or enter your license key to access the platform"
+        description={isElectron()
+          ? "Sign in to establish a protected desktop session"
+          : "Sign in or enter your license key to access the platform"}
+        accountOnly={isElectron()}
       />
     ) : (
     <div style={{

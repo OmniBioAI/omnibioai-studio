@@ -4,6 +4,7 @@ const path = require("node:path");
 
 const SESSION_FILE = "auth-session.enc";
 const MAX_CREDENTIAL_LENGTH = 4096;
+const AUTH_REQUEST_TIMEOUT_MS = 15000;
 
 function resolveAuthOrigin({ packaged, configuredOrigin }) {
   const fallback = packaged ? "https://webstudio.omnibioai.org" : "http://localhost:8001";
@@ -65,6 +66,7 @@ class AuthSession {
     this.user = null;
     this.persistent = false;
     this.restored = false;
+    this.storageStatus = this.secureStorageAvailable() ? "available" : "unavailable";
     this.challengeTokens = new Map();
   }
 
@@ -83,6 +85,7 @@ class AuthSession {
         headers,
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
         redirect: "error",
+        signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
       });
     } catch {
       const error = new Error("Authentication service is unavailable");
@@ -97,6 +100,7 @@ class AuthSession {
     this.persistent = false;
     const encryptionAvailable = this.secureStorageAvailable();
     if (!this.refreshToken || !encryptionAvailable) {
+      if (!encryptionAvailable) this.storageStatus = "unavailable";
       this.removePersisted();
       return false;
     }
@@ -107,8 +111,10 @@ class AuthSession {
       this.fs.writeFileSync(temporary, encrypted, { mode: 0o600, flag: "wx" });
       this.fs.renameSync(temporary, this.storePath);
       this.persistent = true;
+      this.storageStatus = "available";
       return true;
     } catch {
+      this.storageStatus = "error";
       try { this.fs.unlinkSync(temporary); } catch { /* no temporary file to remove */ }
       this.removePersisted();
       return false;
@@ -125,18 +131,21 @@ class AuthSession {
     if (!isToken(data?.access_token) || !isToken(data?.refresh_token)) {
       throw new Error("Authentication service returned an invalid session");
     }
+    const { response, data: validation } = await this.request("/auth/validate", {
+      method: "POST", body: { token: data.access_token },
+    });
+    const user = response.ok ? safeProfile(validation) : null;
+    if (!user) {
+      throw new Error("Authentication service rejected the session");
+    }
     this.accessToken = data.access_token;
     this.refreshToken = data.refresh_token;
-    this.user = null;
-    await this.persistRefreshToken();
-    this.restored = false;
-    const { response, data: validation } = await this.request("/auth/validate", {
-      method: "POST", body: { token: this.accessToken },
-    });
-    this.user = response.ok ? safeProfile(validation) : null;
-    if (!this.user) {
-      await this.clear({ revoke: false });
-      throw new Error("Authentication service rejected the session");
+    this.user = user;
+    if (!await this.persistRefreshToken()) {
+      await this.clear();
+      const error = new Error("Secure session storage is unavailable");
+      error.code = "AUTH_SECURE_STORAGE";
+      throw error;
     }
     this.restored = true;
     return this.snapshot();
@@ -147,6 +156,7 @@ class AuthSession {
       authenticated: Boolean(this.accessToken && this.user),
       persistent: this.persistent,
       secureStorageAvailable: this.secureStorageAvailable(),
+      storageStatus: this.storageStatus,
       user: this.user,
     };
   }
@@ -167,10 +177,13 @@ class AuthSession {
   async restore() {
     if (this.restored) return this.snapshot();
     this.restored = true;
+    this.storageStatus = this.secureStorageAvailable() ? "available" : "unavailable";
     if (!this.fs.existsSync(this.storePath)) return this.snapshot();
     const encryptionAvailable = this.secureStorageAvailable();
     if (!encryptionAvailable) {
-      this.removePersisted();
+      // Keep the opaque ciphertext so a temporarily unavailable OS key store
+      // can recover on a later attempt. Nothing is decrypted or restored.
+      this.restored = false;
       return this.snapshot();
     }
     try {
@@ -186,7 +199,11 @@ class AuthSession {
       this.refreshToken = data.refresh_token || decrypted;
       this.accessToken = data.access_token;
       if (!isToken(this.accessToken) || !isToken(this.refreshToken)) throw new Error("invalid refresh response");
-      await this.persistRefreshToken();
+      if (!await this.persistRefreshToken()) {
+        await this.clear({ revoke: false });
+        this.storageStatus = "error";
+        return this.snapshot();
+      }
       const validation = await this.request("/auth/validate", { method: "POST", body: { token: this.accessToken } });
       this.user = validation.response.ok ? safeProfile(validation.data) : null;
       if (!this.user) await this.clear({ revoke: false });
@@ -199,6 +216,7 @@ class AuthSession {
         this.restored = false;
         return this.snapshot();
       }
+      this.storageStatus = "corrupt";
       this.accessToken = null;
       this.refreshToken = null;
       this.user = null;
@@ -211,6 +229,12 @@ class AuthSession {
     if (typeof email !== "string" || email.length > 320 || typeof password !== "string"
       || password.length < 1 || password.length > MAX_CREDENTIAL_LENGTH) {
       throw new Error("Enter a valid email and password");
+    }
+    if (!this.secureStorageAvailable()) {
+      this.storageStatus = "unavailable";
+      const error = new Error("Secure session storage is unavailable");
+      error.code = "AUTH_SECURE_STORAGE";
+      throw error;
     }
     const { response, data } = await this.request("/auth/login", { method: "POST", body: { email, password } });
     if (!response.ok) throw new Error(response.status === 401 ? "Invalid email or password" : "Login failed");
@@ -238,17 +262,18 @@ class AuthSession {
       throw new Error("Invalid MFA challenge");
     }
     const challengeToken = this.challengeTokens.get(challengeId);
-    this.challengeTokens.delete(challengeId);
     const { response, data } = await this.request("/users/me/mfa/challenge", {
       method: "POST", body: { challenge_token: challengeToken, code, ...(method ? { method } : {}) },
     });
     if (response.ok && data.mfa_required && isToken(data.challenge_token)) {
+      this.challengeTokens.delete(challengeId);
       if (this.challengeTokens.size >= 8) this.challengeTokens.delete(this.challengeTokens.keys().next().value);
       const nextChallengeId = this.randomUUID();
       this.challengeTokens.set(nextChallengeId, data.challenge_token);
       return { mfaRequired: true, challengeId: nextChallengeId, methods: Array.isArray(data.methods) ? data.methods : [] };
     }
     if (!response.ok || !data.access_token) throw new Error("MFA verification failed");
+    this.challengeTokens.delete(challengeId);
     return this.acceptTokens(data);
   }
 

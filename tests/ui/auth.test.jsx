@@ -44,6 +44,13 @@ describe("authentication UI", () => {
     expect(getOAuthLoginUrl).toHaveBeenCalledWith("google");
   });
 
+  it("uses account-only password login after the desktop license gate", () => {
+    render(<Login accountOnly title="Desktop sign in" />);
+    expect(screen.queryByRole("button", { name: "License Activation" })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("••••••••")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeInTheDocument();
+  });
+
   it("advances password login to a six-digit email OTP screen", async () => {
     const challenge = Object.assign(new Error("OTP required"), {
       code: "mfa_required", challengeToken: "challenge", methods: ["email"],

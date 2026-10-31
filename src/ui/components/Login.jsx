@@ -79,8 +79,8 @@ function labelStyle() {
   };
 }
 
-export default function Login({ title, description }) {
-  const [mode, setMode] = useState("license"); // "password" | "license"
+export default function Login({ title, description, accountOnly = false }) {
+  const [mode, setMode] = useState(accountOnly ? "password" : "license"); // "password" | "license"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [licenseKey, setLicenseKey] = useState("");
@@ -232,7 +232,7 @@ export default function Login({ title, description }) {
             )}
           </div>
 
-          <div
+          {!accountOnly && <div
             style={{
               display: "flex",
               gap: 4,
@@ -266,7 +266,7 @@ export default function Login({ title, description }) {
                 {m === "password" ? "Password Login" : "License Activation"}
               </button>
             ))}
-          </div>
+          </div>}
 
           <form onSubmit={submit}>
             {loginChallenge ? <>

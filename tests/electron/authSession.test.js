@@ -44,6 +44,7 @@ test("login stores the refresh token only through protected storage and exposes 
     assert.equal(new URL(url).origin, "https://webstudio.omnibioai.org");
     if (url.endsWith("/auth/login")) {
       assert.equal(options.redirect, "error");
+      assert.equal(options.signal instanceof AbortSignal, true);
       assert.equal(options.body.includes("password"), true);
       return response(200, { access_token: "raw-access-secret", refresh_token: "raw-refresh-secret" });
     }
@@ -53,12 +54,23 @@ test("login stores the refresh token only through protected storage and exposes 
   const result = await session.login({ email: "user@example.org", password: "test-password" });
   assert.deepEqual(result, {
     authenticated: true, persistent: true, secureStorageAvailable: true,
+    storageStatus: "available",
     user: { userId: 8, email: "user@example.org", roles: ["user"], permissions: ["read"], orgId: 4 },
   });
   const encrypted = fs.readFileSync(session.storePath);
   assert.equal(encrypted.includes(Buffer.from("raw-refresh-secret")), false);
-  assert.deepEqual(Object.keys(result), ["authenticated", "persistent", "secureStorageAvailable", "user"]);
+  assert.deepEqual(Object.keys(result), ["authenticated", "persistent", "secureStorageAvailable", "storageStatus", "user"]);
   assert.equal(session.getAccessTokenForTrustedRequest(), "raw-access-secret");
+});
+
+test("login does not retain or persist tokens until Auth validates the session", async t => {
+  const session = fixture(t, async url => url.endsWith("/auth/login")
+    ? response(200, { access_token: "untrusted-access", refresh_token: "untrusted-refresh" })
+    : response(401, { valid: false }));
+  await assert.rejects(session.login({ email: "a@example.org", password: "password" }), /rejected the session/);
+  assert.equal(session.snapshot().authenticated, false);
+  assert.equal(session.getAccessTokenForTrustedRequest(), null);
+  assert.equal(fs.existsSync(session.storePath), false);
 });
 
 test("invalid login errors are sanitized and malformed input is rejected before network access", async t => {
@@ -77,15 +89,22 @@ test("invalid login errors are sanitized and malformed input is rejected before 
   assert.equal(requests, 1);
 });
 
-test("storage unavailability never falls back to plaintext and reports nonpersistent session", async t => {
-  const session = fixture(t, async url => url.endsWith("/auth/login")
-    ? response(200, { access_token: "access", refresh_token: "refresh" })
-    : response(200, { valid: true, user_id: 1, email: "a@example.org" }), { safeStorage: secureStorage(false) });
-  const result = await session.login({ email: "a@example.org", password: "password" });
-  assert.equal(result.authenticated, true);
-  assert.equal(result.persistent, false);
-  assert.equal(result.secureStorageAvailable, false);
+test("storage unavailability fails closed without a plaintext or in-memory session", async t => {
+  let requests = 0;
+  const session = fixture(t, async () => {
+    requests += 1;
+    return response(200, { access_token: "access", refresh_token: "refresh" });
+  }, { safeStorage: secureStorage(false) });
+  await assert.rejects(session.login({ email: "a@example.org", password: "password" }), error => {
+    assert.equal(error.code, "AUTH_SECURE_STORAGE");
+    assert.equal(error.message, "Secure session storage is unavailable");
+    return true;
+  });
+  assert.equal(session.snapshot().authenticated, false);
+  assert.equal(session.snapshot().storageStatus, "unavailable");
+  assert.equal(session.getAccessTokenForTrustedRequest(), null);
   assert.equal(fs.existsSync(session.storePath), false);
+  assert.equal(requests, 0);
 });
 
 test("Linux basic_text storage is rejected as not protected by the OS key store", async t => {
@@ -94,10 +113,11 @@ test("Linux basic_text storage is rejected as not protected by the OS key store"
   const session = fixture(t, async url => url.endsWith("/auth/login")
     ? response(200, { access_token: "access", refresh_token: "refresh" })
     : response(200, { valid: true, user_id: 1, email: "a@example.org" }), { safeStorage: storage });
-  const result = await session.login({ email: "a@example.org", password: "password" });
-  assert.equal(result.authenticated, true);
-  assert.equal(result.persistent, false);
-  assert.equal(result.secureStorageAvailable, false);
+  await assert.rejects(session.login({ email: "a@example.org", password: "password" }), /Secure session storage is unavailable/);
+  assert.equal(session.snapshot().authenticated, false);
+  assert.equal(session.snapshot().secureStorageAvailable, false);
+  assert.equal(session.snapshot().storageStatus, "unavailable");
+  assert.equal(session.getAccessTokenForTrustedRequest(), null);
   assert.equal(fs.existsSync(session.storePath), false);
 });
 
@@ -130,6 +150,29 @@ test("MFA completion validates the returned session before exposing profile meta
   assert.equal(result.user.email, "mfa@example.org");
   assert.equal(JSON.stringify(result).includes("mfa-access"), false);
   assert.equal(session.getAccessTokenForTrustedRequest(), "mfa-access");
+});
+
+test("an invalid or interrupted MFA attempt does not expose or discard the opaque challenge", async t => {
+  let attempts = 0;
+  const session = fixture(t, async url => {
+    if (url.endsWith("/auth/login")) return response(200, { mfa_required: true, challenge_token: "server-challenge", methods: ["totp"] });
+    if (url.endsWith("/users/me/mfa/challenge")) {
+      attempts += 1;
+      if (attempts === 1) return response(401, { detail: "backend detail must not escape" });
+      return response(200, { access_token: "access", refresh_token: "refresh" });
+    }
+    return response(200, { valid: true, user_id: 10, email: "mfa@example.org" });
+  });
+  const challenge = await session.login({ email: "mfa@example.org", password: "password" });
+  await assert.rejects(session.completeMfa({ challengeId: challenge.challengeId, code: "123456" }), error => {
+    assert.equal(error.message, "MFA verification failed");
+    assert.equal(error.message.includes("backend detail"), false);
+    return true;
+  });
+  assert.equal(session.challengeTokens.has(challenge.challengeId), true);
+  const result = await session.completeMfa({ challengeId: challenge.challengeId, code: "654321" });
+  assert.equal(result.authenticated, true);
+  assert.equal(session.challengeTokens.has(challenge.challengeId), false);
 });
 
 test("MFA recovery codes retain their existing alphanumeric hyphenated format", async t => {
@@ -187,6 +230,34 @@ test("transient restore failure preserves the encrypted session for a later retr
   assert.equal(calls, 1);
 });
 
+test("unavailable secure storage preserves only opaque ciphertext for later recovery", async t => {
+  const session = fixture(t, async () => { throw new Error("network must not be used"); }, { safeStorage: secureStorage(false) });
+  session.fs.mkdirSync(session.userDataPath, { recursive: true });
+  session.fs.writeFileSync(session.storePath, Buffer.from("opaque-encrypted-session"));
+  const snapshot = await session.restore();
+  assert.equal(snapshot.authenticated, false);
+  assert.equal(snapshot.storageStatus, "unavailable");
+  assert.equal(session.restored, false);
+  assert.equal(fs.existsSync(session.storePath), true);
+  assert.equal(session.getAccessTokenForTrustedRequest(), null);
+});
+
+test("restore fails closed if refreshed session material cannot be protected", async t => {
+  let encryptionChecks = 0;
+  const storage = secureStorage(true);
+  storage.isEncryptionAvailable = () => ++encryptionChecks < 4;
+  const session = fixture(t, async url => url.endsWith("/auth/refresh")
+    ? response(200, { access_token: "new-access", refresh_token: "new-refresh" })
+    : response(200, { valid: true, user_id: 2, email: "restored@example.org" }), { safeStorage: storage });
+  session.fs.mkdirSync(session.userDataPath, { recursive: true });
+  session.fs.writeFileSync(session.storePath, Buffer.from(`protected:${Buffer.from("stored-refresh").toString("base64")}`));
+  const snapshot = await session.restore();
+  assert.equal(snapshot.authenticated, false);
+  assert.equal(snapshot.storageStatus, "error");
+  assert.equal(session.getAccessTokenForTrustedRequest(), null);
+  assert.equal(fs.existsSync(session.storePath), false);
+});
+
 test("corrupt encrypted storage is cleared without plaintext recovery", async t => {
   const session = fixture(t, async () => { throw new Error("should not contact Auth before decrypting"); });
   session.safeStorage.decryptString = () => { throw new Error("invalid ciphertext"); };
@@ -194,6 +265,7 @@ test("corrupt encrypted storage is cleared without plaintext recovery", async t 
   session.fs.writeFileSync(session.storePath, Buffer.from("not-protected-data"));
   const snapshot = await session.restore();
   assert.equal(snapshot.authenticated, false);
+  assert.equal(snapshot.storageStatus, "corrupt");
   assert.equal(fs.existsSync(session.storePath), false);
   assert.equal(session.getAccessTokenForTrustedRequest(), null);
 });
