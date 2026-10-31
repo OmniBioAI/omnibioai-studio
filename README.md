@@ -1,12 +1,12 @@
 # OmniBioAI Studio
 
-> Desktop orchestration platform for AI-powered bioinformatics computation
+> Browser and desktop workspace for AI-powered bioinformatics computation
 
-**OmniBioAI Studio** is an Electron desktop app that launches and manages the full OmniBioAI stack — locally, on HPC clusters, or in the cloud — with a single click.
+**OmniBioAI Studio** is the browser and Electron desktop workspace for the OmniBioAI platform. It brings together bioinformatics plugins, AI chat and orchestration, projects, workflows, and platform services; the desktop app can also launch and manage the local stack.
 
 ## System documentation
 
-- [System architecture](docs/SYSTEM_ARCHITECTURE.md) — boundaries, flows, deployment topology, and the current 41-service Compose catalog
+- [System architecture](docs/SYSTEM_ARCHITECTURE.md) — boundaries, flows, deployment topology, and the current 42-service Compose catalog
 - [Security hardening](docs/SECURITY-COMPOSE-HARDENING.md) — production Compose security and development overrides
 - [Integration tests](tests/integration/README.md) — end-to-end test setup
 - [Operations scripts](scripts/README.md) — backup, validation, and deployment utilities
@@ -15,9 +15,11 @@
 
 ## ✨ What's New in v0.8.0-beta
 
-**Platform Consolidation & Security Hardening.** This release consolidates the
-ecosystem and hardens its security foundation; it adds no major new product
-surface. See [docs/CHANGELOG.md](docs/CHANGELOG.md) for details.
+**Platform Consolidation & Security Hardening.** This release consolidated the
+ecosystem and hardened its security foundation. The current Studio experience
+has since grown to include a curated home, dedicated plugin discovery
+categories, and a unified AI chat entry; those current surfaces are described
+below. See [docs/CHANGELOG.md](docs/CHANGELOG.md) for release history.
 
 - 🧭 **Ecosystem consolidation** — every OmniBioAI repository consolidated onto a clean `main` branch
 - 🔐 **Authentication & authorization hardening** — fail-closed token-revocation checks, HMAC-signed IAM identity caches, plugin API authorization and run-ownership enforcement in Workbench
@@ -66,7 +68,7 @@ forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-stud
 ### v0.4.0-beta ✅
 - **Version unification** — all UI components, sidebar, badge, logs, and settings now consistently report `v0.4.0-beta`
 - **23 services fully operational** — all layers (Data, Security Control Plane, Execution, AI, Developer) green
-- **1,010 registered tools** — confirmed live in Jobs → Registered Tools panel *(platform-wide tooling, including HPC/cloud/orchestration integrations, totals 11,000+ — see Bioinformatics Tools section below)*
+- **1,010 registered tools** — deployment snapshot recorded for this release *(historical count; the live catalog varies by deployment)*
 - **7 execution servers** — `local_real`, `slurm_local`, `aws_batch_prod`, `aws_batch_demo`, `azure_batch_demo`, `gcp_batch_demo`, `enrichment_remote`
 - **claude-sonnet-4-20250514** as default orchestrator model in LLM configuration
 - **IDE Services all RUNNING** — JupyterLab (:8888), RStudio (:8787), VS Code Server (:8083)
@@ -116,7 +118,15 @@ forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-stud
 
 ### Workbench — Module Overview
 ![Workbench](docs/screenshots/workbench.png)
-*Workbench catalog across 6 sections; a fully authorized user sees 18 Platform Services and 12 Security Control Plane modules*
+*Studio home with Platform Services, Security Control Plane, and the six curated Core Platform plugins; the sidebar separates Integrations, Plugins, Omics & Analysis, and Agentic discovery.*
+
+### Ask OmniBioAI — Documentation Chat
+![Ask OmniBioAI documentation chat](docs/screenshots/Ask_doc.png)
+*Documentation-grounded chat with citations, available from the unified Ask OmniBioAI entry.*
+
+### OmniBioAI Agent — Tools & Workflows
+![OmniBioAI Agent tools and workflows](docs/screenshots/Agent_tools_workflows.png)
+*The Agent tab shares the chat entry while keeping its tool/workflow orchestration session separate from Ask history.*
 
 ### LLM Configuration
 ![LLM](docs/screenshots/llm.png)
@@ -136,7 +146,7 @@ forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-stud
 
 ### Services — Full Stack
 ![Services](docs/screenshots/services.png)
-*40 Compose services across Data, Security Control Plane, Execution, AI, and Developer layers*
+*Services grouped across the Data, Security Control Plane, Execution, AI, and Developer layers; the live set varies by release configuration.*
 
 ### Live Logs
 ![Logs](docs/screenshots/logs.png)
@@ -144,7 +154,7 @@ forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-stud
 
 ### Jobs — TES Execution Engine
 ![Jobs](docs/screenshots/jobs.png)
-*1,010 registered tools · 7 execution servers (local, Slurm, AWS, Azure, GCP, enrichment_remote)*
+*Inspect registered tools, execution backends, and job activity available to the current deployment.*
 
 ### Settings
 ![Settings](docs/screenshots/settings.png)
@@ -306,75 +316,74 @@ for the full rationale.
 
 ---
 
-## 🧰 Bioinformatics Tools (11,000+)
+## 🧰 Tools, Plugins & Execution
 
-**1,010 tools** were recorded in the latest deployment snapshot (verify the current value in Jobs → Registered Tools). The broader platform catalog — including execution, cloud, HPC, and orchestration tooling across every service — is reported as **11,000+**.
-
-### Execution Servers (7)
-| Server ID | Adapter |
-|-----------|---------|
-| local_real | local |
-| slurm_local | slurm |
-| aws_batch_prod | aws_batch |
-| aws_batch_demo | aws_batch |
-| azure_batch_demo | azure_batch |
-| gcp_batch_demo | gcp_batch |
-| enrichment_remote | http_toolserver |
-
-### HTTP API Tools (510)
-Direct REST integrations — no compute needed: Ensembl, NCBI, ClinVar, gnomAD, UniProt, AlphaFold, KEGG, Reactome, PubMed, ChEMBL, DrugBank, CellxGene, HMDB, and 280+ more.
-
-### Slurm/HPC Tools (500)
-Compute tools: BWA, STAR, HISAT2, GATK, DeepVariant, DESeq2, Seurat, Scanpy, PyTorch, MSFragger, and 90+ more.
+Workbench plugins and registered execution tools are deployment-dependent and
+continue to evolve, so Studio does not treat a README count as the catalog
+source of truth. Browse **Discover → Plugins**, **Omics & Analysis**, and
+**Agentic** for plugin experiences; use **Jobs** and **Workflows** for tool
+execution and orchestration. Available tools and execution backends depend on
+the services, permissions, and credentials configured for your deployment.
 
 ---
 
-## 🧬 Workbench Modules
+## 🧬 Studio Navigation & Workbench
 
-Counts below are the definitions rendered for a fully authorized user; permission gates may hide administrative tiles from other users.
+Studio's home presents curated **Platform Services**, **Security Control Plane**,
+and **Core Platform** sections. Permission-gated destinations may be hidden
+from users who do not have access; the owning service still enforces access on
+every request.
 
-### Platform Services (18 modules)
-Getting Started · Video Tutorials · Workbench · Control Center · Admin Console · Neo4j Browser · LLM Runtime · Entitlements · Billing · LIMS · Model Registry · RAG / Lit AI · TES / Jobs · Tool Images · Launcher · Workflows · Dev Hub · Metrics
+The Core Platform section is intentionally a short set of six frequently used
+Workbench tools: **Genome Viewer**, **Dataset Catalog**, **Job Monitor**,
+**Plugin Manager**, **Activity Explorer**, and **Workflow Runner**. It is a
+curated launch area, not the full plugin catalog.
 
-### Security Control Plane (12 modules)
-API Gateway · Auth Service · Policy Engine · HPC Policy · Security Audit · OPA · API Keys & Service Accounts · Compliance Center · Security Posture · Tool Executor · Audit Explorer · Audit Logs
+### Discover
 
-### Core Platform (6 modules)
-Home · OnboardAI · OmniBioAgent · Job Monitor · Plugin Manager · Admin
+The Discover navigation keeps the major catalogs separate:
 
-### Workflows (6 modules)
-Workflow Runner · Workflow Builder · Agent Studio · Pipeline Dashboard · Multi-Agent Orchestrator · Workflow Compiler
+- **Explore** — browse scientific domains and platform resources.
+- **Integrations** — external bioinformatics and data-provider connections.
+- **Plugins** — browse the broader Workbench plugin catalog.
+- **Omics & Analysis** — find analysis tools by omics area.
+- **Agentic** — discover agentic AI and orchestration tools.
 
-### Omics Analysis (6 modules)
-RNA-Seq · Single Cell (scRNA-Seq) · Exome Analysis · FASTQ QC · Proteomics · Metabolomics
+Catalog membership and counts can change as Workbench evolves; use the live
+Studio catalog for the current list rather than relying on a README count.
 
-### AI & Intelligence (6 modules)
-Drug Target AI · Literature AI · Pathway Enrichment · Bio Hypothesis · Literature Summarizer · Bio Narrator AI
+### Unified AI workspace
+
+The **Ask OmniBioAI** navigation entry opens one workspace with two tabs:
+
+- **Ask · Documentation** answers from published OmniBioAI documentation and
+  cites its sources.
+- **Agent · Tools & workflows** can analyze data, run bioinformatics tools,
+  search literature, and plan workflows.
+
+The two experiences retain separate conversation histories and their own
+service/model/data policies; the unified entry does not merge their backends.
 
 ---
 
-## 🖥 Runtime Modes
+## 🖥 Runtime & Execution Configuration
 
-| Mode | Status | Description |
-|------|--------|--------------|
-| **Beta Cloud** | ✅ Available | Connects to `webstudio.omnibioai.org` — no local Docker needed |
-| Local | ✅ Available | Docker-based local stack; GPU/CPU support depends on host configuration |
-| HPC | Coming soon | Slurm / PBS / LSF, Apptainer remote execution |
-| Cloud | Coming soon | AWS Batch / Azure Batch, elastic auto-scaling |
-| Hybrid | Coming soon | Multi-backend orchestration, policy-driven scheduling |
+The Runtime Mode selector currently offers **Beta Cloud**, which connects to
+`webstudio.omnibioai.org` without requiring a local Docker stack. Studio also
+provides configuration pages for local LLMs, cloud providers, and HPC
+connection settings. Actual execution options depend on the deployment's
+enabled services, credentials, and backend availability; see **Jobs** and
+**Workflows** for the options available to your account.
 
 ---
 
 ## 🤖 LLM Configuration
 
-| Provider | Model | Notes |
-|----------|-------|-------|
-| Ollama (local) | deepseek-coder:latest | Default local model; GPU-accelerated |
-| Embedding | nomic-embed-text | Local embedding model |
-| Claude API | claude-sonnet-4-20250514 | Default orchestrator model |
-| OpenAI / Codex | gpt-4o | Optional cloud fallback |
-
-Runtime options: Offline-first mode, Enable RAG (vector retrieval), Default Orchestrator Model selector.
+Studio's LLM settings expose local Ollama models, Claude API, and OpenAI / Codex.
+Model names and provider availability are configurable and may be supplied by
+your organization; the UI also includes GPU acceleration, embedding-model,
+offline-first, RAG, and default-orchestrator settings. Provider credentials
+are managed by the organization rather than stored in Studio.
 
 ---
 
@@ -578,7 +587,7 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 
 | Repository | Role |
 |------------|------|
-| `omnibioai` | Main Django workbench + 351 plugins |
+| `omnibioai` | Main Django Workbench and plugin catalog |
 | `omnibioai-api-gateway` | Zero-trust API gateway |
 | `omnibioai-auth` | JWT authentication service |
 | `omnibioai-policy-engine` | RBAC/ABAC authorization |
@@ -588,7 +597,7 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 | `omnibioai-toolserver` | FastAPI tool API |
 | `omnibioai-lims` | Lab data management |
 | `omnibioai-model-registry` | ML model versioning |
-| `omnibioai-control-center` | Health + image dashboard |
+| `omnibioai-control-center` | Operations reporting, platform health, and administrative surfaces |
 | `omnibioai-rag` | PubMed RAG pipeline |
 | `omnibioai-dev-hub` | Knowledge graph + embeddings |
 | `omnibioai-workflow-bundles` | WDL/Nextflow/Snakemake bundles |
