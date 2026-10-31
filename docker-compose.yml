@@ -1377,7 +1377,9 @@ services:
         # Reports and coverage write to work/out, so keep this bind writable.
         - type: bind
           source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
-          target: /workspace/work
+          # /workspace/work resolves through the repository symlink, so mount
+          # its final target to make the reports visible inside this service.
+          target: /mnt/nas/omnibioai/work
           bind:
             create_host_path: false
         - ${MACHINE_DIR}/omnibioai-ecosystem-regression/status/regression-health.json:/app/data/regression-health.json:ro
