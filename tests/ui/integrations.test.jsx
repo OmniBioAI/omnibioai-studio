@@ -30,6 +30,14 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); sessionStorage.clear(); });
 
 describe("Integrations page", () => {
+  it("publishes the live provider count for the Discover navigation badge", async () => {
+    const onProviderCountChange = vi.fn();
+    render(<Integrations onProviderCountChange={onProviderCountChange} />);
+    const heading = await screen.findByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent("Integrations (3)");
+    expect(onProviderCountChange).toHaveBeenCalledWith(3);
+  });
+
   it("renders the provider-level catalog, aggregation, loading state, and canonical capabilities", async () => {
     render(<Integrations />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading integrations");

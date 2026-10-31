@@ -65,6 +65,8 @@ const EXPLORE_PAGE = 22;
 const INTEGRATIONS_PAGE = 30;
 const MEMBERSHIP_PLANS_PAGE = 31;
 const ADMIN_CONSOLE_PAGE = 33;
+const PLUGINS_PAGE = 34;
+const AGENTIC_PAGE = 35;
 
 const BASE_NAV = [
   { section: null, items: [{ name:"Studio", idx:7 }] },
@@ -84,6 +86,8 @@ const BASE_NAV = [
   { section: "Discover", items: [
     { name:"Explore", idx: EXPLORE_PAGE },
     { name:"Integrations", idx: INTEGRATIONS_PAGE },
+    { name:"Plugins", idx: PLUGINS_PAGE },
+    { name:"Agentic", idx: AGENTIC_PAGE },
   ]},
   { section: "Setup",   items: [
     { name:"Mode",      idx:0 },
@@ -129,6 +133,7 @@ const PAGE_LABELS = [
   "Code", "Workflows",
   "Projects", "Artifacts", "Explore", null, null, null, "Connections",
   "Privacy & data", "Usage", "Help & support", "Integrations", null, "Membership & storage", "Admin Console",
+  "Plugins", "Agentic",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -154,6 +159,8 @@ const STORAGE_PATH = "/studio/account/membership-storage";
 const HELP_PATH = "/studio/account/help";
 const HELP_PAGE = 29;
 const INTEGRATIONS_PATH = "/studio/integrations";
+const PLUGINS_PATH = "/studio/plugins";
+const AGENTIC_PATH = "/studio/agentic";
 const BILLING_PATH = "/studio/account/organization/billing";
 const DEVELOPER_PATH = "/studio/account/organization/api-keys";
 const ROLES_PATH = "/studio/account/organization/members-roles";
@@ -183,6 +190,8 @@ const PATH_TO_PAGE = {
   [ARTIFACTS_PATH]:   ARTIFACTS_PAGE,
   [EXPLORE_PATH]:     EXPLORE_PAGE,
   [INTEGRATIONS_PATH]: INTEGRATIONS_PAGE,
+  [PLUGINS_PATH]: PLUGINS_PAGE,
+  [AGENTIC_PATH]: AGENTIC_PAGE,
   [BILLING_PATH]: 12,
   [DEVELOPER_PATH]: 14,
   [ADMIN_CONSOLE_PATH]: ADMIN_CONSOLE_PAGE,
@@ -296,6 +305,8 @@ export default function App() {
     setServiceState(next ? { ...next, openId: ++serviceOpenId.current } : null);
   }
   const [workbenchState, setWorkbenchState] = useState({ query: "", category: "__all__", focusSlug: null });
+  const [pluginReturnPage, setPluginReturnPage] = useState(13);
+  const [integrationCount, setIntegrationCount] = useState(null);
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [accountIdentity, setAccountIdentity] = useState(null);
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
@@ -363,7 +374,7 @@ export default function App() {
 
   // ─── Listen for navigate events (from Workbench page) ──
   useEffect(() => {
-    const handler = (e) => setStep(e.detail === 10 ? 4 : e.detail);
+    const handler = (e) => handleNavClick(e.detail === 10 ? 4 : e.detail);
     window.addEventListener("navigate", handler);
     return () => window.removeEventListener("navigate", handler);
   }, []);
@@ -451,7 +462,12 @@ export default function App() {
   // an entry point to sign in — only hide it once we positively know the
   // signed-in user lacks manage_roles.
   const showRolesNav = currentUser === null || currentUser.permissions?.includes("manage_roles");
-  const nav = buildNav(showRolesNav);
+  const nav = buildNav(showRolesNav).map(section => ({
+    ...section,
+    items: section.items.map(item => item.name === "Integrations" && integrationCount !== null
+      ? { ...item, badge: integrationCount }
+      : item),
+  }));
 
   const pages = [
     <Mode      config={config} setConfig={setConfig} currentUser={currentUser} />,
@@ -509,12 +525,16 @@ export default function App() {
     <AccountLayout activeSection="help" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountHelp />
     </AccountLayout>,
-    <Integrations onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} />,
+    <Integrations onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} onProviderCountChange={setIntegrationCount} />,
     null,
     <AccountLayout activeSection="membership" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountMembershipStorage currentUser={currentUser} />
     </AccountLayout>,
     <StandaloneAppLaunch />,
+    <Workbench view="plugins" state={workbenchState} onStateChange={setWorkbenchState}
+      onOpen={openWorkbenchPlugin} />,
+    <Workbench view="agentic" state={workbenchState} onStateChange={setWorkbenchState}
+      onOpen={openWorkbenchPlugin} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -540,6 +560,7 @@ export default function App() {
     const slug = plugin?.slug;
     if (!slug) return;
     const next = new URL(window.location.href);
+    setPluginReturnPage(step === PLUGINS_PAGE || step === AGENTIC_PAGE ? step : 13);
     next.pathname = studioPluginPath(slug);
     next.search = "";
     next.hash = "";
@@ -549,12 +570,12 @@ export default function App() {
 
   function handlePluginBack() {
     const url = new URL(window.location.href);
-    url.pathname = STUDIO_PATH;
+    url.pathname = PAGE_TO_PATH[pluginReturnPage] || STUDIO_PATH;
     url.search = "";
     url.hash = "";
     window.history.replaceState(window.history.state, "", url.pathname);
     setService(null);
-    setStep(13);
+    setStep(pluginReturnPage);
   }
 
   function handleNavClick(idx) {
@@ -573,6 +594,9 @@ export default function App() {
       return;
     }
     setService(null);
+    if (idx === PLUGINS_PAGE || idx === AGENTIC_PAGE) {
+      setWorkbenchState({ query: "", category: "__all__", focusSlug: null });
+    }
     setStep(idx);
     if (idx === 7 || PAGE_TO_PATH[idx] !== undefined || KNOWN_PAGE_PATHS.includes(window.location.pathname)) {
       const url = new URL(window.location.href);

@@ -108,7 +108,7 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
               }}>
                 {section}
               </div>}
-              {items.map(({ name, idx, disabled }) => {
+              {items.map(({ name, idx, disabled, badge }) => {
                 const isActive = !disabled && step === idx;
                 const Icon = NAV_ICONS[name];
                 return (
@@ -137,6 +137,11 @@ export default function MobileNav({ nav, step, setStep, currentUser, open, onClo
                       {Icon && <Icon />}
                     </span>
                     {name}
+                    {badge !== undefined && <span aria-label={`${badge} integrations`} style={{
+                      marginLeft:"auto", fontSize:"var(--font-size-xs)", fontFamily:"var(--mono)",
+                      color:"var(--color-text-muted)", background:"var(--bg3)",
+                      border:"1px solid var(--border)", borderRadius:999, padding:"1px 6px",
+                    }}>{badge}</span>}
                     {disabled && (
                       <span style={{
                         marginLeft: "auto", fontSize: "var(--font-size-xs)", fontFamily: "var(--mono)",

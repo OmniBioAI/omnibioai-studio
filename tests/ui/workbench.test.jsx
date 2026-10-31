@@ -2,17 +2,30 @@ import React, { useState } from "react";
 import { render, screen, within, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Workbench from "../../src/ui/pages/Workbench";
+import Workbench, { categoriesForDiscoveryView } from "../../src/ui/pages/Workbench";
 import { catalog, catalogResponse } from "./workbench-fixture";
 
-function Harness({ onOpen = vi.fn(), initial = {} }) {
+function Harness({ onOpen = vi.fn(), initial = {}, view = "all" }) {
   const [state, setState] = useState({ query: "", category: "__all__", focusSlug: null, ...initial });
-  return <Workbench state={state} onStateChange={setState} onOpen={onOpen} />;
+  return <Workbench state={state} onStateChange={setState} onOpen={onOpen} view={view} />;
 }
 beforeEach(() => vi.stubGlobal("fetch", vi.fn().mockResolvedValue(catalogResponse())));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("Native Workbench catalog", () => {
+  it("partitions the plugin catalog into integrations, general plugins, and agentic entries without duplicates", () => {
+    const categories = [
+      { key: "integration", title: "Integrations", plugins: [{ slug: "github", category: "integration" }] },
+      { key: "reference_db", title: "Reference Databases", plugins: [{ slug: "pubmed", category: "reference_db" }] },
+      { key: "ai", title: "AI", plugins: [{ slug: "bio_agent", category: "ai" }] },
+      { key: "analysis", title: "Analysis", plugins: [{ slug: "rnaseq", category: "analysis" }] },
+    ];
+    const partitions = ["integrations", "plugins", "agentic"].map(view =>
+      categoriesForDiscoveryView(categories, view).flatMap(category => category.plugins.map(plugin => plugin.slug)));
+    expect(partitions).toEqual([["github", "pubmed"], ["rnaseq"], ["bio_agent"]]);
+    expect(partitions.flat().sort()).toEqual(["bio_agent", "github", "pubmed", "rnaseq"]);
+  });
+
   it("renders server-ordered cards, metadata, and category counts", async () => {
     const onOpen = vi.fn();
     render(<Harness onOpen={onOpen} />);
@@ -107,5 +120,18 @@ describe("Native Workbench catalog", () => {
     render(<Harness />);
     expect(await screen.findByText('<img src=x onerror="alert(1)">')).toBeInTheDocument();
     expect(document.querySelector(".native-workbench img")).toBeNull();
+  });
+
+  it("shows the Agentic catalog as a dedicated AI plugin view", async () => {
+    const data = structuredClone(catalog);
+    data.categories[1].plugins.push({ slug: "bio_agent", title: "OmniBioAgent", description: "Agent assistant", version: "1.0", category: "ai", launch_path: "/plugins/bio_agent/" });
+    data.categories[1].count = data.categories[1].plugins.length;
+    data.total_count += 1;
+    fetch.mockResolvedValue({ ok: true, json: async () => data });
+    render(<Harness view="agentic" />);
+    expect(await screen.findByRole("heading", { level: 1, name: "Agentic" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open OmniBioAgent" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Showing 1 of 1 plugins");
+    expect(screen.queryByRole("button", { name: "Open RNA Analysis" })).not.toBeInTheDocument();
   });
 });
