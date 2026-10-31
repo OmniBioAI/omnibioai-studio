@@ -1,0 +1,76 @@
+{
+  "product": "OmniBioAI Studio",
+  "version": "0.8.1",
+  "qualification_status": "NO-GO",
+  "release_published": false,
+  "source_commit": "6f6c8e8932e559d2a7305d37c7d32caadc0dfb9d",
+  "source_base_commit": "332a5df4dbbad40b86245faf55ee15c2b20bb93c",
+  "qualification_branch": "qualification/studio-v0.8.1-final",
+  "scanner_exception_commit": "798fde0194bf2876efb59fb81fb3f0a67d91b139",
+  "build_environment": {
+    "architecture": "Linux ARM64 (aarch64)",
+    "node": "20.20.2",
+    "npm": "10.8.2",
+    "electron": "42.11.18",
+    "electron_builder": "26.18.1",
+    "containerized": true
+  },
+  "artifacts": [
+    {
+      "filename": "OmniBioAI Studio-0.8.1-arm64.AppImage",
+      "architecture": "arm64",
+      "bytes": 95792562,
+      "sha256": "b9e7aa163c933190746d20569deaa5896b3eecdaac33bc167123eb91c9fa9aa1",
+      "path": "/tmp/obai-studio-node20-qual-results/installers/OmniBioAI Studio-0.8.1-arm64.AppImage",
+      "signature": null,
+      "install_login_verified": false
+    },
+    {
+      "filename": "omnibioai-studio_0.8.1_arm64.deb",
+      "architecture": "arm64",
+      "bytes": 96616072,
+      "sha256": "581cd76fabf424a78d4cfb2a20423f8656312a22554c16078b698ab97bf3612f",
+      "path": "/tmp/obai-studio-node20-qual-results/installers/omnibioai-studio_0.8.1_arm64.deb",
+      "package_name": "omnibioai-studio",
+      "signature": null,
+      "install_remove_verified_in_disposable_container": true,
+      "login_verified": false
+    },
+    {
+      "filename": "omnibioai-studio-0.8.1.aarch64.rpm",
+      "architecture": "aarch64",
+      "bytes": 84452501,
+      "sha256": "a6f833ba793cf88bc1fdfc4d8e72be573616b1a84012035d60e82d843bda9654",
+      "path": "/tmp/obai-studio-node20-qual-results/installers/omnibioai-studio-0.8.1.aarch64.rpm",
+      "package_name": "omnibioai-studio",
+      "signature": null,
+      "install_remove_verified_in_disposable_container": true,
+      "login_verified": false
+    }
+  ],
+  "qualification_evidence": {
+    "focused_ui_tests": "51 passed",
+    "full_ui_tests": "2434 passed, 2 skipped",
+    "node20_desktop_build": "passed",
+    "node20_web_pwa_build": "passed",
+    "node20_arm64_packaging_matrix": "unpacked, AppImage, DEB, RPM passed",
+    "full_dependency_audit": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 27,
+      "low": 2
+    },
+    "production_dependency_audit": "0 advisories",
+    "packaged_login": "not tested",
+    "electron_security": "release blocker: insecure browser settings remain"
+  },
+  "platforms_not_qualified": ["Linux x64", "macOS x64", "macOS ARM64", "Windows x64"],
+  "known_limitations": [
+    "Electron webSecurity is disabled and insecure content/webviews are enabled.",
+    "Packaged authentication and session lifecycle are unverified.",
+    "27 moderate and 2 low dependency advisories remain.",
+    "23 redacted full-directory Gitleaks findings are dispositioned but the scan is not clean.",
+    "No signing or notarization evidence."
+  ],
+  "installation_and_rollback": "Do not install this NO-GO candidate. No production upgrade or rollback was performed."
+}
