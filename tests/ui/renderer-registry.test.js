@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RENDERER_REGISTRY, normalizeRendererName, resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+import JobMonitorRenderer from "../../src/ui/components/workbench/JobMonitorRenderer";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -11,6 +12,9 @@ describe("allowlisted Workbench renderer registry", () => {
     expect(resolveWorkbenchRenderer("informational")).toBeTruthy();
   });
 
+  it("uses the dedicated React run-list renderer for Job Monitor", () => {
+    expect(resolveWorkbenchRenderer("query", "job_monitor")).toBe(JobMonitorRenderer);
+  });
   it.each([
     ["dataset_ingest", "generic_runner"],
     ["run_inspector", "generic_runner"],

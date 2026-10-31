@@ -36,7 +36,6 @@ describe("PluginPage capability routing", () => {
     expect(await screen.findByTestId("existing-run")).toHaveTextContent("Existing run: run-42");
     expect(screen.queryByTestId("generic-runner")).not.toBeInTheDocument();
   });
-
   it("allows a plugin-specific React override for a legacy descriptor", async () => {
     loadPluginDescriptor.mockResolvedValue({ schema_version: 1, plugin: { slug: "workflow_builder" }, renderer: "legacy", native_supported: false });
     render(<PluginPage slug="workflow_builder" url="/_svc/workbench/plugins/workflow_builder/" label="Workflow Builder" onBack={vi.fn()} />);

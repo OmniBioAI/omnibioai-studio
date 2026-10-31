@@ -17,6 +17,7 @@ import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
 import PluginPage from "./pages/PluginPage";
+import { resolveWorkbenchPluginDeepLink } from "./lib/pluginDeepLink";
 import Videos        from "./pages/Videos";
 import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
@@ -268,6 +269,10 @@ const EXTERNAL_NAV_SERVICES = {
 };
 
 function getInitialService() {
+  const pluginService = typeof window !== "undefined"
+    ? resolveWorkbenchPluginDeepLink(window.location.search)
+    : null;
+  if (pluginService) return pluginService;
   if (typeof window !== "undefined" && window.location.pathname === VIDEO_STUDIO_PATH) {
     return { url: "/_svc/videos", label: "Videos" };
   }
