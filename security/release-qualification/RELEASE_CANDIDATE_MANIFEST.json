@@ -1,12 +1,15 @@
 {
   "product": "OmniBioAI Studio",
   "version": "0.8.1",
-  "qualification_status": "NO-GO",
-  "latest_qualification_report": "security/release-qualification/RELEASE_QUALIFICATION_V5_REPORT.md",
+  "qualification_status": "GO_FOR_BETA",
+  "latest_qualification_report": "security/release-qualification/RELEASE_EXECUTION_V0.8.1_BETA.md",
+  "historical_qualification_report": "security/release-qualification/RELEASE_QUALIFICATION_V5_REPORT.md",
   "known_issues_document": "security/release-qualification/KNOWN_ISSUES_V0.8.1_BETA.md",
   "release_channel": "beta",
   "latest_qualification_date": "2026-10-31",
-  "release_published": false,
+  "release_publication_status": "authorized_pending_external_publication",
+  "release_tag": "v0.8.1-beta",
+  "release_decision_basis": "Release owner explicitly accepted the documented beta limitations on 2026-10-31. The historical V5 NO-GO evidence remains unchanged and the limitations remain unverified.",
   "source_commit": "3230d41e24c7b8dc1a8813dc336300917e8cceb8",
   "source_tree_clean": "implementation worktree was clean at source commit; qualification reports are a separate follow-up commit",
   "implementation_commit": "3230d41e24c7b8dc1a8813dc336300917e8cceb8",
@@ -76,8 +79,8 @@
     "A previous full-directory Gitleaks scan reported 23 redacted matches with dispositions; fresh V5 full-directory/history scans are blocked and no clean-scan claim is made.",
     "Final-HEAD AppImage and DEB are built; AppImage process initialization passed but visual GUI/login is not qualified. RPM build is blocked because rpmbuild is unavailable. No signing or notarization evidence.",
     "Generated latest-linux-arm64.yml names a hyphenated AppImage while the artifact filename contains spaces; updater metadata must be corrected or explicitly excluded from release scope.",
-    "Qualification reports are recorded in a separate local commit after implementation; no publication occurred.",
+    "Qualification and release-decision reports are recorded after the implementation commit; publication is authorized but external publication is not asserted by this pre-publication manifest.",
     "Public landing page still advertises v0.8.0-beta and must be synchronized after formal publication."
   ],
-  "installation_and_rollback": "Do not install this NO-GO candidate. No production upgrade or rollback was performed."
+  "installation_and_rollback": "Beta evaluation only. Installation, upgrade and rollback qualification was not performed; retain backups and use only checksum-verified artifacts."
 }
