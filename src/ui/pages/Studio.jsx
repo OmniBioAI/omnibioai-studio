@@ -2,6 +2,10 @@ import React, { useState, useEffect, useMemo } from "react";
 import { isElectron, getCurrentUserSync, getCurrentUser, onSessionChange } from "../lib/session";
 import { applicationUrl } from "../lib/workbenchApi";
 import OmniBioAILogo from "../components/brand/OmniBioAILogo";
+import { BROAD_PLUGIN_GROUPS } from "../components/workbench/BroadPluginRenderers";
+import { CENTURY_PLUGIN_GROUPS } from "../components/workbench/CenturyPluginRenderers";
+import { NEXT_CENTURY_PLUGIN_GROUPS } from "../components/workbench/NextCenturyPluginRenderers";
+import { FINAL_PLUGIN_GROUPS } from "../components/workbench/FinalPluginRenderers";
 
 // Permission gate for the Admin Console tile — reuses the same permission
 // string control-center's own backend gates its core admin routes on
@@ -18,6 +22,8 @@ const MANAGE_LICENSES_PERMISSION = "manage_licenses";
 const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
 const PROVENANCE_SLUG = "provenance";
 const PROVENANCE_LAUNCH_PATH = "/plugins/provenance/";
+const ORCHESTRATOR_SLUG = "multi_agent_bio_orchestrator";
+const ORCHESTRATOR_LAUNCH_PATH = "/plugins/multi_agent_bio_orchestrator/";
 
 function openWorkbenchApplication(slug, launchPath, label) {
   window.dispatchEvent(new CustomEvent("open-service", {
@@ -172,36 +178,278 @@ function buildCategories(BASE) {
       name: "Workflows",
       color: "var(--accent2)",
       links: [
-        { label:"Workflow Runner",  url:"/_svc/workbench/plugins/workflow_runner/",            icon:"⚡", desc:"Run workflows"          },
-        { label:"Workflow Builder", url:"/_svc/workbench/plugins/workflow_builder/",           icon:"🔧", desc:"Build workflows"        },
-        { label:"Agent Studio",     url:"/_svc/workbench/plugins/agent-workflows/",            icon:"🤝", desc:"Multi-agent workflows"  },
-        { label:"Pipeline",         url:"/_svc/workbench/pipeline-dashboard/",                 icon:"🔄", desc:"Pipeline dashboard"     },
-        { label:"Multi-Agent Orchestrator", url:"/_svc/workbench/plugins/multi_agent_bio_orchestrator/", icon:"🤖", desc:"Multi-agent biological workflows" },
-        { label:"Workflow Compiler", url:"/_svc/workbench/plugins/workflow_compiler/",         icon:"⚙️", desc:"Compile and optimize workflows" },
+        workbenchPluginLink("Workflow Runner", "workflow_runner", "⚡", "Run workflows"),
+        workbenchPluginLink("Workflow Builder", "workflow_builder", "🔧", "Build workflows"),
+        workbenchPluginLink("Agent Studio", "agent_workflow_studio", "🤝", "Multi-agent workflows"),
+        workbenchPluginLink("Pipeline", "pipeline_dashboard", "🔄", "Pipeline dashboard"),
+        workbenchPluginLink("Multi-Agent Orchestrator", ORCHESTRATOR_SLUG, "🤖", "Multi-agent biological workflows", ORCHESTRATOR_LAUNCH_PATH),
+        workbenchPluginLink("Workflow Compiler", "workflow_compiler", "⚙️", "Compile and optimize workflows"),
       ]
     },
     {
       name: "Omics Analysis",
       color: "var(--accent3)",
       links: [
-        { label:"RNA-Seq",          url:"/_svc/workbench/plugins/rnaseq_analysis/",            icon:"🧬", desc:"RNA-Seq analysis"       },
-        { label:"Single Cell",      url:"/_svc/workbench/plugins/single_cell_analysis/",       icon:"🔬", desc:"scRNA-Seq"              },
-        { label:"Exome Analysis",   url:"/_svc/workbench/plugins/exome_analysis/",             icon:"🧫", desc:"Exome sequencing"       },
-        { label:"FASTQ QC",         url:"/_svc/workbench/plugins/fastq_qc/",                   icon:"✅", desc:"Quality control"        },
-        { label:"Proteomics",       url:"/_svc/workbench/plugins/proteomics/",                 icon:"⚗️", desc:"Proteomics analysis"    },
-        { label:"Metabolomics",     url:"/_svc/workbench/plugins/metabolomics_analysis/",      icon:"🔭", desc:"Metabolomics"           },
+        workbenchPluginLink("RNA-Seq", "rnaseq_analysis", "🧬", "RNA-Seq analysis"),
+        workbenchPluginLink("Single Cell", "single_cell_analysis", "🔬", "scRNA-Seq"),
+        workbenchPluginLink("Exome Analysis", "exome_analysis", "🧫", "Exome sequencing"),
+        workbenchPluginLink("FASTQ QC", "fastq_qc", "✅", "Quality control"),
+        workbenchPluginLink("Proteomics", "proteomics", "⚗️", "Proteomics analysis"),
+        workbenchPluginLink("Metabolomics", "metabolomics_importer", "🔭", "Import metabolomics data"),
       ]
     },
+    {
+      name: "Research Essentials",
+      color: "var(--accent-platform)",
+      links: [
+        workbenchPluginLink("Dataset Ingest", "dataset_ingest", "📥", "Validate and register scientific data"),
+        workbenchPluginLink("Run Inspector", "run_inspector", "🔎", "Runs, logs, artifacts and evidence"),
+        workbenchPluginLink("MultiQC", "multiqc_wrapper", "📈", "Aggregate and compare QC reports"),
+        workbenchPluginLink("Reference Genomes", "reference_genome_manager", "🧬", "Genomes, annotations and indexes"),
+        workbenchPluginLink("DESeq2", "deseq2_analysis", "📊", "Differential expression analysis"),
+        workbenchPluginLink("Variant Annotation", "variant_annotation", "🧫", "Annotate variants with local evidence"),
+        workbenchPluginLink("Molecular Docking", "molecular_docking", "🧪", "Validate, dock and rank poses"),
+      ]
+    },
+    {
+      name: "Data & Reproducibility",
+      color: "var(--accent2)",
+      links: [
+        workbenchPluginLink("Object Registry", "object_registry_explorer", "🗂️", "Browse governed scientific objects"),
+        workbenchPluginLink("Artifact Manager", "artifact_manager", "📦", "Versioned artifacts and provenance"),
+        workbenchPluginLink("File Transfers", "file_transfer_manager", "↔️", "Secure resumable data transfers"),
+        workbenchPluginLink("Data Lineage", "data_lineage_tracker", "🕸️", "Trace datasets, tools and executions"),
+        workbenchPluginLink("Cost Estimator", "resource_cost_estimator", "🧮", "Plan compute resources and cost"),
+      ]
+    },
+    {
+      name: "Advanced Analysis",
+      color: "var(--accent3)",
+      links: [
+        workbenchPluginLink("Omics Harmonizer", "omics_data_qc_harmonizer", "🧬", "Cross-omics QC and harmonization"),
+        workbenchPluginLink("GSEA", "gsea_enrichment", "📉", "Ranked-gene pathway enrichment"),
+        workbenchPluginLink("Scanpy Clustering", "scanpy_clustering", "🔬", "Single-cell UMAP and clustering"),
+        workbenchPluginLink("Spatial Analysis", "spatial_analysis", "🗺️", "Visium spatial transcriptomics"),
+        workbenchPluginLink("AlphaFold", "alphafold", "🧩", "Protein structure prediction"),
+      ]
+    },
+    {
+      name: "Scientific Evidence",
+      color: "#a78bfa",
+      links: [
+        workbenchPluginLink("GEO Search", "geo_search", "🔎", "Discover expression datasets"),
+        workbenchPluginLink("PubMed Search", "pubmed_search", "📚", "Search literature with evidence"),
+        workbenchPluginLink("GWAS Catalog", "gwas_catalog_search", "🧬", "Variant-trait associations"),
+        workbenchPluginLink("ChEMBL Search", "chembl_search", "💊", "Compounds, targets and bioactivity"),
+        workbenchPluginLink("CIViC", "civic", "🏥", "Curated cancer variant evidence"),
+      ]
+    },
+    {
+      name: "Research AI & Clinical",
+      color: "var(--accent)",
+      links: [
+        workbenchPluginLink("Evidence Agent", "literature_evidence_agent", "📑", "Claim-level evidence synthesis"),
+        workbenchPluginLink("Experimental Design", "experimental_design_agent", "🧪", "Controls, confounders and statistics"),
+        workbenchPluginLink("Biomarker Agent", "biomarker_discovery_agent", "🎯", "Candidate ranking and validation"),
+        workbenchPluginLink("Variant Interpretation", "variant_interpretation_agent", "🧬", "Evidence-aware variant reasoning"),
+        workbenchPluginLink("Clinical Reports", "clinical_report_generator", "📋", "Auditable clinical report generation"),
+      ]
+    },
+    {
+      name: "Data Operations",
+      color: "var(--accent-platform)",
+      links: [
+        workbenchPluginLink("Data Manager", "data_manager", "🗄️", "Governed dataset operations"),
+        workbenchPluginLink("Integrity Manager", "checksum_integrity_manager", "🔐", "Checksums and verification evidence"),
+        workbenchPluginLink("Storage Quotas", "storage_quota_manager", "💾", "Usage, forecasting and guidance"),
+        workbenchPluginLink("FAIR Packager", "fair_data_packager", "📦", "RO-Crate and BagIt packaging"),
+        workbenchPluginLink("Format Converter", "format_converter", "🔄", "Validated scientific conversion"),
+      ]
+    },
+    {
+      name: "Workflow Governance",
+      color: "var(--accent2)",
+      links: [
+        workbenchPluginLink("Workflow Validator", "workflow_validator", "✅", "Validate workflow readiness"),
+        workbenchPluginLink("PDF Reports", "pdf_report_builder", "📄", "Reproducible scientific reports"),
+        workbenchPluginLink("Job Queue", "job_queue_manager", "📋", "Jobs, queues and dependencies"),
+        workbenchPluginLink("Environments", "environment_manager", "🧰", "Software and container readiness"),
+        workbenchPluginLink("Collaboration", "collaboration", "🤝", "Workspaces, sharing and activity"),
+      ]
+    },
+    {
+      name: "Analysis & Visualization",
+      color: "var(--accent3)",
+      links: [
+        workbenchPluginLink("Counts QC", "counts_matrix_qc", "✅", "Count-matrix sample quality"),
+        workbenchPluginLink("Volcano Plot", "volcano_plot", "🌋", "Differential-expression plotting"),
+        workbenchPluginLink("Expression Heatmap", "heatmap_generator", "🔥", "Clustered expression heatmaps"),
+        workbenchPluginLink("PCA", "pca_analysis", "📉", "Dimensionality reduction"),
+        workbenchPluginLink("Differential Abundance", "differential_abundance", "🦠", "Microbiome group comparison"),
+      ]
+    },
+    {
+      name: "Advanced Biology",
+      color: "#a78bfa",
+      links: [
+        workbenchPluginLink("Immune Deconvolution", "immune_deconvolution", "🛡️", "Estimate immune composition"),
+        workbenchPluginLink("Mutational Signatures", "mutational_signatures", "🧬", "Mutation-context signatures"),
+        workbenchPluginLink("TCR/BCR Repertoire", "tcr_bcr_repertoire", "🧪", "Clonotypes and diversity"),
+        workbenchPluginLink("RNA Velocity", "rna_velocity_analysis", "💨", "Single-cell dynamics"),
+        workbenchPluginLink("Cell Communication", "cell_comm_visualization", "🔗", "Ligand-receptor networks"),
+      ]
+    },
+    {
+      name: "Clinical Data & Reference",
+      color: "var(--accent)",
+      links: [
+        workbenchPluginLink("Trial Matching", "clinical_trial_matching", "🏥", "Patient-to-study matching"),
+        workbenchPluginLink("De-identification", "privacy_deidentification", "🕶️", "PHI and PII protection"),
+        workbenchPluginLink("Clinical Data Quality", "clinical_data_quality_validator", "🩺", "Validate clinical records"),
+        workbenchPluginLink("Consent Manager", "clinical_consent_manager", "✍️", "Consent and scope decisions"),
+        workbenchPluginLink("gnomAD", "gnomad", "🌍", "Population variant frequencies"),
+      ]
+    },
+    {
+      name: "Genomic Processing",
+      color: "var(--accent-platform)",
+      links: [
+        workbenchPluginLink("FASTQ Trimmer", "fastq_trimmer", "✂️", "Adapter and quality trimming"),
+        workbenchPluginLink("Variant QC", "variant_qc_filtering", "✅", "Quality-filter VCF records"),
+        workbenchPluginLink("VCF Liftover", "vcf_liftover", "🗺️", "Convert genome coordinates"),
+        workbenchPluginLink("BED Intersect", "bedtools_intersect", "🧩", "Intersect genomic intervals"),
+        workbenchPluginLink("DeepVariant", "deepvariant", "🧬", "Deep-learning variant calling"),
+      ]
+    },
+    {
+      name: "Genomic Interpretation",
+      color: "var(--accent2)",
+      links: [
+        workbenchPluginLink("PRS Builder", "prs_builder", "📊", "Build polygenic risk scores"),
+        workbenchPluginLink("SpliceAI", "spliceai", "🧬", "Predict splice impact"),
+        workbenchPluginLink("ClinVar", "clinvar", "🏥", "Clinical variant assertions"),
+        workbenchPluginLink("Ensembl", "ensembl", "🌐", "Genome reference records"),
+        workbenchPluginLink("UniProt", "uniprot", "🧪", "Protein knowledge and sequences"),
+      ]
+    },
+    {
+      name: "Single-Cell & Spatial",
+      color: "var(--accent3)",
+      links: [
+        workbenchPluginLink("Scanpy QC", "scanpy_qc_metrics", "✅", "Cell and gene quality metrics"),
+        workbenchPluginLink("Scanpy Markers", "scanpy_markers", "🎯", "Rank cluster marker genes"),
+        workbenchPluginLink("Cell Annotation", "single_cell_annotation", "🏷️", "Annotate cell populations"),
+        workbenchPluginLink("Spatial Clustering", "spatial_clustering", "🗺️", "Identify spatial domains"),
+        workbenchPluginLink("Spatial Markers", "spatial_marker_identification", "📍", "Find tissue-domain markers"),
+      ]
+    },
+    {
+      name: "Epigenomics",
+      color: "#a78bfa",
+      links: [
+        workbenchPluginLink("ATAC Peak Calling", "atac_peak_calling", "🏔️", "Call accessible regions"),
+        workbenchPluginLink("ATAC Differential", "atac_differential", "📈", "Compare accessibility"),
+        workbenchPluginLink("ChIP-seq QC", "chipseq_qc_metrics", "✅", "Signal and enrichment quality"),
+        workbenchPluginLink("ChIP Peak Annotation", "chipseq_peak_annotation", "🏷️", "Map peaks to genomic features"),
+        workbenchPluginLink("Methylation QC", "methylation_qc", "🧬", "Bisulfite-seq quality review"),
+      ]
+    },
+    {
+      name: "Drug Discovery & ML",
+      color: "var(--accent)",
+      links: [
+        workbenchPluginLink("ADMET Prediction", "admet_prediction", "💊", "Predict compound properties"),
+        workbenchPluginLink("Molecular Descriptors", "molecular_descriptors", "🧮", "Calculate molecular features"),
+        workbenchPluginLink("Toxicity Prediction", "toxicity_prediction", "⚠️", "Estimate toxicity endpoints"),
+        workbenchPluginLink("Drug-likeness", "druglikeness_scoring", "🧪", "Score compound suitability"),
+        workbenchPluginLink("AutoML Biomarkers", "auto_ml_biomarker_discovery", "🤖", "Discover predictive biomarkers"),
+      ]
+    },
+    {
+      name: "Genome Analysis",
+      color: "var(--accent-platform)",
+      links: [
+        workbenchPluginLink("Assembly QC", "assembly_qc", "✅", "Assess genome assemblies"),
+        workbenchPluginLink("Nanopore QC", "nanopore_qc", "🧬", "Long-read quality metrics"),
+        workbenchPluginLink("Gene Annotation", "gene_annotation", "🏷️", "Annotate genomic features"),
+        workbenchPluginLink("GWAS & PopGen", "gwas_popgen", "🌍", "Association and population analysis"),
+        workbenchPluginLink("Phenotype Association", "phenotype_association", "🔗", "Test genotype–phenotype links"),
+      ]
+    },
+    {
+      name: "Proteomics & Metabolomics",
+      color: "var(--accent2)",
+      links: [
+        workbenchPluginLink("Protein Quantification", "protein_quantification", "🧪", "Aggregate peptide abundance"),
+        workbenchPluginLink("PTM Analysis", "ptm_analysis", "🔬", "Analyze modification sites"),
+        workbenchPluginLink("Metabolomics QC", "metabolomics_sample_qc", "✅", "Review sample quality"),
+        workbenchPluginLink("Metabolomics Normalize", "metabolomics_normalize", "⚖️", "Normalize feature matrices"),
+        workbenchPluginLink("Metabolomics Statistics", "metabolomics_stats", "📊", "Compare metabolite groups"),
+      ]
+    },
+    {
+      name: "Microbiome",
+      color: "var(--accent3)",
+      links: [
+        workbenchPluginLink("Alpha Diversity", "alpha_diversity", "🦠", "Within-sample diversity"),
+        workbenchPluginLink("Beta Diversity", "beta_diversity", "📉", "Between-sample ordination"),
+        workbenchPluginLink("Taxonomic Classifier", "microbiome_taxonomic_classifier", "🏷️", "Classify microbial sequences"),
+        workbenchPluginLink("AMR Classifier", "amr_gene_classifier", "🛡️", "Predict resistance genes"),
+        workbenchPluginLink("MAG Quality", "mag_quality", "✅", "Assess metagenome bins"),
+      ]
+    },
+    {
+      name: "Drug & Structural Biology",
+      color: "#a78bfa",
+      links: [
+        workbenchPluginLink("Binding Sites", "binding_site_predictor", "🎯", "Predict ligand-binding residues"),
+        workbenchPluginLink("Docking Poses", "docking_pose_viewer", "🧩", "Inspect docked structures"),
+        workbenchPluginLink("Target Prediction", "target_prediction", "💊", "Rank candidate targets"),
+        workbenchPluginLink("Drug Response", "drug_response_predictor", "📈", "Predict molecular response"),
+        workbenchPluginLink("Protein Stability", "protein_stability_ddg_predictor", "🧬", "Estimate mutation ΔΔG"),
+      ]
+    },
+    {
+      name: "Molecular References",
+      color: "var(--accent)",
+      links: [
+        workbenchPluginLink("Open Targets", "opentargets", "🎯", "Target–disease evidence"),
+        workbenchPluginLink("PubChem", "pubchem", "⚗️", "Chemical structures and properties"),
+        workbenchPluginLink("RCSB PDB", "rcsb_pdb", "🧩", "Macromolecular structures"),
+        workbenchPluginLink("Reactome", "reactome", "🔗", "Curated biological pathways"),
+        workbenchPluginLink("GTEx", "gtex", "🧬", "Tissue expression and eQTLs"),
+      ]
+    },
+    ...BROAD_PLUGIN_GROUPS.map(group => ({
+      name: group.name,
+      color: group.color,
+      links: group.plugins.map(([slug, label, icon, desc]) => workbenchPluginLink(label, slug, icon, desc)),
+    })),
+    ...CENTURY_PLUGIN_GROUPS.map(group => ({
+      name: group.name,
+      color: group.color,
+      links: group.plugins.map(([slug, label, icon, desc]) => workbenchPluginLink(label, slug, icon, desc)),
+    })),
+    ...NEXT_CENTURY_PLUGIN_GROUPS.map(group => ({
+      name: group.name,
+      color: group.color,
+      links: group.plugins.map(([slug, label, icon, desc]) => workbenchPluginLink(label, slug, icon, desc)),
+    })),
+    ...FINAL_PLUGIN_GROUPS.map(group => ({
+      name: group.name,
+      color: group.color,
+      links: group.plugins.map(([slug, label, icon, desc]) => workbenchPluginLink(label, slug, icon, desc)),
+    })),
     {
       name: "AI & Intelligence",
       color: "#a78bfa",
       links: [
-        { label:"Drug Target AI",   url:"/_svc/workbench/plugins/drug_target_intelligence/",   icon:"💊", desc:"Drug target analysis"  },
+        workbenchPluginLink("Drug Target AI", "drug_target_intelligence", "💊", "Drug target analysis"),
         { label:"Literature AI",    url:"/_svc/rag/",                                           icon:"📚", desc:"PubMed RAG + DeepSeek" },
-        { label:"Pathway Enrichment",url:"/_svc/workbench/plugins/pathway_enrichment/",        icon:"🔗", desc:"Pathway analysis"      },
-        { label:"Bio Hypothesis",   url:"/_svc/workbench/plugins/bio_hypothesis_ai/",          icon:"🧠", desc:"Hypothesis generation" },
-        { label:"Literature Summarizer", url:"/_svc/workbench/plugins/literature_summarizer/", icon:"📄", desc:"AI-powered paper summarization" },
-        { label:"Bio Narrator AI",  url:"/_svc/workbench/plugins/bio_narrator_ai/",            icon:"🧠", desc:"Biological narrative generation" },
+        workbenchPluginLink("Pathway Enrichment", "pathway_enrichment", "🔗", "Pathway analysis"),
+        workbenchPluginLink("Bio Hypothesis", "bio_hypothesis_ai", "🧠", "Hypothesis generation"),
+        workbenchPluginLink("Literature Summarizer", "literature_summarizer", "📄", "AI-powered paper summarization"),
+        workbenchPluginLink("Bio Narrator AI", "bio_narrator_ai", "🧠", "Biological narrative generation"),
       ]
     }
   ];
@@ -333,7 +581,7 @@ export default function Studio() {
           >↻</button>
 
           <button
-            onClick={() => open(`${BASE}/plugins/catalog/`, "Plugin Catalog")}
+            onClick={() => openWorkbenchApplication("catalog", "/plugins/catalog/", "Plugin Catalog")}
             aria-disabled={!online}
             aria-label="Open plugin catalog"
             style={{
@@ -477,7 +725,7 @@ export default function Studio() {
         </div>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
           <button
-            onClick={() => online && open(`${BASE}/plugins/catalog/`, "Plugin Catalog")}
+            onClick={() => online && openWorkbenchApplication("catalog", "/plugins/catalog/", "Plugin Catalog")}
             aria-disabled={!online}
             aria-label="Open plugin catalog"
             style={{

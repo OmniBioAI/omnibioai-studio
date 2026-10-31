@@ -1,0 +1,5 @@
+.job-monitor-table-wrap { max-width: 100%; overflow: auto; }
+.job-monitor-table { width: 100%; border-collapse: collapse; text-align: left; }
+.job-monitor-table th, .job-monitor-table td { padding: 9px 10px; border-bottom: 1px solid var(--border, #334155); }
+.job-monitor-table th { color: var(--color-muted, #94a3b8); font-size: .78rem; text-transform: uppercase; }
+.job-monitor-page pre { max-width: 100%; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
