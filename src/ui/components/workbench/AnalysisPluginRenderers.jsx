@@ -1,4 +1,5 @@
 import React from "react";
+import { Panel, PanelBody, PanelHeader } from "../UI";
 import AsyncAnalysisRenderer from "./AsyncAnalysisRenderer";
 import InformationalRenderer from "./InformationalRenderer";
 import QueryRenderer from "./QueryRenderer";
@@ -61,48 +62,79 @@ function pluginRenderer(descriptor) {
   return AsyncAnalysisRenderer;
 }
 
+const LEGACY_SCAFFOLDS = new Set([
+  "clonal_prevalence_plot", "differential_abundance", "heatmap_generator", "longread_report",
+  "msi_detector", "neoantigen_predictor", "pca_analysis", "rnaseq_report", "sashimi_plot",
+  "splice_event_viewer", "splicing_report", "sv_annotation", "tmb_calculator", "tumor_purity",
+  "volcano_plot",
+]);
+
+const LEGACY_PAGE_SUMMARIES = Object.freeze({
+  clonal_evolution_phylogenetics: "Upload PyClone-VI-compatible cluster data to inspect clonal prevalence and tumor evolution. Research use only; the historical page marks this computation as a placeholder.",
+  clonal_prevalence_plot: "Plot PyClone-VI cluster mean cellular prevalence by sample. This is a prevalence chart, not a phylogeny.",
+  ctdna_liquid_biopsy: "Analyze variant allele-frequency burden from variants.vcf. Research use only; not clinically validated.",
+  cytof_analysis: "Cluster cells from cells.csv using a PhenoGraph-style nearest-neighbor analysis. Research use only; not clinically validated.",
+  differential_abundance: "Registered analysis scaffold for comparing abundance between groups.",
+  enrichment_dot_plot: "Create a functional-enrichment dot plot from one-row-per-term pathway results.",
+  forest_plot: "Plot study or subgroup effect estimates with confidence intervals and a line of no effect.",
+  group_comparison_plot: "Compare numeric values across categorical groups with box, violin, or strip plots and statistical tests.",
+  hla_typing: "Type HLA from one FASTQ.GZ input in DNA or RNA mode. Research use only; not clinically validated.",
+  hrd_score: "Estimate genomic-scar HRD from LOH, TAI, and LST segments. Research use only; not clinically validated.",
+  immune_deconvolution: "Estimate immune-cell composition from an expression matrix and signature matrix. Research use only; not clinically validated.",
+  kaplan_meier_plot: "Plot Kaplan–Meier survival curves with censoring marks and confidence bands from tidy time-to-event data.",
+  karyotype_cnv_plot: "Render copy-number segments as chromosome-scale gain, loss, and neutral tracks.",
+  manhattan_qq_plot: "Generate genome-wide Manhattan and QQ plots and report the genomic inflation factor.",
+  ml_eval_plots: "Generate ROC, precision–recall, and confusion-matrix views from model predictions.",
+  msa_conservation_viewer: "Inspect an aligned multi-FASTA file with alignment blocks and per-column conservation scores.",
+  mutation_lollipop_plot: "Visualize protein-position variant counts from HGVS protein-change annotations.",
+  mutation_waterfall_plot: "Rank samples by tumor mutational burden in a cohort waterfall plot.",
+  neoantigen_immunogenicity: "Score MHC-I presentation from peptide sequences. Research use only; not clinically validated.",
+  oncoprint_plot: "Show a sample-by-gene mutation matrix, colored by consequence type.",
+  ppi_network_plot: "Build an interaction network from a source/target edge list with optional edge weights.",
+  sequence_logo_plot: "Create an information-content sequence logo from aligned sequence data.",
+  tcr_bcr_repertoire: "Assign clonotypes and summarize repertoire diversity from AIRR/Change-O TSV data. Research use only; not clinically validated.",
+  vaccine_epitope_design: "Rank candidate MHC epitopes from antigen FASTA. Research use only; not clinically validated.",
+  venn_upset_plot: "Compare two or more sets with Venn (2–3 sets) and UpSet visualizations.",
+});
+
+const LEGACY_META = Object.freeze({
+  exome_analysis: ["Input: annotated VCF", "Engine: RunStore"],
+  omics_qc_metrics_extractor: ["QC Harmonization", "Anomaly Detection", "PCA QC"],
+  omics_qc_report_generator: ["QC report", "RunStore"],
+  rnaseq_analysis: ["Mode: OmniObject-first", "Input: outputs.normalized.json", "Step: 1/2"],
+});
+
+function InputContract({ inputs, outputs }) {
+  return <div className="analysis-legacy-contract">
+    <div><h4>Inputs</h4>{inputs.length ? <ul>{inputs.map(input => <li key={input.id}><code>{input.id}</code><span>{input.label}</span></li>)}</ul> : <p>No input fields are declared.</p>}</div>
+    <div><h4>Outputs</h4>{outputs.length ? <ul>{outputs.map(output => <li key={output.id || output.name}><code>{output.id || output.name}</code><span>{output.label || output.description || "Workbench output"}</span></li>)}</ul> : <p>Outputs are provided by the plugin run contract.</p>}</div>
+  </div>;
+}
+
 function AnalysisWorkspace({ descriptor, slug }) {
   const plugin = descriptor.plugin || {};
   const [icon, specialty] = DISPLAY[slug] || ["🧬", "Analysis"];
   const Renderer = pluginRenderer(descriptor);
   const inputs = descriptor.inputs || [];
   const outputs = descriptor.outputs || [];
-  const executionEnabled = descriptor.renderer !== "informational";
-  const accent = specialty === "Cancer genomics" || specialty === "Immuno-oncology" ? "#c64f73"
-    : specialty === "RNA-seq" || specialty === "RNA splicing" ? "#7b61c9"
-      : specialty === "Quality control" ? "#26846f"
-        : specialty === "Scientific plotting" ? "#3579bd" : "#b47a28";
+  const summary = LEGACY_PAGE_SUMMARIES[slug] || plugin.description || "Use the declared Workbench contract to configure this analysis and review its results.";
+  const metadata = LEGACY_META[slug] || [specialty, `${inputs.length} input${inputs.length === 1 ? "" : "s"}`, `${outputs.length} output${outputs.length === 1 ? "" : "s"}`];
+  const scaffold = LEGACY_SCAFFOLDS.has(slug) || !inputs.length;
 
-  return <section className="analysis-workspace" data-plugin-slug={slug} style={{ "--analysis-accent": accent }}>
-    <header className="analysis-workspace__hero">
-      <div className="analysis-workspace__icon" aria-hidden="true">{icon}</div>
-      <div className="analysis-workspace__heading">
-        <p className="analysis-workspace__eyebrow">{specialty} <span>·</span> Workbench Analysis</p>
-        <h2>{plugin.name || slug.replaceAll("_", " ")}</h2>
-        <p>{plugin.description || "Configure a reproducible analysis and review its outputs."}</p>
-      </div>
-      <span className={`analysis-workspace__mode ${executionEnabled ? "is-active" : "is-readonly"}`}>
-        {executionEnabled ? "Workbench connected" : "Read-only workspace"}
-      </span>
-    </header>
-
-    <nav className="analysis-workspace__steps" aria-label="Analysis workflow">
-      {["Inputs", "Configure", executionEnabled ? "Run" : "Review", "Results"].map((label, index) => (
-        <div className="analysis-workspace__step" key={label}>
-          <span>{String(index + 1).padStart(2, "0")}</span><strong>{label}</strong>
-        </div>
-      ))}
-    </nav>
-
-    <section className="analysis-workspace__context" aria-label="Analysis context">
-      <div><span className="analysis-workspace__metric">{inputs.length}</span><span>declared inputs</span></div>
-      <div><span className="analysis-workspace__metric">{outputs.length}</span><span>expected outputs</span></div>
-      <p>Input requirements, run state, logs and artifacts come from the Workbench plugin contract.</p>
-    </section>
-
-    <section className="analysis-workspace__body" aria-label="Plugin workspace">
+  return <section className={`analysis-legacy-page${scaffold ? " is-scaffold" : ""}`} data-plugin-slug={slug}>
+    <div className="analysis-legacy-meta">{metadata.map(item => <span className="analysis-legacy-pill" key={item}>{item}</span>)}</div>
+    <Panel>
+      <PanelHeader title={scaffold ? "Registered plugin" : (slug === "exome_analysis" ? "Run Exome Analysis" : "Analysis setup")} />
+      <PanelBody>
+        <p className="analysis-legacy-summary">{summary}</p>
+        {scaffold && <p className="analysis-legacy-registration">This React page is connected to the registered <code>{slug}</code> Workbench plugin.</p>}
+        {(scaffold || slug === "exome_analysis") && <InputContract inputs={inputs} outputs={outputs} />}
+      </PanelBody>
+    </Panel>
+    {LEGACY_PAGE_SUMMARIES[slug] && <Panel><PanelHeader title="Analysis notes"/><PanelBody><p className="analysis-legacy-summary">{LEGACY_PAGE_SUMMARIES[slug]}</p></PanelBody></Panel>}
+    <div className="analysis-legacy-run" aria-label={`${plugin.name || slug} controls`}>
       <Renderer descriptor={descriptor} />
-    </section>
+    </div>
   </section>;
 }
 

@@ -83,6 +83,23 @@
 .analysis-workspace__body { min-width: 0; }
 .analysis-workspace__body .native-plugin-page { display: grid; gap: 1rem; }
 
+/* React presentation of the former Analysis-category template pages. */
+.analysis-legacy-page { display: grid; gap: 1rem; color: var(--text-primary, #18312d); }
+.analysis-legacy-meta { display: flex; flex-wrap: wrap; gap: .5rem; }
+.analysis-legacy-pill { display: inline-flex; align-items: center; border: 1px solid var(--border, #dfe9e6); border-radius: 999px; padding: .3rem .65rem; background: var(--surface-subtle, #f5f8f7); color: var(--text-secondary, #5c716d); font-size: .75rem; font-weight: 650; }
+.analysis-legacy-summary { margin: 0; color: var(--text-secondary, #5c716d); line-height: 1.6; }
+.analysis-legacy-registration { margin: .9rem 0 0; border-left: 3px solid var(--accent, #18a98e); padding: .55rem .75rem; background: var(--surface-subtle, #f5f8f7); color: var(--text-secondary, #5c716d); font-size: .88rem; }
+.analysis-legacy-contract { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.2rem; }
+.analysis-legacy-contract > div { min-width: 0; }
+.analysis-legacy-contract h4 { margin: 0 0 .45rem; color: var(--text-primary, #18312d); font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; }
+.analysis-legacy-contract ul { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.analysis-legacy-contract li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .45rem; color: var(--text-secondary, #5c716d); font-size: .82rem; }
+.analysis-legacy-contract li code { color: var(--text-primary, #18312d); }
+.analysis-legacy-contract p { margin: 0; color: var(--text-secondary, #5c716d); font-size: .82rem; }
+.analysis-legacy-run { min-width: 0; }
+.analysis-legacy-run .native-plugin-page { display: grid; gap: 1rem; }
+.analysis-legacy-page.is-scaffold .analysis-legacy-contract { border-top: 1px solid var(--border, #dfe9e6); padding-top: 1rem; }
+
 @media (max-width: 760px) {
   .analysis-workspace__hero { align-items: flex-start; flex-wrap: wrap; }
   .analysis-workspace__mode { margin-left: 4.6rem; }
@@ -91,4 +108,5 @@
   .analysis-workspace__step:nth-child(4) { border-top: 1px solid var(--border, #dfe9e6); }
   .analysis-workspace__context { align-items: flex-start; flex-wrap: wrap; }
   .analysis-workspace__context p { flex-basis: 100%; text-align: left; }
+  .analysis-legacy-contract { grid-template-columns: 1fr; }
 }
