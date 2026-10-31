@@ -113,6 +113,25 @@ describe("AsyncAnalysisRenderer", () => {
     expect(body.has("param_ui_sample_name")).toBe(false);
   });
 
+  it("serializes nested historical values and selected checkbox groups without false entries", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ error: "checked" }) });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AsyncAnalysisRenderer descriptor={{ ...descriptor, inputs: [] }} parameterFields={[
+      { id: "control", label: "Control", description: "Group", required: false, component: "text", format: "text", default: "control", parameterPath: ["comparison", "control"] },
+      { id: "treated", label: "Treated", description: "Group", required: false, component: "text", format: "text", default: "treated", parameterPath: ["comparison", "treated"] },
+      { id: "db_hmdb", label: "Search HMDB", description: "Database", required: false, component: "checkbox", format: "boolean", default: true, parameterArray: "databases", parameterValue: "hmdb" },
+      { id: "db_massbank", label: "Search MassBank", description: "Database", required: false, component: "checkbox", format: "boolean", default: false, parameterArray: "databases", parameterValue: "massbank" },
+    ]} />);
+    await user.clear(screen.getByLabelText("Control"));
+    await user.type(screen.getByLabelText("Control"), "vehicle");
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    await screen.findByRole("alert");
+    expect(fetchMock.mock.calls[0][1].body.get("param_parameters")).toBe(JSON.stringify({
+      comparison: { control: "vehicle", treated: "treated" }, databases: ["hmdb"],
+    }));
+  });
+
   it("converts an upload-required manifest input into a paste-or-upload historical mode", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ error: "checked" }) });
