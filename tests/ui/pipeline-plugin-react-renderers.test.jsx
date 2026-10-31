@@ -38,7 +38,7 @@ describe("Pipeline-category React plugin renderers", () => {
     nativePluginRequest.mockResolvedValue({ runs: [{ run_id: "run-1", workflow_name: "rnaseq", engine: "nextflow", state: "COMPLETED", start_time: "2026-10-30T00:00:00Z" }] });
     render(<WorkflowExplorerRenderer />);
     expect(await screen.findByText("rnaseq")).toBeInTheDocument();
-    expect(nativePluginRequest).toHaveBeenCalledWith("/plugins/workflow_explorer/api/runs/?limit=100");
+    expect(nativePluginRequest).toHaveBeenCalledWith("/dashboard/workflows/api/runs/?limit=100");
   });
 
   it("loads owner-scoped pipeline dashboard data", async () => {
