@@ -94,6 +94,19 @@ describe("plugin descriptor API boundary", () => {
     expect(() => endpointUrl("/plugins/histopathology_cv/api/segment/other/")).toThrow("Invalid plugin endpoint");
   });
 
+  it("allows only the explicitly scoped ML prediction form endpoints", () => {
+    expect(endpointUrl("/plugins/drug_target_intelligence/api/predict/")).toContain("/plugins/drug_target_intelligence/api/predict/");
+    expect(endpointUrl("/plugins/celltype_classification_sc/train/")).toContain("/plugins/celltype_classification_sc/train/");
+    expect(endpointUrl("/plugins/celltype_classification_sc/predict/")).toContain("/plugins/celltype_classification_sc/predict/");
+    expect(() => endpointUrl("/plugins/another_plugin/api/predict/")).toThrow("Invalid plugin endpoint");
+    expect(() => endpointUrl("/plugins/celltype_classification_sc/train/other/")).toThrow("Invalid plugin endpoint");
+  });
+
+  it("limits Variant Effect download links to a single opaque object identifier", () => {
+    expect(endpointUrl("/plugins/variant_effect_intelligence/download/vei-output-1/")).toContain("/plugins/variant_effect_intelligence/download/vei-output-1/");
+    expect(() => endpointUrl("/plugins/variant_effect_intelligence/download/../secret/")).toThrow("Invalid plugin endpoint");
+  });
+
   it.each([
     "/plugins/audit_log/api/events?page=1&page_size=50",
     "/plugins/audit_log/api/events/42",

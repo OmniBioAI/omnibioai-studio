@@ -15,6 +15,7 @@ import {
   BROAD_PLUGIN_SLUGS,
 } from "../../src/ui/components/workbench/BroadPluginRenderers";
 import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+import { ML_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
 
 afterEach(cleanup);
 
@@ -40,7 +41,8 @@ describe("broad promoted plugin React renderers", () => {
     expect(Object.keys(BROAD_PLUGIN_RENDERERS).sort()).toEqual([...BROAD_PLUGIN_SLUGS].sort());
   });
 
-  it.each(BROAD_PLUGIN_SLUGS)("uses the descriptor lifecycle and dedicated override for %s", slug => {
+  const bespokeML = new Set(Object.keys(ML_PLUGIN_RENDERERS));
+  it.each(BROAD_PLUGIN_SLUGS.filter(slug => !bespokeML.has(slug)))("uses the descriptor lifecycle and dedicated override for %s", slug => {
     const renderer = QUERY.has(slug) ? "query" : GENERIC.has(slug) ? "generic_runner" : "async_analysis";
     const Renderer = BROAD_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);
