@@ -1,4 +1,4 @@
-import { csrfToken } from "./pluginApi";
+import { csrfToken, pluginEndpoint } from "./pluginApi";
 import { isElectron } from "./session";
 
 const IDENTIFIER = /^[A-Za-z0-9_.:-]+$/;
@@ -46,6 +46,7 @@ export const workflowBuilderApi = {
   save: (name, spec, options) => request("workflow_builder", "/api/workflows/save/", { ...options, method: "POST", body: { name, spec } }),
   remove: (name, options) => request("workflow_builder", `/api/workflows/${workflowName(name)}/delete/`, { ...options, method: "POST", body: {} }),
   execute: (name, options) => request("workflow_builder", `/api/workflows/${workflowName(name)}/execute/`, { ...options, method: "POST", body: {} }),
+  runNode: (name, startNodeId, options) => request("workflow_builder", `/api/workflows/${workflowName(name)}/run/`, { ...options, method: "POST", body: { start_node_id: startNodeId } }),
   execution: (id, options) => request("workflow_builder", `/api/executions/${executionId(id)}/`, options),
   cancel: (id, options) => request("workflow_builder", `/api/executions/${executionId(id)}/cancel/`, { ...options, method: "POST", body: {} }),
 };
@@ -53,4 +54,20 @@ export const workflowBuilderApi = {
 export const workflowCompilerApi = {
   compileWorkflow: (workflow, options) => request("workflow_compiler", "/compile/", { ...options, method: "POST", body: { workflow } }),
   compileSkills: (skills, options) => request("workflow_compiler", "/compile/", { ...options, method: "POST", body: { input_mode: "skill_files", skills } }),
+  async compileProtocol(protocol, file) {
+    const form = new FormData();
+    form.append("protocol", protocol || "");
+    if (file) form.append("skills_file", file);
+    const response = await fetch(pluginEndpoint("/plugins/workflow_compiler/compile/"), {
+      method: "POST", credentials: "same-origin", headers: { Accept: "application/json", "X-CSRFToken": csrfToken() }, body: form,
+    });
+    let payload = {};
+    try { payload = await response.json(); } catch { /* normalized below */ }
+    if (!response.ok) {
+      const error = new Error(payload.detail || payload.message || payload.error || `Workflow Compiler request failed (${response.status}).`);
+      error.status = response.status;
+      throw error;
+    }
+    return payload;
+  },
 };

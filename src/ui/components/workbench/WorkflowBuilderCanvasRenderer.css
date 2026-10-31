@@ -1,0 +1,48 @@
+.workflow-builder-react { color: var(--text-primary, #e8edf7); display: grid; gap: 1rem; min-width: 0; }
+.workflow-builder-react__bar { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+.workflow-builder-react__bar > div:first-child > span { color: #60a5fa; font-size: .7rem; font-weight: 800; letter-spacing: .14em; }
+.workflow-builder-react__bar h2 { margin: .25rem 0; }
+.workflow-builder-react__bar p { color: var(--text-secondary, #9aa8bd); margin: .25rem 0; }
+.workflow-builder-react__bar p.is-error { color: #fca5a5; }
+.workflow-builder-react__bar p.is-notice { color: #86efac; }
+.workflow-builder-react__toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: .45rem; }
+.workflow-builder-react button, .workflow-builder-react input, .workflow-builder-react select, .workflow-builder-react textarea { background: var(--surface, #111827); border: 1px solid var(--border, rgba(148,163,184,.25)); border-radius: 7px; color: inherit; font: inherit; padding: .5rem .65rem; }
+.workflow-builder-react button { cursor: pointer; }
+.workflow-builder-react button:disabled { cursor: not-allowed; opacity: .5; }
+.workflow-builder-react button.is-primary { background: #2563eb; border-color: #3b82f6; }
+.workflow-builder-react button.is-active { background: #7c3aed; }
+.workflow-builder-react button.is-danger { background: #7f1d1d55; color: #fecaca; }
+.workflow-builder-react__layout { display: grid; gap: .75rem; grid-template-columns: minmax(220px, 260px) minmax(350px, 1fr) minmax(250px, 300px); min-height: 630px; }
+.workflow-builder-react__pane { background: var(--surface-raised, rgba(255,255,255,.035)); border: 1px solid var(--border, rgba(148,163,184,.18)); border-radius: 10px; min-width: 0; overflow: hidden; padding: .8rem; }
+.workflow-builder-react__pane h3, .workflow-builder-react__canvas-head h3 { font-size: .9rem; margin: 0 0 .7rem; }
+.workflow-builder-react__pane h3 small, .workflow-builder-react__canvas-head small { color: var(--text-secondary, #9aa8bd); font-size: .72rem; font-weight: 500; }
+.workflow-builder-react__pane > input { box-sizing: border-box; margin-bottom: .7rem; width: 100%; }
+.workflow-builder-react__palette { display: grid; gap: .55rem; max-height: 535px; overflow: auto; }
+.workflow-builder-react__palette > div { background: rgba(255,255,255,.025); border: 1px solid var(--border, rgba(148,163,184,.15)); border-radius: 8px; cursor: grab; display: grid; gap: .35rem; padding: .65rem; }
+.workflow-builder-react__palette small, .workflow-builder-react__node small { color: var(--text-secondary, #9aa8bd); font-size: .7rem; }
+.workflow-builder-react__palette button { justify-self: start; padding: .3rem .5rem; }
+.workflow-builder-react__canvas-pane { background: var(--surface-raised, rgba(255,255,255,.035)); border: 1px solid var(--border, rgba(148,163,184,.18)); border-radius: 10px; min-width: 0; overflow: hidden; }
+.workflow-builder-react__canvas-head { align-items: center; border-bottom: 1px solid var(--border, rgba(148,163,184,.15)); display: flex; justify-content: space-between; padding: .8rem; }
+.workflow-builder-react__canvas-head h3 { margin: 0; }
+.workflow-builder-react__canvas-head span { color: var(--text-secondary, #9aa8bd); font-size: .75rem; }
+.workflow-builder-react__canvas { background-color: rgba(2,6,23,.38); background-image: radial-gradient(rgba(148,163,184,.17) 1px, transparent 1px); background-size: 20px 20px; height: 585px; min-width: 100%; overflow: auto; position: relative; touch-action: none; }
+.workflow-builder-react__edges { left: 0; pointer-events: none; position: absolute; top: 0; }
+.workflow-builder-react__edges path { fill: none; stroke: #60a5fa; stroke-width: 2; }
+.workflow-builder-react__edges text { fill: #a5b4fc; font-size: 11px; text-anchor: middle; }
+.workflow-builder-react__node { background: #111827; border: 1px solid #475569; border-radius: 9px; cursor: grab; display: grid; gap: .35rem; padding: .7rem; position: absolute; touch-action: none; user-select: none; width: 190px; z-index: 1; }
+.workflow-builder-react__node.is-selected { border-color: #60a5fa; box-shadow: 0 0 0 2px #3b82f655; }
+.workflow-builder-react__node.is-link-source { border-color: #a78bfa; }
+.workflow-builder-react__node > div { color: #93c5fd; display: flex; font-size: .65rem; gap: .7rem; }
+.workflow-builder-react__pane label { display: grid; font-size: .75rem; gap: .3rem; margin: .7rem 0; }
+.workflow-builder-react__pane input, .workflow-builder-react__pane textarea { box-sizing: border-box; width: 100%; }
+.workflow-builder-react__pane pre { background: rgba(0,0,0,.2); border-radius: 7px; font-size: .7rem; max-height: 130px; overflow: auto; padding: .55rem; }
+.workflow-builder-react__empty { color: var(--text-secondary, #9aa8bd); font-size: .8rem; padding: .6rem; }
+.workflow-builder-react__canvas > .workflow-builder-react__empty { left: 50%; position: absolute; top: 50%; transform: translate(-50%, -50%); }
+.workflow-builder-react__result { background: var(--surface-raised, rgba(255,255,255,.035)); border: 1px solid var(--border, rgba(148,163,184,.18)); border-radius: 10px; padding: 1rem; }
+.workflow-builder-react__result h3 span { color: #93c5fd; font-size: .8rem; margin-left: .5rem; }
+.workflow-builder-react__result > div { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.workflow-builder-react__result article { border: 1px solid var(--border, rgba(148,163,184,.15)); border-radius: 7px; display: grid; gap: .3rem; padding: .6rem; }
+.workflow-builder-react__result article small { color: var(--text-secondary, #9aa8bd); }
+.workflow-builder-react__result pre { max-height: 320px; overflow: auto; }
+@media (max-width: 980px) { .workflow-builder-react__layout { grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr); } .workflow-builder-react__layout > aside:last-child { grid-column: 1 / -1; } }
+@media (max-width: 650px) { .workflow-builder-react__layout { grid-template-columns: minmax(0, 1fr); } .workflow-builder-react__toolbar { width: 100%; } }

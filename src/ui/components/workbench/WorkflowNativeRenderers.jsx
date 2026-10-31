@@ -129,6 +129,7 @@ export function WorkflowBuilderRenderer() {
 export function WorkflowCompilerRenderer() {
   const [mode, setMode] = useState("skills");
   const [source, setSource] = useState("");
+  const [protocolFile, setProtocolFile] = useState(null);
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -138,7 +139,9 @@ export function WorkflowCompilerRenderer() {
     try {
       const payload = mode === "workflow"
         ? await workflowCompilerApi.compileWorkflow(jsonObject(source || EMPTY_DAG, "Workflow DAG"))
-        : await workflowCompilerApi.compileSkills([source]);
+        : protocolFile
+          ? await workflowCompilerApi.compileProtocol(source, protocolFile)
+          : await workflowCompilerApi.compileSkills([source]);
       setResult(payload.result || payload);
     } catch (next) { setError(next.status === 403 ? "Workflow Compiler requires a staff account." : next.message); }
     finally { setBusy(false); }
@@ -147,8 +150,9 @@ export function WorkflowCompilerRenderer() {
   return <div className="workflow-native"><Alert message={error} /><div className="workflow-native-grid">
     <Panel><PanelHeader title="Compile workflow"><Badge>Staff tool</Badge></PanelHeader><PanelBody><form className="workflow-native-form" onSubmit={compile}>
       <label htmlFor="compiler-mode">Input type</label><Select id="compiler-mode" value={mode} onChange={event => { setMode(event.target.value); setSource(event.target.value === "workflow" ? EMPTY_DAG : ""); }} options={[{ value: "skills", label: "SKILL.md protocol" }, { value: "workflow", label: "Workflow DAG JSON" }]} />
+      {mode === "skills" ? <><label htmlFor="compiler-file">Upload SKILLS.md / protocol / YAML</label><input id="compiler-file" type="file" accept=".md,.txt,.yaml,.yml,.json" onChange={event => setProtocolFile(event.target.files?.[0] || null)} /></> : null}
       <label htmlFor="compiler-source">{mode === "workflow" ? "Workflow DAG" : "Scientific protocol"}</label><Textarea id="compiler-source" rows={22} value={source} onChange={event => setSource(event.target.value)} placeholder={mode === "workflow" ? EMPTY_DAG : "Paste SKILL.md protocol text…"} spellCheck={false} />
-      <div className="workflow-native-actions"><Button type="submit" disabled={busy || !source.trim()}>{busy ? "Compiling…" : "Compile"}</Button></div>
+      <div className="workflow-native-actions"><Button type="submit" disabled={busy || (!source.trim() && !protocolFile)}>{busy ? "Compiling…" : "Compile"}</Button></div>
     </form></PanelBody></Panel>
     <Panel><PanelHeader title="Compiled result" /> <PanelBody>{busy ? <div className="workflow-native-loading"><Spinner /> Compiling workflow…</div> : result ? <pre className="workflow-compiled-result">{JSON.stringify(result, null, 2)}</pre> : <p className="workflow-native-empty">The typed execution plan will appear here.</p>}</PanelBody></Panel>
   </div></div>;

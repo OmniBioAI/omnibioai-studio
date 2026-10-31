@@ -4,7 +4,8 @@ import QueryRenderer from "./QueryRenderer";
 import MultiAgentOrchestratorRenderer from "./MultiAgentOrchestratorRenderer";
 import JobMonitorRenderer from "./JobMonitorRenderer";
 import BioAgentRenderer from "./BioAgentRenderer";
-import { WorkflowBuilderRenderer, WorkflowCompilerRenderer } from "./WorkflowNativeRenderers";
+import { WorkflowCompilerRenderer } from "./WorkflowNativeRenderers";
+import WorkflowBuilderCanvasRenderer from "./WorkflowBuilderCanvasRenderer";
 import {
   DatasetIngestRenderer,
   Deseq2AnalysisRenderer,
@@ -27,6 +28,13 @@ import DatasetCatalogRenderer from "./DatasetCatalogRenderer";
 import PluginManagerRenderer from "./PluginManagerRenderer";
 import AuditLogRenderer from "./AuditLogRenderer";
 import WorkflowRunnerRenderer from "./WorkflowRunnerRenderer";
+import {
+  PipelineDashboardRenderer,
+  WorkflowExplorerRenderer,
+  WorkflowRegistryAdminRenderer,
+  WorkflowSchedulerRenderer,
+  WorkflowValidatorRenderer,
+} from "./PipelinePluginReactRenderers";
 import { ML_PLUGIN_RENDERERS } from "./MLPluginReactRenderer";
 import {
   AlertingRenderer,
@@ -54,7 +62,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   bio_agent: BioAgentRenderer,
   job_monitor: JobMonitorRenderer,
   multi_agent_bio_orchestrator: MultiAgentOrchestratorRenderer,
-  workflow_builder: WorkflowBuilderRenderer,
+  workflow_builder: WorkflowBuilderCanvasRenderer,
   workflow_compiler: WorkflowCompilerRenderer,
   dataset_ingest: DatasetIngestRenderer,
   run_inspector: RunInspectorRenderer,
@@ -77,6 +85,11 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   plugin_manager: PluginManagerRenderer,
   audit_log: AuditLogRenderer,
   workflow_runner: WorkflowRunnerRenderer,
+  pipeline_dashboard: PipelineDashboardRenderer,
+  workflow_scheduler: WorkflowSchedulerRenderer,
+  workflow_explorer: WorkflowExplorerRenderer,
+  workflow_registry_admin: WorkflowRegistryAdminRenderer,
+  workflow_validator: WorkflowValidatorRenderer,
   alerting: AlertingRenderer,
   api_analytics: ApiAnalyticsRenderer,
   data_manager: DataManagerRenderer,
