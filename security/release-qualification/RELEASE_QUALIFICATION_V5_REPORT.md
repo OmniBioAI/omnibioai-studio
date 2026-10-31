@@ -119,7 +119,7 @@ Still unresolved: no approved staging environment/account; no actual packaged lo
 - Session lifecycle: PASS unit; BLOCKED package.
 
 ### Evidence
-- Exact report paths: `security/release-qualification/RELEASE_QUALIFICATION_V5_REPORT.md`, `security/electron/ELECTRON_SECURITY_REGRESSION_REPORT.md`, `security/electron/DESKTOP_AUTH_SESSION_ADR.md`, `security/electron/SESSION_LIFECYCLE_TEST_REPORT.md`, `security/release-qualification/PACKAGED_APPLICATION_QUALIFICATION_REPORT.md`, `security/release-qualification/REMAINING_INFRASTRUCTURE_DEPENDENCIES.md`.
+- Exact report paths: `security/release-qualification/RELEASE_QUALIFICATION_V5_REPORT.md`, `security/release-qualification/KNOWN_ISSUES_V0.8.1_BETA.md`, `security/electron/ELECTRON_SECURITY_REGRESSION_REPORT.md`, `security/electron/DESKTOP_AUTH_SESSION_ADR.md`, `security/electron/SESSION_LIFECYCLE_TEST_REPORT.md`, `security/release-qualification/PACKAGED_APPLICATION_QUALIFICATION_REPORT.md`, `security/release-qualification/REMAINING_INFRASTRUCTURE_DEPENDENCIES.md`.
 - Exact commit SHAs: implementation `3230d41e24c7b8dc1a8813dc336300917e8cceb8`; V4 `e83d24adf1f21614c589714c57e64df8b7824795`; packaging audit `452d52ee745a278e0b7b8e32970854d97fa96cb5`.
 - Artifact paths: listed above.
 - SHA256 checksums: listed above.

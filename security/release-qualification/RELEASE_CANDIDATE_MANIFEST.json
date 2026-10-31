@@ -3,6 +3,8 @@
   "version": "0.8.1",
   "qualification_status": "NO-GO",
   "latest_qualification_report": "security/release-qualification/RELEASE_QUALIFICATION_V5_REPORT.md",
+  "known_issues_document": "security/release-qualification/KNOWN_ISSUES_V0.8.1_BETA.md",
+  "release_channel": "beta",
   "latest_qualification_date": "2026-10-31",
   "release_published": false,
   "source_commit": "3230d41e24c7b8dc1a8813dc336300917e8cceb8",

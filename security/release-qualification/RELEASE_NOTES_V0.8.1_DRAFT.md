@@ -2,6 +2,8 @@
 
 **Qualification status: NO-GO. Do not publish these notes or artifacts yet.**
 
+The public beta limitations are maintained in `KNOWN_ISSUES_V0.8.1_BETA.md`. They must accompany any owner-authorized beta publication and must not be presented as evidence that the current NO-GO gates are closed.
+
 ## Candidate changes
 
 - Keep the Studio release version consistent at v0.8.1 in the UI and application metadata.
