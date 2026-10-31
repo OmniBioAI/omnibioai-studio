@@ -13,6 +13,7 @@ import { CLINICAL_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/Cli
 import { CRISPR_DRUG_PLUGIN_RENDERERS, CRISPR_DRUG_PLUGIN_SLUGS } from "../../src/ui/components/workbench/CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS, SEARCH_STRUCTURE_PLUGIN_SLUGS } from "../../src/ui/components/workbench/SearchStructureReactRenderers";
 import { GENOMICS_TEMPLATE_RENDERERS } from "../../src/ui/components/workbench/GenomicsTemplateRenderers";
+import LipidomicsAnalysisRenderer from "../../src/ui/components/workbench/LipidomicsAnalysisRenderer";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -33,6 +34,10 @@ describe("allowlisted Workbench renderer registry", () => {
   it("uses the dedicated React genome browser for Genome Viewer", () => {
     expect(resolveWorkbenchRenderer("generic_runner", "genome_viewer")).toBe(GENOMICS_TEMPLATE_RENDERERS.genome_viewer);
     expect(GENOMICS_TEMPLATE_RENDERERS.genome_viewer).not.toBe(GenomeViewerRenderer);
+  });
+  it("uses a dedicated React capability workspace for Lipidomics Analysis", () => {
+    expect(resolveWorkbenchRenderer("informational", "lipidomics_analysis")).toBe(LipidomicsAnalysisRenderer);
+    expect(resolveWorkbenchRenderer("generic_runner", "lipidomics_analysis")).toBe(LipidomicsAnalysisRenderer);
   });
   it("uses the dedicated React catalog for Dataset Catalog", () => {
     expect(resolveWorkbenchRenderer("query", "dataset_catalog")).toBe(DatasetCatalogRenderer);

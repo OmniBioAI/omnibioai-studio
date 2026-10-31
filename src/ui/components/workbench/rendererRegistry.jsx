@@ -67,6 +67,7 @@ import { AI_PLUGIN_RENDERERS } from "./AiPluginRenderers";
 import OnboardAiRenderer from "./OnboardAiRenderer";
 import { ANALYSIS_PLUGIN_RENDERERS } from "./AnalysisPluginRenderers";
 import { GENOMICS_TEMPLATE_RENDERERS } from "./GenomicsTemplateRenderers";
+import LipidomicsAnalysisRenderer from "./LipidomicsAnalysisRenderer";
 import { CRISPR_DRUG_PLUGIN_RENDERERS } from "./CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS } from "./SearchStructureReactRenderers";
 import {
@@ -162,6 +163,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   provenance: ProvenanceRenderer,
   resource_monitoring: ResourceMonitoringRenderer,
   security_dashboard: SecurityDashboardRenderer,
+  lipidomics_analysis: LipidomicsAnalysisRenderer,
 });
 
 export function normalizeRendererName(renderer) {

@@ -101,6 +101,11 @@ describe("plugin descriptor API boundary", () => {
     expect(() => endpointUrl("/plugins/histopathology_cv/api/segment/other/")).toThrow("Invalid plugin endpoint");
   });
 
+  it("allows only Lipidomics Analysis's read-only capability endpoint", () => {
+    expect(endpointUrl("/plugins/lipidomics_analysis/")).toContain("/_svc/workbench/plugins/lipidomics_analysis/");
+    expect(() => endpointUrl("/plugins/another_plugin/")).toThrow("Invalid plugin endpoint");
+  });
+
   it("allows only the explicitly scoped ML prediction form endpoints", () => {
     expect(endpointUrl("/plugins/drug_target_intelligence/api/predict/")).toContain("/plugins/drug_target_intelligence/api/predict/");
     expect(endpointUrl("/plugins/celltype_classification_sc/train/")).toContain("/plugins/celltype_classification_sc/train/");
