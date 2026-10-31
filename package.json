@@ -3,6 +3,7 @@
   "version": "0.8.1",
   "productName": "OmniBioAI Studio",
   "description": "AI-powered bioinformatics orchestration desktop platform",
+  "homepage": "https://omnibioai.org",
   "main": "electron/main.js",
   "scripts": {
     "predev": "fuser -k 5174/tcp 2>/dev/null; true",

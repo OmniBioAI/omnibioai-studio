@@ -430,10 +430,10 @@ docker compose cp redis:/data/dump.rdb ./redis_backup_$(date +%Y%m%d).rdb
 ```bash
 # Export all dashboards via API
 mkdir -p grafana_dashboards_backup
-curl -s -u admin:omnibioai http://localhost:3000/api/search?type=dash-db \
+    curl -s --user "admin:${GF_ADMIN_PASSWORD:?Set GF_ADMIN_PASSWORD}" http://localhost:3000/api/search?type=dash-db \
   | python3 -c "import sys,json; [print(d['uid']) for d in json.load(sys.stdin)]" \
   | while read uid; do
-      curl -s -u admin:omnibioai "http://localhost:3000/api/dashboards/uid/$uid" \
+      curl -s --user "admin:${GF_ADMIN_PASSWORD:?Set GF_ADMIN_PASSWORD}" "http://localhost:3000/api/dashboards/uid/$uid" \
         > "grafana_dashboards_backup/${uid}.json"
     done
 ```
