@@ -20,8 +20,12 @@ describe("Job Monitor React renderer", () => {
       if (url.endsWith("/api/runs/")) {
         return jsonResponse({ runs: [{ run_id: "run-1", plugin: "fastq_qc", state: "RUNNING", created_at: "now" }] });
       }
-      if (url.includes("/status/")) {
-        return jsonResponse({ run_id: "run-1", plugin: "fastq_qc", state: "RUNNING", steps: [] });
+      if (url.includes("/detail/")) {
+        return jsonResponse({
+          status: { run_id: "run-1", plugin: "fastq_qc", state: "RUNNING", steps: [] },
+          run: { parameters: { threads: 4 } },
+          artifacts: { outputs: [{ label: "report.json" }] },
+        });
       }
       if (url.includes("/logs/")) return jsonResponse({ logs: ["started"] });
       if (url.includes("/artifacts/")) return jsonResponse({ outputs: [{ label: "report.json" }] });
@@ -40,6 +44,7 @@ describe("Job Monitor React renderer", () => {
       expect.stringContaining("/_svc/workbench/plugins/job_monitor/api/runs/"),
       expect.objectContaining({ credentials: "same-origin" }),
     );
-    expect(fetch.mock.calls.some(([url]) => String(url).includes("api/run/run-1/status/"))).toBe(true);
+    expect(fetch.mock.calls.some(([url]) => String(url).includes("api/run/run-1/detail/"))).toBe(true);
+    expect(screen.getByText(/threads/)).toBeInTheDocument();
   });
 });

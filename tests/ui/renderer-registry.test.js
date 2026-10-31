@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RENDERER_REGISTRY, normalizeRendererName, resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
 import JobMonitorRenderer from "../../src/ui/components/workbench/JobMonitorRenderer";
 import GenomeViewerRenderer from "../../src/ui/components/workbench/GenomeViewerRenderer";
+import DatasetCatalogRenderer from "../../src/ui/components/workbench/DatasetCatalogRenderer";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -18,6 +19,9 @@ describe("allowlisted Workbench renderer registry", () => {
   });
   it("uses the dedicated React genome browser for Genome Viewer", () => {
     expect(resolveWorkbenchRenderer("generic_runner", "genome_viewer")).toBe(GenomeViewerRenderer);
+  });
+  it("uses the dedicated React catalog for Dataset Catalog", () => {
+    expect(resolveWorkbenchRenderer("query", "dataset_catalog")).toBe(DatasetCatalogRenderer);
   });
   it.each([
     ["dataset_ingest", "generic_runner"],
