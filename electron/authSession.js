@@ -225,9 +225,16 @@ class AuthSession {
   }
 
   async completeMfa({ challengeId, code, method }) {
+    const validCode = typeof code === "string" && (method === "email"
+      ? /^\d{6}$/.test(code)
+      : method === "totp"
+        ? /^\d{6}$/.test(code)
+        : method === "recovery_code"
+          ? /^[A-Za-z0-9-]{6,32}$/.test(code)
+          : /^[A-Za-z0-9-]{6,32}$/.test(code));
     if (typeof challengeId !== "string" || !this.challengeTokens.has(challengeId)
-      || typeof code !== "string" || !/^\d{6}$/.test(code)
-      || (method !== undefined && !["email", "totp"].includes(method))) {
+      || !validCode
+      || (method !== undefined && !["email", "totp", "recovery_code"].includes(method))) {
       throw new Error("Invalid MFA challenge");
     }
     const challengeToken = this.challengeTokens.get(challengeId);

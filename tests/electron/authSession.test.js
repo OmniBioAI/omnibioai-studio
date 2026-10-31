@@ -132,6 +132,31 @@ test("MFA completion validates the returned session before exposing profile meta
   assert.equal(session.getAccessTokenForTrustedRequest(), "mfa-access");
 });
 
+test("MFA recovery codes retain their existing alphanumeric hyphenated format", async t => {
+  let submittedCode;
+  let submittedMethod;
+  const session = fixture(t, async (url, options) => {
+    if (url.endsWith("/auth/login")) return response(200, { mfa_required: true, challenge_token: "challenge", methods: ["totp", "recovery_code"] });
+    if (url.endsWith("/users/me/mfa/challenge")) {
+      const body = JSON.parse(options.body);
+      submittedCode = body.code;
+      submittedMethod = body.method;
+      return response(200, { access_token: "access", refresh_token: "refresh" });
+    }
+    return response(200, { valid: true, user_id: 4, email: "recovery@example.org" });
+  });
+  const challenge = await session.login({ email: "recovery@example.org", password: "password" });
+  const result = await session.completeMfa({
+    challengeId: challenge.challengeId,
+    code: "ABCD-EFGH-JKLM",
+    method: "recovery_code",
+  });
+  assert.equal(result.authenticated, true);
+  assert.equal(submittedCode, "ABCD-EFGH-JKLM");
+  assert.equal(submittedMethod, "recovery_code");
+  await assert.rejects(session.completeMfa({ challengeId: challenge.challengeId, code: "bad", method: "recovery_code" }), /Invalid MFA/);
+});
+
 test("restore refreshes the protected refresh credential and logout clears it", async t => {
   const store = fixture(t, async url => {
     if (url.endsWith("/auth/refresh")) return response(200, { access_token: "new-access", refresh_token: "new-refresh" });
