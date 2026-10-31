@@ -63,6 +63,7 @@ import {
   WorkflowValidatorRenderer,
 } from "./PipelinePluginReactRenderers";
 import { ML_PLUGIN_RENDERERS } from "./MLPluginReactRenderer";
+import { AI_PLUGIN_RENDERERS } from "./AiPluginRenderers";
 import { CRISPR_DRUG_PLUGIN_RENDERERS } from "./CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS } from "./SearchStructureReactRenderers";
 import {
@@ -130,6 +131,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...CENTURY_PLUGIN_RENDERERS,
   ...NEXT_CENTURY_PLUGIN_RENDERERS,
   ...FINAL_PLUGIN_RENDERERS,
+  ...AI_PLUGIN_RENDERERS,
   ...CLINICAL_PLUGIN_RENDERERS,
   ...ML_PLUGIN_RENDERERS,
   ...CRISPR_DRUG_PLUGIN_RENDERERS,
