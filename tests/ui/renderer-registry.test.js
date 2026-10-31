@@ -9,6 +9,7 @@ import WorkflowRunnerRenderer from "../../src/ui/components/workbench/WorkflowRu
 import OpenBabelReactRenderer from "../../src/ui/components/workbench/OpenBabelReactRenderer";
 import { PipelineDashboardRenderer, WorkflowExplorerRenderer, WorkflowRegistryAdminRenderer, WorkflowSchedulerRenderer, WorkflowValidatorRenderer } from "../../src/ui/components/workbench/PipelinePluginReactRenderers";
 import { AlertingRenderer, ApiAnalyticsRenderer, DataManagerRenderer, HomeDashboardRenderer, IntegrationConnectionsRenderer, NotificationCenterRenderer, ProvenanceRenderer, ResourceMonitoringRenderer, SecurityDashboardRenderer } from "../../src/ui/components/workbench/DashboardPluginRenderers";
+import { CLINICAL_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/ClinicalPluginRenderers";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -61,6 +62,10 @@ describe("allowlisted Workbench renderer registry", () => {
   ])("uses the dedicated React renderer for %s", (slug, family) => {
     expect(resolveWorkbenchRenderer(family, slug)).toBeTruthy();
     expect(resolveWorkbenchRenderer(family, slug)).not.toBe(resolveWorkbenchRenderer(family));
+  });
+
+  it.each(Object.entries(CLINICAL_PLUGIN_RENDERERS))("uses a dedicated clinical React renderer for %s", (slug, component) => {
+    expect(resolveWorkbenchRenderer("generic_runner", slug)).toBe(component);
   });
 
   it.each([
