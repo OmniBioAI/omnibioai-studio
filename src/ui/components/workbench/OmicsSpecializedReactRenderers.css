@@ -1,0 +1,53 @@
+.omics-special { display: grid; gap: 1rem; }
+.omics-special__badge { display: inline-flex; border: 1px solid var(--border, #d6dfeb); border-radius: 999px; padding: .3rem .65rem; color: var(--muted, #64748b); font-size: .78rem; }
+.omics-special__intro, .omics-special__muted { color: var(--muted, #64748b); line-height: 1.55; }
+.omics-special__notice { margin: .8rem 0; padding: .75rem .9rem; border-radius: .65rem; }
+.omics-special__notice.is-error { color: #8f2531; background: #fff0f1; border: 1px solid #f3c6cc; }
+.omics-special__notice.is-success { color: #17613a; background: #ebfaf1; border: 1px solid #bae7c9; }
+.omics-special__notice.is-warning { color: #7b4e05; background: #fff8e7; border: 1px solid #efdcaa; }
+.omics-special__notice ul { margin: .45rem 0 0; padding-left: 1.25rem; }
+.omics-special__toolbar, .omics-special__inline, .omics-special__actions { display: flex; align-items: end; gap: .75rem; flex-wrap: wrap; }
+.omics-special__actions { margin-top: 1rem; }
+.omics-special__field { display: grid; gap: .4rem; min-width: 12rem; flex: 1; font-size: .9rem; font-weight: 600; }
+.omics-special__field input, .omics-special__field select, .omics-special__field textarea { width: 100%; min-height: 2.55rem; padding: .55rem .7rem; color: var(--text, #172235); background: var(--surface, #fff); border: 1px solid var(--border, #cbd5e1); border-radius: .55rem; font: inherit; font-weight: 400; }
+.omics-special__field input[type=file] { padding: .38rem; }
+.omics-special__button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.55rem; padding: .55rem .9rem; border: 1px solid #315dbd; border-radius: .55rem; background: #315dbd; color: #fff; font: inherit; font-weight: 650; cursor: pointer; }
+.omics-special__button:hover:not(:disabled) { background: #244b9e; }
+.omics-special__button:disabled { opacity: .55; cursor: wait; }
+.omics-special__button.is-quiet { color: var(--text, #243247); background: var(--surface, #fff); border-color: var(--border, #cbd5e1); }
+.omics-special__upload { cursor: pointer; }
+.omics-special__upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.omics-special__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: .65rem; margin: .9rem 0; }
+.omics-special__stats > div { min-width: 0; padding: .75rem; border: 1px solid var(--border, #dbe3ed); border-radius: .7rem; background: var(--surface-muted, #f7f9fc); }
+.omics-special__stats strong, .omics-special__stats span { display: block; overflow-wrap: anywhere; }
+.omics-special__stats strong { font-size: 1.1rem; }
+.omics-special__stats span { margin-top: .25rem; color: var(--muted, #64748b); font-size: .76rem; }
+.omics-special__grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 1rem; }
+.omics-special__plot { width: 100%; border: 1px solid var(--border, #dbe3ed); border-radius: .75rem; background: linear-gradient(145deg, #fbfdff, #f1f5fb); overflow: hidden; }
+.omics-special__plot svg { display: block; width: 100%; min-height: 220px; }
+.omics-special__plot line { stroke: #aebbd0; stroke-width: 1; }
+.omics-special__code, .omics-special__logs { font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important; font-size: .82rem !important; }
+.omics-special__inline { margin-top: 1rem; }
+.omics-special__stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin: 1rem 0 .3rem; }
+.omics-special__stepper button { display: flex; align-items: center; gap: .5rem; min-width: 0; padding: .6rem; color: var(--muted, #64748b); border: 1px solid var(--border, #dbe3ed); border-radius: .6rem; background: var(--surface, #fff); text-align: left; }
+.omics-special__stepper button span { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; flex: 0 0 auto; border-radius: 50%; background: #eef2f8; }
+.omics-special__stepper button.is-current { color: #244b9e; border-color: #7094dd; background: #f3f7ff; font-weight: 650; }
+.omics-special__stepper button.is-done span { color: #fff; background: #36865a; }
+.omics-special__tabs { display: flex; gap: .4rem; margin-bottom: .9rem; }
+.omics-special__tabs button { border: 1px solid var(--border, #dbe3ed); border-radius: 999px; padding: .45rem .8rem; background: var(--surface, #fff); color: var(--text, #243247); cursor: pointer; }
+.omics-special__tabs button.is-active { color: #244b9e; border-color: #7094dd; background: #f3f7ff; }
+.omics-special__form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.omics-special__choices, .omics-special__modules { display: flex; flex-wrap: wrap; gap: .55rem 1rem; min-width: 0; margin: .8rem 0; padding: .8rem; border: 1px solid var(--border, #dbe3ed); border-radius: .65rem; }
+.omics-special__choices legend, .omics-special__modules legend { padding: 0 .35rem; font-weight: 650; }
+.omics-special__choices label, .omics-special__modules label { display: inline-flex; align-items: center; gap: .4rem; }
+.omics-special__modules { grid-column: 1 / -1; }
+.omics-special__modules small { flex-basis: 100%; color: var(--muted, #64748b); }
+.omics-special__comparison { margin-top: 1rem; }
+.omics-special__comparison h3 { font-size: .98rem; }
+.omics-special__comparison ul { display: grid; gap: .35rem; padding-left: 1.25rem; }
+.omics-special__table-wrap { max-width: 100%; overflow: auto; }
+.omics-special__table-wrap table { border-collapse: collapse; }
+.omics-special__table-wrap th, .omics-special__table-wrap td { padding: .5rem .7rem; border-bottom: 1px solid var(--border, #e2e8f0); text-align: left; }
+.omics-special__logs { max-height: 300px; overflow: auto; padding: .8rem; border: 1px solid var(--border, #dbe3ed); border-radius: .6rem; background: #101827; color: #d8e4f5; white-space: pre-wrap; }
+.omics-special__run-summary { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+@media (max-width: 760px) { .omics-special__grid, .omics-special__form-grid { grid-template-columns: 1fr; } .omics-special__stepper button { justify-content: center; font-size: .78rem; padding: .45rem .2rem; } .omics-special__modules { grid-column: auto; } }
