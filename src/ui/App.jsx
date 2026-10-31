@@ -3,6 +3,7 @@ import LicenseGate  from "./components/LicenseGate";
 import BugReport    from "./components/BugReport";
 import Sidebar      from "./components/Sidebar";
 import MobileNav    from "./components/MobileNav";
+import StudioFooter from "./components/StudioFooter";
 import UpdateBanner from "./components/UpdateBanner";
 import Mode      from "./pages/Mode";
 import LLM       from "./pages/LLM";
@@ -891,6 +892,11 @@ export default function App() {
             >Next →</button>
           </div>
         )}
+
+        <StudioFooter
+          onHelpClick={() => handleNavClick(HELP_PAGE)}
+          onPrivacyClick={() => handleNavClick(PRIVACY_PAGE)}
+        />
       </div>
 
       {/* MobileNav drawer — position:fixed, so it's out of the flex flow
