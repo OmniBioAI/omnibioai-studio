@@ -8,7 +8,7 @@
 - Correct the omics renderer test to import its registry from the owning module.
 - Refresh vulnerable dependencies. The recorded baseline-to-final npm audit moved from 4 critical / 11 high findings to zero critical / high; the final full-tree audit still reports 27 moderate and 2 low findings. The production-only audit reports zero findings.
 - Add the repository homepage to package metadata for Linux package generation and replace a static Grafana credential example with a required environment variable.
-- Harden Electron browser defaults, preload/IPC boundaries, navigation and packaged UI serving; remove renderer access to raw local service secrets and renderer-supplied Auth-cookie IPC. These changes are not release-qualified until staging Auth and packaged login/session tests pass.
+- Harden Electron browser defaults, preload/IPC boundaries, navigation and packaged UI serving. Desktop Auth sessions now keep access/refresh and MFA challenge tokens in the Electron main process, use protected `safeStorage` persistence where available, require HTTPS Auth in packaged builds, and prevent renderer bearer values from reaching non-allowlisted destinations. This remains unqualified until a staging account and actual packaged login/session tests pass.
 
 ## Compatibility and availability
 
@@ -18,14 +18,14 @@
 
 ## Known limitations — release blockers
 
-- Electron source hardening is implemented and has focused helper/static-server regression tests, but a real Electron runtime/guest test has not been run.
+- Electron source hardening is implemented and focused auth/session/security tests pass. The final AppImage completed isolated process/runtime initialization, but the runner exposed no inspectable GUI and no real guest/keychain/login test passed. Desktop license entitlement remains required; an account-only login form is shown after that gate.
 - Packaged login, Auth origin/CORS behavior, session recovery, refresh, and logout have not been verified against staging Auth with a non-production account. No staging endpoint or test account was available in this workstream.
-- Auth access/refresh tokens remain in renderer `localStorage` and a JavaScript-readable cookie; Auth requests still use HTTP. A secure Auth-side session contract or reviewed main-process broker is required before this risk can be closed.
+- New desktop sessions no longer place Auth tokens in renderer `localStorage` or a JavaScript-readable cookie; legacy desktop token entries are cleared. The web/PWA flow intentionally remains unchanged. Production Auth is configured to the existing HTTPS `webstudio.omnibioai.org` origin; actual staging/production TLS and packaged login were not tested. Remote private service hosts configured with HTTP do not receive a bearer token and require HTTPS to support authenticated API calls.
 - 27 moderate and 2 low development/build-tool advisories remain; explicit release-owner risk acceptance is outstanding.
-- The previous full-directory secret scan reported 23 matches with documented redacted dispositions. The official Git-history scan was blocked by Docker socket permissions in the final pass; no fresh directory scan ran because standalone Gitleaks is unavailable. Do not treat the current scan as clean.
-- Current ARM64 AppImage and DEB were built locally; RPM is blocked because `rpmbuild` is unavailable. The builder warns that `desktopName` is unset. Artifacts are unsigned and packaged login was not tested.
-- Last completed full dependency audit at the implementation source commit: 0 critical, 0 high, 27 moderate and 2 low; production-only audit: 0 findings. A fresh audit in the final qualification pass was blocked by npm registry DNS and must not be treated as current verification. Node 20 is unavailable in this final environment; fresh builds/tests used Node 22.23.3.
-- Final qualification report V4 remains NO-GO: no approved staging HTTPS Auth origin or non-production test account was available, so secure session migration and actual packaged login were not verified. Do not publish these notes or artifacts.
+- The previous full-directory secret scan reported 23 matches with documented redacted dispositions. Current changed/worktree high-confidence local patterns found no matches, but the official Docker Gitleaks run was denied because it would mount Git history into a third-party container. Do not treat the current scan as an official clean Gitleaks result.
+- Final-HEAD ARM64 AppImage and DEB were rebuilt from `3230d41e24c7b8dc1a8813dc336300917e8cceb8`. AppImage: `/tmp/studio-v0.8.1-auth-3230-mYy6i7/OmniBioAI Studio-0.8.1-arm64.AppImage` (95,800,883 bytes; SHA-256 `188de8351ad4f2662669a246d0836eafd9d40e2e11849388f873ea4a0c33967e`). DEB: `/tmp/studio-v0.8.1-auth-3230-mYy6i7/omnibioai-studio_0.8.1_arm64.deb` (96,623,392 bytes; SHA-256 `e82d630772eb36e12967429498845b7dfb624e00f14a4a6d4dff5a80231fc893`); metadata verified. AppImage process initialization passed with isolated user data, but visual GUI/login did not. DEB was not installed. RPM is blocked because `rpmbuild` is unavailable. The builder warns that `desktopName` is unset. Artifacts are unsigned.
+- Fresh exact-commit dependency audit: 0 critical, 0 high, 27 moderate and 2 low; production-only audit: 0 findings. Node 20 is unavailable; fresh builds/tests used Node 22.23.3.
+- Final qualification report V5 remains NO-GO: no approved staging HTTPS Auth origin or non-production test account was available. OS-keychain behavior, visual GUI, and actual packaged login remain unverified. The packaged runtime `.env` fix was exercised successfully under isolated user data. Do not publish these notes or artifacts.
 
 ## Install, upgrade, and rollback guidance (draft)
 

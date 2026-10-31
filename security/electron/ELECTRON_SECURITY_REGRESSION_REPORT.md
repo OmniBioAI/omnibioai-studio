@@ -1,5 +1,7 @@
 # Electron security hardening — v0.8.1 candidate
 
+> **Current status (2026-10-31):** This report has a V5 update appended below. The earlier sections describe the pre-auth-hardening state at implementation commit `5f02cefb` and are retained as historical evidence; statements there that renderer tokens remain in localStorage or packaged Auth uses HTTP are superseded for the new desktop-session code by the current update. Staging/package login remains unverified and release remains NO-GO.
+
 **Status: PARTIAL — release remains NO-GO.** This report records source and local test evidence from `security/studio-v0.8.1-electron-hardening`, implementation commit `5f02cefb6595ce32d7a26ec1857618ae1ada830d`, based on `e487f649c59669663bbcf783b00db1536772d837`. It does not establish deployed or packaged authentication behavior.
 
 ## Trust boundaries
@@ -59,7 +61,28 @@ Commands and results:
 
 No credentials, tokens, or private endpoint values are included in this report.
 
-## Authentication boundary reassessment — 2026-10-31
+## V5 update — main-owned desktop session (2026-10-31)
+
+The current implementation is on `security/studio-v0.8.1-electron-hardening` through commits `3cc1414da7a7c2bd26d2bf2499e869da90b9b85f`, `63ec5a3d822af630018fb507b7a9e8d8b3a5da76`, `3fde584d73ace15059e960e79ae55519ec36e45b`, `ec0b4d1173e8904deaf1888026aa9d255d43c06c`, and `3230d41e24c7b8dc1a8813dc336300917e8cceb8`; the report commit is recorded in the final handoff.
+
+- `electron/authSession.js` now owns desktop Auth login, MFA challenge token, access/refresh tokens, validation, `/me`, refresh and logout. It uses the existing routes and response contract from the inspected Auth source; Auth itself was not modified.
+- Packaged Auth origin is the existing `LICENSE_SERVER` value `https://webstudio.omnibioai.org`, and the desktop client rejects packaged HTTP origins and redirects. Development permits only loopback HTTP or HTTPS. Actual TLS/staging connectivity has not been tested.
+- Preload exposes only explicit status/login/MFA/refresh/identity/logout operations. Every IPC goes through main-frame/origin validation. The renderer receives sanitized profile metadata and opaque MFA IDs, not raw Auth tokens or a generic authenticated-fetch method.
+- Refresh-token persistence uses Electron `safeStorage`; Linux `basic_text` is refused. No plaintext or authenticated in-memory-only fallback exists; login fails closed if protected storage cannot protect the refresh token. Tests use a fake adapter, so actual OS-keychain behavior remains unverified.
+- The desktop renderer clears legacy token localStorage entries and the readable access cookie. The web/PWA session implementation was not changed. `session.js` returns only a non-secret desktop session marker to legacy API clients; the main request policy strips renderer Authorization and attaches the main-owned token only for the fixed Auth origin or explicitly trusted service origins. Remote private service hosts require HTTPS; remote HTTP targets receive no bearer token.
+- Electron/auth unit and helper regression suite: `npm run test:electron-security` — PASS, 29/29 on `ec0b4d11`; rerun on final source `3230d41e` passed 30/30 with host permissions for its loopback static-server integration test. Includes recovery-code compatibility, storage/validation failure, and packaged path tests. Focused app-shell, login, and session UI tests: PASS, 46/46. Full UI: PASS, 2,437 passed, 2 skipped (the UI suite was not rerun after the main-process-only `3230d41e` change). Desktop renderer and PWA builds pass on Node 22.23.3; both were built on final source.
+- Initial V5 ARM64 artifacts from `ec0b4d11` are superseded. Final-source ARM64 AppImage and DEB from `3230d41e` are recorded in the V5 report and manifest. AppImage process/runtime initialization passed with isolated user data after fixing an `app.asar` runtime-path defect; visual GUI and login remain blocked, and the DEB was not installed. `latest-linux-arm64.yml` names a hyphenated AppImage filename while the actual artifact filename contains spaces; auto-update metadata requires correction. RPM is blocked because `rpmbuild` is unavailable.
+- The desktop now requires account login after license entitlement; it does not silently retain the prior license-only entry behavior. Staging Auth URL/account injection were not found; no production endpoint or credentials were used. Fresh exact-commit audits report 0 critical/high, 27 moderate, 2 low and 0 production advisories. Current-file pattern scanning found no high-confidence matches; official Docker Gitleaks remains blocked by the denied Git-history mount.
+
+See the V5 qualification report and `DESKTOP_AUTH_SESSION_ADR.md` for exact evidence and limitations. This update is not evidence of deployed behavior or formal certification.
+
+### Final implementation follow-up — `3230d41e24c7b8dc1a8813dc336300917e8cceb8`
+
+Packaged runtime `.env` path resolution now uses Electron `userData` rather than the read-only packaged application directory; development continues to use the source app path. A focused path test was added, and `npm run test:electron-security` passed 30/30 when rerun with host loopback permission. Final AppImage and DEB were rebuilt and hashed. AppImage process/runtime initialization passed with isolated user data and protected file modes; the environment exposed no inspectable GUI. No staging authentication or OS-keychain integration was performed. Generated update metadata has an AppImage filename mismatch (hyphenated metadata versus spaced artifact) and is a release blocker if auto-update is in scope. This update is not evidence of deployed behavior or formal certification.
+
+## Historical V4 authentication assessment (superseded by V5) — 2026-10-31
+
+The following records the pre-V5 finding and is retained as historical evidence only. It is superseded by the main-owned session implementation and V5 findings above; it is not a description of the current source tree.
 
 Fresh source inspection for release qualification confirmed the blocker remains unresolved:
 
