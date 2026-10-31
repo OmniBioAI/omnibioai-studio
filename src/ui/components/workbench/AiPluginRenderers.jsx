@@ -33,14 +33,6 @@ const AI_WORKFLOWS = Object.freeze({
     note: "Answers depend on the indexed corpus and retain source references for verification.",
     mode: "async",
   },
-  onboardai: {
-    eyebrow: "Workbench onboarding",
-    summary: "Inspect the project and plugin documentation catalog and surface setup-readiness signals.",
-    stages: ["Review catalog", "Check setup", "Ask a documentation question", "Verify references"],
-    outputs: ["Documentation matches", "Setup checklist", "Answer evidence"],
-    note: "Onboarding answers are documentation guidance; verify operational and security settings with administrators.",
-    mode: "async",
-  },
 });
 
 export const AI_PLUGIN_RENDERERS = Object.freeze(Object.fromEntries(

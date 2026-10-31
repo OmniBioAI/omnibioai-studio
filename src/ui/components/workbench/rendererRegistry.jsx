@@ -64,6 +64,7 @@ import {
 } from "./PipelinePluginReactRenderers";
 import { ML_PLUGIN_RENDERERS } from "./MLPluginReactRenderer";
 import { AI_PLUGIN_RENDERERS } from "./AiPluginRenderers";
+import OnboardAiRenderer from "./OnboardAiRenderer";
 import { CRISPR_DRUG_PLUGIN_RENDERERS } from "./CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS } from "./SearchStructureReactRenderers";
 import {
@@ -91,6 +92,7 @@ export const RENDERER_REGISTRY = Object.freeze({
 const LEGACY_RENDERER_ALIASES = Object.freeze({ generic_runner: "async_analysis" });
 const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   bio_agent: BioAgentRenderer,
+  onboardai: OnboardAiRenderer,
   job_monitor: JobMonitorRenderer,
   multi_agent_bio_orchestrator: MultiAgentOrchestratorRenderer,
   workflow_builder: WorkflowBuilderCanvasRenderer,

@@ -15,7 +15,7 @@ describe("AI category React plugin pages", () => {
   it("registers guided React experiences for the remaining executable AI plugins", () => {
     expect(AI_PLUGIN_SLUGS).toEqual([
       "agent_workflow_studio", "bio_hypothesis_ai", "bio_narrator_ai",
-      "literature_summarizer", "onboardai",
+      "literature_summarizer",
     ]);
   });
 
