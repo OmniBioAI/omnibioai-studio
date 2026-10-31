@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { nativePluginRequest, loadWorkbenchCatalog } = vi.hoisted(() => ({
@@ -32,5 +32,18 @@ describe("historical dashboard React renderers", () => {
     render(<Renderer />);
     expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
     expect(document.querySelector("iframe, webview")).toBeNull();
+  });
+
+  it("updates alert channel state using the backend's id-based contract", async () => {
+    nativePluginRequest.mockImplementation(async path => {
+      if (path.includes("/summary/")) return { summary: {} };
+      if (path.includes("/rules/")) return { rules: [] };
+      if (path.includes("/channels/")) return { channels: [{ id: 7, slug: "primary", name: "Primary", channel_type: "email", enabled: true }] };
+      return { alerts: [] };
+    });
+    render(<AlertingRenderer />);
+    fireEvent.click(await screen.findByRole("button", { name: "channels" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Toggle" }));
+    expect(nativePluginRequest).toHaveBeenCalledWith("/plugins/alerting/api/channels/", { method: "PUT", body: { id: 7, enabled: false } });
   });
 });
