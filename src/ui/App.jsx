@@ -20,6 +20,7 @@ import ServiceViewer from "./pages/ServiceViewer";
 import AIChatHub from "./pages/AIChatHub";
 import PluginPage from "./pages/PluginPage";
 import { resolveWorkbenchPluginDeepLink } from "./lib/pluginDeepLink";
+import { STUDIO_VERSION_LABEL } from "./lib/appVersion";
 import Videos        from "./pages/Videos";
 import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
@@ -327,7 +328,7 @@ export default function App() {
   const [integrationCount, setIntegrationCount] = useState(null);
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [accountIdentity, setAccountIdentity] = useState(null);
-  const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved? (web only)
+  const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved?
   const [oauthNotice,  setOauthNotice]  = useState(null); // result of an OAuth redirect: link_required | error
   const [returnTo,     setReturnTo]     = useState(() => getSafeReturnTo()); // ?return_to= target, captured once
   const [mobileNavOpen, setMobileNavOpen] = useState(false); // MobileNav drawer — mobile only, no desktop effect
@@ -433,15 +434,8 @@ export default function App() {
 
   // ─── Keep the access token from going stale while the app sits open ──
   // auth-service issues 15-minute access tokens (ACCESS_TOKEN_EXPIRE_MINUTES)
-  // and nothing else in this app ever calls session.js's refresh() — every
-  // sub-app that authenticates itself (Model Registry, RAG, etc.) reads the
-  // same JWT straight out of localStorage on each request, with no 401-retry
-  // of its own. Past 15 minutes on one page (Model Registry's "Failed to
-  // fetch models: 401" is what surfaced this), that stale token 401s
-  // everywhere at once. Refreshing well before expiry (5 min, a 3x margin)
-  // keeps localStorage's token perpetually valid for every consumer of it,
-  // without touching any of those other repos. No-ops (refresh() itself
-  // checks) once the refresh token is gone (logged out) or itself expired.
+  // API consumers share the active session. The web build refreshes its
+  // browser session; Electron refreshes through main-process-owned storage.
   useEffect(() => {
     const tick = () => { if (getRefreshToken()) refresh(); };
     tick();
@@ -646,10 +640,9 @@ export default function App() {
     return url;
   };
 
-  // ─── Don't render until config is loaded, and (web only) until we know ──
-  // whether there's a valid session — Electron gates access via LicenseGate
-  // instead, so it doesn't wait on authChecked.
-  if (!ready || (!isElectron() && !authChecked)) {
+  // Do not flash authenticated content or the sign-in form while a protected
+  // desktop session is still being restored.
+  if (!ready || !authChecked) {
     return (
       <div style={{
         display:"flex", height:"100vh",
@@ -664,8 +657,10 @@ export default function App() {
     );
   }
 
-  // Web only — Electron authenticates via LicenseGate's own license check.
-  const showLogin = !isElectron() && !currentUser;
+  // A desktop license is an entitlement, not an identity session. After the
+  // license gate succeeds, Electron must still establish the main-owned Auth
+  // session used by role- and organization-scoped features.
+  const showLogin = !currentUser;
 
   return (
     <AppearanceProvider userId={currentUser?.userId}>
@@ -674,7 +669,10 @@ export default function App() {
     {showLogin ? (
       <Login
         title="Welcome to OmniBioAI Studio"
-        description="Sign in or enter your license key to access the platform"
+        description={isElectron()
+          ? "Sign in to establish a protected desktop session"
+          : "Sign in or enter your license key to access the platform"}
+        accountOnly={isElectron()}
       />
     ) : (
     <div style={{
@@ -790,7 +788,7 @@ export default function App() {
               borderRadius:'var(--radius-xs)', letterSpacing:"0.08em",
               background:"rgba(0,148,255,0.12)", color:"var(--accent2)",
               border:"1px solid rgba(0,148,255,0.2)",
-            }}>v0.8.0</span>
+            }}>{STUDIO_VERSION_LABEL}</span>
 
             <span style={{
               fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)', padding:"3px 8px",

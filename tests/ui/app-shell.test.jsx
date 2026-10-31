@@ -74,6 +74,20 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Account route migration", () => {
+  it("requires an identity login in Electron after the license gate", async () => {
+    session.user = null;
+    render(<App />);
+    expect(await screen.findByText("Login")).toBeInTheDocument();
+    expect(screen.queryByText("Studio page")).not.toBeInTheDocument();
+  });
+
+  it("shows the shared Studio version in the header and preserves the BETA badge", async () => {
+    render(<App />);
+    await screen.findByText("Studio page");
+    expect(screen.getByText("v0.8.1")).toBeInTheDocument();
+    expect(screen.getByText("BETA")).toBeInTheDocument();
+  });
+
   it("accepts only canonical bookmarkable plugin routes", () => {
     expect(pluginSlugFromStudioPath("/studio/plugins/deseq2_analysis")).toBe("deseq2_analysis");
     expect(pluginSlugFromStudioPath("/studio/plugins/deseq2_analysis/")).toBe("deseq2_analysis");

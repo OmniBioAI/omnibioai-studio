@@ -3,6 +3,7 @@ import { Panel, PanelHeader, PanelBody, FormRow, Input, Select, Toggle, Btn } fr
 import RequirePermission from "../components/RequirePermission";
 import { openExternal } from "../lib/externalLink";
 import PageHeader from "../components/PageHeader";
+import { STUDIO_VERSION_LABEL } from "../lib/appVersion";
 
 const MANAGE_CONFIG = "manage_config";
 
@@ -63,9 +64,8 @@ export default function Settings({ config, setConfig, currentUser }) {
 
 function SettingsConsole({ config, setConfig }) {
   const [saved, setSaved] = useState(false);
-  const [creds, setCreds] = useState(null);
-  const [credsVisible, setCredsVisible] = useState(false);
-  const [copiedKey, setCopiedKey] = useState(null);
+  const [credentialStatus, setCredentialStatus] = useState(null);
+  const [credentialStatusVisible, setCredentialStatusVisible] = useState(false);
   const [settings, setSettings] = useState({
     host_ip:         "localhost",
     update_channel:  "stable",
@@ -97,20 +97,13 @@ function SettingsConsole({ config, setConfig }) {
 
   const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
 
-  const showCredentials = useCallback(async () => {
-    if (window.api?.getCredentials) {
-      const data = await window.api.getCredentials();
-      setCreds(data);
-      setCredsVisible(true);
+  const showCredentialStatus = useCallback(async () => {
+    if (window.api?.getCredentialStatus) {
+      const data = await window.api.getCredentialStatus();
+      setCredentialStatus(data?.configured || []);
+      setCredentialStatusVisible(true);
     }
   }, []);
-
-  const copyToClipboard = (text, key) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 1500);
-    });
-  };
 
   const saveSettings = async () => {
     const fullConfig = { ...config, settings };
@@ -365,7 +358,7 @@ function SettingsConsole({ config, setConfig }) {
               fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
             }}>
               {[
-                ["Studio Version", "v0.8.0"],
+                ["Studio Version", STUDIO_VERSION_LABEL],
                 ["Electron",       typeof process !== "undefined" ? process.versions?.electron || "28.x" : "web"],
                 ["Node.js",        typeof process !== "undefined" ? process.versions?.node     || "18.x" : "web"],
                 ["Platform",       navigator.platform],
@@ -434,70 +427,34 @@ function SettingsConsole({ config, setConfig }) {
             Never share these credentials or commit them to version control.
           </div>
 
-          {!credsVisible ? (
-            <Btn variant="primary" onClick={showCredentials}>Show Credentials</Btn>
+          {!credentialStatusVisible ? (
+            <Btn variant="primary" onClick={showCredentialStatus}>Check Credential Status</Btn>
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {[
-                { label:'Grafana Admin Password', key:'grafanaPassword', value: creds?.grafanaPassword },
-                { label:'MySQL Root Password',    key:'mysqlPassword',   value: creds?.mysqlPassword   },
-                { label:'API Secret Key',         key:'authSecretKey',   value: creds?.authSecretKey   },
-                { label:'Jupyter Token',          key:'jupyterToken',    value: creds?.jupyterToken    },
-                { label:'RStudio Password',       key:'rstudioPassword', value: creds?.rstudioPassword },
-                { label:'VS Code Password',       key:'vscodePassword',  value: creds?.vscodePassword  },
-              ].map(({ label, key, value }) => (
-                <div key={key} style={{ display:'flex', flexDirection:'column', gap:4 }}>
-                  <div style={{ fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)" }}>
-                    {label}
-                  </div>
-                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                    <div style={{
-                      flex:1, padding:'6px 10px', borderRadius:'var(--radius-sm)',
-                      background:"var(--bg2)", border:"1px solid var(--border2)",
-                      fontFamily:"var(--mono)", fontSize:'var(--font-size-xs)',
-                      color:"var(--text)", letterSpacing: key === 'authSecretKey' ? '0.08em' : 'normal',
-                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                    }}>
-                      {key === 'authSecretKey'
-                        ? (value ? value.slice(0, 8) + '••••••••••••••••••••••••' : '—')
-                        : (value || '—')}
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(value || '', key)}
-                      style={{
-                        padding:'6px 12px', borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-xs)',
-                        fontFamily:"var(--mono)", background:"var(--bg2)",
-                        border:"1px solid var(--border2)",
-                        color: copiedKey === key ? "var(--accent)" : "var(--color-text-muted)",
-                        cursor:'pointer', whiteSpace:'nowrap',
-                      }}
-                    >
-                      {copiedKey === key ? '✓ Copied' : 'Copy'}
-                    </button>
-                  </div>
+                { label:'Grafana Admin Password', key:'GF_ADMIN_PASSWORD' },
+                { label:'Grafana Service Token', key:'GF_STUDIO_TOKEN' },
+                { label:'MySQL Root Password', key:'MYSQL_ROOT_PASSWORD' },
+                { label:'Auth Secret Key', key:'AUTH_SECRET_KEY' },
+                { label:'Jupyter Token', key:'JUPYTER_TOKEN' },
+                { label:'RStudio Password', key:'RSTUDIO_PASSWORD' },
+                { label:'VS Code Password', key:'VSCODE_PASSWORD' },
+              ].map(({ label, key }) => (
+                <div key={key} style={{ display:'flex', justifyContent:'space-between', gap:12, fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)" }}>
+                  <span style={{ color:"var(--color-text-muted)" }}>{label}</span>
+                  <span>{credentialStatus?.includes(key) ? "Configured" : "Not configured"}</span>
                 </div>
               ))}
-
-              {creds?.envPath && (
-                <div style={{
-                  marginTop:4, padding:'8px 10px', borderRadius:'var(--radius-sm)',
-                  background:"rgba(255,165,2,0.06)", border:"1px solid rgba(255,165,2,0.15)",
-                  fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--warn)",
-                }}>
-                  Stored at: {creds.envPath}
-                </div>
-              )}
-
               <div>
                 <button
-                  onClick={() => setCredsVisible(false)}
+                  onClick={() => setCredentialStatusVisible(false)}
                   style={{
                     padding:'5px 12px', borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-xs)',
                     fontFamily:"var(--mono)", background:"var(--bg2)",
                     border:"1px solid var(--border2)", color:"var(--color-text-muted)", cursor:'pointer',
                   }}
                 >
-                  Hide
+                  Hide status
                 </button>
               </div>
             </div>

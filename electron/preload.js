@@ -20,34 +20,47 @@ contextBridge.exposeInMainWorld("api", {
 
   // ─── LOGS — docker compose up/pull output ─────────
   onDockerLog:   (callback) =>
-    ipcRenderer.on("docker-log", (_, line) => callback(line)),
+    subscribe("docker-log", callback),
 
   // ─── LOGS — live service log stream ───────────────
   streamLogs:    (callback) =>
-    ipcRenderer.on("log-stream", (_, data) => callback(data)),
+    subscribe("log-stream", callback),
 
   // ─── AUTO-UPDATE ───────────────────────────────────
   onUpdateAvailable: (callback) =>
-    ipcRenderer.on("update-available", (_, info) => callback(info)),
+    subscribe("update-available", callback),
   onUpdateError:     (callback) =>
-    ipcRenderer.on("update-error", (_, info) => callback(info)),
+    subscribe("update-error", callback),
 
-  // ─── CREDENTIALS ──────────────────────────────────
-  getCredentials: ()        => ipcRenderer.invoke("get-credentials"),
-  // Keep the existing Studio access token available to same-machine service
-  // webviews through Electron's session cookie jar.
-  syncAuthCookie: (token) => ipcRenderer.invoke("sync-auth-cookie", token),
+  // Return credential presence only; secret values never cross into renderer code.
+  getCredentialStatus: () => ipcRenderer.invoke("credential-status"),
 
   // ─── WORKBENCH & LINKS ────────────────────────────
   openWorkbench: ()         => ipcRenderer.invoke("open-workbench"),
   openExternal:  (url)      => ipcRenderer.invoke("open-external", url),
-  loadUrl:       (url)      => ipcRenderer.invoke("load-url", url),
   goHome:        ()         => ipcRenderer.invoke("go-home"),
 });
 
+function subscribe(channel, callback) {
+  if (typeof callback !== "function") return () => {};
+  const listener = (_event, value) => callback(value);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
 contextBridge.exposeInMainWorld("electronAPI", {
+  // Narrow account-session facade. It never returns access/refresh tokens or
+  // accepts arbitrary URLs; the main process owns credentials and requests.
+  authSessionStatus: () => ipcRenderer.invoke("auth-session-status"),
+  authSessionLogin: (credentials) => ipcRenderer.invoke("auth-session-login", credentials),
+  authSessionMfa: (input) => ipcRenderer.invoke("auth-session-mfa", input),
+  authSessionMfaResend: (input) => ipcRenderer.invoke("auth-session-mfa-resend", input),
+  authSessionRefresh: () => ipcRenderer.invoke("auth-session-refresh"),
+  authSessionIdentity: () => ipcRenderer.invoke("auth-session-identity"),
+  authSessionLogout: () => ipcRenderer.invoke("auth-session-logout"),
+  onAuthSessionChange: (callback) => subscribe("auth-session-changed", callback),
   validateLicense: (credentials)   => ipcRenderer.invoke("license-validate", credentials),
   getLicense:      ()              => ipcRenderer.invoke("license-get-cached"),
   clearLicense:    ()              => ipcRenderer.invoke("license-clear"),
-  grafanaLogin:    (user, password) => ipcRenderer.invoke("grafana-login", user, password),
+  grafanaLogin:    ()              => ipcRenderer.invoke("grafana-login"),
 });

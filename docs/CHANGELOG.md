@@ -9,6 +9,16 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
+## v0.8.1 (release candidate)
+
+### Fixed
+- Display the Studio application version consistently as v0.8.1 in the sidebar, header, login, and Settings About view.
+- Correct the UI renderer test to import the omics renderer registry from its owning module.
+
+### Release metadata
+- Align the documented current Studio version and Sentry release identifiers with v0.8.1.
+
+---
 ## v0.8.0-beta (2026-09-27) — Platform Consolidation & Security Hardening
 
 This release consolidates the ecosystem and hardens its security foundation.

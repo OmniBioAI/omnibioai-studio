@@ -6,6 +6,7 @@ import {
 } from "../lib/session";
 import OmniBioAILogo from "./brand/OmniBioAILogo";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
+import { STUDIO_VERSION_LABEL } from "../lib/appVersion";
 
 const PROVIDER_LABELS = { google: "Google", github: "GitHub", microsoft: "Microsoft" };
 
@@ -78,8 +79,8 @@ function labelStyle() {
   };
 }
 
-export default function Login({ title, description }) {
-  const [mode, setMode] = useState("license"); // "password" | "license"
+export default function Login({ title, description, accountOnly = false }) {
+  const [mode, setMode] = useState(accountOnly ? "password" : "license"); // "password" | "license"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [licenseKey, setLicenseKey] = useState("");
@@ -216,7 +217,7 @@ export default function Login({ title, description }) {
                 color: ACCENT,
               }}
             >
-              ● Private beta · v0.8.0
+              ● Private beta · {STUDIO_VERSION_LABEL}
             </div>
           </div>
 
@@ -231,7 +232,7 @@ export default function Login({ title, description }) {
             )}
           </div>
 
-          <div
+          {!accountOnly && <div
             style={{
               display: "flex",
               gap: 4,
@@ -265,7 +266,7 @@ export default function Login({ title, description }) {
                 {m === "password" ? "Password Login" : "License Activation"}
               </button>
             ))}
-          </div>
+          </div>}
 
           <form onSubmit={submit}>
             {loginChallenge ? <>

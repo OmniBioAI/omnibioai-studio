@@ -126,53 +126,36 @@ describe("Settings page", () => {
     await waitFor(() => expect(reload).toHaveBeenCalled());
   });
 
-  it("shows and hides credentials, copying each value including the shortened auth secret", async () => {
+  it("shows credential presence without exposing secret values or filesystem paths", async () => {
     window.api.getCredentials = vi.fn().mockResolvedValue({
-      grafanaPassword: "gpass", authSecretKey: "abcdefghijklmnop", envPath: "/opt/.env",
-      // mysqlPassword/jupyterToken/rstudioPassword/vscodePassword intentionally absent -> "—"
+      grafanaPassword: "must-not-be-rendered", envPath: "/private/location/.env",
     });
+    window.api.getCredentialStatus = vi.fn().mockResolvedValue({ configured: ["GF_ADMIN_PASSWORD"] });
     render(<Settings config={{}} setConfig={vi.fn()} currentUser={null} />);
-    fireEvent.click(screen.getByText("Show Credentials"));
-    expect(await screen.findByText("Stored at: /opt/.env")).toBeInTheDocument();
-    expect(screen.getByText("abcdefgh••••••••••••••••••••••••")).toBeInTheDocument();
-    expect(screen.getByText("gpass")).toBeInTheDocument();
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
-
-    fireEvent.click(screen.getAllByText("Copy")[0]);
-    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith("gpass"));
-    expect(await screen.findByText("✓ Copied")).toBeInTheDocument();
-
-    // the grafanaPassword button above now reads "✓ Copied", so the first
-    // remaining "Copy" button is mysqlPassword's (value absent -> copies '').
-    fireEvent.click(screen.getAllByText("Copy")[0]);
-    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(""));
-
-    fireEvent.click(screen.getByText("Hide"));
-    expect(screen.queryByText("Stored at: /opt/.env")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Check Credential Status"));
+    expect(await screen.findByText("Configured")).toBeInTheDocument();
+    expect(screen.getAllByText("Not configured").length).toBeGreaterThan(0);
+    expect(screen.queryByText("must-not-be-rendered")).not.toBeInTheDocument();
+    expect(screen.queryByText("/private/location/.env")).not.toBeInTheDocument();
+    expect(window.api.getCredentials).not.toHaveBeenCalled();
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });
 
-  it("no-ops Show Credentials when window.api.getCredentials is unavailable", () => {
+  it("does not expose credential status when the narrow status API is unavailable", () => {
     render(<Settings config={{}} setConfig={vi.fn()} currentUser={null} />);
-    fireEvent.click(screen.getByText("Show Credentials"));
-    expect(screen.getByText("Show Credentials")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Check Credential Status"));
+    expect(screen.queryByText("Configured")).not.toBeInTheDocument();
   });
 
-  it("reverts the saved and copied indicators after their timeouts elapse", async () => {
+  it("reverts the saved indicator after its timeout elapses", async () => {
     vi.useFakeTimers();
     window.api.saveConfig = vi.fn().mockResolvedValue();
-    window.api.getCredentials = vi.fn().mockResolvedValue({ grafanaPassword: "gpass" });
     render(<Settings config={{}} setConfig={vi.fn()} currentUser={null} />);
 
     fireEvent.click(screen.getByText("Save Settings"));
     await vi.waitFor(() => expect(screen.getByText("✓ Saved")).toBeInTheDocument());
     await vi.advanceTimersByTimeAsync(2000);
     expect(screen.getByText("Save Settings")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("Show Credentials"));
-    await vi.waitFor(() => expect(screen.getAllByText("Copy").length).toBeGreaterThan(0));
-    fireEvent.click(screen.getAllByText("Copy")[0]);
-    await vi.advanceTimersByTimeAsync(1500);
-    expect(screen.getAllByText("Copy").length).toBeGreaterThan(0);
   });
 
   it("opens external links via window.api.openExternal, or window.open as a fallback", () => {

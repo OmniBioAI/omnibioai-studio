@@ -1,0 +1,3180 @@
+{
+  "generatedAt": "2026-10-31T20:31:05.591Z",
+  "baseline": {
+    "audit": {
+      "info": 0,
+      "low": 3,
+      "moderate": 33,
+      "high": 11,
+      "critical": 4,
+      "total": 51
+    },
+    "productionAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    "findings": [
+      {
+        "name": "@electron/asar",
+        "severity": "moderate",
+        "installedVersions": [
+          "3.4.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@electron/asar",
+            "version": "3.4.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "glob",
+          "minimatch"
+        ],
+        "affectedRange": ">=3.2.1",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@electron/universal",
+        "severity": "moderate",
+        "installedVersions": [
+          "2.0.3"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@electron/universal",
+            "version": "2.0.3",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@electron/asar",
+          "dir-compare",
+          "minimatch"
+        ],
+        "affectedRange": ">=1.0.1",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@joshwooding/vite-plugin-react-docgen-typescript",
+        "severity": "moderate",
+        "installedVersions": [
+          "0.7.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@joshwooding/vite-plugin-react-docgen-typescript",
+            "version": "0.7.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "glob"
+        ],
+        "affectedRange": "0.4.0 || >=0.5.0",
+        "fixAvailable": {
+          "name": "@storybook/react-vite",
+          "version": "8.5.3",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@rollup/plugin-node-resolve",
+        "severity": "low",
+        "installedVersions": [
+          "16.0.3"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@rollup/plugin-node-resolve",
+            "version": "16.0.3",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "deepmerge"
+        ],
+        "affectedRange": ">=8.0.0",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@storybook/addon-mcp",
+        "severity": "moderate",
+        "installedVersions": [
+          "0.6.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@storybook/addon-mcp",
+            "version": "0.6.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@storybook/mcp",
+          "valibot"
+        ],
+        "affectedRange": "0.1.4-next.0 - 0.7.0",
+        "fixAvailable": {
+          "name": "@storybook/addon-mcp",
+          "version": "10.6.5",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@storybook/addon-vitest",
+        "severity": "critical",
+        "installedVersions": [
+          "10.5.2"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@storybook/addon-vitest",
+            "version": "10.5.2",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Storybook: Missing origin validation in Storybook preview allows code injection from malicious websites",
+            "url": "https://github.com/advisories/GHSA-f2ph-cmg5-wxc8",
+            "severity": "critical",
+            "range": ">=10.0.0 <10.6.2",
+            "cvss": 0
+          },
+          {
+            "title": "Storybook dev server vulnerable to code injection from the local network",
+            "url": "https://github.com/advisories/GHSA-px85-f4q5-jh77",
+            "severity": "high",
+            "range": ">=10.0.0 <10.6.2",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "10.0.0 - 10.6.1",
+        "fixAvailable": true
+      },
+      {
+        "name": "@storybook/mcp",
+        "severity": "moderate",
+        "installedVersions": [
+          "0.7.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@storybook/mcp",
+            "version": "0.7.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "valibot"
+        ],
+        "affectedRange": "0.0.7-next.0 - 0.8.0",
+        "fixAvailable": true
+      },
+      {
+        "name": "@storybook/react-vite",
+        "severity": "moderate",
+        "installedVersions": [
+          "10.5.2"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@storybook/react-vite",
+            "version": "10.5.2",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@joshwooding/vite-plugin-react-docgen-typescript"
+        ],
+        "affectedRange": "<=0.0.0-pr-36141-sha-6ddbeb4a || >=8.5.4",
+        "fixAvailable": {
+          "name": "@storybook/react-vite",
+          "version": "8.5.3",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@trickfilm400/rollup-plugin-off-main-thread",
+        "severity": "moderate",
+        "installedVersions": [
+          "3.0.0-pre1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@trickfilm400/rollup-plugin-off-main-thread",
+            "version": "3.0.0-pre1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "ejs"
+        ],
+        "affectedRange": "<=3.1.0-pre2",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@vitest/browser",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@vitest/browser",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@vitest/mocker",
+          "vitest"
+        ],
+        "affectedRange": "2.1.0-beta.1 - 4.1.10",
+        "fixAvailable": true
+      },
+      {
+        "name": "@vitest/browser-playwright",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@vitest/browser-playwright",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@vitest/browser",
+          "@vitest/mocker",
+          "vitest"
+        ],
+        "affectedRange": "<=4.1.10",
+        "fixAvailable": true
+      },
+      {
+        "name": "@vitest/coverage-v8",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@vitest/coverage-v8",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@vitest/browser",
+          "vitest"
+        ],
+        "affectedRange": "2.1.0-beta.1 - 4.1.10",
+        "fixAvailable": true
+      },
+      {
+        "name": "@vitest/mocker",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@vitest/mocker",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+            "severity": "moderate",
+            "range": ">=2.1.0 <4.1.11",
+            "cvss": 5.9
+          },
+          {
+            "title": "Vitest: Code injection via unauthenticated manual mock registration",
+            "url": "https://github.com/advisories/GHSA-qxg6-89mg-rqv8",
+            "severity": "moderate",
+            "range": ">=2.1.0-beta.7 <4.1.12",
+            "cvss": 4.7
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<=4.1.11",
+        "fixAvailable": true
+      },
+      {
+        "name": "@xmldom/xmldom",
+        "severity": "high",
+        "installedVersions": [
+          "0.8.13"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@xmldom/xmldom",
+            "version": "0.8.13",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "xmldom: XML fragment injection via invalid EntityReference.nodeName during requireWellFormed serialization",
+            "url": "https://github.com/advisories/GHSA-6gmq-8vp8-gcm6",
+            "severity": "moderate",
+            "range": ">=0.7.0 <=0.8.14",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: Element name injection via createElement() bypasses requireWellFormed",
+            "url": "https://github.com/advisories/GHSA-w2rr-34g9-rvrj",
+            "severity": "high",
+            "range": ">=0.7.0 <=0.8.13",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: Attribute name injection via setAttribute() bypasses requireWellFormed",
+            "url": "https://github.com/advisories/GHSA-4w3w-2rp5-g8jm",
+            "severity": "high",
+            "range": ">=0.7.0 <=0.8.13",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: Processing Instruction Target Injection Bypasses requireWellFormed",
+            "url": "https://github.com/advisories/GHSA-c7q8-3ch8-vqpv",
+            "severity": "high",
+            "range": ">=0.7.0 <=0.8.14",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: DocType `name` Injection Bypasses requireWellFormed",
+            "url": "https://github.com/advisories/GHSA-27p8-2357-5qqv",
+            "severity": "high",
+            "range": ">=0.7.0 <=0.8.14",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: Parser silently accepts a not-well-formed end tag whose name is followed by a line break and trailing content",
+            "url": "https://github.com/advisories/GHSA-6h8r-xr42-gp59",
+            "severity": "moderate",
+            "range": ">=0.7.0 <=0.8.14",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: Quadratic-time attribute deduplication",
+            "url": "https://github.com/advisories/GHSA-8344-3jmq-59r6",
+            "severity": "high",
+            "range": ">=0.7.0 <=0.8.14",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: End-tag Whitespace-Trim Regex ReDoS — quadratic backtracking in the 0.8.x end-tag parser",
+            "url": "https://github.com/advisories/GHSA-x4fp-j954-r2f4",
+            "severity": "high",
+            "range": ">=0.7.0 <=0.8.14",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: Quadratic-memory consumption",
+            "url": "https://github.com/advisories/GHSA-965w-775f-mr7g",
+            "severity": "high",
+            "range": ">=0.7.0 <=0.8.14",
+            "cvss": 0
+          },
+          {
+            "title": "xmldom: Quadratic-time parsing via the malformed-input recovery path — `parseElementStartPart` re-scan and `normalize()` adjacent-text merge",
+            "url": "https://github.com/advisories/GHSA-93r5-fhx6-vmg9",
+            "severity": "high",
+            "range": ">=0.7.0 <=0.8.14",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<=0.8.14",
+        "fixAvailable": true
+      },
+      {
+        "name": "app-builder-lib",
+        "severity": "moderate",
+        "installedVersions": [
+          "26.15.7"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/app-builder-lib",
+            "version": "26.15.7",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@electron/asar",
+          "@electron/universal",
+          "dmg-builder",
+          "ejs",
+          "electron-builder-squirrel-windows",
+          "minimatch"
+        ],
+        "affectedRange": "*",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "baseline-browser-mapping",
+        "severity": "moderate",
+        "installedVersions": [
+          "2.10.43"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/baseline-browser-mapping",
+            "version": "2.10.43",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "baseline-browser-mapping process termination on invalid input causes denial of service",
+            "url": "https://github.com/advisories/GHSA-w5vr-8v7q-w6rv",
+            "severity": "moderate",
+            "range": ">=2.0.0 <2.11.0",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": ">=2.0.0 <2.11.0",
+        "fixAvailable": true
+      },
+      {
+        "name": "brace-expansion",
+        "severity": "high",
+        "installedVersions": [
+          "1.1.16",
+          "2.1.2",
+          "5.0.7"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@electron/asar/node_modules/brace-expansion",
+            "version": "1.1.16",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/@electron/universal/node_modules/brace-expansion",
+            "version": "2.1.2",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/brace-expansion",
+            "version": "5.0.7",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/dir-compare/node_modules/brace-expansion",
+            "version": "1.1.16",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/dotgitignore/node_modules/brace-expansion",
+            "version": "1.1.16",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/filelist/node_modules/brace-expansion",
+            "version": "2.1.2",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/glob/node_modules/brace-expansion",
+            "version": "1.1.16",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash",
+            "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
+            "severity": "high",
+            "range": "<1.1.17",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash",
+            "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
+            "severity": "high",
+            "range": ">=2.0.0 <2.1.3",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash",
+            "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
+            "severity": "high",
+            "range": ">=4.0.0 <5.0.8",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation",
+            "url": "https://github.com/advisories/GHSA-rgw5-rvv9-x895",
+            "severity": "high",
+            "range": ">=4.0.0 <5.0.9",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation",
+            "url": "https://github.com/advisories/GHSA-rgw5-rvv9-x895",
+            "severity": "high",
+            "range": ">=2.0.0 <2.1.4",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation",
+            "url": "https://github.com/advisories/GHSA-rgw5-rvv9-x895",
+            "severity": "high",
+            "range": "<1.1.18",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+            "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+            "severity": "moderate",
+            "range": "<1.1.21",
+            "cvss": 5.3
+          },
+          {
+            "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+            "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+            "severity": "moderate",
+            "range": ">=2.0.0 <2.1.7",
+            "cvss": 5.3
+          },
+          {
+            "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+            "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+            "severity": "moderate",
+            "range": ">=4.0.0 <5.0.12",
+            "cvss": 5.3
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+            "severity": "high",
+            "range": "<1.1.20",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+            "severity": "high",
+            "range": ">=2.0.0 <2.1.6",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+            "severity": "high",
+            "range": ">=4.0.0 <5.0.11",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+            "severity": "high",
+            "range": "<1.1.19",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+            "severity": "high",
+            "range": ">=2.0.0 <2.1.5",
+            "cvss": 7.5
+          },
+          {
+            "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+            "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+            "severity": "high",
+            "range": ">=4.0.0 <5.0.10",
+            "cvss": 7.5
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<=1.1.20 || 2.0.0 - 2.1.6 || 4.0.0 - 5.0.11",
+        "fixAvailable": true
+      },
+      {
+        "name": "browserslist",
+        "severity": "high",
+        "installedVersions": [
+          "4.28.6"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/browserslist",
+            "version": "4.28.6",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+            "url": "https://github.com/advisories/GHSA-c83g-rgw3-j3cx",
+            "severity": "high",
+            "range": "<=4.28.6",
+            "cvss": 7.5
+          },
+          {
+            "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+            "url": "https://github.com/advisories/GHSA-73wf-gq98-2v4g",
+            "severity": "high",
+            "range": "<=4.28.6",
+            "cvss": 7.5
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<=4.28.6",
+        "fixAvailable": true
+      },
+      {
+        "name": "deepmerge",
+        "severity": "low",
+        "installedVersions": [
+          "4.3.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/deepmerge",
+            "version": "4.3.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
+            "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+            "severity": "low",
+            "range": ">=4.2.0 <=4.3.1",
+            "cvss": 5.3
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": ">=4.2.0",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "dir-compare",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.2.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/dir-compare",
+            "version": "4.2.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "minimatch"
+        ],
+        "affectedRange": "*",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "dmg-builder",
+        "severity": "moderate",
+        "installedVersions": [
+          "26.15.7"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/dmg-builder",
+            "version": "26.15.7",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "app-builder-lib"
+        ],
+        "affectedRange": ">=5.0.0",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "dotgitignore",
+        "severity": "moderate",
+        "installedVersions": [
+          "2.1.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/dotgitignore",
+            "version": "2.1.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "minimatch"
+        ],
+        "affectedRange": ">=1.0.3",
+        "fixAvailable": {
+          "name": "standard-version",
+          "version": "4.2.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "ejs",
+        "severity": "moderate",
+        "installedVersions": [
+          "3.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/ejs",
+            "version": "3.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "jake"
+        ],
+        "affectedRange": "3.1.2 - 4.0.1",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "electron",
+        "severity": "high",
+        "installedVersions": [
+          "41.7.1"
+        ],
+        "direct": true,
+        "paths": [
+          {
+            "location": "node_modules/electron",
+            "version": "41.7.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "shipped-desktop-runtime (declared devDependency)",
+        "advisories": [
+          {
+            "title": "Electron: ProtocolResponse.url reuses the default session cache instead of the registering session",
+            "url": "https://github.com/advisories/GHSA-r4w5-6pfg-jxp5",
+            "severity": "moderate",
+            "range": ">=41.0.0-alpha.1 <41.9.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "Electron: Sandboxed iframe can bypass the allow-popups restriction via the OpenURL navigation path",
+            "url": "https://github.com/advisories/GHSA-9f4c-93c8-jc8g",
+            "severity": "high",
+            "range": ">=40.0.0-alpha.1 <41.10.3",
+            "cvss": 7.2
+          },
+          {
+            "title": "Electron drops inherited HTML sandbox restrictions for popups opened through OpenURLFromTab",
+            "url": "https://github.com/advisories/GHSA-hq2x-r82h-9wj4",
+            "severity": "high",
+            "range": "<41.10.4",
+            "cvss": 8.2
+          },
+          {
+            "title": "Electron: Windows opened from a sandboxed top-level document do not inherit its sandbox restrictions",
+            "url": "https://github.com/advisories/GHSA-gr2m-v5gq-v685",
+            "severity": "high",
+            "range": "<41.10.6",
+            "cvss": 8.2
+          },
+          {
+            "title": "Electron: File and HTTP protocol handlers allow cross-origin reads without corsEnabled",
+            "url": "https://github.com/advisories/GHSA-j84w-jfhq-vhvj",
+            "severity": "high",
+            "range": "<41.10.6",
+            "cvss": 7.4
+          },
+          {
+            "title": "Electron: Local race condition in Squirrel.Mac update installation on macOS",
+            "url": "https://github.com/advisories/GHSA-vv43-5jgx-7qv8",
+            "severity": "moderate",
+            "range": ">=40.0.0-alpha.1 <41.10.5",
+            "cvss": 6.7
+          },
+          {
+            "title": "Electron: <webview> can enable Node.js integration in Web Workers despite embedder restrictions",
+            "url": "https://github.com/advisories/GHSA-9qh4-3jw8-366w",
+            "severity": "high",
+            "range": "<41.10.6",
+            "cvss": 8.3
+          },
+          {
+            "title": "Electron: HID and USB permission checks can be attributed to the wrong origin",
+            "url": "https://github.com/advisories/GHSA-fw47-9c62-h3vw",
+            "severity": "moderate",
+            "range": "<42.11.3",
+            "cvss": 5.4
+          },
+          {
+            "title": "Electron: SameSite cookie restrictions are not applied to windows opened from links",
+            "url": "https://github.com/advisories/GHSA-2p8c-gr87-2676",
+            "severity": "moderate",
+            "range": "<42.11.3",
+            "cvss": 4.2
+          },
+          {
+            "title": "Electron: Pointer lock permission requests can be attributed to the wrong frame",
+            "url": "https://github.com/advisories/GHSA-x562-297c-g43g",
+            "severity": "moderate",
+            "range": "<42.11.9",
+            "cvss": 5.4
+          },
+          {
+            "title": "Electron: Extension tabs.query returns tab URLs and titles without the tabs permission",
+            "url": "https://github.com/advisories/GHSA-98mx-cjp9-gchm",
+            "severity": "low",
+            "range": "<42.11.1",
+            "cvss": 3.1
+          },
+          {
+            "title": "Electron: Frame subscription trusts GPU-supplied frame geometry",
+            "url": "https://github.com/advisories/GHSA-3qxv-5xgr-q7w9",
+            "severity": "low",
+            "range": "<42.11.6",
+            "cvss": 3.9
+          },
+          {
+            "title": "Electron: Off-screen rendering on macOS trusts GPU-supplied frame geometry",
+            "url": "https://github.com/advisories/GHSA-h3v5-h239-pg29",
+            "severity": "low",
+            "range": "<42.11.6",
+            "cvss": 3.9
+          },
+          {
+            "title": "Electron: openExternal permission requests can be attributed to the wrong origin",
+            "url": "https://github.com/advisories/GHSA-997q-gvvc-jwmx",
+            "severity": "moderate",
+            "range": "<42.11.3",
+            "cvss": 5.4
+          },
+          {
+            "title": "Electron: Mitigation for compromised eMudhra intermediate certificates",
+            "url": "https://github.com/advisories/GHSA-jr5w-w6x2-84p9",
+            "severity": "high",
+            "range": "<42.11.16",
+            "cvss": 7.4
+          }
+        ],
+        "transitivePropagation": [
+          "extract-zip"
+        ],
+        "affectedRange": "<=42.11.15 || 43.0.0-alpha.1 - 43.0.0-beta.8",
+        "fixAvailable": true
+      },
+      {
+        "name": "electron-builder",
+        "severity": "moderate",
+        "installedVersions": [
+          "26.15.7"
+        ],
+        "direct": true,
+        "paths": [
+          {
+            "location": "node_modules/electron-builder",
+            "version": "26.15.7",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "app-builder-lib",
+          "dmg-builder"
+        ],
+        "affectedRange": "19.25.0 || >=20.24.0",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "electron-builder-squirrel-windows",
+        "severity": "moderate",
+        "installedVersions": [
+          "26.15.7"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/electron-builder-squirrel-windows",
+            "version": "26.15.7",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "app-builder-lib",
+          "electron-winstaller"
+        ],
+        "affectedRange": ">=20.24.0",
+        "fixAvailable": true
+      },
+      {
+        "name": "electron-winstaller",
+        "severity": "moderate",
+        "installedVersions": [
+          "5.4.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/electron-winstaller",
+            "version": "5.4.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@electron/asar",
+          "temp"
+        ],
+        "affectedRange": ">=3.0.0",
+        "fixAvailable": true
+      },
+      {
+        "name": "extract-zip",
+        "severity": "high",
+        "installedVersions": [
+          "2.0.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/extract-zip",
+            "version": "2.0.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "extract-zip unvalidated symlink path traversal",
+            "url": "https://github.com/advisories/GHSA-jmr9-qjv8-65gv",
+            "severity": "high",
+            "range": "<=2.0.1",
+            "cvss": 8.1
+          },
+          {
+            "title": "extract-zip allows arbitrary file writes through symlink archive entries",
+            "url": "https://github.com/advisories/GHSA-7pqw-9j4j-h8q3",
+            "severity": "high",
+            "range": "<=2.0.1",
+            "cvss": 8.1
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "*",
+        "fixAvailable": true
+      },
+      {
+        "name": "fast-uri",
+        "severity": "high",
+        "installedVersions": [
+          "3.1.4"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/fast-uri",
+            "version": "3.1.4",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "fast-uri vulnerable to host confusion via backslash authority introducer",
+            "url": "https://github.com/advisories/GHSA-7p8r-x3mc-p8w7",
+            "severity": "high",
+            "range": ">=3.0.0 <3.1.5",
+            "cvss": 7.5
+          },
+          {
+            "title": "fast-uri vulnerable to host confusion via skipped IDN canonicalization on scheme-relative references",
+            "url": "https://github.com/advisories/GHSA-5jgf-p345-68v8",
+            "severity": "high",
+            "range": ">=3.1.3 <3.1.6",
+            "cvss": 7.5
+          },
+          {
+            "title": "fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization",
+            "url": "https://github.com/advisories/GHSA-f65p-4m7j-42xc",
+            "severity": "high",
+            "range": ">=3.0.0 <3.1.6",
+            "cvss": 7.5
+          },
+          {
+            "title": "fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding",
+            "url": "https://github.com/advisories/GHSA-fph4-wmhf-6fwf",
+            "severity": "high",
+            "range": ">=3.1.2 <3.1.6",
+            "cvss": 7.5
+          },
+          {
+            "title": "fast-uri vulnerable to host confusion via percent-encoded scheme normalization",
+            "url": "https://github.com/advisories/GHSA-jqff-g426-hqxp",
+            "severity": "high",
+            "range": ">=3.0.0 <3.1.6",
+            "cvss": 7.5
+          },
+          {
+            "title": "fast-uri vulnerable to authority injection via an unvalidated port in serialize",
+            "url": "https://github.com/advisories/GHSA-qw65-cvwx-89v3",
+            "severity": "high",
+            "range": ">=3.0.0 <3.1.7",
+            "cvss": 7.5
+          },
+          {
+            "title": "fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets",
+            "url": "https://github.com/advisories/GHSA-hrr3-gc8f-f4qj",
+            "severity": "moderate",
+            "range": ">=3.0.0 <3.1.8",
+            "cvss": 4.8
+          },
+          {
+            "title": "fast-uri vulnerable to URI scheme spoofing via percent-encoded scheme decoding",
+            "url": "https://github.com/advisories/GHSA-w74x-v6f9-j3xg",
+            "severity": "moderate",
+            "range": ">=3.0.0 <3.1.9",
+            "cvss": 6.1
+          },
+          {
+            "title": "fast-uri vulnerable to improper path equivalence in relative reference normalization",
+            "url": "https://github.com/advisories/GHSA-xhq7-xmqj-769h",
+            "severity": "low",
+            "range": ">=3.0.0 <3.1.9",
+            "cvss": 3.7
+          },
+          {
+            "title": "fast-uri vulnerable to host confusion via unchecked WHATWG host canonicalization",
+            "url": "https://github.com/advisories/GHSA-wjr9-j795-jxcr",
+            "severity": "moderate",
+            "range": ">=3.1.3 <3.1.9",
+            "cvss": 4.8
+          },
+          {
+            "title": "fast-uri vulnerable to scheme injection via an unescaped first-segment colon in suffix references",
+            "url": "https://github.com/advisories/GHSA-333x-w4r6-6crp",
+            "severity": "low",
+            "range": ">=3.0.0 <3.1.9",
+            "cvss": 3.7
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "3.0.0 - 3.1.8",
+        "fixAvailable": true
+      },
+      {
+        "name": "filelist",
+        "severity": "moderate",
+        "installedVersions": [
+          "1.0.6"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/filelist",
+            "version": "1.0.6",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "minimatch"
+        ],
+        "affectedRange": ">=0.0.2",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "glob",
+        "severity": "moderate",
+        "installedVersions": [
+          "13.0.6",
+          "7.2.3",
+          "11.1.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@joshwooding/vite-plugin-react-docgen-typescript/node_modules/glob",
+            "version": "13.0.6",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/glob",
+            "version": "7.2.3",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/workbox-build/node_modules/glob",
+            "version": "11.1.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+            "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4",
+            "severity": "moderate",
+            "range": ">=9.0.0 <=14.0.1",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [
+          "minimatch"
+        ],
+        "affectedRange": "3.0.0 - 14.0.1",
+        "fixAvailable": {
+          "name": "@storybook/react-vite",
+          "version": "8.5.3",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "handlebars",
+        "severity": "critical",
+        "installedVersions": [
+          "4.7.9"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/handlebars",
+            "version": "4.7.9",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Handlebars: JavaScript Injection via Unsafe Inline Embedding of Precompiled Templates",
+            "url": "https://github.com/advisories/GHSA-xw65-4hp5-5hc7",
+            "severity": "moderate",
+            "range": ">=4.0.0 <=4.7.9",
+            "cvss": 4.7
+          },
+          {
+            "title": "Handlebars: JavaScript Injection via AST Type Confusion in compile (bypass of CVE-2026-33937)",
+            "url": "https://github.com/advisories/GHSA-8r5x-fm3f-whwj",
+            "severity": "critical",
+            "range": ">=4.0.0 <=4.7.9",
+            "cvss": 9.8
+          },
+          {
+            "title": "Handlebars: JavaScript Injection via Own Property Check Bypass",
+            "url": "https://github.com/advisories/GHSA-p8wg-vrv2-v86f",
+            "severity": "critical",
+            "range": ">=3.0.0 <=4.7.9",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "3.0.0 - 4.7.9",
+        "fixAvailable": true
+      },
+      {
+        "name": "jake",
+        "severity": "moderate",
+        "installedVersions": [
+          "10.9.4"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/jake",
+            "version": "10.9.4",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "filelist"
+        ],
+        "affectedRange": ">=10.6.1",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "js-yaml",
+        "severity": "high",
+        "installedVersions": [
+          "4.3.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/js-yaml",
+            "version": "4.3.0",
+            "dev": false,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "production/runtime dependency path",
+        "advisories": [
+          {
+            "title": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported",
+            "url": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj",
+            "severity": "high",
+            "range": ">=4.0.0 <4.3.1",
+            "cvss": 7.5
+          },
+          {
+            "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+            "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+            "severity": "high",
+            "range": ">=4.0.0 <4.3.2",
+            "cvss": 7.5
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "4.0.0 - 4.3.1",
+        "fixAvailable": true
+      },
+      {
+        "name": "minimatch",
+        "severity": "moderate",
+        "installedVersions": [
+          "3.1.5",
+          "9.0.9",
+          "5.1.9",
+          "10.2.5"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@electron/asar/node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/@electron/universal/node_modules/minimatch",
+            "version": "9.0.9",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/dir-compare/node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/dotgitignore/node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/filelist/node_modules/minimatch",
+            "version": "5.1.9",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/glob/node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/minimatch",
+            "version": "10.2.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "minimatch has potential denial of service via globparts amplification",
+            "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+            "severity": "moderate",
+            "range": "<11.0.1",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<11.0.1",
+        "fixAvailable": {
+          "name": "standard-version",
+          "version": "4.2.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "nanoid",
+        "severity": "high",
+        "installedVersions": [
+          "3.3.16"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/nanoid",
+            "version": "3.3.16",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "nanoid: custom generators can loop indefinitely when size is zero",
+            "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8",
+            "severity": "high",
+            "range": "<3.3.18",
+            "cvss": 5.9
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<3.3.18",
+        "fixAvailable": true
+      },
+      {
+        "name": "postcss",
+        "severity": "moderate",
+        "installedVersions": [
+          "8.5.19"
+        ],
+        "direct": true,
+        "paths": [
+          {
+            "location": "node_modules/postcss",
+            "version": "8.5.19",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+            "url": "https://github.com/advisories/GHSA-fxqj-rqcc-2cmp",
+            "severity": "moderate",
+            "range": "<=8.5.22",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<=8.5.22",
+        "fixAvailable": true
+      },
+      {
+        "name": "postcss-selector-parser",
+        "severity": "moderate",
+        "installedVersions": [
+          "6.1.4"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/postcss-selector-parser",
+            "version": "6.1.4",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion",
+            "url": "https://github.com/advisories/GHSA-rj75-hqrm-r3gf",
+            "severity": "moderate",
+            "range": "<6.1.5",
+            "cvss": 5.9
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<6.1.5",
+        "fixAvailable": true
+      },
+      {
+        "name": "rimraf",
+        "severity": "moderate",
+        "installedVersions": [
+          "2.6.3"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/rimraf",
+            "version": "2.6.3",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "glob"
+        ],
+        "affectedRange": "2.3.0 - 3.0.2 || >=4.2.0",
+        "fixAvailable": true
+      },
+      {
+        "name": "serialize-javascript",
+        "severity": "low",
+        "installedVersions": [
+          "7.0.7"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/serialize-javascript",
+            "version": "7.0.7",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Serialize JavaScript: Cross-site scripting (XSS) via unescaped </script at the end of a serialized function body",
+            "url": "https://github.com/advisories/GHSA-m5mm-p8h7-m29v",
+            "severity": "low",
+            "range": "<7.1.3",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<7.1.3",
+        "fixAvailable": true
+      },
+      {
+        "name": "shell-quote",
+        "severity": "critical",
+        "installedVersions": [
+          "1.10.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/shell-quote",
+            "version": "1.10.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token",
+            "url": "https://github.com/advisories/GHSA-pqg4-j6r4-53mv",
+            "severity": "critical",
+            "range": ">=1.8.4 <1.11.0",
+            "cvss": 8.1
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "1.8.4 - 1.10.0",
+        "fixAvailable": true
+      },
+      {
+        "name": "source-map-js",
+        "severity": "high",
+        "installedVersions": [
+          "1.2.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/source-map-js",
+            "version": "1.2.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+            "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+            "severity": "high",
+            "range": ">=1.0.0 <1.2.2",
+            "cvss": 7.5
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "1.0.0 - 1.2.1",
+        "fixAvailable": true
+      },
+      {
+        "name": "standard-version",
+        "severity": "moderate",
+        "installedVersions": [
+          "9.5.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/standard-version",
+            "version": "9.5.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "dotgitignore"
+        ],
+        "affectedRange": ">=4.3.0-candidate.0",
+        "fixAvailable": {
+          "name": "standard-version",
+          "version": "4.2.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "storybook",
+        "severity": "critical",
+        "installedVersions": [
+          "10.5.2"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/storybook",
+            "version": "10.5.2",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Storybook: Missing origin validation in Storybook preview allows code injection from malicious websites",
+            "url": "https://github.com/advisories/GHSA-f2ph-cmg5-wxc8",
+            "severity": "critical",
+            "range": ">=10.0.0 <10.6.2",
+            "cvss": 0
+          },
+          {
+            "title": "Storybook dev server vulnerable to code injection from the local network",
+            "url": "https://github.com/advisories/GHSA-px85-f4q5-jh77",
+            "severity": "high",
+            "range": ">=10.0.0 <10.6.2",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "10.0.0 - 10.6.1",
+        "fixAvailable": true
+      },
+      {
+        "name": "temp",
+        "severity": "moderate",
+        "installedVersions": [
+          "0.9.4"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/temp",
+            "version": "0.9.4",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "rimraf"
+        ],
+        "affectedRange": ">=0.8.4",
+        "fixAvailable": true
+      },
+      {
+        "name": "undici",
+        "severity": "high",
+        "installedVersions": [
+          "7.28.0",
+          "6.28.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/jsdom/node_modules/undici",
+            "version": "7.28.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/undici",
+            "version": "6.28.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "undici vulnerable to downstream response desynchronization via retry interceptor",
+            "url": "https://github.com/advisories/GHSA-8xcm-r25x-g524",
+            "severity": "moderate",
+            "range": ">=7.0.0 <7.29.0",
+            "cvss": 4.8
+          },
+          {
+            "title": "undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives",
+            "url": "https://github.com/advisories/GHSA-4cwx-7wf7-3272",
+            "severity": "high",
+            "range": ">=7.0.0 <7.29.0",
+            "cvss": 7.4
+          },
+          {
+            "title": "undici vulnerable to CRLF Injection via blob-like body 'type' property",
+            "url": "https://github.com/advisories/GHSA-m8rv-5g2x-5cg5",
+            "severity": "moderate",
+            "range": ">=7.0.0 <7.29.0",
+            "cvss": 4.2
+          },
+          {
+            "title": "undici vulnerable to cross-user information disclosure via whitespace around equals in Cache-Control directives",
+            "url": "https://github.com/advisories/GHSA-jr45-8vmc-qm54",
+            "severity": "moderate",
+            "range": ">=7.0.0 <7.29.0",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to cookie attribute injection via unsanitized domain and unparsed setCookie fields",
+            "url": "https://github.com/advisories/GHSA-v3r7-h72x-cjcm",
+            "severity": "moderate",
+            "range": ">=7.0.0 <7.29.0",
+            "cvss": 4.8
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression",
+            "url": "https://github.com/advisories/GHSA-3wwx-pv8p-q78v",
+            "severity": "moderate",
+            "range": ">=7.28.0 <7.29.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression",
+            "url": "https://github.com/advisories/GHSA-3wwx-pv8p-q78v",
+            "severity": "moderate",
+            "range": ">=6.25.0 <6.28.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via orphaned RetryHandler response body",
+            "url": "https://github.com/advisories/GHSA-pmjh-fq2x-6v4x",
+            "severity": "moderate",
+            "range": ">=7.11.0 <7.29.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to downstream response splitting via retry interceptor",
+            "url": "https://github.com/advisories/GHSA-r53p-7pc4-xj5r",
+            "severity": "low",
+            "range": ">=7.0.0 <7.29.1",
+            "cvss": 3.7
+          },
+          {
+            "title": "undici vulnerable to downstream response splitting via retry interceptor",
+            "url": "https://github.com/advisories/GHSA-r53p-7pc4-xj5r",
+            "severity": "low",
+            "range": "<6.28.1",
+            "cvss": 3.7
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unrequested WebSocket subprotocol",
+            "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
+            "severity": "high",
+            "range": ">=7.0.0 <7.29.1",
+            "cvss": 7.5
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unrequested WebSocket subprotocol",
+            "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
+            "severity": "high",
+            "range": ">=6.7.0 <6.28.1",
+            "cvss": 7.5
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unbounded decompression of compressed responses",
+            "url": "https://github.com/advisories/GHSA-3xpg-4rpp-hhhm",
+            "severity": "moderate",
+            "range": ">=7.15.0 <7.29.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to cross-user cookie disclosure via Set-Cookie caching in shared caches",
+            "url": "https://github.com/advisories/GHSA-2jfj-6hjv-fm6j",
+            "severity": "moderate",
+            "range": ">=7.0.0 <7.29.1",
+            "cvss": 6.5
+          },
+          {
+            "title": "undici vulnerable to response truncation via oversized chunked responses in the dump interceptor",
+            "url": "https://github.com/advisories/GHSA-2gqq-gqf2-x968",
+            "severity": "low",
+            "range": ">=7.1.0 <7.29.1",
+            "cvss": 3.7
+          },
+          {
+            "title": "undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool",
+            "url": "https://github.com/advisories/GHSA-w293-vg96-wgc3",
+            "severity": "high",
+            "range": ">=7.24.1 <7.29.1",
+            "cvss": 7.4
+          },
+          {
+            "title": "undici vulnerable to caching and replay of unsafe HTTP method responses",
+            "url": "https://github.com/advisories/GHSA-8436-99hf-9mmv",
+            "severity": "low",
+            "range": ">=7.0.0 <7.29.1",
+            "cvss": 3.7
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via WebSocketStream unclean close",
+            "url": "https://github.com/advisories/GHSA-rx4f-c7p8-82vq",
+            "severity": "moderate",
+            "range": ">=7.0.0 <7.29.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unbounded memory in the EventSource parser",
+            "url": "https://github.com/advisories/GHSA-4qv8-2p9j-2685",
+            "severity": "moderate",
+            "range": ">=7.0.0 <7.30.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unbounded memory in the EventSource parser",
+            "url": "https://github.com/advisories/GHSA-4qv8-2p9j-2685",
+            "severity": "moderate",
+            "range": ">=6.5.0 <6.29.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to Subresource Integrity bypass via non-lowercase algorithm tokens",
+            "url": "https://github.com/advisories/GHSA-f72v-6w45-q472",
+            "severity": "moderate",
+            "range": ">=7.15.0 <7.30.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unhandled error on excessive content-encodings",
+            "url": "https://github.com/advisories/GHSA-xjj6-f33q-929c",
+            "severity": "high",
+            "range": ">=7.18.0 <7.30.1",
+            "cvss": 7.5
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unhandled error on excessive content-encodings",
+            "url": "https://github.com/advisories/GHSA-xjj6-f33q-929c",
+            "severity": "high",
+            "range": ">=6.23.0 <6.29.1",
+            "cvss": 7.5
+          },
+          {
+            "title": "undici vulnerable to cache poisoning and cross-user disclosure via cross-origin redirects",
+            "url": "https://github.com/advisories/GHSA-4w7w-5xrc-9h26",
+            "severity": "high",
+            "range": ">=7.0.0 <7.30.1",
+            "cvss": 7.4
+          },
+          {
+            "title": "undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent",
+            "url": "https://github.com/advisories/GHSA-2m5v-pch6-74hx",
+            "severity": "high",
+            "range": ">=7.0.0 <7.30.1",
+            "cvss": 7.4
+          },
+          {
+            "title": "undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent",
+            "url": "https://github.com/advisories/GHSA-2m5v-pch6-74hx",
+            "severity": "high",
+            "range": ">=4.0.0 <6.29.1",
+            "cvss": 7.4
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation",
+            "url": "https://github.com/advisories/GHSA-qrxm-fqhp-jwvm",
+            "severity": "high",
+            "range": ">=7.0.0 <7.30.1",
+            "cvss": 7.5
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation",
+            "url": "https://github.com/advisories/GHSA-qrxm-fqhp-jwvm",
+            "severity": "high",
+            "range": ">=4.2.1 <6.29.1",
+            "cvss": 7.5
+          },
+          {
+            "title": "undici WebSocket client vulnerable to Denial of Service via unbounded automatic PONG buffering",
+            "url": "https://github.com/advisories/GHSA-9fm3-97px-rjf6",
+            "severity": "moderate",
+            "range": ">=7.0.0 <7.30.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici WebSocket client vulnerable to Denial of Service via unbounded automatic PONG buffering",
+            "url": "https://github.com/advisories/GHSA-9fm3-97px-rjf6",
+            "severity": "moderate",
+            "range": ">=5.15.0 <6.29.1",
+            "cvss": 5.9
+          },
+          {
+            "title": "undici vulnerable to Denial of Service via unhandled exception in the decompress interceptor",
+            "url": "https://github.com/advisories/GHSA-55wc-3pg8-jfw6",
+            "severity": "moderate",
+            "range": ">=7.15.0 <7.30.1",
+            "cvss": 5.9
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<=6.29.0 || 7.0.0 - 7.30.0",
+        "fixAvailable": true
+      },
+      {
+        "name": "valibot",
+        "severity": "moderate",
+        "installedVersions": [
+          "1.2.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/valibot",
+            "version": "1.2.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Valibot: record() issue paths can make flatten() throw for inherited Object property names",
+            "url": "https://github.com/advisories/GHSA-5qjj-4xww-7phc",
+            "severity": "moderate",
+            "range": "<=1.4.1",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<=1.4.1",
+        "fixAvailable": {
+          "name": "@storybook/addon-mcp",
+          "version": "10.6.5",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "vite",
+        "severity": "high",
+        "installedVersions": [
+          "8.1.5"
+        ],
+        "direct": true,
+        "paths": [
+          {
+            "location": "node_modules/vite",
+            "version": "8.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "launch-editor: escapeCmdArgs() omits % escaping on Windows",
+            "url": "https://github.com/advisories/GHSA-698v-4r3x-3vcv",
+            "severity": "moderate",
+            "range": ">=8.0.0 <=8.1.5",
+            "cvss": 0
+          },
+          {
+            "title": "launch-editor: Editor CLI flag misinterpretation causing arbitrary command execution for some editors",
+            "url": "https://github.com/advisories/GHSA-r825-w8mm-5pxw",
+            "severity": "moderate",
+            "range": ">=8.0.0 <=8.1.5",
+            "cvss": 0
+          },
+          {
+            "title": "launch-editor: `fs.existsSync()` existence check can be bypassed on Windows",
+            "url": "https://github.com/advisories/GHSA-587h-7wmj-h5pm",
+            "severity": "high",
+            "range": ">=8.0.0 <=8.1.5",
+            "cvss": 0
+          },
+          {
+            "title": "Vite: Cross origin script execution through Vite custom middleware",
+            "url": "https://github.com/advisories/GHSA-9jrq-w75r-8gcw",
+            "severity": "low",
+            "range": ">=8.0.0 <=8.1.5",
+            "cvss": 0
+          },
+          {
+            "title": "Vite: Files outside `server.fs.allow` could be served when project paths match system paths on non-Windows machine",
+            "url": "https://github.com/advisories/GHSA-rq7h-c2jc-7f22",
+            "severity": "moderate",
+            "range": ">=8.0.0 <=8.1.5",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "8.0.0 - 8.1.5",
+        "fixAvailable": true
+      },
+      {
+        "name": "vite-plugin-pwa",
+        "severity": "moderate",
+        "installedVersions": [
+          "1.3.0"
+        ],
+        "direct": true,
+        "paths": [
+          {
+            "location": "node_modules/vite-plugin-pwa",
+            "version": "1.3.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "workbox-build"
+        ],
+        "affectedRange": ">=1.2.0",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "vitest",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/vitest",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+            "severity": "moderate",
+            "range": ">=2.1.0 <4.1.11",
+            "cvss": 5.9
+          }
+        ],
+        "transitivePropagation": [
+          "@vitest/browser-playwright",
+          "@vitest/coverage-v8",
+          "@vitest/mocker"
+        ],
+        "affectedRange": "2.1.0-beta.1 - 4.1.10",
+        "fixAvailable": true
+      },
+      {
+        "name": "workbox-build",
+        "severity": "moderate",
+        "installedVersions": [
+          "7.4.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/workbox-build",
+            "version": "7.4.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@rollup/plugin-node-resolve",
+          "@trickfilm400/rollup-plugin-off-main-thread",
+          "glob"
+        ],
+        "affectedRange": ">=6.0.0-alpha.0",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      }
+    ]
+  },
+  "final": {
+    "audit": {
+      "info": 0,
+      "low": 2,
+      "moderate": 27,
+      "high": 0,
+      "critical": 0,
+      "total": 29
+    },
+    "productionAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "findings": [
+      {
+        "name": "@electron/asar",
+        "severity": "moderate",
+        "installedVersions": [
+          "3.4.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@electron/asar",
+            "version": "3.4.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "glob",
+          "minimatch"
+        ],
+        "affectedRange": ">=3.2.1",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@electron/universal",
+        "severity": "moderate",
+        "installedVersions": [
+          "2.0.3"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@electron/universal",
+            "version": "2.0.3",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@electron/asar",
+          "dir-compare",
+          "minimatch"
+        ],
+        "affectedRange": ">=1.0.1",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@joshwooding/vite-plugin-react-docgen-typescript",
+        "severity": "moderate",
+        "installedVersions": [
+          "0.7.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@joshwooding/vite-plugin-react-docgen-typescript",
+            "version": "0.7.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "glob"
+        ],
+        "affectedRange": "0.4.0 || >=0.5.0",
+        "fixAvailable": {
+          "name": "@storybook/react-vite",
+          "version": "8.5.3",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@rollup/plugin-node-resolve",
+        "severity": "low",
+        "installedVersions": [
+          "16.0.3"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@rollup/plugin-node-resolve",
+            "version": "16.0.3",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "deepmerge"
+        ],
+        "affectedRange": ">=8.0.0",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@storybook/react-vite",
+        "severity": "moderate",
+        "installedVersions": [
+          "10.6.5"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@storybook/react-vite",
+            "version": "10.6.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@joshwooding/vite-plugin-react-docgen-typescript"
+        ],
+        "affectedRange": "<=0.0.0-pr-36141-sha-6ddbeb4a || >=8.5.4",
+        "fixAvailable": {
+          "name": "@storybook/react-vite",
+          "version": "8.5.3",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@trickfilm400/rollup-plugin-off-main-thread",
+        "severity": "moderate",
+        "installedVersions": [
+          "3.0.0-pre1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@trickfilm400/rollup-plugin-off-main-thread",
+            "version": "3.0.0-pre1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "ejs"
+        ],
+        "affectedRange": "<=3.1.0-pre2",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "@vitest/browser",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@vitest/browser",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@vitest/mocker",
+          "vitest"
+        ],
+        "affectedRange": "2.1.0-beta.1 - 4.1.10",
+        "fixAvailable": true
+      },
+      {
+        "name": "@vitest/browser-playwright",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@vitest/browser-playwright",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@vitest/browser",
+          "@vitest/mocker",
+          "vitest"
+        ],
+        "affectedRange": "<=4.1.10",
+        "fixAvailable": true
+      },
+      {
+        "name": "@vitest/coverage-v8",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@vitest/coverage-v8",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@vitest/browser",
+          "vitest"
+        ],
+        "affectedRange": "2.1.0-beta.1 - 4.1.10",
+        "fixAvailable": true
+      },
+      {
+        "name": "@vitest/mocker",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@vitest/mocker",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+            "severity": "moderate",
+            "range": ">=2.1.0 <4.1.11",
+            "cvss": 5.9
+          },
+          {
+            "title": "Vitest: Code injection via unauthenticated manual mock registration",
+            "url": "https://github.com/advisories/GHSA-qxg6-89mg-rqv8",
+            "severity": "moderate",
+            "range": ">=2.1.0-beta.7 <4.1.12",
+            "cvss": 4.7
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<=4.1.11",
+        "fixAvailable": true
+      },
+      {
+        "name": "app-builder-lib",
+        "severity": "moderate",
+        "installedVersions": [
+          "26.18.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/app-builder-lib",
+            "version": "26.18.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@electron/asar",
+          "@electron/universal",
+          "dmg-builder",
+          "ejs",
+          "electron-builder-squirrel-windows",
+          "minimatch"
+        ],
+        "affectedRange": "*",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "deepmerge",
+        "severity": "low",
+        "installedVersions": [
+          "4.3.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/deepmerge",
+            "version": "4.3.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
+            "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+            "severity": "low",
+            "range": ">=4.2.0 <=4.3.1",
+            "cvss": 5.3
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": ">=4.2.0",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "dir-compare",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.2.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/dir-compare",
+            "version": "4.2.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "minimatch"
+        ],
+        "affectedRange": "*",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "dmg-builder",
+        "severity": "moderate",
+        "installedVersions": [
+          "26.18.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/dmg-builder",
+            "version": "26.18.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "app-builder-lib"
+        ],
+        "affectedRange": ">=5.0.0",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "dotgitignore",
+        "severity": "moderate",
+        "installedVersions": [
+          "2.1.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/dotgitignore",
+            "version": "2.1.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "minimatch"
+        ],
+        "affectedRange": ">=1.0.3",
+        "fixAvailable": {
+          "name": "standard-version",
+          "version": "4.2.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "ejs",
+        "severity": "moderate",
+        "installedVersions": [
+          "3.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/ejs",
+            "version": "3.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "jake"
+        ],
+        "affectedRange": "3.1.2 - 4.0.1",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "electron-builder",
+        "severity": "moderate",
+        "installedVersions": [
+          "26.18.1"
+        ],
+        "direct": true,
+        "paths": [
+          {
+            "location": "node_modules/electron-builder",
+            "version": "26.18.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "app-builder-lib",
+          "dmg-builder"
+        ],
+        "affectedRange": "19.25.0 || >=20.24.0",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "electron-builder-squirrel-windows",
+        "severity": "moderate",
+        "installedVersions": [
+          "26.18.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/electron-builder-squirrel-windows",
+            "version": "26.18.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "app-builder-lib",
+          "electron-winstaller"
+        ],
+        "affectedRange": ">=20.24.0",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "electron-winstaller",
+        "severity": "moderate",
+        "installedVersions": [
+          "5.4.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/electron-winstaller",
+            "version": "5.4.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@electron/asar",
+          "temp"
+        ],
+        "affectedRange": ">=3.0.0",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "filelist",
+        "severity": "moderate",
+        "installedVersions": [
+          "1.0.6"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/filelist",
+            "version": "1.0.6",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "minimatch"
+        ],
+        "affectedRange": ">=0.0.2",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "glob",
+        "severity": "moderate",
+        "installedVersions": [
+          "13.0.6",
+          "7.2.3",
+          "11.1.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@joshwooding/vite-plugin-react-docgen-typescript/node_modules/glob",
+            "version": "13.0.6",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/glob",
+            "version": "7.2.3",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/workbox-build/node_modules/glob",
+            "version": "11.1.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+            "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4",
+            "severity": "moderate",
+            "range": ">=9.0.0 <=14.0.1",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [
+          "minimatch"
+        ],
+        "affectedRange": "3.0.0 - 14.0.1",
+        "fixAvailable": {
+          "name": "@storybook/react-vite",
+          "version": "8.5.3",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "jake",
+        "severity": "moderate",
+        "installedVersions": [
+          "10.9.4"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/jake",
+            "version": "10.9.4",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "filelist"
+        ],
+        "affectedRange": ">=10.6.1",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "minimatch",
+        "severity": "moderate",
+        "installedVersions": [
+          "3.1.5",
+          "9.0.9",
+          "5.1.9",
+          "10.2.5"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/@electron/asar/node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/@electron/universal/node_modules/minimatch",
+            "version": "9.0.9",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/dir-compare/node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/dotgitignore/node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/filelist/node_modules/minimatch",
+            "version": "5.1.9",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/glob/node_modules/minimatch",
+            "version": "3.1.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          },
+          {
+            "location": "node_modules/minimatch",
+            "version": "10.2.5",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "minimatch has potential denial of service via globparts amplification",
+            "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+            "severity": "moderate",
+            "range": "<11.0.1",
+            "cvss": 0
+          }
+        ],
+        "transitivePropagation": [],
+        "affectedRange": "<11.0.1",
+        "fixAvailable": {
+          "name": "standard-version",
+          "version": "4.2.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "rimraf",
+        "severity": "moderate",
+        "installedVersions": [
+          "2.6.3"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/rimraf",
+            "version": "2.6.3",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "glob"
+        ],
+        "affectedRange": "2.3.0 - 3.0.2 || >=4.2.0",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "standard-version",
+        "severity": "moderate",
+        "installedVersions": [
+          "9.5.0"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/standard-version",
+            "version": "9.5.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "dotgitignore"
+        ],
+        "affectedRange": ">=4.3.0-candidate.0",
+        "fixAvailable": {
+          "name": "standard-version",
+          "version": "4.2.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "temp",
+        "severity": "moderate",
+        "installedVersions": [
+          "0.9.4"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/temp",
+            "version": "0.9.4",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "rimraf"
+        ],
+        "affectedRange": ">=0.8.4",
+        "fixAvailable": {
+          "name": "electron-builder",
+          "version": "20.23.1",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "vite-plugin-pwa",
+        "severity": "moderate",
+        "installedVersions": [
+          "1.3.0"
+        ],
+        "direct": true,
+        "paths": [
+          {
+            "location": "node_modules/vite-plugin-pwa",
+            "version": "1.3.0",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "workbox-build"
+        ],
+        "affectedRange": ">=1.2.0",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      },
+      {
+        "name": "vitest",
+        "severity": "moderate",
+        "installedVersions": [
+          "4.1.10"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/vitest",
+            "version": "4.1.10",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [
+          {
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+            "severity": "moderate",
+            "range": ">=2.1.0 <4.1.11",
+            "cvss": 5.9
+          }
+        ],
+        "transitivePropagation": [
+          "@vitest/browser-playwright",
+          "@vitest/coverage-v8",
+          "@vitest/mocker"
+        ],
+        "affectedRange": "2.1.0-beta.1 - 4.1.10",
+        "fixAvailable": true
+      },
+      {
+        "name": "workbox-build",
+        "severity": "moderate",
+        "installedVersions": [
+          "7.4.1"
+        ],
+        "direct": false,
+        "paths": [
+          {
+            "location": "node_modules/workbox-build",
+            "version": "7.4.1",
+            "dev": true,
+            "optional": false,
+            "devOptional": false
+          }
+        ],
+        "exposure": "development/build/test dependency",
+        "advisories": [],
+        "transitivePropagation": [
+          "@rollup/plugin-node-resolve",
+          "@trickfilm400/rollup-plugin-off-main-thread",
+          "glob"
+        ],
+        "affectedRange": ">=6.0.0-alpha.0",
+        "fixAvailable": {
+          "name": "vite-plugin-pwa",
+          "version": "1.1.0",
+          "isSemVerMajor": true
+        }
+      }
+    ]
+  }
+}

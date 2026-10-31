@@ -10,9 +10,11 @@ const AUTH_PORT = 8001;
 const TOKEN_KEY = "omnibioai_access_token";
 const REFRESH_TOKEN_KEY = "omnibioai_refresh_token";
 const SESSION_EVENT = "omnibioai-session-changed";
+const ELECTRON_SESSION_MARKER = "__OMNIBIOAI_DESKTOP_SESSION__";
 
 function getHostIp() {
   return (
+    window.electronAPI?.hostIp ||
     window.__OMNIBIOAI_CONFIG__?.hostIp ||
     localStorage.getItem("omnibioai_host_ip") ||
     "192.168.86.234"
@@ -20,12 +22,56 @@ function getHostIp() {
 }
 
 export function authUrl(path) {
+  if (hasDesktopSessionBridge()) {
+    const origin = import.meta.env.DEV ? "http://localhost:8001" : "https://webstudio.omnibioai.org";
+    return `${origin}${path}`;
+  }
   return `http://${getHostIp()}:${AUTH_PORT}${path}`;
 }
 
 let cachedUser = null;
 let cachedUserToken = null;
 let sessionVersion = 0;
+let electronSessionAuthenticated = false;
+let electronSessionListenerInstalled = false;
+let desktopLegacyCredentialsCleared = false;
+
+function hasDesktopSessionBridge() {
+  const available = typeof window !== "undefined" && typeof window.electronAPI?.authSessionStatus === "function";
+  if (available && !desktopLegacyCredentialsCleared) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    clearTokenCookie();
+    desktopLegacyCredentialsCleared = true;
+  }
+  return available;
+}
+
+function applyDesktopSessionSnapshot(snapshot, shouldNotify = true) {
+  const wasAuthenticated = electronSessionAuthenticated;
+  const previousUserId = cachedUser?.userId;
+  electronSessionAuthenticated = Boolean(snapshot?.authenticated && snapshot?.user);
+  cachedUser = electronSessionAuthenticated ? snapshot.user : null;
+  cachedUserToken = electronSessionAuthenticated ? ELECTRON_SESSION_MARKER : null;
+  if (shouldNotify && (wasAuthenticated !== electronSessionAuthenticated || previousUserId !== cachedUser?.userId)) notify(true);
+}
+
+function installDesktopSessionListener() {
+  if (electronSessionListenerInstalled || !hasDesktopSessionBridge()) return;
+  electronSessionListenerInstalled = true;
+  window.electronAPI.onAuthSessionChange?.(snapshot => applyDesktopSessionSnapshot(snapshot));
+}
+
+function desktopMfaRequiredError(result) {
+  const error = new Error(result.methods?.includes("email")
+    ? "Enter the six-digit code sent to your email"
+    : "Enter your authenticator or recovery code to continue");
+  error.code = "mfa_required";
+  // This is an opaque main-process challenge handle, never the Auth challenge token.
+  error.challengeToken = result.challengeId;
+  error.methods = result.methods || [];
+  return error;
+}
 
 // A generation distinguishes even A -> B -> A token changes. React consumes
 // this external-store snapshot so a session change hides old profile data.
@@ -35,24 +81,37 @@ export function getSessionVersion() {
 
 window.addEventListener("storage", (event) => {
   if (event.key !== TOKEN_KEY && event.key !== null) return;
+  if (hasDesktopSessionBridge()) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    clearTokenCookie();
+    return;
+  }
   const token = getToken();
   if (token) setTokenCookie(token);
   else clearTokenCookie();
   notify();
 });
 
-function notify() {
-  cachedUser = null;
-  cachedUserToken = null;
+function notify(preserveUser = false) {
+  if (!preserveUser) {
+    cachedUser = null;
+    cachedUserToken = null;
+  }
   sessionVersion += 1;
   window.dispatchEvent(new CustomEvent(SESSION_EVENT));
 }
 
 export function getToken() {
+  if (hasDesktopSessionBridge()) {
+    installDesktopSessionListener();
+    return electronSessionAuthenticated ? ELECTRON_SESSION_MARKER : null;
+  }
   return localStorage.getItem(TOKEN_KEY);
 }
 
 export function getRefreshToken() {
+  if (hasDesktopSessionBridge()) return electronSessionAuthenticated ? ELECTRON_SESSION_MARKER : null;
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
@@ -64,24 +123,21 @@ export function getRefreshToken() {
 // present (see its $control_authorization map), so it must be kept in sync
 // with the token in localStorage.
 function setTokenCookie(token) {
+  if (hasDesktopSessionBridge()) return;
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
   document.cookie = `${TOKEN_KEY}=${token}; path=/; SameSite=Lax${secure}`;
-  // The Electron service webview has a separate http://localhost session
-  // from the main renderer (which may be file://). Keep the same access token
-  // in that session without putting credentials in a URL.
-  if (window.api?.syncAuthCookie) {
-    Promise.resolve(window.api.syncAuthCookie(token)).catch(() => {});
-  }
 }
 
 function clearTokenCookie() {
   document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  if (window.api?.syncAuthCookie) {
-    Promise.resolve(window.api.syncAuthCookie(null)).catch(() => {});
-  }
 }
 
+// Remove pre-hardening desktop credentials instead of importing them through
+// renderer JavaScript. A user may need to authenticate again after upgrading.
+hasDesktopSessionBridge();
+
 export function setSession(accessToken, refreshToken) {
+  if (hasDesktopSessionBridge()) throw new Error("Desktop authentication sessions are managed by the main process");
   localStorage.setItem(TOKEN_KEY, accessToken);
   if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   else localStorage.removeItem(REFRESH_TOKEN_KEY);
@@ -90,6 +146,11 @@ export function setSession(accessToken, refreshToken) {
 }
 
 export function clearSession() {
+  if (hasDesktopSessionBridge()) {
+    applyDesktopSessionSnapshot({ authenticated: false, user: null });
+    void window.electronAPI.authSessionLogout();
+    return;
+  }
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   clearTokenCookie();
@@ -103,6 +164,11 @@ export function clearSession() {
 // endpoint's own blacklist call: never let a logout attempt get stuck
 // because the network call failed, always clear local state regardless.
 export async function logout() {
+  if (hasDesktopSessionBridge()) {
+    const snapshot = await window.electronAPI.authSessionLogout();
+    applyDesktopSessionSnapshot(snapshot);
+    return;
+  }
   const refreshToken = getRefreshToken();
   const accessToken = getToken();
   // Clear immediately; a slow revocation request must not retain identity.
@@ -125,6 +191,11 @@ export async function logout() {
 // /auth/refresh echoes the same one back). Returns the new access token,
 // or null (and clears the session) if the refresh token is invalid/expired.
 export async function refresh() {
+  if (hasDesktopSessionBridge()) {
+    const snapshot = await window.electronAPI.authSessionRefresh();
+    applyDesktopSessionSnapshot(snapshot || { authenticated: false, user: null });
+    return snapshot?.authenticated ? ELECTRON_SESSION_MARKER : null;
+  }
   const refreshToken = getRefreshToken();
   const version = sessionVersion;
   const token = getToken();
@@ -150,6 +221,13 @@ export async function refresh() {
 }
 
 export async function loginWithPassword(email, password) {
+  if (hasDesktopSessionBridge()) {
+    installDesktopSessionListener();
+    const result = await window.electronAPI.authSessionLogin({ email, password });
+    if (result?.mfaRequired) throw desktopMfaRequiredError(result);
+    applyDesktopSessionSnapshot(result);
+    return result.user;
+  }
   const res = await fetch(authUrl("/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -210,6 +288,12 @@ export async function loginWithLicenseKey(key, email, platform = "web") {
 }
 
 export async function completePasswordLoginWithMfa(challengeToken, code, method) {
+  if (hasDesktopSessionBridge()) {
+    const result = await window.electronAPI.authSessionMfa({ challengeId: challengeToken, code, ...(method ? { method } : {}) });
+    if (result?.mfaRequired) throw desktopMfaRequiredError(result);
+    applyDesktopSessionSnapshot(result);
+    return result.user;
+  }
   const response = await fetch(authUrl("/users/me/mfa/challenge"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -225,6 +309,9 @@ export async function completePasswordLoginWithMfa(challengeToken, code, method)
 }
 
 export async function resendPasswordEmailOtp(challengeToken) {
+  if (hasDesktopSessionBridge()) {
+    return window.electronAPI.authSessionMfaResend({ challengeId: challengeToken });
+  }
   const response = await fetch(authUrl("/users/me/mfa/email/resend"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -241,6 +328,12 @@ export async function resendPasswordEmailOtp(challengeToken) {
 }
 
 export async function getCurrentUser({ force = false } = {}) {
+  if (hasDesktopSessionBridge()) {
+    installDesktopSessionListener();
+    const snapshot = await window.electronAPI.authSessionStatus();
+    applyDesktopSessionSnapshot(snapshot);
+    return snapshot?.user || null;
+  }
   const token = getToken();
   const version = sessionVersion;
   if (!token) return null;
@@ -287,6 +380,7 @@ export async function getCurrentUser({ force = false } = {}) {
 // session projection. Never persist profile data or return an older session's
 // response. Abort helps navigation; generation checks also cover ignored aborts.
 export async function getIdentity({ signal } = {}) {
+  if (hasDesktopSessionBridge()) return window.electronAPI.authSessionIdentity();
   const token = getToken();
   const version = sessionVersion;
   if (!token) return null;
@@ -324,9 +418,8 @@ export function onSessionChange(callback) {
 }
 
 // ── OAuth2 SSO ────────────────────────────────────────────────────────────────
-// Web build only — the Electron app keeps email/password per its landing
-// page copy. Electron also disables webSecurity, so a provider's redirect
-// back to a browser origin wouldn't land inside the app window anyway.
+// Web build only — the Electron app currently has no registered deep-link
+// callback for returning an OAuth provider redirect into its local origin.
 export function isElectron() {
   return !!(window.electronAPI || window.api);
 }
@@ -338,6 +431,7 @@ export function getOAuthLoginUrl(provider) {
 }
 
 export async function confirmOAuthLink(linkToken, password) {
+  if (hasDesktopSessionBridge()) throw new Error("OAuth account linking is not available in the desktop application");
   const res = await fetch(authUrl("/auth/link/confirm"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -381,10 +475,14 @@ export function consumeOAuthRedirectParams() {
       provider: params.get("provider"),
       email: params.get("email"),
     };
+  } else if (hasDesktopSessionBridge() && params.has("access_token")) {
+    result = { type: "error", message: "OAuth sign-in is not available in the desktop application" };
   } else {
     result = { type: "success" };
-    if (params.has("access_token")) {
+    if (params.has("access_token") && !hasDesktopSessionBridge()) {
       setSession(params.get("access_token"), params.get("refresh_token"));
+    } else if (params.has("access_token")) {
+      result = { type: "error", message: "OAuth sign-in is not available in the desktop application" };
     }
   }
 

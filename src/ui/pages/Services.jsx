@@ -9,6 +9,7 @@ const MANAGE_CONFIG = "manage_config";
 
 function getHostIp() {
   return (
+    window.electronAPI?.hostIp ||
     window.__OMNIBIOAI_CONFIG__?.hostIp ||
     localStorage.getItem("omnibioai_host_ip") ||
     "192.168.86.234"
