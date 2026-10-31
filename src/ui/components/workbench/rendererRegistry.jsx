@@ -36,6 +36,7 @@ import {
   WorkflowValidatorRenderer,
 } from "./PipelinePluginReactRenderers";
 import { ML_PLUGIN_RENDERERS } from "./MLPluginReactRenderer";
+import { AI_PLUGIN_RENDERERS } from "./AiPluginRenderers";
 import {
   AlertingRenderer,
   ApiAnalyticsRenderer,
@@ -79,6 +80,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...CENTURY_PLUGIN_RENDERERS,
   ...NEXT_CENTURY_PLUGIN_RENDERERS,
   ...FINAL_PLUGIN_RENDERERS,
+  ...AI_PLUGIN_RENDERERS,
   ...ML_PLUGIN_RENDERERS,
   genome_viewer: GenomeViewerRenderer,
   dataset_catalog: DatasetCatalogRenderer,

@@ -17,16 +17,16 @@ import { EXPANDED_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/Exp
 afterEach(cleanup);
 
 const QUERY = ["object_registry_explorer", "artifact_manager", "file_transfer_manager", "data_lineage_tracker", "civic"];
-const INFORMATIONAL = ["literature_evidence_agent", "experimental_design_agent", "biomarker_discovery_agent", "variant_interpretation_agent"];
 const ASYNC = [
   "resource_cost_estimator", "omics_data_qc_harmonizer", "gsea_enrichment", "scanpy_clustering",
   "spatial_analysis", "alphafold", "geo_search", "pubmed_search", "gwas_catalog_search",
-  "chembl_search", "clinical_report_generator",
+  "chembl_search", "clinical_report_generator", "literature_evidence_agent",
+  "experimental_design_agent", "biomarker_discovery_agent", "variant_interpretation_agent",
 ];
 
 describe("expanded promoted plugin React renderers", () => {
   it("registers exactly the twenty promoted plugins", () => {
-    expect(Object.keys(EXPANDED_PLUGIN_RENDERERS).sort()).toEqual([...QUERY, ...INFORMATIONAL, ...ASYNC].sort());
+    expect(Object.keys(EXPANDED_PLUGIN_RENDERERS).sort()).toEqual([...QUERY, ...ASYNC].sort());
   });
 
   it.each(QUERY)("uses a structured query experience for %s", slug => {
@@ -42,10 +42,4 @@ describe("expanded promoted plugin React renderers", () => {
     expect(screen.getByTestId("async-workflow")).toHaveTextContent(slug);
   });
 
-  it.each(INFORMATIONAL)("preserves the non-executable contract for %s", slug => {
-    const Renderer = EXPANDED_PLUGIN_RENDERERS[slug];
-    render(<Renderer descriptor={{ plugin: { slug }, renderer: "informational" }} />);
-    expect(screen.getByTestId("informational-workflow")).toHaveTextContent(slug);
-    expect(screen.getByText(/execution remains disabled|never silently launches|does not replace|preserves uncertainty/i)).toBeInTheDocument();
-  });
 });

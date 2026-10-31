@@ -26,9 +26,9 @@ export const NEXT_CENTURY_PLUGIN_GROUPS = Object.freeze([
   group("AI & Platform", "var(--accent-platform)", "AI and platform workspaces", [
     ["omninotebook_ai", "OmniNotebook AI", "📓", "Run governed notebook assistance", "async_analysis"],
     ["home", "Workbench Home", "🏠", "Access Workbench operations", "async_analysis"],
-    ["ai_evidence", "AI Evidence", "📑", "Review traceable AI evidence", "informational"],
-    ["hypothesis_evaluation_agent", "Hypothesis Evaluation", "🧠", "Review hypothesis evaluation scope", "informational"],
-    ["protocol_generation_agent", "Protocol Generation", "🧪", "Review protocol generation scope", "informational"],
+    ["ai_evidence", "AI Evidence", "📑", "Synthesize supplied evidence with confidence and source traceability", "async_analysis"],
+    ["hypothesis_evaluation_agent", "Hypothesis Evaluation", "🧠", "Evaluate a hypothesis against supporting and contradictory evidence", "async_analysis"],
+    ["protocol_generation_agent", "Protocol Generation", "🧪", "Draft an auditable protocol from objectives and evidence", "async_analysis"],
   ]),
   group("Search & Spatial", "var(--accent2)", "Search and spatial analysis", [
     ["jaspar_search", "JASPAR Search", "🔎", "Search transcription-factor motifs", "async_analysis"],
@@ -122,12 +122,12 @@ export const NEXT_CENTURY_PLUGIN_GROUPS = Object.freeze([
     ["tumor_purity", "Tumor Purity", "🧫", "Review purity estimation", "informational"],
   ], "informational"),
   group("AI Model Workflows", "#a78bfa", "AI model capabilities", [
-    ["clinical_bert_finetuner", "Clinical BERT", "🤖", "Review clinical model tuning", "informational"],
-    ["llm_fine_tuner", "LLM Fine-Tuner", "🧠", "Review language-model tuning", "informational"],
-    ["multiomics_reasoning_agent", "Multi-Omics Reasoning", "🧬", "Review reasoning-agent scope", "informational"],
-    ["pathway_reasoning_agent", "Pathway Reasoning", "🔗", "Review pathway reasoning", "informational"],
+    ["clinical_bert_finetuner", "Clinical BERT", "🤖", "Train or apply a clinical-text classifier from a validated TSV", "async_analysis"],
+    ["llm_fine_tuner", "LLM Fine-Tuner", "🧠", "Train a LoRA adapter from JSONL or run inference on a prompt", "async_analysis"],
+    ["multiomics_reasoning_agent", "Multi-Omics Reasoning", "🧬", "Reason across supplied omics results and discordant evidence", "async_analysis"],
+    ["pathway_reasoning_agent", "Pathway Reasoning", "🔗", "Reason over pathway, ontology and disease-context evidence", "async_analysis"],
     ["vaccine_epitope_design", "Vaccine Epitope Design", "💉", "Review epitope-design workflow", "informational"],
-  ], "informational"),
+  ]),
   group("Clinical & CRISPR Planning", "var(--accent-platform)", "Clinical and CRISPR capabilities", [
     ["clinical_report", "Clinical Genomics Report", "📋", "Review clinical reporting", "informational"],
     ["phenopacket", "GA4GH Phenopacket", "📦", "Review phenotype packaging", "informational"],

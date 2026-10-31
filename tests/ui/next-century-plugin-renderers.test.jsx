@@ -31,12 +31,13 @@ describe("next one-hundred promoted plugin React renderers", () => {
     expect(new Set(NEXT_CENTURY_PLUGIN_SLUGS).size).toBe(100);
     expect(Object.keys(NEXT_CENTURY_PLUGIN_RENDERERS).sort()).toEqual([...NEXT_CENTURY_PLUGIN_SLUGS].sort());
     expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "query")).toHaveLength(40);
-    expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "async_analysis")).toHaveLength(5);
+    expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "async_analysis")).toHaveLength(12);
     expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "generic_runner")).toHaveLength(7);
-    expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "informational")).toHaveLength(48);
+    expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "informational")).toHaveLength(41);
   });
 
   const bespokeML = new Set(Object.keys(ML_PLUGIN_RENDERERS));
+  const separatelyRegisteredOverrides = new Set(["workflow_explorer", "workflow_registry_admin"]);
   it.each(NEXT_CENTURY_PLUGIN_SLUGS.filter(slug => slug !== "home" && !bespokeML.has(slug)))("uses the live lifecycle and grouped override for %s", slug => {
     const renderer = NEXT_CENTURY_PLUGIN_MODES[slug];
     const Renderer = NEXT_CENTURY_PLUGIN_RENDERERS[slug];
@@ -45,7 +46,11 @@ describe("next one-hundred promoted plugin React renderers", () => {
       ? "query-workflow"
       : renderer === "informational" ? "informational-workflow" : "async-workflow";
     expect(screen.getByTestId(testId)).toHaveTextContent(slug);
-    expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);
+    if (separatelyRegisteredOverrides.has(slug)) {
+      expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(Renderer);
+    } else {
+      expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);
+    }
     expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(resolveWorkbenchRenderer(renderer));
   });
 });
