@@ -10,6 +10,7 @@ import OpenBabelReactRenderer from "../../src/ui/components/workbench/OpenBabelR
 import { PipelineDashboardRenderer, WorkflowExplorerRenderer, WorkflowRegistryAdminRenderer, WorkflowSchedulerRenderer, WorkflowValidatorRenderer } from "../../src/ui/components/workbench/PipelinePluginReactRenderers";
 import { AlertingRenderer, ApiAnalyticsRenderer, DataManagerRenderer, HomeDashboardRenderer, IntegrationConnectionsRenderer, NotificationCenterRenderer, ProvenanceRenderer, ResourceMonitoringRenderer, SecurityDashboardRenderer } from "../../src/ui/components/workbench/DashboardPluginRenderers";
 import { CLINICAL_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/ClinicalPluginRenderers";
+import { CRISPR_DRUG_PLUGIN_RENDERERS, CRISPR_DRUG_PLUGIN_SLUGS } from "../../src/ui/components/workbench/CrisprDrugReactRenderers";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -66,6 +67,16 @@ describe("allowlisted Workbench renderer registry", () => {
 
   it.each(Object.entries(CLINICAL_PLUGIN_RENDERERS))("uses a dedicated clinical React renderer for %s", (slug, component) => {
     expect(resolveWorkbenchRenderer("generic_runner", slug)).toBe(component);
+  });
+
+  it("registers a dedicated React workflow for every CRISPR and Drug Discovery catalog plugin", () => {
+    expect(CRISPR_DRUG_PLUGIN_SLUGS).toHaveLength(18);
+    expect(Object.keys(CRISPR_DRUG_PLUGIN_RENDERERS)).toEqual(CRISPR_DRUG_PLUGIN_SLUGS);
+    for (const slug of CRISPR_DRUG_PLUGIN_SLUGS) {
+      const component = resolveWorkbenchRenderer("async_analysis", slug);
+      expect(component).toBe(CRISPR_DRUG_PLUGIN_RENDERERS[slug]);
+      expect(component).not.toBe(resolveWorkbenchRenderer("async_analysis"));
+    }
   });
 
   it.each([
