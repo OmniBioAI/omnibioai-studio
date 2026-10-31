@@ -88,6 +88,12 @@ describe("plugin descriptor API boundary", () => {
     expect(() => pluginDescriptorUrl("../etc")).toThrow("Invalid plugin identifier");
   });
 
+  it("allows only the exact Histopathology CV segmentation action endpoint", () => {
+    expect(endpointUrl("/plugins/histopathology_cv/api/segment/")).toContain("/_svc/workbench/plugins/histopathology_cv/api/segment/");
+    expect(() => endpointUrl("/plugins/other_plugin/api/segment/")).toThrow("Invalid plugin endpoint");
+    expect(() => endpointUrl("/plugins/histopathology_cv/api/segment/other/")).toThrow("Invalid plugin endpoint");
+  });
+
   it.each([
     "/plugins/audit_log/api/events?page=1&page_size=50",
     "/plugins/audit_log/api/events/42",

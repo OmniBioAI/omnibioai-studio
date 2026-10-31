@@ -1,12 +1,10 @@
-import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
+import source from "../../src/ui/pages/Studio.jsx?raw";
 import { BROAD_PLUGIN_SLUGS } from "../../src/ui/components/workbench/BroadPluginRenderers";
 import { CENTURY_PLUGIN_SLUGS } from "../../src/ui/components/workbench/CenturyPluginRenderers";
 import { NEXT_CENTURY_PLUGIN_SLUGS } from "../../src/ui/components/workbench/NextCenturyPluginRenderers";
 import { FINAL_PLUGIN_SLUGS } from "../../src/ui/components/workbench/FinalPluginRenderers";
 
-const source = fs.readFileSync(path.resolve("src/ui/pages/Studio.jsx"), "utf8");
 const linkedPlugins = [
   "onboardai", "genome_viewer", "dataset_catalog", "job_monitor", "plugin_manager", "audit_log",
   "workflow_runner", "workflow_builder", "agent_workflow_studio", "pipeline_dashboard",

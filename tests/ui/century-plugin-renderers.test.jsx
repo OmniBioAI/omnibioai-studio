@@ -31,12 +31,24 @@ describe("one-hundred promoted plugin React renderers", () => {
     expect(Object.values(CENTURY_PLUGIN_MODES).filter(mode => mode === "generic_runner")).toHaveLength(33);
   });
 
-  it.each(CENTURY_PLUGIN_SLUGS.filter(slug => !["audit_log", "dataset_catalog", "genome_viewer", "alerting", "api_analytics", "integration_connections", "notification_center", "resource_monitoring", "security_dashboard"].includes(slug)))("uses the live lifecycle and grouped override for %s", slug => {
+  it.each(CENTURY_PLUGIN_SLUGS.filter(slug => !["audit_log", "dataset_catalog", "genome_viewer", "alerting", "api_analytics", "integration_connections", "notification_center", "resource_monitoring", "security_dashboard", "omniml_studio", "histopathology_cv"].includes(slug)))("uses the live lifecycle and grouped override for %s", slug => {
     const renderer = CENTURY_PLUGIN_MODES[slug];
     const Renderer = CENTURY_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);
     expect(screen.getByTestId(renderer === "query" ? "query-workflow" : "async-workflow")).toHaveTextContent(slug);
     expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);
     expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(resolveWorkbenchRenderer(renderer));
+  });
+
+  it("uses the dedicated React tutorial browser for OmniML Studio", () => {
+    const Renderer = CENTURY_PLUGIN_RENDERERS.omniml_studio;
+    expect(Renderer).toBeTruthy();
+    expect(resolveWorkbenchRenderer("query", "omniml_studio")).toBe(Renderer);
+  });
+
+  it("uses the dedicated React segmentation workspace for Histopathology CV", () => {
+    const Renderer = CENTURY_PLUGIN_RENDERERS.histopathology_cv;
+    expect(Renderer).toBeTruthy();
+    expect(resolveWorkbenchRenderer("query", "histopathology_cv")).toBe(Renderer);
   });
 });
