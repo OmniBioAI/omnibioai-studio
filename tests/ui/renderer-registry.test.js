@@ -6,6 +6,7 @@ import DatasetCatalogRenderer from "../../src/ui/components/workbench/DatasetCat
 import PluginManagerRenderer from "../../src/ui/components/workbench/PluginManagerRenderer";
 import AuditLogRenderer from "../../src/ui/components/workbench/AuditLogRenderer";
 import WorkflowRunnerRenderer from "../../src/ui/components/workbench/WorkflowRunnerRenderer";
+import { PipelineDashboardRenderer, WorkflowExplorerRenderer, WorkflowRegistryAdminRenderer, WorkflowSchedulerRenderer, WorkflowValidatorRenderer } from "../../src/ui/components/workbench/PipelinePluginReactRenderers";
 import { AlertingRenderer, ApiAnalyticsRenderer, DataManagerRenderer, HomeDashboardRenderer, IntegrationConnectionsRenderer, NotificationCenterRenderer, ProvenanceRenderer, ResourceMonitoringRenderer, SecurityDashboardRenderer } from "../../src/ui/components/workbench/DashboardPluginRenderers";
 
 describe("allowlisted Workbench renderer registry", () => {
@@ -29,6 +30,9 @@ describe("allowlisted Workbench renderer registry", () => {
   });
   it.each([
     ["plugin_manager", PluginManagerRenderer], ["audit_log", AuditLogRenderer], ["workflow_runner", WorkflowRunnerRenderer],
+    ["pipeline_dashboard", PipelineDashboardRenderer], ["workflow_scheduler", WorkflowSchedulerRenderer],
+    ["workflow_explorer", WorkflowExplorerRenderer], ["workflow_registry_admin", WorkflowRegistryAdminRenderer],
+    ["workflow_validator", WorkflowValidatorRenderer],
   ])("uses a dedicated React renderer for %s", (slug, component) => {
     expect(resolveWorkbenchRenderer("query", slug)).toBe(component);
   });
