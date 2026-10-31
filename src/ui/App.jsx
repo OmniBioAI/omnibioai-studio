@@ -67,6 +67,7 @@ const MEMBERSHIP_PLANS_PAGE = 31;
 const ADMIN_CONSOLE_PAGE = 33;
 const PLUGINS_PAGE = 34;
 const AGENTIC_PAGE = 35;
+const OMICS_ANALYSIS_PAGE = 36;
 
 const BASE_NAV = [
   { section: null, items: [{ name:"Studio", idx:7 }] },
@@ -87,6 +88,7 @@ const BASE_NAV = [
     { name:"Explore", idx: EXPLORE_PAGE },
     { name:"Integrations", idx: INTEGRATIONS_PAGE },
     { name:"Plugins", idx: PLUGINS_PAGE },
+    { name:"Omics & Analysis", idx: OMICS_ANALYSIS_PAGE },
     { name:"Agentic", idx: AGENTIC_PAGE },
   ]},
   { section: "Setup",   items: [
@@ -125,6 +127,7 @@ const PAGE_NAMES = [
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
   "projects","artifacts","explore","notifications","personalization","appearance","organization-connections",
   "privacy","plan","help","integrations","membership-plans","storage","admin-console",
+  "plugins","agentic","omics-analysis",
 ];
 
 const PAGE_LABELS = [
@@ -133,7 +136,7 @@ const PAGE_LABELS = [
   "Code", "Workflows",
   "Projects", "Artifacts", "Explore", null, null, null, "Connections",
   "Privacy & data", "Usage", "Help & support", "Integrations", null, "Membership & storage", "Admin Console",
-  "Plugins", "Agentic",
+  "Plugins", "Agentic", "Omics & Analysis",
 ];
 
 const STUDIO_PATH = "/studio";
@@ -161,6 +164,7 @@ const HELP_PAGE = 29;
 const INTEGRATIONS_PATH = "/studio/integrations";
 const PLUGINS_PATH = "/studio/plugins";
 const AGENTIC_PATH = "/studio/agentic";
+const OMICS_ANALYSIS_PATH = "/studio/omics-analysis";
 const BILLING_PATH = "/studio/account/organization/billing";
 const DEVELOPER_PATH = "/studio/account/organization/api-keys";
 const ROLES_PATH = "/studio/account/organization/members-roles";
@@ -192,6 +196,7 @@ const PATH_TO_PAGE = {
   [INTEGRATIONS_PATH]: INTEGRATIONS_PAGE,
   [PLUGINS_PATH]: PLUGINS_PAGE,
   [AGENTIC_PATH]: AGENTIC_PAGE,
+  [OMICS_ANALYSIS_PATH]: OMICS_ANALYSIS_PAGE,
   [BILLING_PATH]: 12,
   [DEVELOPER_PATH]: 14,
   [ADMIN_CONSOLE_PATH]: ADMIN_CONSOLE_PAGE,
@@ -535,6 +540,8 @@ export default function App() {
       onOpen={openWorkbenchPlugin} />,
     <Workbench view="agentic" state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={openWorkbenchPlugin} />,
+    <Workbench view="omics" state={workbenchState} onStateChange={setWorkbenchState}
+      onOpen={openWorkbenchPlugin} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -560,7 +567,7 @@ export default function App() {
     const slug = plugin?.slug;
     if (!slug) return;
     const next = new URL(window.location.href);
-    setPluginReturnPage(step === PLUGINS_PAGE || step === AGENTIC_PAGE ? step : 13);
+    setPluginReturnPage([PLUGINS_PAGE, AGENTIC_PAGE, OMICS_ANALYSIS_PAGE].includes(step) ? step : 13);
     next.pathname = studioPluginPath(slug);
     next.search = "";
     next.hash = "";
@@ -594,7 +601,7 @@ export default function App() {
       return;
     }
     setService(null);
-    if (idx === PLUGINS_PAGE || idx === AGENTIC_PAGE) {
+    if ([PLUGINS_PAGE, AGENTIC_PAGE, OMICS_ANALYSIS_PAGE].includes(idx)) {
       setWorkbenchState({ query: "", category: "__all__", focusSlug: null });
     }
     setStep(idx);

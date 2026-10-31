@@ -13,17 +13,18 @@ beforeEach(() => vi.stubGlobal("fetch", vi.fn().mockResolvedValue(catalogRespons
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("Native Workbench catalog", () => {
-  it("partitions the plugin catalog into integrations, general plugins, and agentic entries without duplicates", () => {
+  it("partitions the catalog into integrations, general plugins, omics, and agentic entries without duplicates", () => {
     const categories = [
       { key: "integration", title: "Integrations", plugins: [{ slug: "github", category: "integration" }] },
       { key: "reference_db", title: "Reference Databases", plugins: [{ slug: "pubmed", category: "reference_db" }] },
       { key: "ai", title: "AI", plugins: [{ slug: "bio_agent", category: "ai" }] },
       { key: "analysis", title: "Analysis", plugins: [{ slug: "rnaseq", category: "analysis" }] },
+      { key: "utilities", title: "Utilities", plugins: [{ slug: "common_tool", category: "utilities" }] },
     ];
-    const partitions = ["integrations", "plugins", "agentic"].map(view =>
+    const partitions = ["integrations", "plugins", "omics", "agentic"].map(view =>
       categoriesForDiscoveryView(categories, view).flatMap(category => category.plugins.map(plugin => plugin.slug)));
-    expect(partitions).toEqual([["github", "pubmed"], ["rnaseq"], ["bio_agent"]]);
-    expect(partitions.flat().sort()).toEqual(["bio_agent", "github", "pubmed", "rnaseq"]);
+    expect(partitions).toEqual([["github", "pubmed"], ["common_tool"], ["rnaseq"], ["bio_agent"]]);
+    expect(partitions.flat().sort()).toEqual(["bio_agent", "common_tool", "github", "pubmed", "rnaseq"]);
   });
 
   it("renders server-ordered cards, metadata, and category counts", async () => {
@@ -46,16 +47,22 @@ describe("Native Workbench catalog", () => {
   });
   it("renders the filtered Plugins view as a colorful app launcher", async () => {
     const onOpen = vi.fn();
-    render(<Harness onOpen={onOpen} view="plugins" />);
+    render(<Harness onOpen={onOpen} view="omics" />);
     const app = await screen.findByRole("button", { name: "Open RNA Analysis" });
-    expect(screen.getByRole("heading", { level: 1, name: "Plugins" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Omics & Analysis" })).toBeInTheDocument();
     expect(app).toHaveClass("native-workbench-app-launch");
     expect(app.closest(".native-workbench-app-shell")).toHaveStyle({ "--plugin-accent": "#5ad7c2" });
     expect(within(app).getByText("Analysis")).toBeInTheDocument();
     expect(within(app).getByText("Transcript processing")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Showing 3 of 3 plugins");
+    expect(screen.getByRole("status")).toHaveTextContent("Showing 2 of 2 plugins");
     await userEvent.click(app);
     expect(onOpen).toHaveBeenCalledWith("/_svc/workbench/plugins/rna/", "RNA Analysis", expect.objectContaining({ slug: "rna" }));
+  });
+  it("keeps omics categories out of the general Plugins app launcher", async () => {
+    render(<Harness view="plugins" />);
+    expect(await screen.findByRole("button", { name: "Open System Health" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open RNA Analysis" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Showing 1 of 1 plugins");
   });
   it("searches title/slug/category, temporarily selects All, restores category on Escape and derives all counts from cards", async () => {
     const user = userEvent.setup(); render(<Harness />);

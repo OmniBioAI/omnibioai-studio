@@ -43,6 +43,7 @@ export const NAV_ICONS = {
   "Explore":       IconCompass,
   "Integrations":  IconPlug,
   "Plugins":       IconPackage,
+  "Omics & Analysis": IconActivity,
   "Agentic":       IconSparkles,
   "Mode":          IconSliders,
   "LLM":           IconBrain,
