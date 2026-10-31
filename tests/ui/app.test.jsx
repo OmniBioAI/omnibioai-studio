@@ -37,7 +37,7 @@ vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings pag
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ url }) => <iframe title="Service page" src={url} /> }));
-vi.mock("../../src/ui/pages/AIChatHub", () => ({ default: ({ initialMode = "ask", onBack }) => <div data-testid="ai-chat-hub" data-initial-mode={initialMode}><button type="button" onClick={onBack}>Back to Studio</button><iframe title="AI service" src={initialMode === "agent" ? "/_svc/workbench/plugins/bio_agent/" : "/_svc/devhub?view=chat"} /></div> }));
+vi.mock("../../src/ui/pages/AIChatHub", () => ({ default: ({ initialMode = "ask", onBack }) => <div data-testid="ai-chat-hub" data-initial-mode={initialMode}><button type="button" onClick={onBack}>Back to Studio</button>{initialMode === "agent" ? <div data-testid="agent-react-ui" /> : <iframe title="AI service" src="/_svc/devhub?view=chat" />}</div> }));
 vi.mock("../../src/ui/pages/StandaloneAppLaunch", () => ({ default: () => <div>Standalone Admin launch page</div> }));
 vi.mock("../../src/ui/pages/PluginPage", () => ({ default: ({ slug, url, label }) => <div>{label} · {slug} · {url}</div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: () => <div>Videos page</div> }));
@@ -109,7 +109,7 @@ describe("application shell", () => {
     try {
       render(<App />);
       await waitFor(() => expect(screen.getByTestId("ai-chat-hub")).toHaveAttribute("data-initial-mode", "agent"));
-      expect(screen.getByTitle("AI service")).toHaveAttribute("src", "/_svc/workbench/plugins/bio_agent/");
+      expect(screen.getByTestId("agent-react-ui")).toBeInTheDocument();
     } finally {
       window.history.replaceState({}, "", originalUrl);
     }
