@@ -19,6 +19,7 @@ import {
   NEXT_CENTURY_PLUGIN_SLUGS,
 } from "../../src/ui/components/workbench/NextCenturyPluginRenderers";
 import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+import { ANALYSIS_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/AnalysisPluginRenderers";
 import { ML_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
 
 afterEach(cleanup);
@@ -50,7 +51,9 @@ describe("next one-hundred promoted plugin React renderers", () => {
       ? "query-workflow"
       : renderer === "informational" ? "informational-workflow" : "async-workflow";
     expect(screen.getByTestId(testId)).toHaveTextContent(slug);
-    if (separatelyRegisteredOverrides.has(slug)) {
+    if (ANALYSIS_PLUGIN_RENDERERS[slug]) {
+      expect(resolveWorkbenchRenderer(renderer, slug)).toBe(ANALYSIS_PLUGIN_RENDERERS[slug]);
+    } else if (separatelyRegisteredOverrides.has(slug)) {
       expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(Renderer);
     } else {
       expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);

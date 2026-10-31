@@ -65,6 +65,7 @@ import {
 import { ML_PLUGIN_RENDERERS } from "./MLPluginReactRenderer";
 import { AI_PLUGIN_RENDERERS } from "./AiPluginRenderers";
 import OnboardAiRenderer from "./OnboardAiRenderer";
+import { ANALYSIS_PLUGIN_RENDERERS } from "./AnalysisPluginRenderers";
 import { CRISPR_DRUG_PLUGIN_RENDERERS } from "./CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS } from "./SearchStructureReactRenderers";
 import {
@@ -138,6 +139,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...ML_PLUGIN_RENDERERS,
   ...CRISPR_DRUG_PLUGIN_RENDERERS,
   ...SEARCH_STRUCTURE_PLUGIN_RENDERERS,
+  ...ANALYSIS_PLUGIN_RENDERERS,
   genome_viewer: GenomeViewerRenderer,
   dataset_catalog: DatasetCatalogRenderer,
   plugin_manager: PluginManagerRenderer,

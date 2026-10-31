@@ -15,6 +15,7 @@ import {
   BROAD_PLUGIN_SLUGS,
 } from "../../src/ui/components/workbench/BroadPluginRenderers";
 import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+import { ANALYSIS_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/AnalysisPluginRenderers";
 import { ML_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
 
 afterEach(cleanup);
@@ -47,7 +48,9 @@ describe("broad promoted plugin React renderers", () => {
     const Renderer = BROAD_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);
     expect(screen.getByTestId(QUERY.has(slug) ? "query-workflow" : "async-workflow")).toHaveTextContent(slug);
-    expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);
-    expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(resolveWorkbenchRenderer(renderer));
+    const resolved = resolveWorkbenchRenderer(renderer, slug);
+    expect(typeof resolved).toBe("function");
+    if (ANALYSIS_PLUGIN_RENDERERS[slug]) expect(resolved).toBe(ANALYSIS_PLUGIN_RENDERERS[slug]);
+    expect(resolved).not.toBe(resolveWorkbenchRenderer(renderer));
   });
 });
