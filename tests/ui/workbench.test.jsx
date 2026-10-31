@@ -143,7 +143,11 @@ describe("Native Workbench catalog", () => {
     fetch.mockResolvedValue({ ok: true, json: async () => data });
     render(<Harness view="agentic" />);
     expect(await screen.findByRole("heading", { level: 1, name: "Agentic" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open OmniBioAgent" })).toBeInTheDocument();
+    const agentCard = screen.getByRole("button", { name: "Open OmniBioAgent" });
+    expect(agentCard).toHaveClass("native-agentic-launch");
+    expect(screen.getByRole("heading", { name: "Tools that reason, plan, and act" })).toBeInTheDocument();
+    expect(screen.getByText("AI AGENT")).toBeInTheDocument();
+    expect(screen.getByText("1", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Showing 1 of 1 plugins");
     expect(screen.queryByRole("button", { name: "Open RNA Analysis" })).not.toBeInTheDocument();
   });
