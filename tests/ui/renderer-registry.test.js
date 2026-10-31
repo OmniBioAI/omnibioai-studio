@@ -6,6 +6,7 @@ import DatasetCatalogRenderer from "../../src/ui/components/workbench/DatasetCat
 import PluginManagerRenderer from "../../src/ui/components/workbench/PluginManagerRenderer";
 import AuditLogRenderer from "../../src/ui/components/workbench/AuditLogRenderer";
 import WorkflowRunnerRenderer from "../../src/ui/components/workbench/WorkflowRunnerRenderer";
+import { AlertingRenderer, ApiAnalyticsRenderer, DataManagerRenderer, HomeDashboardRenderer, IntegrationConnectionsRenderer, NotificationCenterRenderer, ProvenanceRenderer, ResourceMonitoringRenderer, SecurityDashboardRenderer } from "../../src/ui/components/workbench/DashboardPluginRenderers";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -29,6 +30,14 @@ describe("allowlisted Workbench renderer registry", () => {
   it.each([
     ["plugin_manager", PluginManagerRenderer], ["audit_log", AuditLogRenderer], ["workflow_runner", WorkflowRunnerRenderer],
   ])("uses a dedicated React renderer for %s", (slug, component) => {
+    expect(resolveWorkbenchRenderer("query", slug)).toBe(component);
+  });
+  it.each([
+    ["alerting", AlertingRenderer], ["api_analytics", ApiAnalyticsRenderer], ["data_manager", DataManagerRenderer],
+    ["home", HomeDashboardRenderer], ["integration_connections", IntegrationConnectionsRenderer],
+    ["notification_center", NotificationCenterRenderer], ["provenance", ProvenanceRenderer],
+    ["resource_monitoring", ResourceMonitoringRenderer], ["security_dashboard", SecurityDashboardRenderer],
+  ])("uses the historical-dashboard React conversion for %s", (slug, component) => {
     expect(resolveWorkbenchRenderer("query", slug)).toBe(component);
   });
   it.each([

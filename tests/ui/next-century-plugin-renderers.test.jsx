@@ -35,7 +35,7 @@ describe("next one-hundred promoted plugin React renderers", () => {
     expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "informational")).toHaveLength(48);
   });
 
-  it.each(NEXT_CENTURY_PLUGIN_SLUGS)("uses the live lifecycle and dedicated override for %s", slug => {
+  it.each(NEXT_CENTURY_PLUGIN_SLUGS.filter(slug => slug !== "home"))("uses the live lifecycle and grouped override for %s", slug => {
     const renderer = NEXT_CENTURY_PLUGIN_MODES[slug];
     const Renderer = NEXT_CENTURY_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);

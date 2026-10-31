@@ -27,6 +27,17 @@ import DatasetCatalogRenderer from "./DatasetCatalogRenderer";
 import PluginManagerRenderer from "./PluginManagerRenderer";
 import AuditLogRenderer from "./AuditLogRenderer";
 import WorkflowRunnerRenderer from "./WorkflowRunnerRenderer";
+import {
+  AlertingRenderer,
+  ApiAnalyticsRenderer,
+  DataManagerRenderer,
+  HomeDashboardRenderer,
+  IntegrationConnectionsRenderer,
+  NotificationCenterRenderer,
+  ProvenanceRenderer,
+  ResourceMonitoringRenderer,
+  SecurityDashboardRenderer,
+} from "./DashboardPluginRenderers";
 
 // Only a browser lifecycle with evidence in the current generic family is
 // registered. generic_runner is retained as a descriptor compatibility alias;
@@ -64,6 +75,15 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   plugin_manager: PluginManagerRenderer,
   audit_log: AuditLogRenderer,
   workflow_runner: WorkflowRunnerRenderer,
+  alerting: AlertingRenderer,
+  api_analytics: ApiAnalyticsRenderer,
+  data_manager: DataManagerRenderer,
+  home: HomeDashboardRenderer,
+  integration_connections: IntegrationConnectionsRenderer,
+  notification_center: NotificationCenterRenderer,
+  provenance: ProvenanceRenderer,
+  resource_monitoring: ResourceMonitoringRenderer,
+  security_dashboard: SecurityDashboardRenderer,
 });
 
 export function normalizeRendererName(renderer) {

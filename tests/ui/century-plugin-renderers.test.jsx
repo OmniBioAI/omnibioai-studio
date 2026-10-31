@@ -31,7 +31,7 @@ describe("one-hundred promoted plugin React renderers", () => {
     expect(Object.values(CENTURY_PLUGIN_MODES).filter(mode => mode === "generic_runner")).toHaveLength(33);
   });
 
-  it.each(CENTURY_PLUGIN_SLUGS.filter(slug => !["audit_log", "dataset_catalog", "genome_viewer"].includes(slug)))("uses the live lifecycle and grouped override for %s", slug => {
+  it.each(CENTURY_PLUGIN_SLUGS.filter(slug => !["audit_log", "dataset_catalog", "genome_viewer", "alerting", "api_analytics", "integration_connections", "notification_center", "resource_monitoring", "security_dashboard"].includes(slug)))("uses the live lifecycle and grouped override for %s", slug => {
     const renderer = CENTURY_PLUGIN_MODES[slug];
     const Renderer = CENTURY_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);
