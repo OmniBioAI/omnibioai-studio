@@ -88,6 +88,94 @@ describe("AsyncAnalysisRenderer", () => {
     expect(body.get("param_notes")).toBe("note");
   });
 
+  it("maps historical structured controls into the plugin parameters payload", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ error: "checked" }) });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AsyncAnalysisRenderer descriptor={{
+      ...descriptor,
+      inputs: [descriptor.inputs[0], { id: "parameters", label: "Parameters", description: "JSON", required: false, format: "json", component: "textarea", placeholder: "{}" }],
+    }} parameterFields={[
+      { id: "sample_name", label: "Sample name", description: "Sample", required: true, format: "text", component: "text", default: "sample" },
+      { id: "threads", label: "Threads", description: "Threads", required: true, format: "integer", component: "number", default: "2", min: 1 },
+      { id: "run_qc", label: "Run QC", description: "QC", required: false, format: "boolean", component: "checkbox", default: true },
+    ]} />);
+    await user.upload(screen.getByLabelText(/Input File/), new File(["input"], "input.tsv"));
+    await user.clear(screen.getByLabelText(/Sample name/));
+    await user.type(screen.getByLabelText(/Sample name/), "patient-01");
+    await user.clear(screen.getByLabelText(/Threads/));
+    await user.type(screen.getByLabelText(/Threads/), "4");
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    await screen.findByRole("alert");
+    const body = fetchMock.mock.calls[0][1].body;
+    expect(body.get("input_input_file")).toBeInstanceOf(File);
+    expect(body.get("param_parameters")).toBe(JSON.stringify({ sample_name: "patient-01", threads: "4", run_qc: true }));
+    expect(body.has("param_ui_sample_name")).toBe(false);
+  });
+
+  it("converts an upload-required manifest input into a paste-or-upload historical mode", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ error: "checked" }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const sequenceDescriptor = {
+      ...descriptor,
+      inputs: [{ id: "sequence", label: "Sequence FASTA", description: "FASTA", required: true, format: "fasta", component: "file", multiple: false }],
+    };
+    render(<AsyncAnalysisRenderer descriptor={sequenceDescriptor}
+      parameterFields={[
+        { id: "input_mode", label: "Input source", description: "Source", required: true, format: "text", component: "select", choices: ["paste", "upload"], default: "paste" },
+        { id: "sequence", label: "Paste DNA / FASTA sequence", description: "Sequence", required: false, format: "text", component: "textarea", fileTarget: "sequence", fileName: "sequence.fasta", conditions: [
+          { controller: "ui_input_mode", operator: "equals", value: "paste", effect: "visible" },
+          { controller: "ui_input_mode", operator: "equals", value: "paste", effect: "required" },
+        ] },
+      ]}
+      inputOverrides={{ sequence: { required: false, conditions: [
+        { controller: "ui_input_mode", operator: "equals", value: "upload", effect: "visible" },
+        { controller: "ui_input_mode", operator: "equals", value: "upload", effect: "required" },
+      ] }}}
+    />);
+    expect(screen.queryByLabelText(/Sequence FASTA/)).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Paste DNA/), "ATGAAATAA");
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    await screen.findByRole("alert");
+    expect(fetchMock.mock.calls[0][1].body.get("param_parameters")).toBe(JSON.stringify({ input_mode: "paste" }));
+    expect(fetchMock.mock.calls[0][1].body.get("input_sequence")).toBeInstanceOf(File);
+    expect(fetchMock.mock.calls[0][1].body.get("input_sequence").name).toBe("sequence.fasta");
+  });
+
+  it.each([
+    ["gene list JSON", "gene-list-json", "BRCA1 TP53,EGFR", '["BRCA1","TP53","EGFR"]'],
+    ["edge list TSV", "edge-list-tsv", "TP53 BRCA1 0.92 ppi", "source\\ttarget\\tweight\\ttype\\nTP53\\tBRCA1\\t0.92\\tppi"],
+  ])("normalizes pasted %s into its declared file input", async (_label, fileTransform, value, expected) => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400, json: async () => ({ error: "checked" }) });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AsyncAnalysisRenderer descriptor={{ ...descriptor, inputs: [
+      { id: "input_file", label: "Input File", description: "text", required: false, format: "text", component: "file", multiple: false },
+    ] }} parameterFields={[
+      { id: "paste", label: "Paste data", description: "historical input", required: true, format: "text", component: "textarea", fileTarget: "input_file", fileName: "pasted.txt", fileTransform },
+    ]} />);
+    await user.type(screen.getByLabelText(/Paste data/), value);
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    await screen.findByRole("alert");
+    const generated = fetchMock.mock.calls[0][1].body.get("input_input_file");
+    expect(generated).toBeInstanceOf(File);
+    expect(await generated.text()).toBe(expected.replaceAll("\\t", "\t").replaceAll("\\n", "\n"));
+  });
+
+  it("does not send malformed historical paste fields that target undeclared files", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AsyncAnalysisRenderer descriptor={{ ...descriptor, inputs: [{ ...descriptor.inputs[0], required: false }] }} parameterFields={[
+      { id: "paste", label: "Paste data", description: "historical input", required: false, format: "text", component: "textarea", fileTarget: "missing_file" },
+    ]} />);
+    await user.type(screen.getByLabelText(/Paste data/), "payload");
+    fireEvent.submit(screen.getByRole("button", { name: "Run analysis" }).closest("form"));
+    expect(await screen.findByRole("alert")).toHaveTextContent("not connected to a supported Workbench file input");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("reports required-field, network, malformed-run, and terminal failures safely", async () => {
     const user = userEvent.setup();
     render(<AsyncAnalysisRenderer descriptor={descriptor} />);
@@ -102,7 +190,7 @@ describe("AsyncAnalysisRenderer", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("network unavailable");
   });
 
-  it("retains and submits a hidden labels file after train-to-infer switching", async () => {
+  it("omits a hidden labels file after train-to-infer switching", async () => {
     const user = userEvent.setup();
     const conditionalDescriptor = {
       ...descriptor,
@@ -127,7 +215,6 @@ describe("AsyncAnalysisRenderer", () => {
     await screen.findByRole("alert");
     const body = fetchMock.mock.calls[0][1].body;
     expect(body.get("input_mode")).toBe("infer");
-    expect(body.get("input_labels")).toBeInstanceOf(File);
-    expect(body.get("input_labels").name).toBe("labels.csv");
+    expect(body.has("input_labels")).toBe(false);
   });
 });

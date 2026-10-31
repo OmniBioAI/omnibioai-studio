@@ -66,6 +66,7 @@ import { ML_PLUGIN_RENDERERS } from "./MLPluginReactRenderer";
 import { AI_PLUGIN_RENDERERS } from "./AiPluginRenderers";
 import OnboardAiRenderer from "./OnboardAiRenderer";
 import { ANALYSIS_PLUGIN_RENDERERS } from "./AnalysisPluginRenderers";
+import { GENOMICS_TEMPLATE_RENDERERS } from "./GenomicsTemplateRenderers";
 import { CRISPR_DRUG_PLUGIN_RENDERERS } from "./CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS } from "./SearchStructureReactRenderers";
 import {
@@ -122,6 +123,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   object_registry_explorer: ObjectRegistryExplorerReactRenderer,
   reference_registry: ReferenceRegistryReactRenderer,
   multiqc_wrapper: MultiQcRenderer,
+  genome_viewer: GenomeViewerRenderer,
   reference_genome_manager: ReferenceGenomeManagerRenderer,
   deseq2_analysis: Deseq2AnalysisRenderer,
   variant_annotation: VariantAnnotationRenderer,
@@ -140,7 +142,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...CRISPR_DRUG_PLUGIN_RENDERERS,
   ...SEARCH_STRUCTURE_PLUGIN_RENDERERS,
   ...ANALYSIS_PLUGIN_RENDERERS,
-  genome_viewer: GenomeViewerRenderer,
+  ...GENOMICS_TEMPLATE_RENDERERS,
   dataset_catalog: DatasetCatalogRenderer,
   plugin_manager: PluginManagerRenderer,
   audit_log: AuditLogRenderer,

@@ -21,6 +21,7 @@ import {
 import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
 import { ANALYSIS_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/AnalysisPluginRenderers";
 import { ML_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
+import { GENOMICS_TEMPLATE_RENDERERS } from "../../src/ui/components/workbench/GenomicsTemplateRenderers";
 
 afterEach(cleanup);
 
@@ -55,6 +56,8 @@ describe("next one-hundred promoted plugin React renderers", () => {
       expect(resolveWorkbenchRenderer(renderer, slug)).toBe(ANALYSIS_PLUGIN_RENDERERS[slug]);
     } else if (separatelyRegisteredOverrides.has(slug)) {
       expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(Renderer);
+    } else if (GENOMICS_TEMPLATE_RENDERERS[slug]) {
+      expect(resolveWorkbenchRenderer(renderer, slug)).toBe(GENOMICS_TEMPLATE_RENDERERS[slug]);
     } else {
       expect(resolveWorkbenchRenderer(renderer, slug)).toBe(Renderer);
     }

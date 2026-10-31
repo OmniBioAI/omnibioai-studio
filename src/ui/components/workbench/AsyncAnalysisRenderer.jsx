@@ -24,7 +24,37 @@ function effectiveValue(input, values) {
   return "";
 }
 
-export default function AsyncAnalysisRenderer({ descriptor }) {
+function isVisible(input, inputs, values) {
+  const byId = new Map(inputs.map(candidate => [candidate.id, candidate]));
+  return (input.conditions || []).filter(condition => condition.effect === "visible").every(condition => {
+    const controller = byId.get(condition.controller);
+    const value = controller ? effectiveValue(controller, values) : "";
+    return condition.operator === "in" ? condition.value.includes(value) : value === condition.value;
+  });
+}
+
+function transformedInputText(input, value, values) {
+  const text = String(value);
+  if (input.fileTransform === "gene-list-json") {
+    const genes = text.split(/[\s,]+/).map(gene => gene.trim()).filter(Boolean);
+    return JSON.stringify([...new Set(genes)]);
+  }
+  if (input.fileTransform === "gene-list-text") {
+    const genes = text.split(/[\s,]+/).map(gene => gene.trim()).filter(Boolean);
+    return [...new Set(genes)].join("\n");
+  }
+  if (input.fileTransform === "edge-list-tsv") {
+    const separator = values.ui_separator || "space";
+    const rows = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+      const columns = separator === "tab" ? line.split("\t") : separator === "comma" ? line.split(",") : line.split(/\s+/);
+      return columns.map(column => column.trim());
+    }).filter(columns => columns.length >= 2);
+    return ["source\ttarget\tweight\ttype", ...rows.map(columns => [columns[0], columns[1], columns[2] || "1", columns[3] || ""].join("\t"))].join("\n");
+  }
+  return text;
+}
+
+export default function AsyncAnalysisRenderer({ descriptor, parameterFields = [], inputOverrides = {} }) {
   const [values, setValues] = useState({});
   const [files, setFiles] = useState({});
   const [runId, setRunId] = useState("");
@@ -36,7 +66,12 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  const inputs = descriptor.inputs || [];
+  const customParameterFields = Array.isArray(parameterFields) ? parameterFields : [];
+  const declaredInputs = (descriptor.inputs || []).map(input => ({ ...input, ...(inputOverrides[input.id] || {}) }));
+  const inputs = customParameterFields.length
+    ? [...declaredInputs.filter(input => input.id !== "parameters"),
+      ...customParameterFields.map(input => ({ ...input, id: `ui_${input.id}`, customParameter: true }))]
+    : declaredInputs;
   const endpoint = useMemo(() => key => descriptor.endpoints[key].replace("{run_id}", runId), [descriptor, runId]);
 
   useEffect(() => {
@@ -87,6 +122,13 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
     event.preventDefault();
     setError("");
     for (const input of inputs) {
+      if (input.customParameter && input.fileTarget &&
+          !declaredInputs.some(declared => declared.id === input.fileTarget && descriptorComponent(declared) === "file")) {
+        setError(`${input.label} is not connected to a supported Workbench file input.`);
+        return;
+      }
+    }
+    for (const input of inputs) {
       if (!input.required) continue;
       if (descriptorComponent(input) === "file" && !(files[input.id] || []).length) {
         setError(`${input.label} is required.`);
@@ -106,14 +148,41 @@ export default function AsyncAnalysisRenderer({ descriptor }) {
       }
     }
     const formData = new FormData();
+    const customParameters = {};
+    const generatedInputFiles = [];
+    let parameterError = "";
     inputs.forEach(input => {
+      if (!isVisible(input, inputs, values)) return;
       const component = descriptorComponent(input);
       const value = effectiveValue(input, values);
+      if (input.customParameter) {
+        if (input.fileTarget) {
+          if (value !== "" && value !== null && value !== undefined) {
+            const content = transformedInputText(input, value, values);
+            generatedInputFiles.push({ id: input.fileTarget, file: new File([content], input.fileName || `${input.fileTarget}.txt`, { type: input.fileType || "text/plain" }) });
+          }
+        } else if (value !== "" && value !== null && value !== undefined) {
+          if (input.format === "json") {
+            try { customParameters[input.id.slice(3)] = JSON.parse(String(value)); }
+            catch { parameterError = `${input.label} must be valid JSON.`; }
+          } else customParameters[input.id.slice(3)] = value;
+        }
+        return;
+      }
       if (component === "file") (files[input.id] || []).forEach(file => formData.append(inputName(input), file));
       else if (component === "checkbox") formData.append(inputName(input), value ? "true" : "false");
       else if (component === "multiselect") formData.append(inputName(input), JSON.stringify(value));
       else if (value !== "" && value !== null && value !== undefined) formData.append(inputName(input), value);
     });
+    generatedInputFiles.forEach(({ id, file }) => {
+      const target = declaredInputs.find(input => input.id === id);
+      if (target) formData.append(inputName(target), file);
+    });
+    if (parameterError) {
+      setError(parameterError);
+      return;
+    }
+    if (customParameterFields.length) formData.append("param_parameters", JSON.stringify(customParameters));
     setSubmitting(true);
     setRunId(""); setStatus(null); setLogs([]); setArtifacts([]); setRenderedResult(null);
     try {
