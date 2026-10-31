@@ -2,6 +2,7 @@ import AsyncAnalysisRenderer from "./AsyncAnalysisRenderer";
 import InformationalRenderer from "./InformationalRenderer";
 import QueryRenderer from "./QueryRenderer";
 import MultiAgentOrchestratorRenderer from "./MultiAgentOrchestratorRenderer";
+import JobMonitorRenderer from "./JobMonitorRenderer";
 import { WorkflowBuilderRenderer, WorkflowCompilerRenderer } from "./WorkflowNativeRenderers";
 import {
   DatasetIngestRenderer,
@@ -32,6 +33,7 @@ export const RENDERER_REGISTRY = Object.freeze({
 
 const LEGACY_RENDERER_ALIASES = Object.freeze({ generic_runner: "async_analysis" });
 const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
+  job_monitor: JobMonitorRenderer,
   multi_agent_bio_orchestrator: MultiAgentOrchestratorRenderer,
   workflow_builder: WorkflowBuilderRenderer,
   workflow_compiler: WorkflowCompilerRenderer,

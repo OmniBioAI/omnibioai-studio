@@ -162,12 +162,19 @@ function buildCategories(BASE) {
       name: "Core Platform",
       color: "var(--accent)",
       links: [
-        workbenchPluginLink("OnboardAI", "onboardai", "🤖", "AI developer tools"),
-        workbenchPluginLink("OmniBioAgent", "bio_agent", "💬", "AI assistant"),
+        workbenchPluginLink("Genome Viewer", "genome_viewer", "👁️", "Inspect genomic features"),
+        workbenchPluginLink("Dataset Catalog", "dataset_catalog", "🗂️", "Browse governed datasets"),
         workbenchPluginLink("Job Monitor", "job_monitor", "📊", "Monitor jobs"),
         workbenchPluginLink("Plugin Manager", "plugin_manager", "🔌", "Manage plugins"),
         { label:"Admin",            url:"/_svc/workbench/admin/",                              icon:"⚙️", desc:"Django admin"           },
         workbenchPluginLink("Provenance", PROVENANCE_SLUG, "🧬", "Track runs & lineage", PROVENANCE_LAUNCH_PATH),
+      ]
+    },
+    {
+      name: "Agentic",
+      color: "var(--accent2)",
+      links: [
+        workbenchPluginLink("OnboardAI", "onboardai", "🤖", "AI developer tools"),
       ]
     },
     {

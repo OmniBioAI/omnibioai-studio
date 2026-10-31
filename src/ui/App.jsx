@@ -17,6 +17,7 @@ import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
 import PluginPage from "./pages/PluginPage";
+import { resolveWorkbenchPluginDeepLink } from "./lib/pluginDeepLink";
 import Videos        from "./pages/Videos";
 import RoleManagement from "./pages/RoleManagement";
 import Billing from "./pages/Billing";
@@ -56,9 +57,10 @@ import { getStandaloneOnlyApp, standaloneAppUrl } from "./lib/standaloneApps";
 // idx values: 0-17 are real `step` pages (see `pages` below); 18/19 are the
 // Code/Workflows service aliases (never a real step -- see
 // EXTERNAL_NAV_SERVICES); 20-22 are the new native Projects/Artifacts/Explore
-// shells; -1 is Ask OmniBioAI, another EXTERNAL_NAV_SERVICES alias (same
-// shape as Code/Workflows below).
+// shells; -1/-2 are Ask OmniBioAI and OmniBioAgent, external-service aliases
+// (same shape as Code/Workflows below).
 const ASK_NAV_IDX = -1;
+const BIO_AGENT_NAV_IDX = -2;
 const PROJECTS_PAGE = 20;
 const ARTIFACTS_PAGE = 21;
 const EXPLORE_PAGE = 22;
@@ -76,6 +78,7 @@ const BASE_NAV = [
   // service-view mechanism Code/Workflows already use.
   { section: "AI", items: [
     { name:"Ask OmniBioAI", idx: ASK_NAV_IDX },
+    { name:"OmniBioAgent", idx: BIO_AGENT_NAV_IDX },
   ]},
   { section: "Work", items: [
     { name:"Projects",  idx: PROJECTS_PAGE },
@@ -256,9 +259,20 @@ const EXTERNAL_NAV_SERVICES = {
   // this once at mount and validates it against its known page ids) --
   // lands directly on the chat page instead of its dashboard root.
   [ASK_NAV_IDX]:       { url: "/_svc/devhub?view=chat", label: "Ask OmniBioAI" },
+  [BIO_AGENT_NAV_IDX]: {
+    url: "/_svc/workbench/plugins/bio_agent/",
+    label: "OmniBioAgent",
+    source: "workbench",
+    pluginSlug: "bio_agent",
+    backLabel: "Back to Studio",
+  },
 };
 
 function getInitialService() {
+  const pluginService = typeof window !== "undefined"
+    ? resolveWorkbenchPluginDeepLink(window.location.search)
+    : null;
+  if (pluginService) return pluginService;
   if (typeof window !== "undefined" && window.location.pathname === VIDEO_STUDIO_PATH) {
     return { url: "/_svc/videos", label: "Videos" };
   }
@@ -597,7 +611,7 @@ export default function App() {
         const devHost = url.startsWith("/_svc/") && import.meta.env.DEV ? "http://localhost:5174" : "http://localhost";
         url = `${devHost}${url}`;
       }
-      setService({ url, label: externalService.label });
+      setService({ ...externalService, url });
       return;
     }
     setService(null);
