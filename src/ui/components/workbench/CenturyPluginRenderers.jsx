@@ -19,7 +19,7 @@ export const CENTURY_PLUGIN_GROUPS = Object.freeze([
     ["resource_monitoring", "Resource Monitoring", "📊", "Monitor compute and cost", "async_analysis"],
     ["alerting", "Alerts", "🔔", "Review platform alerts", "query"],
     ["api_analytics", "API Analytics", "📈", "Inspect API activity", "query"],
-    ["audit_log", "Audit Log", "📜", "Review governed activity", "query"],
+    ["audit_log", "Activity Explorer", "📜", "Explore governed platform activity", "query"],
   ], { outputs: ["Operational findings", "Platform evidence", "Audit context"] }),
 
   workflowGroup("Operations Dashboards", "var(--accent2)", "Operations dashboards", [
