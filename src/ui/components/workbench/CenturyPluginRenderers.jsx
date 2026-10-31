@@ -1,4 +1,6 @@
 import { createGuidedPluginRenderer } from "./PriorityPluginRenderers";
+import HistopathologyCVRenderer from "./HistopathologyCVRenderer";
+import OmniMLStudioRenderer from "./OmniMLStudioRenderer";
 
 const EXECUTION_STAGES = ["Provide evidence", "Configure operation", "Run workflow", "Review artifacts"];
 const QUERY_STAGES = ["Choose operation", "Set query filters", "Search reference", "Review provenance"];
@@ -185,11 +187,13 @@ export const CENTURY_PLUGIN_MODES = Object.freeze(Object.fromEntries(
 ));
 export const CENTURY_PLUGIN_RENDERERS = Object.freeze(Object.fromEntries(pluginEntries.map(entry => [
   entry.slug,
-  createGuidedPluginRenderer({
-    eyebrow: entry.group.eyebrow,
-    summary: `${entry.label}: ${entry.desc}.`,
-    stages: entry.group.stages,
-    outputs: entry.group.outputs,
-    note: entry.group.note,
-  }),
+  entry.slug === "omniml_studio" ? OmniMLStudioRenderer
+    : entry.slug === "histopathology_cv" ? HistopathologyCVRenderer
+      : createGuidedPluginRenderer({
+        eyebrow: entry.group.eyebrow,
+        summary: `${entry.label}: ${entry.desc}.`,
+        stages: entry.group.stages,
+        outputs: entry.group.outputs,
+        note: entry.group.note,
+      }),
 ])));

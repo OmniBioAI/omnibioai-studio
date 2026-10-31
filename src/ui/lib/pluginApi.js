@@ -6,6 +6,9 @@ const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
 const FIELD_ID = /^[a-z][a-z0-9_]*$/;
 const FORBIDDEN_FIELD_IDS = new Set(["constructor", "prototype", "__proto__", "password", "token", "secret", "api_key", "credentials"]);
 const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|runs|status|log|cancel|artifacts|file|render|search|studies|experiments|variants|pathways|genes|events|catalog|toggle|bulk|workflow-catalog|configure|ui-run|ui-status|ui-log|ui-query|ui-detail|ui-download|ui-reference|ui-artifacts|ui-resources|summary|rules|channels|history|test-alert|ack|close|request-volume|endpoint-statistics|plugin-statistics|status-code-distribution|errors|latency-statistics|consumer-statistics|traffic-anomalies|health|integrations|categories|notifications|filter|preferences|metadata|upload|download|download-async|job-status|objects|object-metadata|object-download|delete_object|providers|posture|overview|authentication|authorization|gateway|plugins|dashboard|sync-cloud-costs)\/?(?:[A-Za-z0-9_.:{}-]+\/?){0,4}(?:\?[^#]*)?$/;
+const EXACT_PLUGIN_ENDPOINTS = new Set([
+  "/plugins/histopathology_cv/api/segment/",
+]);
 const RUN_ID = /^[A-Za-z0-9_.:-]+$/;
 const RESOURCE_TYPES = new Set(["run"]);
 const NATIVE_RENDERERS = new Set(["async_analysis", "generic_runner", "informational", "query"]);
@@ -35,7 +38,8 @@ export function pluginDescriptorUrl(slug, options) {
 }
 
 export function endpointUrl(path, options) {
-  if (typeof path !== "string" || path.includes("..") || path.includes("//") || !ENDPOINT.test(path)) {
+  if (typeof path !== "string" || path.includes("..") || path.includes("//") ||
+      (!EXACT_PLUGIN_ENDPOINTS.has(path) && !ENDPOINT.test(path))) {
     throw new Error("Invalid plugin endpoint.");
   }
   return serviceUrl(path, options);
