@@ -149,6 +149,7 @@ export default function AsyncAnalysisRenderer({ descriptor, parameterFields = []
     }
     const formData = new FormData();
     const customParameters = {};
+    const customParameterArrays = {};
     const generatedInputFiles = [];
     let parameterError = "";
     inputs.forEach(input => {
@@ -165,6 +166,18 @@ export default function AsyncAnalysisRenderer({ descriptor, parameterFields = []
           if (input.format === "json") {
             try { customParameters[input.id.slice(3)] = JSON.parse(String(value)); }
             catch { parameterError = `${input.label} must be valid JSON.`; }
+          } else if (Array.isArray(input.parameterPath) && input.parameterPath.length) {
+            let target = customParameters;
+            for (const part of input.parameterPath.slice(0, -1)) {
+              if (!target[part] || typeof target[part] !== "object" || Array.isArray(target[part])) target[part] = {};
+              target = target[part];
+            }
+            target[input.parameterPath.at(-1)] = value;
+          } else if (typeof input.parameterArray === "string" && input.parameterArray) {
+            if (value === true) {
+              customParameterArrays[input.parameterArray] ||= [];
+              customParameterArrays[input.parameterArray].push(input.parameterValue ?? input.id.slice(3));
+            }
           } else customParameters[input.id.slice(3)] = value;
         }
         return;
@@ -174,6 +187,7 @@ export default function AsyncAnalysisRenderer({ descriptor, parameterFields = []
       else if (component === "multiselect") formData.append(inputName(input), JSON.stringify(value));
       else if (value !== "" && value !== null && value !== undefined) formData.append(inputName(input), value);
     });
+    Object.entries(customParameterArrays).forEach(([key, selectedValues]) => { customParameters[key] = selectedValues; });
     generatedInputFiles.forEach(({ id, file }) => {
       const target = declaredInputs.find(input => input.id === id);
       if (target) formData.append(inputName(target), file);

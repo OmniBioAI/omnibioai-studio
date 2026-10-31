@@ -1,0 +1,7 @@
+.omics-template-page { display: grid; gap: 14px; }
+.omics-template-summary { margin: 0 0 14px; color: var(--color-text-secondary, var(--text-secondary)); line-height: 1.65; }
+.omics-template-sections { display: flex; gap: 8px; flex-wrap: wrap; }
+.omics-template-sections span { display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px; border-radius: 999px; background: var(--bg2); border: 1px solid var(--border); font-size: 12px; color: var(--text); }
+.omics-template-sections i { display: grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-size: 11px; font-style: normal; font-weight: 700; }
+.omics-template-evidence, .omics-template-note { margin: 12px 0 0; color: var(--text-muted, var(--color-text-muted)); font-size: 12px; line-height: 1.55; }
+.omics-template-note { color: var(--accent3); }

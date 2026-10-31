@@ -68,6 +68,7 @@ import OnboardAiRenderer from "./OnboardAiRenderer";
 import { ANALYSIS_PLUGIN_RENDERERS } from "./AnalysisPluginRenderers";
 import { GENOMICS_TEMPLATE_RENDERERS } from "./GenomicsTemplateRenderers";
 import LipidomicsAnalysisRenderer from "./LipidomicsAnalysisRenderer";
+import { OMICS_TEMPLATE_REACT_RENDERERS } from "./OmicsTemplateReactRenderers";
 import { CRISPR_DRUG_PLUGIN_RENDERERS } from "./CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS } from "./SearchStructureReactRenderers";
 import {
@@ -135,6 +136,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...SCIENTIFIC_PLUGIN_RENDERERS,
   ...BROAD_PLUGIN_RENDERERS,
   ...CENTURY_PLUGIN_RENDERERS,
+  ...OMICS_TEMPLATE_REACT_RENDERERS,
   ...NEXT_CENTURY_PLUGIN_RENDERERS,
   ...FINAL_PLUGIN_RENDERERS,
   ...AI_PLUGIN_RENDERERS,
