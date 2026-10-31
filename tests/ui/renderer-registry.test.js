@@ -47,6 +47,8 @@ describe("allowlisted Workbench renderer registry", () => {
   it.each([
     ["dataset_ingest", "generic_runner"],
     ["run_inspector", "generic_runner"],
+    ["reference_registry", "query"],
+    ["object_registry_explorer", "query"],
     ["multiqc_wrapper", "query"],
     ["reference_genome_manager", "informational"],
     ["deseq2_analysis", "generic_runner"],

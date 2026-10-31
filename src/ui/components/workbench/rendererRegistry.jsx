@@ -4,11 +4,37 @@ import QueryRenderer from "./QueryRenderer";
 import MultiAgentOrchestratorRenderer from "./MultiAgentOrchestratorRenderer";
 import JobMonitorRenderer from "./JobMonitorRenderer";
 import RunInspectorReactRenderer from "./RunInspectorReactRenderer";
+import {
+  CatalogReactRenderer,
+  DataLineageTrackerReactRenderer,
+  EnvironmentManagerReactRenderer,
+  FormatConverterReactRenderer,
+  SchemaRegistryReactRenderer,
+} from "./UtilityRegistryRenderers";
+import {
+  ClinicalConsentManagerReactRenderer,
+  ClinicalDataQualityReactRenderer,
+  DatasetIngestReactRenderer,
+  FairDataPackagerReactRenderer,
+  PrivacyDeidentificationReactRenderer,
+  ResourceCostEstimatorReactRenderer,
+  SpatialImagingIoReactRenderer,
+  VoiceCommandReactRenderer,
+} from "./UtilityClinicalRenderers";
+import CollaborationReactRenderer from "./CollaborationReactRenderer";
+import { ObjectRegistryExplorerReactRenderer, ReferenceRegistryReactRenderer } from "./UtilityRegistryDetailRenderers";
+import {
+  ChecksumIntegrityReactRenderer,
+  FileTransferReactRenderer,
+  JobQueueReactRenderer,
+  MultiQcReactRenderer,
+  PdfReportBuilderReactRenderer,
+  StorageQuotaReactRenderer,
+} from "./UtilityOperationsRenderers";
 import BioAgentRenderer from "./BioAgentRenderer";
 import { WorkflowCompilerRenderer } from "./WorkflowNativeRenderers";
 import WorkflowBuilderCanvasRenderer from "./WorkflowBuilderCanvasRenderer";
 import {
-  DatasetIngestRenderer,
   Deseq2AnalysisRenderer,
   MolecularDockingRenderer,
   MultiQcRenderer,
@@ -64,8 +90,29 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   multi_agent_bio_orchestrator: MultiAgentOrchestratorRenderer,
   workflow_builder: WorkflowBuilderCanvasRenderer,
   workflow_compiler: WorkflowCompilerRenderer,
-  dataset_ingest: DatasetIngestRenderer,
+  dataset_ingest: DatasetIngestReactRenderer,
   run_inspector: RunInspectorReactRenderer,
+  catalog: CatalogReactRenderer,
+  schema_registry: SchemaRegistryReactRenderer,
+  data_lineage_tracker: DataLineageTrackerReactRenderer,
+  environment_manager: EnvironmentManagerReactRenderer,
+  format_converter: FormatConverterReactRenderer,
+  storage_quota_manager: StorageQuotaReactRenderer,
+  job_queue_manager: JobQueueReactRenderer,
+  file_transfer_manager: FileTransferReactRenderer,
+  checksum_integrity_manager: ChecksumIntegrityReactRenderer,
+  pdf_report_builder: PdfReportBuilderReactRenderer,
+  multiqc_wrapper: MultiQcReactRenderer,
+  spatial_imaging_io: SpatialImagingIoReactRenderer,
+  fair_data_packager: FairDataPackagerReactRenderer,
+  privacy_deidentification: PrivacyDeidentificationReactRenderer,
+  clinical_consent_manager: ClinicalConsentManagerReactRenderer,
+  clinical_data_quality_validator: ClinicalDataQualityReactRenderer,
+  resource_cost_estimator: ResourceCostEstimatorReactRenderer,
+  voice_command: VoiceCommandReactRenderer,
+  collaboration: CollaborationReactRenderer,
+  object_registry_explorer: ObjectRegistryExplorerReactRenderer,
+  reference_registry: ReferenceRegistryReactRenderer,
   multiqc_wrapper: MultiQcRenderer,
   reference_genome_manager: ReferenceGenomeManagerRenderer,
   deseq2_analysis: Deseq2AnalysisRenderer,
