@@ -6,8 +6,12 @@ import DatasetCatalogRenderer from "../../src/ui/components/workbench/DatasetCat
 import PluginManagerRenderer from "../../src/ui/components/workbench/PluginManagerRenderer";
 import AuditLogRenderer from "../../src/ui/components/workbench/AuditLogRenderer";
 import WorkflowRunnerRenderer from "../../src/ui/components/workbench/WorkflowRunnerRenderer";
+import OpenBabelReactRenderer from "../../src/ui/components/workbench/OpenBabelReactRenderer";
 import { PipelineDashboardRenderer, WorkflowExplorerRenderer, WorkflowRegistryAdminRenderer, WorkflowSchedulerRenderer, WorkflowValidatorRenderer } from "../../src/ui/components/workbench/PipelinePluginReactRenderers";
 import { AlertingRenderer, ApiAnalyticsRenderer, DataManagerRenderer, HomeDashboardRenderer, IntegrationConnectionsRenderer, NotificationCenterRenderer, ProvenanceRenderer, ResourceMonitoringRenderer, SecurityDashboardRenderer } from "../../src/ui/components/workbench/DashboardPluginRenderers";
+import { CLINICAL_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/ClinicalPluginRenderers";
+import { CRISPR_DRUG_PLUGIN_RENDERERS, CRISPR_DRUG_PLUGIN_SLUGS } from "../../src/ui/components/workbench/CrisprDrugReactRenderers";
+import { SEARCH_STRUCTURE_PLUGIN_RENDERERS, SEARCH_STRUCTURE_PLUGIN_SLUGS } from "../../src/ui/components/workbench/SearchStructureReactRenderers";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -21,6 +25,9 @@ describe("allowlisted Workbench renderer registry", () => {
 
   it("uses the dedicated React run-list renderer for Job Monitor", () => {
     expect(resolveWorkbenchRenderer("query", "job_monitor")).toBe(JobMonitorRenderer);
+  });
+  it("uses the dedicated chemistry React workbench for Open Babel", () => {
+    expect(resolveWorkbenchRenderer("informational", "openbabel")).toBe(OpenBabelReactRenderer);
   });
   it("uses the dedicated React genome browser for Genome Viewer", () => {
     expect(resolveWorkbenchRenderer("generic_runner", "genome_viewer")).toBe(GenomeViewerRenderer);
@@ -47,6 +54,8 @@ describe("allowlisted Workbench renderer registry", () => {
   it.each([
     ["dataset_ingest", "generic_runner"],
     ["run_inspector", "generic_runner"],
+    ["reference_registry", "query"],
+    ["object_registry_explorer", "query"],
     ["multiqc_wrapper", "query"],
     ["reference_genome_manager", "informational"],
     ["deseq2_analysis", "generic_runner"],
@@ -55,6 +64,30 @@ describe("allowlisted Workbench renderer registry", () => {
   ])("uses the dedicated React renderer for %s", (slug, family) => {
     expect(resolveWorkbenchRenderer(family, slug)).toBeTruthy();
     expect(resolveWorkbenchRenderer(family, slug)).not.toBe(resolveWorkbenchRenderer(family));
+  });
+
+  it.each(Object.entries(CLINICAL_PLUGIN_RENDERERS))("uses a dedicated clinical React renderer for %s", (slug, component) => {
+    expect(resolveWorkbenchRenderer("generic_runner", slug)).toBe(component);
+  });
+
+  it("registers a dedicated React workflow for every CRISPR and Drug Discovery catalog plugin", () => {
+    expect(CRISPR_DRUG_PLUGIN_SLUGS).toHaveLength(18);
+    expect(Object.keys(CRISPR_DRUG_PLUGIN_RENDERERS)).toEqual(CRISPR_DRUG_PLUGIN_SLUGS);
+    for (const slug of CRISPR_DRUG_PLUGIN_SLUGS) {
+      const component = resolveWorkbenchRenderer("async_analysis", slug);
+      expect(component).toBe(CRISPR_DRUG_PLUGIN_RENDERERS[slug]);
+      expect(component).not.toBe(resolveWorkbenchRenderer("async_analysis"));
+    }
+  });
+
+  it("registers a dedicated React workflow for every Search and Structure plugin", () => {
+    expect(SEARCH_STRUCTURE_PLUGIN_SLUGS).toHaveLength(13);
+    expect(Object.keys(SEARCH_STRUCTURE_PLUGIN_RENDERERS)).toEqual(SEARCH_STRUCTURE_PLUGIN_SLUGS);
+    for (const slug of SEARCH_STRUCTURE_PLUGIN_SLUGS) {
+      const component = resolveWorkbenchRenderer("async_analysis", slug);
+      expect(component).toBe(SEARCH_STRUCTURE_PLUGIN_RENDERERS[slug]);
+      expect(component).not.toBe(resolveWorkbenchRenderer("async_analysis"));
+    }
   });
 
   it.each([

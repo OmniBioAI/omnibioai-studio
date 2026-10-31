@@ -5,12 +5,17 @@ const BASE = "/_svc/workbench";
 const SLUG = /^[a-z0-9][a-z0-9_-]*$/;
 const FIELD_ID = /^[a-z][a-z0-9_]*$/;
 const FORBIDDEN_FIELD_IDS = new Set(["constructor", "prototype", "__proto__", "password", "token", "secret", "api_key", "credentials"]);
-const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|runs|status|log|cancel|artifacts|file|render|search|studies|experiments|variants|pathways|genes|events|catalog|toggle|bulk|workflow-catalog|configure|ui-run|ui-status|ui-log|ui-query|ui-detail|ui-download|ui-reference|ui-artifacts|ui-resources|summary|rules|channels|history|test-alert|ack|close|request-volume|endpoint-statistics|plugin-statistics|status-code-distribution|errors|latency-statistics|consumer-statistics|traffic-anomalies|health|integrations|categories|notifications|filter|preferences|metadata|upload|download|download-async|job-status|objects|object-metadata|object-download|delete_object|providers|posture|overview|authentication|authorization|gateway|plugins|dashboard|sync-cloud-costs)\/?(?:[A-Za-z0-9_.:{}-]+\/?){0,4}(?:\?[^#]*)?$/;
+const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|runs|status|log|cancel|artifacts|file|render|search|studies|experiments|variants|pathways|genes|events|catalog|toggle|bulk|workflow-catalog|configure|ui-run|ui-status|ui-log|ui-query|ui-detail|ui-download|ui-reference|ui-artifacts|ui-resources|summary|rules|channels|history|test-alert|ack|close|request-volume|endpoint-statistics|plugin-statistics|status-code-distribution|errors|latency-statistics|consumer-statistics|traffic-anomalies|health|actions|convert-file|integrations|categories|notifications|filter|preferences|metadata|upload|download|download-async|job-status|objects|object-metadata|object-download|delete_object|providers|posture|overview|authentication|authorization|gateway|plugins|dashboard|sync-cloud-costs|servers|tools|workflows|refresh|schemas|validate|compare|compatibility|changes|breaking-changes|dependents|dependencies|unsupported|conversions|conversion-capabilities|detect-format|validate-conversion|convert|batch-convert|validate-output|environments|conflicts|recommend|drift|manifest|lineage|storage|usage|cleanup|forecast|jobs|queues|transfers|calculate|verify|reports|references|workspaces|chat|comments|memberships|ingest|query|fields|forms|annotations|dictionary|mapping|cases|projects|files|test)\/?(?:[A-Za-z0-9_.:{}-]+\/?){0,4}(?:\?[^#]*)?$/;
 const EXACT_PLUGIN_ENDPOINTS = new Set([
   "/plugins/histopathology_cv/api/segment/",
   "/plugins/drug_target_intelligence/api/predict/",
   "/plugins/celltype_classification_sc/train/",
   "/plugins/celltype_classification_sc/predict/",
+]);
+const OPENBABEL_ACTIONS = new Set([
+  "convert_structure", "validate_structure", "normalize_structure", "calculate_descriptors",
+  "generate_fingerprint", "generate_3d", "batch_convert", "smiles_to_inchi", "inchi_to_smiles",
+  "smiles_to_canonical_smiles", "inchi_to_inchikey", "structure_to_smiles",
 ]);
 const RUN_ID = /^[A-Za-z0-9_.:-]+$/;
 const RESOURCE_TYPES = new Set(["run"]);
@@ -41,7 +46,9 @@ export function pluginDescriptorUrl(slug, options) {
 }
 
 export function endpointUrl(path, options) {
+  const openBabelAction = typeof path === "string" && path.match(/^\/plugins\/openbabel\/api\/actions\/([a-z_]+)\/$/);
   if (typeof path !== "string" || path.includes("..") || path.includes("//") ||
+      (path.startsWith("/plugins/openbabel/api/actions/") && (!openBabelAction || !OPENBABEL_ACTIONS.has(openBabelAction[1]))) ||
       (!EXACT_PLUGIN_ENDPOINTS.has(path) && !/^\/plugins\/variant_effect_intelligence\/download\/[A-Za-z0-9_.:-]+\/?$/.test(path) && !ENDPOINT.test(path))) {
     throw new Error("Invalid plugin endpoint.");
   }

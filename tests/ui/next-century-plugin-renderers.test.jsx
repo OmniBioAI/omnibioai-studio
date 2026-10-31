@@ -37,7 +37,11 @@ describe("next one-hundred promoted plugin React renderers", () => {
   });
 
   const bespokeML = new Set(Object.keys(ML_PLUGIN_RENDERERS));
-  const separatelyRegisteredOverrides = new Set(["workflow_explorer", "workflow_registry_admin"]);
+  const separatelyRegisteredOverrides = new Set([
+    "workflow_explorer", "workflow_registry_admin", "jaspar_search", "kegg_search",
+    "biostudies", "clinical_report", "phenopacket", "crispr_off_target_analysis",
+    "crispr_screen_analysis", "structure_visualizer",
+  ]);
   it.each(NEXT_CENTURY_PLUGIN_SLUGS.filter(slug => slug !== "home" && !bespokeML.has(slug)))("uses the live lifecycle and grouped override for %s", slug => {
     const renderer = NEXT_CENTURY_PLUGIN_MODES[slug];
     const Renderer = NEXT_CENTURY_PLUGIN_RENDERERS[slug];
