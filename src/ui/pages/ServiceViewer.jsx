@@ -5,7 +5,7 @@ import { buildEmbeddedUrl, createThemeSetMessage, EMBED_READY_EVENT, getExactOri
 import { getStandaloneOnlyApp, standaloneAppUrl } from "../lib/standaloneApps";
 import "./ServiceViewer.css";
 
-export default function ServiceViewer({ url, label, onBack, backLabel = "Back to Studio" }) {
+export default function ServiceViewer({ url, label, onBack, backLabel = "Back to Studio", hideHeader = false }) {
   const webviewRef = useRef(null);
   const iframeRef = useRef(null);
   const readyRef = useRef(false);
@@ -91,7 +91,7 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 0 }}>
-      <div style={{
+      {!hideHeader && <div style={{
         display: "flex", alignItems: "center", gap: 12, flexShrink: 0,
         padding: "8px 16px",
         background: "var(--bg2)", borderBottom: "1px solid var(--border)",
@@ -126,7 +126,7 @@ export default function ServiceViewer({ url, label, onBack, backLabel = "Back to
         {mobileFullScreen && <a className="service-viewer-fullscreen" href={embeddedUrl} target="_blank" rel="noopener noreferrer">
           Open full screen
         </a>}
-      </div>
+      </div>}
       {standaloneApp ? (
         <div role="status" style={{ margin: "auto", maxWidth: 620, padding: 24, textAlign: "center" }}>
           <p>{standaloneApp.label} runs as a standalone app and cannot be embedded in Studio.</p>

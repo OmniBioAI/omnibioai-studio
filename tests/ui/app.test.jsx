@@ -37,6 +37,7 @@ vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings pag
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
 vi.mock("../../src/ui/pages/ServiceViewer", () => ({ default: ({ url }) => <iframe title="Service page" src={url} /> }));
+vi.mock("../../src/ui/pages/AIChatHub", () => ({ default: ({ initialMode = "ask", onBack }) => <div data-testid="ai-chat-hub" data-initial-mode={initialMode}><button type="button" onClick={onBack}>Back to Studio</button><iframe title="AI service" src={initialMode === "agent" ? "/_svc/workbench/plugins/bio_agent/" : "/_svc/devhub?view=chat"} /></div> }));
 vi.mock("../../src/ui/pages/StandaloneAppLaunch", () => ({ default: () => <div>Standalone Admin launch page</div> }));
 vi.mock("../../src/ui/pages/PluginPage", () => ({ default: ({ slug, url, label }) => <div>{label} · {slug} · {url}</div> }));
 vi.mock("../../src/ui/pages/Videos", () => ({ default: () => <div>Videos page</div> }));
@@ -89,16 +90,40 @@ describe("application shell", () => {
     }
   });
 
-  it("places OmniBioAgent beside Ask OmniBioAI and opens its native plugin page", async () => {
+  it("shows one Ask OmniBioAI entry and opens the unified chat workspace", async () => {
     getCurrentUser.mockResolvedValueOnce({ userId: 1, email: "admin@test", permissions: ["manage_roles"] });
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
     const aiSection = document.querySelector('[data-nav-section="AI"]');
-    expect([...aiSection.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual([
-      "Ask OmniBioAI", "OmniBioAgent",
-    ]);
-    aiSection.querySelector('[data-nav-item="OmniBioAgent"]').click();
-    await waitFor(() => expect(screen.getByText("OmniBioAgent · bio_agent · /_svc/workbench/plugins/bio_agent/")).toBeInTheDocument());
+    expect([...aiSection.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual(["Ask OmniBioAI"]);
+    aiSection.querySelector('[data-nav-item="Ask OmniBioAI"]').click();
+    await waitFor(() => expect(screen.getByTestId("ai-chat-hub")).toHaveAttribute("data-initial-mode", "ask"));
+    expect(screen.getByTitle("AI service")).toHaveAttribute("src", "/_svc/devhub?view=chat");
+  });
+
+  it("routes the legacy bio_agent plugin deep link into the Agent tab of the unified workspace", async () => {
+    const originalUrl = window.location.href;
+    window.history.replaceState({}, "", "/studio?plugin=bio_agent");
+    getCurrentUser.mockResolvedValueOnce({ userId: 1, email: "admin@test", permissions: ["manage_roles"] });
+    try {
+      render(<App />);
+      await waitFor(() => expect(screen.getByTestId("ai-chat-hub")).toHaveAttribute("data-initial-mode", "agent"));
+      expect(screen.getByTitle("AI service")).toHaveAttribute("src", "/_svc/workbench/plugins/bio_agent/");
+    } finally {
+      window.history.replaceState({}, "", originalUrl);
+    }
+  });
+
+  it("routes the legacy /studio/plugins/bio_agent path into the Agent tab", async () => {
+    const originalUrl = window.location.href;
+    window.history.replaceState({}, "", "/studio/plugins/bio_agent");
+    getCurrentUser.mockResolvedValueOnce({ userId: 1, email: "admin@test", permissions: ["manage_roles"] });
+    try {
+      render(<App />);
+      await waitFor(() => expect(screen.getByTestId("ai-chat-hub")).toHaveAttribute("data-initial-mode", "agent"));
+    } finally {
+      window.history.replaceState({}, "", originalUrl);
+    }
   });
 });

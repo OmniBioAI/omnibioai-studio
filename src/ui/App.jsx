@@ -17,6 +17,7 @@ import Studio from "./pages/Studio";
 import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
 import ServiceViewer from "./pages/ServiceViewer";
+import AIChatHub from "./pages/AIChatHub";
 import PluginPage from "./pages/PluginPage";
 import { resolveWorkbenchPluginDeepLink } from "./lib/pluginDeepLink";
 import Videos        from "./pages/Videos";
@@ -58,8 +59,8 @@ import { getStandaloneOnlyApp, standaloneAppUrl } from "./lib/standaloneApps";
 // idx values: 0-17 are real `step` pages (see `pages` below); 18/19 are the
 // Code/Workflows service aliases (never a real step -- see
 // EXTERNAL_NAV_SERVICES); 20-22 are the new native Projects/Artifacts/Explore
-// shells; -1/-2 are Ask OmniBioAI and OmniBioAgent, external-service aliases
-// (same shape as Code/Workflows below).
+// shells; -1/-2 are the unified AI chat entry and the retained Agent deep-link
+// alias (both are service aliases, never real steps).
 const ASK_NAV_IDX = -1;
 const BIO_AGENT_NAV_IDX = -2;
 const PROJECTS_PAGE = 20;
@@ -79,7 +80,6 @@ const BASE_NAV = [
   // service-view mechanism Code/Workflows already use.
   { section: "AI", items: [
     { name:"Ask OmniBioAI", idx: ASK_NAV_IDX },
-    { name:"OmniBioAgent", idx: BIO_AGENT_NAV_IDX },
   ]},
   { section: "Work", items: [
     { name:"Projects",  idx: PROJECTS_PAGE },
@@ -255,29 +255,27 @@ const WORKFLOWS_NAV_IDX = 19;
 const EXTERNAL_NAV_SERVICES = {
   [CODE_NAV_IDX]:      { url: "/_svc/sdk",       label: "Code" },
   [WORKFLOWS_NAV_IDX]: { url: "/_svc/workflows", label: "Workflows" },
-  // Dev Hub's own sidebar (Playground section) has the actual Ask OmniBioAI
-  // page. ?view=chat is Dev Hub's own deep-link contract (its App.tsx reads
-  // this once at mount and validates it against its known page ids) --
-  // lands directly on the chat page instead of its dashboard root.
-  [ASK_NAV_IDX]:       { url: "/_svc/devhub?view=chat", label: "Ask OmniBioAI" },
-  [BIO_AGENT_NAV_IDX]: {
-    url: "/_svc/workbench/plugins/bio_agent/",
-    label: "OmniBioAgent",
-    source: "workbench",
-    pluginSlug: "bio_agent",
-    backLabel: "Back to Studio",
-  },
+  // One Studio entry hosts two isolated existing services as tabs. Ask opens
+  // Dev Hub's chat deep link; old Agent navigation/deep links select its tab.
+  [ASK_NAV_IDX]: { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "ask" },
+  [BIO_AGENT_NAV_IDX]: { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent" },
 };
 
 function getInitialService() {
   const pluginService = typeof window !== "undefined"
     ? resolveWorkbenchPluginDeepLink(window.location.search)
     : null;
+  if (pluginService?.pluginSlug === "bio_agent") {
+    return { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent", returnToWorkbench: true };
+  }
   if (pluginService) return pluginService;
   if (typeof window !== "undefined" && window.location.pathname === VIDEO_STUDIO_PATH) {
     return { url: "/_svc/videos", label: "Videos" };
   }
   const slug = typeof window !== "undefined" ? pluginSlugFromStudioPath(window.location.pathname) : null;
+  if (slug === "bio_agent") {
+    return { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent", returnToWorkbench: true };
+  }
   if (slug) {
     return {
       url: `/_svc/workbench/plugins/${slug}/`,
@@ -406,6 +404,10 @@ export default function App() {
       if (getStandaloneOnlyApp(serviceUrl)) {
         openExternal(standaloneAppUrl(serviceUrl));
         setService(null);
+        return;
+      }
+      if (typeof serviceUrl === "string" && /\/plugins\/bio_agent\/?(?:\?.*)?$/.test(serviceUrl)) {
+        setService({ source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent" });
         return;
       }
       setService(e.detail);
@@ -587,6 +589,10 @@ export default function App() {
     next.search = "";
     next.hash = "";
     window.history.replaceState(window.history.state, "", next.pathname);
+    if (slug === "bio_agent") {
+      setService({ source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent", returnToWorkbench: true });
+      return;
+    }
     setService({ url, label, source: "workbench", pluginSlug: slug });
   }
 
@@ -603,6 +609,10 @@ export default function App() {
   function handleNavClick(idx) {
     const externalService = EXTERNAL_NAV_SERVICES[idx];
     if (externalService) {
+      if (externalService.source === "ai-chat-hub") {
+        setService(externalService);
+        return;
+      }
       // Same Electron-vs-browser absolute URL resolution Studio.jsx's own
       // dashboard tiles already use for this exact pair of services --
       // Electron's <webview> needs a fully-qualified src, a browser tab
@@ -815,8 +825,10 @@ export default function App() {
         }}>
           <ErrorBoundary key={service?.openId || `page-${step}`} compact onReset={handleStudioClick}>
           {service
-            ? service.url.includes("/_svc/videos")
-              ? <Videos onBack={handleVideoBack} />
+            ? service.source === "ai-chat-hub"
+              ? <AIChatHub key={service.openId} initialMode={service.initialMode} onBack={() => service.returnToWorkbench ? handlePluginBack() : setService(null)} />
+              : service.url.includes("/_svc/videos")
+                ? <Videos onBack={handleVideoBack} />
               : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
                 : service.source === "workbench" && service.pluginSlug
