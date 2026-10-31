@@ -7,6 +7,20 @@ import WorkbenchBase from "../components/WorkbenchBase";
 import OmniPage from "../components/OmniPage";
 
 const INTEGRATION_CATEGORIES = new Set(["integration", "reference_db"]);
+const APP_CATEGORY_VISUALS = {
+  analysis: ["#5ad7c2", "◉"], chemoinformatics: ["#f2a65a", "⚗"], circrna: ["#df83d7", "⟳"],
+  clinical: ["#ff7e8a", "✚"], crispr: ["#a9cf65", "✂"], dashboard: ["#62b6ff", "▥"],
+  drug_discovery: ["#ff9a62", "✦"], epigenomics: ["#ad91ff", "◈"], genomics: ["#5ecbe8", "⌘"],
+  metabolomics: ["#f2c45f", "⚛"], microbiome: ["#78d59a", "◌"], ml: ["#b18cff", "✧"],
+  pipeline: ["#ff9e72", "⤳"], proteomics: ["#5dd4ae", "⧖"], search: ["#75a9ff", "⌕"],
+  single_cell: ["#ed85a5", "◎"], spatial: ["#91c66b", "⌖"], structure: ["#f1b35c", "⬡"],
+  utilities: ["#8fa8ff", "⚙"], utility: ["#8fa8ff", "⚙"],
+};
+
+function appVisual(category) {
+  const [accent, icon] = APP_CATEGORY_VISUALS[category] || ["#7d9cff", "✦"];
+  return { accent, icon };
+}
 
 export function categoriesForDiscoveryView(categories, view = "all") {
   if (view === "all") return categories;
@@ -71,7 +85,7 @@ export default function Workbench({ state, onStateChange, onOpen, view = "all" }
       <OmniPage
         title={title}
         subtitle={catalog ? (view === "all" ? `${catalog.total_count} bioinformatics applications` : `${available} bioinformatics plugins`) : "Loading applications…"}
-        className="native-workbench-page"
+        className={`native-workbench-page${view === "plugins" ? " native-workbench-page--apps" : ""}`}
       >
 
       {loading ? <div role="status" className="native-workbench-message"><Spinner /> Loading applications…</div>
@@ -114,7 +128,23 @@ export default function Workbench({ state, onStateChange, onOpen, view = "all" }
               <h2 className="native-workbench-category">{category.title} <Badge>{category.plugins.length}</Badge></h2>
               <div className="native-workbench-grid">
                 {category.plugins.map(plugin => (
-                  <Card key={plugin.slug} className="native-workbench-card">
+                  view === "plugins" ? (() => {
+                    const { accent, icon } = appVisual(plugin.category);
+                    return <div key={plugin.slug} className="native-workbench-app-shell" style={{ "--plugin-accent": accent }}>
+                      <Card className="native-workbench-card native-workbench-app-card">
+                        <button type="button" className="native-workbench-app-launch" aria-label={`Open ${plugin.title}`}
+                          ref={element => { cards.current[plugin.slug] = element; }}
+                          onClick={() => openPlugin(plugin)}>
+                          <span className="native-workbench-app-icon" aria-hidden="true">{icon}</span>
+                          <span className="native-workbench-app-copy">
+                            <span className="native-workbench-app-title">{plugin.title}</span>
+                            <span className="native-workbench-app-description">{plugin.description || "Open this Workbench plugin."}</span>
+                            <span className="native-workbench-app-meta"><span>{category.title}</span>{plugin.version && <span>v{plugin.version}</span>}</span>
+                          </span>
+                        </button>
+                      </Card>
+                    </div>;
+                  })() : <Card key={plugin.slug} className="native-workbench-card">
                     <h3><button type="button" className="native-workbench-launch" aria-label={`Open ${plugin.title}`}
                       ref={element => { cards.current[plugin.slug] = element; }}
                       onClick={() => openPlugin(plugin)}>{plugin.title}</button></h3>
