@@ -3,6 +3,7 @@ import InformationalRenderer from "./InformationalRenderer";
 import QueryRenderer from "./QueryRenderer";
 import MultiAgentOrchestratorRenderer from "./MultiAgentOrchestratorRenderer";
 import JobMonitorRenderer from "./JobMonitorRenderer";
+import RunInspectorReactRenderer from "./RunInspectorReactRenderer";
 import BioAgentRenderer from "./BioAgentRenderer";
 import { WorkflowCompilerRenderer } from "./WorkflowNativeRenderers";
 import WorkflowBuilderCanvasRenderer from "./WorkflowBuilderCanvasRenderer";
@@ -12,7 +13,6 @@ import {
   MolecularDockingRenderer,
   MultiQcRenderer,
   ReferenceGenomeManagerRenderer,
-  RunInspectorRenderer,
   VariantAnnotationRenderer,
 } from "./PriorityPluginRenderers";
 import { EXPANDED_PLUGIN_RENDERERS } from "./ExpandedPluginRenderers";
@@ -65,7 +65,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   workflow_builder: WorkflowBuilderCanvasRenderer,
   workflow_compiler: WorkflowCompilerRenderer,
   dataset_ingest: DatasetIngestRenderer,
-  run_inspector: RunInspectorRenderer,
+  run_inspector: RunInspectorReactRenderer,
   multiqc_wrapper: MultiQcRenderer,
   reference_genome_manager: ReferenceGenomeManagerRenderer,
   deseq2_analysis: Deseq2AnalysisRenderer,

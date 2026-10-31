@@ -1,0 +1,36 @@
+.run-inspector { display: grid; gap: 1rem; color: var(--text-primary, #e7edf7); }
+.run-inspector__hero { display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:1.25rem; border:1px solid var(--border-subtle, #29364a); border-radius:1rem; background:linear-gradient(135deg, rgba(79,125,235,.15), rgba(32,46,68,.16)); }
+.run-inspector__hero h1 { margin:.15rem 0; font-size:1.8rem; }
+.run-inspector__hero p { margin:.3rem 0 0; color:var(--text-secondary, #aab7ca); }
+.run-inspector__eyebrow { font-size:.7rem; font-weight:800; letter-spacing:.13em; }
+.run-inspector__actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+.run-inspector button,.run-inspector__file a { border:1px solid var(--border-subtle, #334259); border-radius:.6rem; padding:.55rem .8rem; color:inherit; background:var(--surface-raised, #182437); font:inherit; text-decoration:none; cursor:pointer; }
+.run-inspector button:hover,.run-inspector__file a:hover { border-color:var(--accent, #7ba4ff); }
+.run-inspector button:disabled { opacity:.55; cursor:not-allowed; }
+.run-inspector button.is-active { background:var(--accent, #416dc9); border-color:var(--accent, #416dc9); color:white; }
+.run-inspector__grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.run-inspector__box { min-width:0; border:1px solid var(--border-subtle, #29364a); border-radius:.9rem; background:var(--surface, #111b2a); overflow:hidden; }
+.run-inspector__box header { padding:.85rem 1rem; border-bottom:1px solid var(--border-subtle, #29364a); }
+.run-inspector__box h2 { margin:0; font-size:1rem; }
+.run-inspector__box-body { padding:1rem; min-width:0; }
+.run-inspector__box-body > :first-child { margin-top:0; }
+.run-inspector__wide { grid-column:1 / -1; }
+.run-inspector__field { display:grid; gap:.35rem; margin-bottom:.75rem; font-weight:700; }
+.run-inspector__field select { width:100%; padding:.65rem; border-radius:.55rem; border:1px solid var(--border-subtle, #334259); background:var(--surface-raised, #182437); color:inherit; }
+.run-inspector__hint,.run-inspector__box-body p { color:var(--text-secondary, #aab7ca); }
+.run-inspector__json { max-height:22rem; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; padding:.85rem; border:1px solid var(--border-subtle, #29364a); border-radius:.65rem; background:#0b1220; color:#e7edf7; font-size:.8rem; }
+.run-inspector__summary { display:flex; flex-direction:column; align-items:flex-start; gap:.45rem; }
+.run-inspector__files { display:grid; gap:.55rem; }
+.run-inspector__file { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:.75rem; padding:.55rem; border:1px solid var(--border-subtle, #29364a); border-radius:.6rem; }
+.run-inspector__file code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.run-inspector__file span { color:var(--text-secondary, #aab7ca); font-size:.8rem; }
+.run-inspector__lineage-columns { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.75rem; }
+.run-inspector__lineage-columns section { display:flex; align-items:flex-start; align-content:flex-start; flex-wrap:wrap; gap:.45rem; min-height:10rem; padding:.75rem; border:1px solid var(--border-subtle, #29364a); border-radius:.7rem; }
+.run-inspector__lineage-columns h3 { display:flex; justify-content:space-between; width:100%; margin:0 0 .3rem; }
+.run-inspector__lineage-columns h3 span { color:var(--text-secondary, #aab7ca); }
+.run-inspector .run-inspector__chip { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace,monospace; font-size:.75rem; }
+.run-inspector__object-detail { margin-top:1rem; }
+.run-inspector__explain-actions { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.75rem; }
+.run-inspector__explain-actions p { flex:1 1 100%; margin:.2rem 0; }
+.run-inspector__error { padding:.75rem 1rem; border:1px solid #aa4a56; border-radius:.6rem; color:#ffb6bd; background:rgba(150,30,45,.16); }
+@media (max-width:760px) { .run-inspector__grid { grid-template-columns:1fr; } .run-inspector__wide { grid-column:auto; } .run-inspector__lineage-columns { grid-template-columns:1fr; } .run-inspector__file { grid-template-columns:minmax(0,1fr) auto; } .run-inspector__file span { display:none; } }
