@@ -10,6 +10,7 @@ describe("StudioFooter", () => {
     render(<StudioFooter onHelpClick={vi.fn()} onPrivacyClick={vi.fn()} />);
 
     expect(screen.getByText("OmniBioAI Studio")).toBeInTheDocument();
+    expect(screen.getByText("v0.8.1")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Documentation/ })).toHaveAttribute("href", "https://docs.omnibioai.org");
     expect(screen.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/OmniBioAI/omnibioai-studio");
   });

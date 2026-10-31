@@ -13,26 +13,23 @@
 
 ---
 
-## ✨ What's New in v0.8.0-beta
+## ✨ What's New in v0.8.1-beta
 
-**Platform Consolidation & Security Hardening.** This release consolidated the
-ecosystem and hardened its security foundation. The current Studio experience
-has since grown to include a curated home, dedicated plugin discovery
-categories, and a unified AI chat entry; those current surfaces are described
-below. See [docs/CHANGELOG.md](docs/CHANGELOG.md) for release history.
+**Desktop Authentication & Electron Hardening.** This beta moves packaged
+desktop credentials out of renderer storage and into a narrow, main-process
+session boundary while retaining the existing web/PWA authentication flow.
 
-- 🧭 **Ecosystem consolidation** — every OmniBioAI repository consolidated onto a clean `main` branch
-- 🔐 **Authentication & authorization hardening** — fail-closed token-revocation checks, HMAC-signed IAM identity caches, plugin API authorization and run-ownership enforcement in Workbench
-- ⚙️ **Delegated execution security** — dedicated, service-only credentials for TES → ToolServer delegated execution and registration
-- 🧱 **Redis hardening** — per-service least-privilege Redis identities, a canonical ACL bootstrap (`redis-acl-init`), protected/verified Redis backups, exporter `CONFIG` access removed
-- 🧾 **Audit integrity** — signed, audit-atomic Auth mutations, least-privilege audit reader/writer DB identities, observable (not silent) audit-delivery failures
-- 👤 **Per-user isolation controls** — owner-scoped TES personal runs and fail-closed TES work-dir isolation
-- 🛡️ **Operational hardening** — loopback-only RStudio/VS Code host ports, encrypted MySQL backups with restore proof, frontend builds guarded against secret-bearing `VITE_` variables, sensitive-data egress gate for external LLMs
-- 🧩 **Plugins & docs** — scaffold reference-db plugins replaced with real implementations, standardized plugin READMEs, service catalog and test-suite documentation refreshed
+- 🔐 **Main-process desktop sessions** — access, refresh, and MFA challenge tokens are no longer exposed to the packaged renderer
+- 🔒 **Protected refresh persistence** — Electron `safeStorage` is required; Linux `basic_text` and plaintext fallback are rejected
+- 🌐 **HTTPS-only packaged Auth** — packaged authentication rejects HTTP, redirects, credential-bearing origins, and TLS downgrade
+- 🧱 **Narrow IPC and request policy** — sender-validated Auth IPC, renderer bearer stripping, and token injection only for trusted destinations
+- 📦 **Packaged runtime fix** — generated runtime credentials live under Electron user data instead of inside `app.asar`
+- ✅ **Qualified ARM64 artifacts** — checksum-verified AppImage and DEB packages are published for Linux ARM64 evaluation
 
-Remaining Trusted Tool Catalog verification, multi-tenant production validation,
-and HIPAA-aligned technical-readiness evidence closure are intentionally carried
-forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-studio/issues/100)).
+This remains a beta: staging login, real OS-keychain behavior, packaged session
+lifecycle, RPM, Node.js 20, and automatic-update metadata are not qualified.
+See [Known Issues](security/release-qualification/KNOWN_ISSUES_V0.8.1_BETA.md)
+and the [changelog](docs/CHANGELOG.md).
 
 ### v0.7.1 ✅
 
@@ -168,19 +165,14 @@ forward to v0.9.0 (tracked in [#100](https://github.com/OmniBioAI/omnibioai-stud
 
 ## 📦 Downloads
 
-| Platform | File | Requirements |
-|----------|------|--------------|
-| macOS Apple Silicon (M1/M2/M3/M4) | `OmniBioAI-Studio-arm64.dmg` | macOS 12+ |
-| macOS Intel | `OmniBioAI-Studio-x64.dmg` | macOS 12+ |
-| Linux x86_64 AppImage | `OmniBioAI-Studio.AppImage` | Ubuntu 20.04+ |
-| Linux x86_64 DEB | `OmniBioAI-Studio.deb` | Ubuntu / Debian |
-| Linux x86_64 RPM | `OmniBioAI-Studio.rpm` | RHEL / Fedora |
-| Linux ARM64 AppImage | `OmniBioAI-Studio-arm64.AppImage` | aarch64, Ubuntu 20.04+ |
-| Linux ARM64 DEB | `OmniBioAI-Studio-arm64.deb` | Ubuntu / Debian ARM64 |
-| Linux ARM64 RPM | `OmniBioAI-Studio-arm64.rpm` | RHEL / Fedora ARM64 |
-| Windows | `OmniBioAI-Studio-Setup.exe` | Windows 10/11 + WSL2 |
+| Platform | Published v0.8.1-beta file | Requirements |
+|----------|------------------------------|--------------|
+| Linux ARM64 AppImage | `OmniBioAI.Studio-0.8.1-arm64.AppImage` | aarch64, Ubuntu 20.04+ |
+| Linux ARM64 DEB | `omnibioai-studio_0.8.1_arm64.deb` | Ubuntu / Debian ARM64 |
 
-Download from: https://github.com/OmniBioAI/omnibioai-studio/releases/latest
+Download and verify checksums from the
+[v0.8.1-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.8.1-beta).
+RPM, x64 Linux, macOS, and Windows packages are not part of this qualified beta artifact set.
 
 ---
 
@@ -447,7 +439,7 @@ Also required: `jq` (`sudo apt install jq`), Docker Compose v2 (included with En
 
 ### Beta Cloud (no Docker needed)
 
-1. Download installer for your platform from [Releases](https://github.com/OmniBioAI/omnibioai-studio/releases/latest)
+1. Download a supported installer from the [v0.8.1-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.8.1-beta)
 2. Launch OmniBioAI Studio and enter your license key
 3. Select **Beta Cloud** on the Mode page
 4. Click through the setup wizard (Steps 1–5)
@@ -614,8 +606,8 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 
 v0.9.0 onward are gated on the stated exit criteria below, not dates.
 Each ships only once its required capabilities are independently
-verifiable, not merely built. v0.8.0-beta is the platform-consolidation
-and security-hardening release; remaining Trusted Tool Catalog,
+verifiable, not merely built. v0.8.1-beta is the current desktop-authentication
+and Electron-hardening beta; remaining Trusted Tool Catalog,
 multi-tenancy, and technical-readiness closure work is carried forward
 to v0.9.0. Earlier roadmap language promising specific feature counts or
 unverified compliance/SSO claims has been superseded by this table.
@@ -630,7 +622,8 @@ unverified compliance/SSO claims has been superseded by this table.
 | v0.6.0-beta     | ✅ Released    | Web version (`webstudio.omnibioai.org`), SSO/OAuth2 (Google/GitHub/Microsoft), Cloudflare Access, 800 ARM64 SIF images, 12,000+ tools, Hugging Face integration, Model Registry HF push button                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | v0.7.0          | ✅ Released    | Unified License Key (one `OMNI-XXXX` key for web + desktop, auto-creates user, same JWT as OAuth login), `webstudio.omnibioai.org` fully working end-to-end, 12,110 tools (100+ new HTTP API tools), Tool Selection AI 57x faster with GPU-enabled Ollama (accuracy 0%→60%, Recall@K 60%→85%), 1,000 ARM64 SIF images, Control Center web service, Billing service integrated, **Admin Console** at `admin.omnibioai.org`, team expansion (Dr. Rajnish Kumar, Praveen C.V. Raghavulu) |
 | v0.7.1          | ✅ Released    | **Security & Integrity Hardening** — closed SSRF exposure in toolserver (routed through authenticated gateway); closed info-disclosure surface in Control Center; hardened Neo4j (credential rotation, network restriction, Access-gated remote entry); fixed recurring nginx proxy bugs affecting RAG/Jupyter/RStudio/VS Code; shipped Compliance Center, Audit Explorer, Audit Logs, API Keys & Service Accounts, Security Posture, and Billing (Usage/Overview) admin views; found and fixed real correctness bugs in the plugin execution layer; rewrote documentation for 28+ plugins and core services to reflect verified, not assumed, behavior |
-| **v0.8.0-beta** | ✅ **Current** | **Platform Consolidation & Security Hardening** — all ecosystem repositories consolidated onto clean `main` branches; authentication/authorization hardening (fail-closed token revocation, HMAC-signed IAM identity caches, Workbench plugin authorization and run ownership); service-only credentials for delegated TES → ToolServer execution; per-service least-privilege Redis identities with canonical ACL bootstrap and protected, verified backups; Auth audit integrity signing, audit-atomic mutations, least-privilege audit DB identities, and observable audit-delivery failures; owner-scoped TES runs and fail-closed work-dir isolation; loopback-only IDE ports, encrypted MySQL backups, and secret-free frontend builds; reference-db plugin implementations and standardized plugin documentation; release/CI stabilization. HIPAA-aligned technical-readiness hardening only — not a HIPAA compliance or certification claim |
+| v0.8.0-beta | ✅ Released | **Platform Consolidation & Security Hardening** — ecosystem consolidation, authentication/authorization controls, delegated-execution security, Redis and audit hardening, per-user isolation, and release stabilization |
+| **v0.8.1-beta** | ✅ **Current** | **Desktop Authentication & Electron Hardening** — main-process-owned desktop sessions, protected refresh persistence without plaintext fallback, HTTPS-only packaged Auth, narrow sender-validated IPC, trusted-destination bearer policy, packaged runtime-path repair, and checksum-verified Linux ARM64 AppImage/DEB artifacts. Staging login, real OS-keychain behavior, packaged lifecycle, RPM, Node.js 20, and updater metadata remain unqualified beta limitations |
 | **v0.9.0**      | 🔜 Planned — gated on exit criteria | **Trusted Catalog, Multi-Tenancy & Technical-Readiness Closure.** *Trusted Tool Catalog* — requires an audited, verified usable subset of the catalog with confirmed I/O contracts and accurate documentation; explicit disclosure for illustrative/placeholder methods; public counts that distinguish verified tools/models from the full registry. *Multi-tenancy* — requires genuine multi-org testing, verified multi-user workspaces and team/role management, G1/G2/G4 production isolation evidence, synthetic cross-tenant/per-user testing, and realistic load testing. *HIPAA-aligned technical-readiness closure* — requires all default/placeholder secrets rotated with a documented rotation process, plus the remaining technical-readiness evidence tracked in [#100](https://github.com/OmniBioAI/omnibioai-studio/issues/100) |
 | **v1.0.0**      | 🔜 Planned — gated on exit criteria | **Enterprise Verification.** Goal: make enterprise/security claims only when independently supportable. Requires real SAML IdP validation, mature multi-tenancy, completion of the verified catalog foundation, current verified model/tool portfolio reporting, and appropriately supported HIPAA-related control/evidence claims |
 

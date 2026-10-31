@@ -18,6 +18,12 @@
   white-space: nowrap;
 }
 
+.studio-footer-version {
+  color: var(--accent2);
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
 .studio-footer-copyright {
   white-space: nowrap;
 }

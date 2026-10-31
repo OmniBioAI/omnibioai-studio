@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Panel, PanelHeader, PanelBody } from "../components/UI";
 import PageHeader from "../components/PageHeader";
+import { STUDIO_VERSION_LABEL } from "../lib/appVersion";
 
 const SOURCES = ["all", "mysql", "redis", "workbench", "tes", "toolserver", "ollama", "rag", "opa"];
 const LEVEL_COLOR = {
@@ -12,7 +13,7 @@ const LEVEL_COLOR = {
 };
 
 const DEMO_LOGS = [
-  { time:"08:14:01", source:"workbench",  level:"INFO", msg:"Starting OmniBioAI Workbench v0.8.0" },
+  { time:"08:14:01", source:"workbench",  level:"INFO", msg:`Starting OmniBioAI Workbench ${STUDIO_VERSION_LABEL}` },
   { time:"08:14:02", source:"mysql",      level:"OK",   msg:"MySQL ready on port 3306" },
   { time:"08:14:02", source:"redis",      level:"OK",   msg:"Redis connected, memory: 2.1MB" },
   { time:"08:14:03", source:"tes",        level:"INFO", msg:"TES initializing task scheduler" },

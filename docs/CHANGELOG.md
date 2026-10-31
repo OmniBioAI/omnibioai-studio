@@ -9,7 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
-## v0.8.1 (release candidate)
+## v0.8.1-beta (2026-10-31) — Desktop Authentication & Electron Hardening
 
 ### Fixed
 - Display the Studio application version consistently as v0.8.1 in the sidebar, header, login, and Settings About view.
@@ -17,6 +17,7 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 ### Release metadata
 - Align the documented current Studio version and Sentry release identifiers with v0.8.1.
+- Publish checksum-verified Linux ARM64 AppImage and DEB beta artifacts.
 
 ---
 ## v0.8.0-beta (2026-09-27) — Platform Consolidation & Security Hardening
