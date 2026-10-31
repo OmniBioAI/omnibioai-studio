@@ -9,6 +9,9 @@ vi.mock("../../src/ui/components/workbench/rendererRegistry", () => ({
     ? null
     : () => <div data-testid="generic-runner">Native runner</div>,
 }));
+vi.mock("../../src/ui/components/workbench/ExistingRunRenderer", () => ({
+  default: ({ runId }) => <div data-testid="existing-run">Existing run: {runId}</div>,
+}));
 
 import PluginPage from "../../src/ui/pages/PluginPage";
 
@@ -25,6 +28,13 @@ describe("PluginPage capability routing", () => {
     loadPluginDescriptor.mockResolvedValue(native);
     render(<PluginPage slug="deseq2_analysis" url="/_svc/workbench/plugins/deseq2_analysis/" label="DESeq2" onBack={vi.fn()} />);
     expect(await screen.findByTestId("generic-runner")).toBeInTheDocument();
+  });
+
+  it("opens an existing run in React when a legacy detail URL supplies its run id", async () => {
+    loadPluginDescriptor.mockResolvedValue(native);
+    render(<PluginPage slug="deseq2_analysis" label="DESeq2" initialRunId="run-42" onBack={vi.fn()} />);
+    expect(await screen.findByTestId("existing-run")).toHaveTextContent("Existing run: run-42");
+    expect(screen.queryByTestId("generic-runner")).not.toBeInTheDocument();
   });
 
   it("allows a plugin-specific React override for a legacy descriptor", async () => {
