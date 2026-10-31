@@ -1,0 +1,21 @@
+.genomics-template { display: grid; gap: 1rem; min-width: 0; color: var(--text-primary, #18312d); }
+.genomics-template__header { display: flex; align-items: flex-start; gap: 1rem; padding: 1.15rem 1.25rem; border: 1px solid var(--border, #dfe9e6); border-radius: 1rem; background: linear-gradient(125deg, var(--surface, #fff), var(--surface-subtle, #f5f8f7)); }
+.genomics-template__icon { display: grid; flex: 0 0 3.15rem; width: 3.15rem; height: 3.15rem; place-items: center; border-radius: .9rem; background: color-mix(in srgb, var(--accent, #18a98e) 13%, white); font-size: 1.6rem; }
+.genomics-template__header > div { min-width: 0; }
+.genomics-template__header p { margin: 0 0 .3rem; color: var(--accent, #137c67); font-size: .7rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.genomics-template__header p span { margin: 0 .2rem; opacity: .6; }
+.genomics-template__header h2 { margin: 0; color: var(--text-primary, #18312d); font-size: clamp(1.2rem, 2vw, 1.55rem); }
+.genomics-template__summary { margin-top: .45rem; max-width: 76ch; color: var(--text-secondary, #5c716d); font-size: .88rem; line-height: 1.55; }
+.genomics-template__sections { display: flex; gap: .5rem; overflow: auto; padding: .1rem 0 .4rem; scrollbar-width: thin; }
+.genomics-template__sections button { display: inline-flex; flex: 0 0 auto; align-items: baseline; gap: .4rem; border: 1px solid var(--border, #dfe9e6); border-radius: 999px; padding: .38rem .65rem; background: var(--surface, #fff); color: var(--text-secondary, #5c716d); font: inherit; font-size: .74rem; white-space: nowrap; cursor: pointer; }
+.genomics-template__sections button:hover, .genomics-template__sections button[aria-current="page"] { border-color: var(--accent, #137c67); color: var(--accent, #137c67); }
+.genomics-template__sections b { color: var(--accent, #137c67); font-size: .64rem; letter-spacing: .06em; }
+.genomics-template .native-plugin-page { display: grid; gap: 1rem; }
+.genomics-template .genome-viewer { margin-top: 0; }
+.genomics-template__engine { min-width: 0; }
+.genomics-history-screen { display: grid; gap: .75rem; padding: 1rem 1.15rem; border: 1px solid var(--border, #dfe9e6); border-radius: .9rem; background: var(--surface, #fff); }
+.genomics-history-screen__heading span { color: var(--accent, #137c67); font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.genomics-history-screen__heading h3 { margin: .2rem 0 0; color: var(--text-primary, #18312d); font-size: 1rem; }
+.genomics-history-screen__body { display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--text-secondary, #5c716d); font-size: .86rem; line-height: 1.5; }
+.genomics-history-screen__body p { margin: 0; }
+@media (max-width: 700px) { .genomics-template__header { padding: .9rem; } .genomics-template__icon { flex-basis: 2.65rem; width: 2.65rem; height: 2.65rem; } }

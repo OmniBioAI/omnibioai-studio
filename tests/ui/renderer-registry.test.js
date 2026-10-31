@@ -12,6 +12,7 @@ import { AlertingRenderer, ApiAnalyticsRenderer, DataManagerRenderer, HomeDashbo
 import { CLINICAL_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/ClinicalPluginRenderers";
 import { CRISPR_DRUG_PLUGIN_RENDERERS, CRISPR_DRUG_PLUGIN_SLUGS } from "../../src/ui/components/workbench/CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS, SEARCH_STRUCTURE_PLUGIN_SLUGS } from "../../src/ui/components/workbench/SearchStructureReactRenderers";
+import { GENOMICS_TEMPLATE_RENDERERS } from "../../src/ui/components/workbench/GenomicsTemplateRenderers";
 
 describe("allowlisted Workbench renderer registry", () => {
   it("contains the proven lifecycle renderers and the finite informational renderer", () => {
@@ -30,7 +31,8 @@ describe("allowlisted Workbench renderer registry", () => {
     expect(resolveWorkbenchRenderer("informational", "openbabel")).toBe(OpenBabelReactRenderer);
   });
   it("uses the dedicated React genome browser for Genome Viewer", () => {
-    expect(resolveWorkbenchRenderer("generic_runner", "genome_viewer")).toBe(GenomeViewerRenderer);
+    expect(resolveWorkbenchRenderer("generic_runner", "genome_viewer")).toBe(GENOMICS_TEMPLATE_RENDERERS.genome_viewer);
+    expect(GENOMICS_TEMPLATE_RENDERERS.genome_viewer).not.toBe(GenomeViewerRenderer);
   });
   it("uses the dedicated React catalog for Dataset Catalog", () => {
     expect(resolveWorkbenchRenderer("query", "dataset_catalog")).toBe(DatasetCatalogRenderer);
