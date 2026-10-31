@@ -6,6 +6,7 @@ import DatasetCatalogRenderer from "../../src/ui/components/workbench/DatasetCat
 import PluginManagerRenderer from "../../src/ui/components/workbench/PluginManagerRenderer";
 import AuditLogRenderer from "../../src/ui/components/workbench/AuditLogRenderer";
 import WorkflowRunnerRenderer from "../../src/ui/components/workbench/WorkflowRunnerRenderer";
+import OpenBabelReactRenderer from "../../src/ui/components/workbench/OpenBabelReactRenderer";
 import { PipelineDashboardRenderer, WorkflowExplorerRenderer, WorkflowRegistryAdminRenderer, WorkflowSchedulerRenderer, WorkflowValidatorRenderer } from "../../src/ui/components/workbench/PipelinePluginReactRenderers";
 import { AlertingRenderer, ApiAnalyticsRenderer, DataManagerRenderer, HomeDashboardRenderer, IntegrationConnectionsRenderer, NotificationCenterRenderer, ProvenanceRenderer, ResourceMonitoringRenderer, SecurityDashboardRenderer } from "../../src/ui/components/workbench/DashboardPluginRenderers";
 
@@ -21,6 +22,9 @@ describe("allowlisted Workbench renderer registry", () => {
 
   it("uses the dedicated React run-list renderer for Job Monitor", () => {
     expect(resolveWorkbenchRenderer("query", "job_monitor")).toBe(JobMonitorRenderer);
+  });
+  it("uses the dedicated chemistry React workbench for Open Babel", () => {
+    expect(resolveWorkbenchRenderer("informational", "openbabel")).toBe(OpenBabelReactRenderer);
   });
   it("uses the dedicated React genome browser for Genome Viewer", () => {
     expect(resolveWorkbenchRenderer("generic_runner", "genome_viewer")).toBe(GenomeViewerRenderer);
