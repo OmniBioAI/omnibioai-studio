@@ -44,7 +44,7 @@ describe("Studio portal", () => {
     expect(screen.queryByText("Explore all plugins, tools and pipelines")).not.toBeInTheDocument();
   });
 
-  it("shows the curated Audit Log and Workflow Runner links in Core Platform", async () => {
+  it("shows the curated Activity Explorer and Workflow Runner links in Core Platform", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
@@ -56,16 +56,16 @@ describe("Studio portal", () => {
       "🗂️Dataset CatalogBrowse governed datasets",
       "📊Job MonitorMonitor jobs",
       "🔌Plugin ManagerManage plugins",
-      "📜Audit LogReview governed activity",
+      "📜Activity ExplorerExplore governed platform activity",
       "⚡Workflow RunnerRun workflows",
     ]);
 
     const opened = vi.fn();
     window.addEventListener("open-service", opened);
-    fireEvent.click(within(coreSection).getByRole("button", { name: "Audit Log — Review governed activity" }));
+    fireEvent.click(within(coreSection).getByRole("button", { name: "Activity Explorer — Explore governed platform activity" }));
     expect(opened.mock.calls[0][0].detail).toEqual({
       url: "/_svc/workbench/plugins/audit_log/",
-      label: "Audit Log",
+      label: "Activity Explorer",
       source: "workbench",
       pluginSlug: "audit_log",
       backLabel: "Back to Studio",

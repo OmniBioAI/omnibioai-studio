@@ -164,7 +164,7 @@ function buildCategories(BASE) {
         workbenchPluginLink("Dataset Catalog", "dataset_catalog", "🗂️", "Browse governed datasets"),
         workbenchPluginLink("Job Monitor", "job_monitor", "📊", "Monitor jobs"),
         workbenchPluginLink("Plugin Manager", "plugin_manager", "🔌", "Manage plugins"),
-        workbenchPluginLink("Audit Log", "audit_log", "📜", "Review governed activity"),
+        workbenchPluginLink("Activity Explorer", "audit_log", "📜", "Explore governed platform activity"),
         workbenchPluginLink("Workflow Runner", "workflow_runner", "⚡", "Run workflows"),
       ]
     },

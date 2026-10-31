@@ -57,8 +57,8 @@ export default function AuditLogRenderer() {
   function applyFilters(event) { event.preventDefault(); setPage(1); setApplied({ ...filters }); setSelected(null); }
   function pageButton(delta) { setPage(value => Math.max(1, Math.min(data?.total_pages || 1, value + delta))); setSelected(null); }
 
-  return <section className="native-admin-page" aria-label="Audit and Activity Log">
-    <header className="native-admin-heading"><div><span className="native-admin-eyebrow">GOVERNANCE</span><h2>Audit &amp; Activity Log</h2><p>Search and inspect platform events, actions, and audit history.</p></div>
+  return <section className="native-admin-page" aria-label="Activity Explorer">
+    <header className="native-admin-heading"><div><span className="native-admin-eyebrow">GOVERNANCE</span><h2>Activity Explorer</h2><p>Search and inspect governed platform events and activity history.</p></div>
       <button className="omni-btn omni-btn--secondary" type="button" onClick={() => load()} disabled={loading}>Refresh</button></header>
     <form className="native-admin-filter-card" onSubmit={applyFilters}>
       <label>Search<input value={filters.q} onChange={event => setFilters(current => ({ ...current, q: event.target.value }))} placeholder="Action, source, actor, object, run…" /></label>
