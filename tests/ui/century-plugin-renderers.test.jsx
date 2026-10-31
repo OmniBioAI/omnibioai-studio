@@ -16,6 +16,7 @@ import {
   CENTURY_PLUGIN_SLUGS,
 } from "../../src/ui/components/workbench/CenturyPluginRenderers";
 import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+import { ML_PLUGIN_UI_SLUGS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
 
 afterEach(cleanup);
 
@@ -31,7 +32,8 @@ describe("one-hundred promoted plugin React renderers", () => {
     expect(Object.values(CENTURY_PLUGIN_MODES).filter(mode => mode === "generic_runner")).toHaveLength(33);
   });
 
-  it.each(CENTURY_PLUGIN_SLUGS.filter(slug => !["audit_log", "dataset_catalog", "genome_viewer", "alerting", "api_analytics", "integration_connections", "notification_center", "resource_monitoring", "security_dashboard", "omniml_studio", "histopathology_cv"].includes(slug)))("uses the live lifecycle and grouped override for %s", slug => {
+  const bespokePages = new Set([...ML_PLUGIN_UI_SLUGS, "audit_log", "dataset_catalog", "genome_viewer", "alerting", "api_analytics", "integration_connections", "notification_center", "resource_monitoring", "security_dashboard", "omniml_studio", "histopathology_cv", "drug_target_intelligence", "celltype_classification_sc"]);
+  it.each(CENTURY_PLUGIN_SLUGS.filter(slug => !bespokePages.has(slug)))("uses the live lifecycle and grouped override for %s", slug => {
     const renderer = CENTURY_PLUGIN_MODES[slug];
     const Renderer = CENTURY_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);

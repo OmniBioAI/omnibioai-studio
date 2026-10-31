@@ -27,6 +27,7 @@ import DatasetCatalogRenderer from "./DatasetCatalogRenderer";
 import PluginManagerRenderer from "./PluginManagerRenderer";
 import AuditLogRenderer from "./AuditLogRenderer";
 import WorkflowRunnerRenderer from "./WorkflowRunnerRenderer";
+import { ML_PLUGIN_RENDERERS } from "./MLPluginReactRenderer";
 import {
   AlertingRenderer,
   ApiAnalyticsRenderer,
@@ -70,6 +71,7 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   ...CENTURY_PLUGIN_RENDERERS,
   ...NEXT_CENTURY_PLUGIN_RENDERERS,
   ...FINAL_PLUGIN_RENDERERS,
+  ...ML_PLUGIN_RENDERERS,
   genome_viewer: GenomeViewerRenderer,
   dataset_catalog: DatasetCatalogRenderer,
   plugin_manager: PluginManagerRenderer,

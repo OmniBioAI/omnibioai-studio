@@ -19,6 +19,7 @@ import {
   NEXT_CENTURY_PLUGIN_SLUGS,
 } from "../../src/ui/components/workbench/NextCenturyPluginRenderers";
 import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rendererRegistry";
+import { ML_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
 
 afterEach(cleanup);
 
@@ -35,7 +36,8 @@ describe("next one-hundred promoted plugin React renderers", () => {
     expect(Object.values(NEXT_CENTURY_PLUGIN_MODES).filter(mode => mode === "informational")).toHaveLength(48);
   });
 
-  it.each(NEXT_CENTURY_PLUGIN_SLUGS.filter(slug => slug !== "home"))("uses the live lifecycle and grouped override for %s", slug => {
+  const bespokeML = new Set(Object.keys(ML_PLUGIN_RENDERERS));
+  it.each(NEXT_CENTURY_PLUGIN_SLUGS.filter(slug => slug !== "home" && !bespokeML.has(slug)))("uses the live lifecycle and grouped override for %s", slug => {
     const renderer = NEXT_CENTURY_PLUGIN_MODES[slug];
     const Renderer = NEXT_CENTURY_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{ plugin: { slug }, renderer }} />);

@@ -8,6 +8,9 @@ const FORBIDDEN_FIELD_IDS = new Set(["constructor", "prototype", "__proto__", "p
 const ENDPOINT = /^\/plugins\/[a-z0-9][a-z0-9_-]*\/(?:api\/)?(?:run|runs|status|log|cancel|artifacts|file|render|search|studies|experiments|variants|pathways|genes|events|catalog|toggle|bulk|workflow-catalog|configure|ui-run|ui-status|ui-log|ui-query|ui-detail|ui-download|ui-reference|ui-artifacts|ui-resources|summary|rules|channels|history|test-alert|ack|close|request-volume|endpoint-statistics|plugin-statistics|status-code-distribution|errors|latency-statistics|consumer-statistics|traffic-anomalies|health|integrations|categories|notifications|filter|preferences|metadata|upload|download|download-async|job-status|objects|object-metadata|object-download|delete_object|providers|posture|overview|authentication|authorization|gateway|plugins|dashboard|sync-cloud-costs)\/?(?:[A-Za-z0-9_.:{}-]+\/?){0,4}(?:\?[^#]*)?$/;
 const EXACT_PLUGIN_ENDPOINTS = new Set([
   "/plugins/histopathology_cv/api/segment/",
+  "/plugins/drug_target_intelligence/api/predict/",
+  "/plugins/celltype_classification_sc/train/",
+  "/plugins/celltype_classification_sc/predict/",
 ]);
 const RUN_ID = /^[A-Za-z0-9_.:-]+$/;
 const RESOURCE_TYPES = new Set(["run"]);
@@ -39,7 +42,7 @@ export function pluginDescriptorUrl(slug, options) {
 
 export function endpointUrl(path, options) {
   if (typeof path !== "string" || path.includes("..") || path.includes("//") ||
-      (!EXACT_PLUGIN_ENDPOINTS.has(path) && !ENDPOINT.test(path))) {
+      (!EXACT_PLUGIN_ENDPOINTS.has(path) && !/^\/plugins\/variant_effect_intelligence\/download\/[A-Za-z0-9_.:-]+\/?$/.test(path) && !ENDPOINT.test(path))) {
     throw new Error("Invalid plugin endpoint.");
   }
   return serviceUrl(path, options);
