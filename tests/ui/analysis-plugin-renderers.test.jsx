@@ -36,7 +36,7 @@ describe("Analysis category React workspaces", () => {
     ["rnaseq_analysis", "async_analysis", "run:rnaseq_analysis"],
     ["differential_abundance", "informational", "read:differential_abundance"],
     ["gsea_enrichment", "query", "query:gsea_enrichment"],
-  ])("renders the declared backend mode for %s", (slug, renderer, result) => {
+  ])("renders the legacy-page layout and preserves backend mode for %s", (slug, renderer, result) => {
     const Renderer = ANALYSIS_PLUGIN_RENDERERS[slug];
     render(<Renderer descriptor={{
       renderer,
@@ -44,9 +44,24 @@ describe("Analysis category React workspaces", () => {
       inputs: [{ id: "data", label: "Data" }],
       outputs: [{ id: "result", label: "Result" }],
     }} />);
-    expect(screen.getByRole("heading", { name: `Plugin ${slug}` })).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Analysis workflow" })).toBeInTheDocument();
-    expect(document.querySelector(".analysis-workspace__context > div:first-child .analysis-workspace__metric")).toHaveTextContent("1");
+    expect(document.querySelector(`[data-plugin-slug="${slug}"]`)).toBeInTheDocument();
+    expect(document.querySelector(".analysis-legacy-summary").textContent).not.toBe("");
+    if (slug === "differential_abundance") {
+      expect(screen.getByRole("heading", { name: /Inputs/ })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /Outputs/ })).toBeInTheDocument();
+    }
     expect(screen.getByTestId("analysis-engine")).toHaveTextContent(result);
+  });
+
+  it("restores the Exome Analysis labels and keeps the declared runner mounted", () => {
+    const Renderer = ANALYSIS_PLUGIN_RENDERERS.exome_analysis;
+    render(<Renderer descriptor={{
+      renderer: "async_analysis",
+      plugin: { slug: "exome_analysis", name: "Exome Analysis", description: "Prioritize + report from annotated VCF" },
+      inputs: [{ id: "vcf", label: "Annotated VCF" }], outputs: [{ id: "variants", label: "Variants table" }],
+    }} />);
+    expect(screen.getByText("Input: annotated VCF")).toBeInTheDocument();
+    expect(screen.getByText("Engine: RunStore")).toBeInTheDocument();
+    expect(screen.getByText("Run Exome Analysis")).toBeInTheDocument();
   });
 });
