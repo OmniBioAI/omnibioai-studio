@@ -32,10 +32,23 @@ const OMICS_CATEGORY_EMOJI = {
   microbiome: "🦠",
   circrna: "🌀",
 };
+const PLUGIN_CATEGORY_EMOJI = {
+  chemoinformatics: "⚛️",
+  clinical: "🩺",
+  crispr: "✂️",
+  dashboard: "📈",
+  drug_discovery: "💊",
+  ml: "🧠",
+  pipeline: "🔀",
+  search: "🔎",
+  structure: "🧩",
+  utilities: "🧰",
+  utility: "🛠️",
+};
 
 export function appVisual(category) {
   const [accent, icon] = APP_CATEGORY_VISUALS[category] || ["#7d9cff", "✦"];
-  return { accent, icon: OMICS_CATEGORY_EMOJI[category] || icon };
+  return { accent, icon: OMICS_CATEGORY_EMOJI[category] || PLUGIN_CATEGORY_EMOJI[category] || icon };
 }
 
 const AGENTIC_PALETTE = ["#ad8cff", "#67a7ff", "#e08cff", "#69d6ce"];

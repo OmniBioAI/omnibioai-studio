@@ -19,6 +19,12 @@ describe("Native Workbench catalog", () => {
     expect(icons).toEqual(["📊", "🧬", "🧫", "⚗️", "🔬", "🧪", "🗺️", "🦠", "🌀"]);
     expect(new Set(icons).size).toBe(categories.length);
   });
+  it("uses a recognizable emoji for every general Plugins category", () => {
+    const categories = ["chemoinformatics", "clinical", "crispr", "dashboard", "drug_discovery", "ml", "pipeline", "search", "structure", "utilities", "utility"];
+    const icons = categories.map(category => appVisual(category).icon);
+    expect(icons).toEqual(["⚛️", "🩺", "✂️", "📈", "💊", "🧠", "🔀", "🔎", "🧩", "🧰", "🛠️"]);
+    expect(new Set(icons).size).toBe(categories.length);
+  });
   it("partitions the catalog into integrations, general plugins, omics, and agentic entries without duplicates", () => {
     const categories = [
       { key: "integration", title: "Integrations", plugins: [{ slug: "github", category: "integration" }] },
