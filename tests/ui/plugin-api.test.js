@@ -99,6 +99,15 @@ describe("plugin descriptor API boundary", () => {
     "/plugins/workflow_runner/configure/?format=json&workflow_id=wf-1",
     "/plugins/workflow_runner/run/run-1/tail/?n=300",
     "/plugins/workflow_runner/api/runs/run-1/outputs/normalized",
+    "/plugins/alerting/api/summary/",
+    "/plugins/api_analytics/api/request-volume/?start=2026-10-30T00%3A00%3A00Z&interval=5m",
+    "/plugins/integration_connections/integrations/?q=repository&enabled=true",
+    "/plugins/notification_center/api/notifications/search/?q=failed&page=1",
+    "/plugins/data_manager/api/object-download?object_id=object-1",
+    "/plugins/provenance/api/objects/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/",
+    "/plugins/resource_monitoring/api/dashboard/",
+    "/plugins/resource_monitoring/sync-cloud-costs/",
+    "/plugins/security_dashboard/api/authentication/failures/?range=last_24h",
   ])("allows a finite native renderer endpoint %s", path => {
     expect(endpointUrl(path)).toContain(path);
   });
