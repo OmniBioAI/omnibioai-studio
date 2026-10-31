@@ -94,17 +94,18 @@ test("Ask OmniBioAI opens Dev Hub's real Ask OmniBioAI page directly, with no ex
 
     await ask.click();
 
-    const frame = page.locator("iframe");
-    await frame.waitFor();
-    const src = await frame.getAttribute("src");
-    assert.match(src, /\/_svc\/devhub\?view=chat$/, `iframe src is not Dev Hub's chat deep link: ${src}`);
+    const frame = page.frameLocator('iframe[title="Ask OmniBioAI"]');
+    await frame.getByPlaceholder(/Ask OmniBioAI\.\.\./).waitFor();
+    const iframeElement = page.locator('iframe[title="Ask OmniBioAI"]');
+    const src = await iframeElement.getAttribute("src");
+    const embeddedAskUrl = new URL(src, origin);
+    assert.equal(embeddedAskUrl.pathname, "/_svc/devhub", `iframe src is not Dev Hub's chat deep link: ${src}`);
+    assert.equal(embeddedAskUrl.searchParams.get("view"), "chat", `iframe did not open Dev Hub's chat view: ${src}`);
 
     // The real Dev Hub bundle, inside that iframe, must show Ask OmniBioAI's
     // own chat content immediately -- no click on Dev Hub's own "Ask
     // OmniBioAI" nav item required.
-    const devhubFrame = page.frameLocator("iframe");
-    await devhubFrame.getByPlaceholder(/Ask OmniBioAI\.\.\./).waitFor();
-    await devhubFrame.getByText(/Hello! I'm Ask OmniBioAI\./).waitFor();
+    await frame.getByText(/Hello! I'm Ask OmniBioAI\./).waitFor();
 
     await page.getByRole("button", { name: "← Back to Studio" }).click();
     await page.getByText("studio", { exact: false }).first().waitFor();
