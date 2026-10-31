@@ -52,12 +52,30 @@ export function appVisual(category) {
 }
 
 const AGENTIC_PALETTE = ["#ad8cff", "#67a7ff", "#e08cff", "#69d6ce"];
-function agenticVisual(plugin) {
-  const key = `${plugin.slug} ${plugin.title}`.toLowerCase();
-  const icon = /orchestrat|workflow/.test(key) ? "⌘"
-    : /literature|evidence|narrat/.test(key) ? "◎"
-      : /reason|hypothes|design|evaluation/.test(key) ? "◈"
-        : /copilot|fine.?tun|notebook/.test(key) ? "⟡" : "✧";
+const AGENTIC_PLUGIN_EMOJI = {
+  onboardai: "📚",
+  ai_evidence: "🧾",
+  bio_narrator_ai: "📝",
+  bio_hypothesis_ai: "💡",
+  agent_workflow_studio: "🗺️",
+  multi_agent_bio_orchestrator: "🕸️",
+  bio_agent: "🤖",
+  infra_ai_copilot: "🛠️",
+  llm_fine_tuner: "🎛️",
+  clinical_bert_finetuner: "🩺",
+  literature_summarizer: "📖",
+  literature_evidence_agent: "🔎",
+  experimental_design_agent: "🧪",
+  biomarker_discovery_agent: "🎯",
+  variant_interpretation_agent: "🧬",
+  multiomics_reasoning_agent: "🧩",
+  pathway_reasoning_agent: "🛤️",
+  protocol_generation_agent: "📋",
+  hypothesis_evaluation_agent: "⚖️",
+  omninotebook_ai: "📓",
+};
+export function agenticVisual(plugin) {
+  const icon = AGENTIC_PLUGIN_EMOJI[plugin.slug] || "✧";
   const paletteIndex = [...plugin.slug].reduce((sum, char) => sum + char.charCodeAt(0), 0) % AGENTIC_PALETTE.length;
   return { accent: AGENTIC_PALETTE[paletteIndex], icon };
 }
