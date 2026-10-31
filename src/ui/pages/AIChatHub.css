@@ -11,10 +11,43 @@
 .ai-chat-hub__panels { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .ai-chat-hub__panels > [role="tabpanel"] { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
 .ai-chat-hub__panels > [role="tabpanel"][hidden] { display: none; }
+
+/* The Agent is a native Workbench plugin rendered inside the chat workspace.
+   Make that nested shell consume the space available between Studio's header
+   and footer, instead of retaining the standalone plugin's viewport heights. */
+.ai-chat-hub__agent { padding: 0 16px 12px; }
+.ai-chat-hub__agent .native-plugin-shell,
+.ai-chat-hub__agent .native-plugin-shell > .omni-page,
+.ai-chat-hub__agent .native-plugin-shell > .omni-page > .omni-page-body,
+.ai-chat-hub__agent .bio-agent { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.ai-chat-hub__agent .native-plugin-shell { height: 100%; overflow: hidden; }
+.ai-chat-hub__agent .native-plugin-shell > .omni-page { overflow: hidden; }
+.ai-chat-hub__agent .native-plugin-shell > .omni-page > .omni-page-hero,
+.ai-chat-hub__agent .native-plugin-shell > .omni-page > .omni-page-messages:empty { display: none; }
+.ai-chat-hub__agent .native-plugin-shell > .omni-page > .omni-page-body { overflow: hidden; padding-top: 0; }
+.ai-chat-hub__agent .bio-agent { padding: 0; }
+.ai-chat-hub__agent .ba-topbar { flex: 0 0 auto; }
+.ai-chat-hub__agent .ba-grid { flex: 1; min-height: 0; }
+.ai-chat-hub__agent .ba-chat,
+.ai-chat-hub__agent .ba-session { height: auto; min-height: 0; }
+.ai-chat-hub__agent .ba-session { display: flex; flex-direction: column; }
+.ai-chat-hub__agent .ba-session-body { min-height: 0; }
+
 @media (max-width: 760px) {
   .ai-chat-hub__header { grid-template-columns: auto 1fr; gap: 9px 12px; padding: 10px; }
   .ai-chat-hub__tabs { grid-column: 1 / -1; grid-row: 2; }
   .ai-chat-hub__tabs button { flex: 1; white-space: normal; }
   .ai-chat-hub__description { grid-column: 1 / -1; grid-row: 3; }
   .ai-chat-hub__back { padding-inline: 8px; }
+}
+
+@media (max-width: 820px) {
+  .ai-chat-hub__agent { overflow-y: auto !important; }
+  .ai-chat-hub__agent .native-plugin-shell,
+  .ai-chat-hub__agent .native-plugin-shell > .omni-page,
+  .ai-chat-hub__agent .native-plugin-shell > .omni-page > .omni-page-body,
+  .ai-chat-hub__agent .bio-agent { height: auto; min-height: 100%; overflow: visible; }
+  .ai-chat-hub__agent .native-plugin-shell > .omni-page > .omni-page-body { display: block; }
+  .ai-chat-hub__agent .ba-grid { flex: none; }
+  .ai-chat-hub__agent .ba-chat { min-height: 65vh; }
 }
