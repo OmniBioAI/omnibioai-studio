@@ -90,7 +90,7 @@ describe("Studio portal", () => {
     fireEvent.mouseLeave(workbenchTile);
     expect(workbenchTile.style.background).toBe("var(--bg3)");
     fireEvent.click(workbenchTile);
-    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([34, 34]);
+    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([34, 13]);
     window.removeEventListener("navigate", navigated);
   });
 
@@ -111,16 +111,16 @@ describe("Studio portal", () => {
     expect(catalogTile).toHaveAttribute("aria-disabled", "true");
   });
 
-  it("opens the React Plugins view from both Studio catalog entry points", async () => {
+  it("opens the full Workbench catalog and filtered Plugins view from their Studio entry points", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
     await waitFor(() => expect(screen.getByText("Online")).toBeInTheDocument());
     const navigated = vi.fn();
     window.addEventListener("navigate", navigated);
 
-    fireEvent.click(screen.getByRole("button", { name: "Browse plugins" }));
     fireEvent.click(screen.getByRole("button", { name: "Workbench — Application catalog" }));
-    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([34, 34]);
+    fireEvent.click(screen.getByRole("button", { name: "Browse plugins" }));
+    expect(navigated.mock.calls.map(([event]) => event.detail)).toEqual([13, 34]);
     window.removeEventListener("navigate", navigated);
   });
 
@@ -456,7 +456,7 @@ describe("Studio portal", () => {
   });
 });
 
-it("keeps catalog discovery on the native Plugins page", async () => {
+it("opens the full Workbench catalog from the Workbench home tile", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
   const navigate = vi.fn(); window.addEventListener("navigate", navigate);
   try {
@@ -464,7 +464,7 @@ it("keeps catalog discovery on the native Plugins page", async () => {
     await screen.findByText("Online");
     const workbenchTile = screen.getByRole("button", { name: "Workbench — Application catalog" });
     fireEvent.click(workbenchTile);
-    expect(navigate.mock.calls[0][0].detail).toBe(34);
+    expect(navigate.mock.calls[0][0].detail).toBe(13);
     expect(screen.queryByRole("button", { name: /Home — Dashboard/ })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Workbench — Application catalog" })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Browse plugins" })).toHaveLength(1);

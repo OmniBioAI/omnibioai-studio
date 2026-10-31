@@ -73,7 +73,7 @@ function buildCategories(BASE) {
         // since the docs site moved to its current dist/user/... layout.
         { label:"Getting Started",  url:"/_svc/docs/user/getting-started/", icon:"📖", desc:"Setup · Cloud · HPC · LLM guide" },
         { label:"Video Tutorials",  url:"/_svc/videos",              icon:"🎬", desc:"Tutorial videos · Walkthroughs"   },
-        { label:"Workbench",        url:"",                          icon:"🏠", desc:"Application catalog", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 34 })) },
+        { label:"Workbench",        url:"",                          icon:"🏠", desc:"Application catalog", action: () => window.dispatchEvent(new CustomEvent("navigate", { detail: 13 })) },
         // Same ControlApp as the standalone site, mounted through Studio's
         // JWT gate and the existing platform.manage_infra permission check.
         { label:"Control Center",   url:"/_svc/control/",            icon:"🖥️", desc:"Overview · Evidence · Ecosystem"   },
