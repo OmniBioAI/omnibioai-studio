@@ -434,15 +434,8 @@ export default function App() {
 
   // ─── Keep the access token from going stale while the app sits open ──
   // auth-service issues 15-minute access tokens (ACCESS_TOKEN_EXPIRE_MINUTES)
-  // and nothing else in this app ever calls session.js's refresh() — every
-  // sub-app that authenticates itself (Model Registry, RAG, etc.) reads the
-  // same JWT straight out of localStorage on each request, with no 401-retry
-  // of its own. Past 15 minutes on one page (Model Registry's "Failed to
-  // fetch models: 401" is what surfaced this), that stale token 401s
-  // everywhere at once. Refreshing well before expiry (5 min, a 3x margin)
-  // keeps localStorage's token perpetually valid for every consumer of it,
-  // without touching any of those other repos. No-ops (refresh() itself
-  // checks) once the refresh token is gone (logged out) or itself expired.
+  // API consumers share the active session. The web build refreshes its
+  // browser session; Electron refreshes through main-process-owned storage.
   useEffect(() => {
     const tick = () => { if (getRefreshToken()) refresh(); };
     tick();

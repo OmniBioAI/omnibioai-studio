@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, session, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, session, dialog, safeStorage } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { writeConfig, readConfig, resetConfig } = require("../backend/config");
@@ -19,12 +19,16 @@ const {
   productionCspForHost,
   restrictWebview,
   secureWebPreferences,
+  sessionAuthorizationHeaders,
   validateConfigPayload,
 } = require("./security");
 const { startPackagedUiServer } = require("./staticServer");
+const { AuthSession } = require("./authSession");
 
 let packagedUiServer = null;
 let trustedServiceHost = "localhost";
+let desktopAuthSession = null;
+let grafanaSessionToken = null;
 
 function handleIpc(channel, handler) {
   ipcMain.handle(channel, (event, ...args) => {
@@ -53,6 +57,35 @@ const LICENSE_SERVER = DEV_MODE
   ? 'http://localhost:8001'
   : 'https://webstudio.omnibioai.org';
 const LICENSE_FILE = path.join(app.getPath('userData'), 'license.json');
+
+function getDesktopAuthSession() {
+  if (!desktopAuthSession) {
+    desktopAuthSession = new AuthSession({
+      packaged: app.isPackaged,
+      configuredOrigin: LICENSE_SERVER,
+      safeStorage,
+      userDataPath: app.getPath("userData"),
+    });
+  }
+  return desktopAuthSession;
+}
+
+function publishAuthSessionChange(snapshot) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("auth-session-changed", snapshot);
+}
+
+function installAuthorizationHeaderPolicy() {
+  session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ["*://*/*"] }, (details, callback) => {
+    const requestHeaders = sessionAuthorizationHeaders(details, {
+      mainWebContentsId: mainWindow?.webContents.id,
+      trustedHost: trustedServiceHost,
+      packaged: app.isPackaged,
+      accessToken: getDesktopAuthSession().getAccessTokenForTrustedRequest(),
+      grafanaToken: grafanaSessionToken,
+    });
+    callback({ requestHeaders });
+  });
+}
 
 function getMachineId() {
   const raw = os.hostname() + os.platform() + os.arch();
@@ -376,6 +409,7 @@ app.on("web-contents-created", (_, contents) => {
 });
 
 app.whenReady().then(async () => {
+  installAuthorizationHeaderPolicy();
   // Generate random secrets on first launch or when defaults are detected
   const repoEnvPath = getEnvPath();
   try {
@@ -689,6 +723,45 @@ handleIpc("open-workbench", async () => {
 // ─── NAVIGATE MAIN WINDOW IN-PLACE ────────────────────────────────────────────
 handleIpc("go-home", async () => mainWindow.loadURL(APP_ORIGIN));
 
+// Auth tokens and MFA challenge tokens remain in the main process. Renderer
+// APIs receive only safe profile data and opaque, one-use challenge handles.
+handleIpc("auth-session-status", async () => {
+  const status = await getDesktopAuthSession().restore();
+  publishAuthSessionChange(status);
+  return status;
+});
+handleIpc("auth-session-login", async (_, credentials) => {
+  if (!credentials || typeof credentials !== "object" || Array.isArray(credentials)
+    || Object.keys(credentials).some(key => !["email", "password"].includes(key))) throw new Error("Invalid login request");
+  const result = await getDesktopAuthSession().login(credentials);
+  if (!result.mfaRequired) publishAuthSessionChange(result);
+  return result;
+});
+handleIpc("auth-session-mfa", async (_, input) => {
+  if (!input || typeof input !== "object" || Array.isArray(input)
+    || Object.keys(input).some(key => !["challengeId", "code", "method"].includes(key))) throw new Error("Invalid MFA request");
+  const result = await getDesktopAuthSession().completeMfa(input);
+  publishAuthSessionChange(result);
+  return result;
+});
+handleIpc("auth-session-mfa-resend", async (_, input) => {
+  if (!input || typeof input !== "object" || Array.isArray(input)
+    || Object.keys(input).some(key => key !== "challengeId")) throw new Error("Invalid MFA request");
+  return getDesktopAuthSession().resendMfa(input);
+});
+handleIpc("auth-session-refresh", async () => {
+  await getDesktopAuthSession().refresh();
+  const snapshot = getDesktopAuthSession().snapshot();
+  publishAuthSessionChange(snapshot);
+  return snapshot;
+});
+handleIpc("auth-session-identity", async () => getDesktopAuthSession().identity());
+handleIpc("auth-session-logout", async () => {
+  const result = await getDesktopAuthSession().clear();
+  publishAuthSessionChange(result);
+  return result;
+});
+
 // ─── GRAFANA AUTH ─────────────────────────────────────────────────────────────
 handleIpc('grafana-login', async () => {
   const env = readEnvFile();
@@ -703,13 +776,7 @@ handleIpc('grafana-login', async () => {
   });
   if (!res.ok) throw new Error('Grafana token invalid or Grafana not running');
 
-  session.defaultSession.webRequest.onBeforeSendHeaders(
-    { urls: ['http://localhost:3000/*'] },
-    (details, callback) => {
-      details.requestHeaders['Authorization'] = `Bearer ${studioToken}`;
-      callback({ requestHeaders: details.requestHeaders });
-    }
-  );
+  grafanaSessionToken = studioToken;
   return { message: 'Logged in' };
 });
 

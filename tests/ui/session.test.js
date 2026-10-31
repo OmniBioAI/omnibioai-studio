@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   authUrl, clearSession, confirmOAuthLink, consumeOAuthRedirectParams, getCurrentUser,
-  getCurrentUserSync, getOAuthLoginUrl, hasPermission, isElectron, loginWithLicenseKey,
+  getCurrentUserSync, getOAuthLoginUrl, getToken, hasPermission, isElectron, loginWithLicenseKey,
   loginWithPassword, logout, oauthProviders, onSessionChange, refresh, setSession,
 } from "../../src/ui/lib/session";
 
@@ -184,6 +184,38 @@ describe("session boundary", () => {
     window.api = {};
     expect(isElectron()).toBe(true);
     delete window.api;
+  });
+
+  it("keeps desktop authentication secrets in the main-process facade", async () => {
+    localStorage.setItem("omnibioai_access_token", "legacy-renderer-token");
+    localStorage.setItem("omnibioai_refresh_token", "legacy-renderer-refresh");
+    document.cookie = "omnibioai_access_token=legacy-renderer-token; path=/";
+    let listener;
+    let snapshot = { authenticated: false, persistent: false, user: null };
+    window.electronAPI = {
+      authSessionStatus: vi.fn(async () => snapshot),
+      authSessionLogin: vi.fn(async () => {
+        snapshot = { authenticated: true, persistent: true, user: { userId: 12, email: "desktop@example.org", roles: ["user"], permissions: [], orgId: null } };
+        return snapshot;
+      }),
+      authSessionLogout: vi.fn(async () => {
+        snapshot = { authenticated: false, persistent: false, user: null };
+        return snapshot;
+      }),
+      onAuthSessionChange: vi.fn(callback => { listener = callback; }),
+    };
+    expect(authUrl("/auth/me")).toMatch(/^http:\/\/localhost:8001\/auth\/me$/);
+    const user = await loginWithPassword("desktop@example.org", "password");
+    expect(user).toMatchObject({ userId: 12, email: "desktop@example.org" });
+    expect(getToken()).toBe("__OMNIBIOAI_DESKTOP_SESSION__");
+    expect(localStorage.getItem("omnibioai_access_token")).toBeNull();
+    expect(localStorage.getItem("omnibioai_refresh_token")).toBeNull();
+    expect(document.cookie).not.toContain("omnibioai_access_token=");
+    expect(setSession).toThrow(/managed by the main process/);
+    expect(listener).toBeTypeOf("function");
+    await logout();
+    expect(getToken()).toBeNull();
+    delete window.electronAPI;
   });
 
   it("subscribes and unsubscribes from session-change events", () => {

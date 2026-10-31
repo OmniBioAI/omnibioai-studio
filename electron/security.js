@@ -62,6 +62,61 @@ function isTrustedAppUrl(value) {
   return !!parsed && parsed.origin === APP_ORIGIN && parsed.protocol === "http:";
 }
 
+function isTrustedAuthenticatedRequestUrl(value, { trustedHost = "localhost", packaged = false } = {}) {
+  const parsed = parseUrl(value);
+  if (!parsed) return false;
+  if (parsed.origin === "https://webstudio.omnibioai.org") return true;
+  if (packaged && parsed.hostname === "webstudio.omnibioai.org" && parsed.protocol !== "https:") return false;
+  const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1"]);
+  if (loopbackHosts.has(parsed.hostname.replace(/^\[|\]$/g, ""))) {
+    return parsed.protocol === "http:" && SERVICE_PORTS.has(parsed.port);
+  }
+  if (parsed.protocol !== "https:") return false;
+  const configuredHost = normalizeTrustedHost(trustedHost).replace(/^\[|\]$/g, "");
+  return isPrivateServiceHost(configuredHost)
+    && parsed.hostname.replace(/^\[|\]$/g, "") === configuredHost
+    && SERVICE_PORTS.has(parsed.port);
+}
+
+function isPrivateServiceHost(host) {
+  const family = net.isIP(host);
+  if (family === 4) {
+    const octets = host.split(".").map(Number);
+    return octets[0] === 10 || octets[0] === 127 || (octets[0] === 169 && octets[1] === 254)
+      || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31)
+      || (octets[0] === 192 && octets[1] === 168);
+  }
+  if (family === 6) return host === "::1" || /^f[cd]/i.test(host) || /^fe[89ab]/i.test(host);
+  return false;
+}
+
+function sessionAuthorizationHeaders(details, {
+  mainWebContentsId,
+  trustedHost = "localhost",
+  packaged = false,
+  accessToken = null,
+  grafanaToken = null,
+} = {}) {
+  const headers = { ...(details?.requestHeaders || {}) };
+  const removeAuthorization = () => {
+    for (const key of Object.keys(headers)) if (key.toLowerCase() === "authorization") delete headers[key];
+  };
+  let parsed;
+  try { parsed = new URL(details.url); } catch { return headers; }
+  if (parsed.origin === "http://localhost:3000") {
+    removeAuthorization();
+    if (grafanaToken) headers.Authorization = `Bearer ${grafanaToken}`;
+    return headers;
+  }
+  if (typeof mainWebContentsId !== "number" || details.webContentsId !== mainWebContentsId) return headers;
+  removeAuthorization();
+  if (details.method !== "OPTIONS" && accessToken
+    && isTrustedAuthenticatedRequestUrl(details.url, { trustedHost, packaged })) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return headers;
+}
+
 function isAllowedEmbeddedServiceUrl(value, { devMode = false, trustedHost = "localhost" } = {}) {
   const parsed = parseUrl(value);
   if (!parsed || parsed.protocol !== "http:") return false;
@@ -109,7 +164,7 @@ const PRODUCTION_CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.sentry.io https://o4511460178132992.ingest.us.sentry.io ws://localhost:5174",
+  "connect-src 'self' https://webstudio.omnibioai.org http://localhost:* http://127.0.0.1:* https://*.sentry.io https://o4511460178132992.ingest.us.sentry.io ws://localhost:5174",
   "frame-src http://localhost:* http://127.0.0.1:*",
   "media-src 'self'",
 ].join("; ");
@@ -150,6 +205,8 @@ module.exports = {
   assertTrustedIpcSender,
   isAllowedEmbeddedServiceUrl,
   isSafeExternalUrl,
+  isTrustedAuthenticatedRequestUrl,
+  sessionAuthorizationHeaders,
   isTrustedAppUrl,
   normalizeLicenseCredentials,
   normalizeTrustedHost,

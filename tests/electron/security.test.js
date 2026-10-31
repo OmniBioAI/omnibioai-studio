@@ -12,6 +12,8 @@ const {
   assertTrustedIpcSender,
   isAllowedEmbeddedServiceUrl,
   isSafeExternalUrl,
+  isTrustedAuthenticatedRequestUrl,
+  sessionAuthorizationHeaders,
   isTrustedAppUrl,
   normalizeLicenseCredentials,
   normalizeTrustedHost,
@@ -46,6 +48,41 @@ test("only the exact local application origin is trusted for app navigation", ()
     "http://user@localhost:5174/",
     "javascript:alert(1)",
   ]) assert.equal(isTrustedAppUrl(url), false, url);
+});
+
+test("authenticated requests are limited to the fixed Auth origin and private service hosts", () => {
+  assert.equal(isTrustedAuthenticatedRequestUrl("https://webstudio.omnibioai.org/auth/me", { packaged: true }), true);
+  assert.equal(isTrustedAuthenticatedRequestUrl("http://localhost:8000/api/jobs/", { packaged: true }), true);
+  assert.equal(isTrustedAuthenticatedRequestUrl("https://192.168.86.234:8081/api/tools", { trustedHost: "192.168.86.234" }), true);
+  for (const url of [
+    "http://webstudio.omnibioai.org/auth/me",
+    "http://192.168.86.234:8001/me",
+    "https://auth.example.org/me",
+    "http://auth.example.org:8001/me",
+    "http://192.168.86.235:8001/me",
+    "http://localhost:5174/",
+    "javascript:alert(1)",
+  ]) assert.equal(isTrustedAuthenticatedRequestUrl(url, { trustedHost: "auth.example.org", packaged: true }), false, url);
+});
+
+test("main-process request policy strips renderer bearer values and injects only for trusted targets", () => {
+  const target = {
+    webContentsId: 7,
+    url: "https://webstudio.omnibioai.org/me",
+    requestHeaders: { Authorization: "Bearer renderer-controlled" },
+  };
+  assert.deepEqual(sessionAuthorizationHeaders(target, {
+    mainWebContentsId: 7, packaged: true, accessToken: "main-owned-token",
+  }), { Authorization: "Bearer main-owned-token" });
+  assert.deepEqual(sessionAuthorizationHeaders({ ...target, url: "https://attacker.example/collect" }, {
+    mainWebContentsId: 7, packaged: true, accessToken: "main-owned-token",
+  }), {});
+  assert.deepEqual(sessionAuthorizationHeaders(target, {
+    mainWebContentsId: 8, packaged: true, accessToken: "main-owned-token",
+  }), { Authorization: "Bearer renderer-controlled" });
+  assert.deepEqual(sessionAuthorizationHeaders({ ...target, url: "http://localhost:3000/api/org" }, {
+    mainWebContentsId: 7, grafanaToken: "grafana-only-token",
+  }), { Authorization: "Bearer grafana-only-token" });
 });
 
 test("IPC permits only the trusted main frame and rejects subframes and foreign contents", () => {
@@ -211,6 +248,11 @@ test("preload exposes narrow wrappers and never exposes raw IPC or credential va
   assert.equal(exposed.api.send, undefined);
   assert.equal(exposed.api.getCredentialStatus().channel, "credential-status");
   assert.equal(exposed.electronAPI.hostIp, undefined);
+  assert.equal(exposed.electronAPI.getToken, undefined);
+  assert.equal(exposed.electronAPI.authSessionStatus().channel, "auth-session-status");
+  assert.equal(exposed.electronAPI.authSessionLogin({ email: "a@example.org", password: "x" }).channel, "auth-session-login");
+  assert.equal(exposed.electronAPI.authenticatedFetch, undefined);
+  assert.equal(exposed.electronAPI.authSessionIdentity().channel, "auth-session-identity");
 
   let delivered;
   const unsubscribe = exposed.api.onDockerLog(value => { delivered = value; });
