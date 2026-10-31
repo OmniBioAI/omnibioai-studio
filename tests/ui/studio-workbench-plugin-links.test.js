@@ -8,7 +8,7 @@ import { FINAL_PLUGIN_SLUGS } from "../../src/ui/components/workbench/FinalPlugi
 
 const source = fs.readFileSync(path.resolve("src/ui/pages/Studio.jsx"), "utf8");
 const linkedPlugins = [
-  "catalog", "onboardai", "genome_viewer", "dataset_catalog", "job_monitor", "plugin_manager", "provenance",
+  "onboardai", "genome_viewer", "dataset_catalog", "job_monitor", "plugin_manager", "audit_log",
   "workflow_runner", "workflow_builder", "agent_workflow_studio", "pipeline_dashboard",
   "multi_agent_bio_orchestrator", "workflow_compiler", "rnaseq_analysis", "single_cell_analysis",
   "exome_analysis", "fastq_qc", "proteomics", "metabolomics_importer",

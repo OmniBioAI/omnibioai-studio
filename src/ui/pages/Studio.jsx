@@ -23,8 +23,6 @@ const ADMIN_CONSOLE_PERMISSION = "platform.manage_infra";
 const MANAGE_CONFIG_PERMISSION = "manage_config";
 const MANAGE_LICENSES_PERMISSION = "manage_licenses";
 const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
-const PROVENANCE_SLUG = "provenance";
-const PROVENANCE_LAUNCH_PATH = "/plugins/provenance/";
 const ORCHESTRATOR_SLUG = "multi_agent_bio_orchestrator";
 const ORCHESTRATOR_LAUNCH_PATH = "/plugins/multi_agent_bio_orchestrator/";
 
@@ -166,8 +164,8 @@ function buildCategories(BASE) {
         workbenchPluginLink("Dataset Catalog", "dataset_catalog", "🗂️", "Browse governed datasets"),
         workbenchPluginLink("Job Monitor", "job_monitor", "📊", "Monitor jobs"),
         workbenchPluginLink("Plugin Manager", "plugin_manager", "🔌", "Manage plugins"),
-        { label:"Admin",            url:"/_svc/workbench/admin/",                              icon:"⚙️", desc:"Django admin"           },
-        workbenchPluginLink("Provenance", PROVENANCE_SLUG, "🧬", "Track runs & lineage", PROVENANCE_LAUNCH_PATH),
+        workbenchPluginLink("Audit Log", "audit_log", "📜", "Review governed activity"),
+        workbenchPluginLink("Workflow Runner", "workflow_runner", "⚡", "Run workflows"),
       ]
     },
     {
