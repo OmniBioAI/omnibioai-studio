@@ -22,6 +22,7 @@ const {
   secureWebPreferences,
   validateConfigPayload,
 } = require("../../electron/security");
+const { environmentPath } = require("../../electron/runtimePaths");
 const { resolveAsset, startPackagedUiServer } = require("../../electron/staticServer");
 
 test("BrowserWindow preferences keep Chromium protections enabled", () => {
@@ -35,6 +36,20 @@ test("BrowserWindow preferences keep Chromium protections enabled", () => {
   // ServiceViewer and Grafana use isolated guests; attachment is separately allowlisted.
   assert.equal(preferences.webviewTag, true);
   assert.equal(preferences.preload, "/app/electron/preload.js");
+});
+
+test("packaged runtime credentials are written under userData, never inside app.asar", () => {
+  assert.equal(environmentPath({
+    packaged: true,
+    appPath: "/tmp/AppDir/resources/app.asar",
+    userDataPath: "/tmp/studio-user-data",
+  }), path.join("/tmp/studio-user-data", ".env"));
+  assert.equal(environmentPath({
+    packaged: false,
+    appPath: "/tmp/studio-source",
+    userDataPath: "/tmp/studio-user-data",
+  }), path.join("/tmp/studio-source", ".env"));
+  assert.throws(() => environmentPath({ packaged: true, appPath: "relative", userDataPath: "relative" }), /invalid/);
 });
 
 test("only the exact local application origin is trusted for app navigation", () => {

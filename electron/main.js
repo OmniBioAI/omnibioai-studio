@@ -24,6 +24,7 @@ const {
 } = require("./security");
 const { startPackagedUiServer } = require("./staticServer");
 const { AuthSession } = require("./authSession");
+const { environmentPath } = require("./runtimePaths");
 
 let packagedUiServer = null;
 let trustedServiceHost = "localhost";
@@ -169,7 +170,11 @@ function getComposePath() {
 }
 
 function getEnvPath() {
-  return path.join(app.getAppPath(), '.env');
+  return environmentPath({
+    packaged: app.isPackaged,
+    appPath: app.getAppPath(),
+    userDataPath: app.getPath("userData"),
+  });
 }
 
 function getDbInitPath() {
