@@ -22,6 +22,7 @@ import { resolveWorkbenchRenderer } from "../../src/ui/components/workbench/rend
 import { ANALYSIS_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/AnalysisPluginRenderers";
 import { ML_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/MLPluginReactRenderer";
 import { GENOMICS_TEMPLATE_RENDERERS } from "../../src/ui/components/workbench/GenomicsTemplateRenderers";
+import { OMICS_CATEGORY_PLUGIN_RENDERERS } from "../../src/ui/components/workbench/OmicsCategoryReactRenderers";
 
 afterEach(cleanup);
 
@@ -42,7 +43,7 @@ describe("next one-hundred promoted plugin React renderers", () => {
   const separatelyRegisteredOverrides = new Set([
     "workflow_explorer", "workflow_registry_admin", "jaspar_search", "kegg_search",
     "biostudies", "clinical_report", "phenopacket", "crispr_off_target_analysis",
-    "crispr_screen_analysis", "structure_visualizer",
+    "crispr_screen_analysis", "structure_visualizer", "lipidomics_analysis",
   ]);
   it.each(NEXT_CENTURY_PLUGIN_SLUGS.filter(slug => slug !== "home" && !bespokeML.has(slug)))("uses the live lifecycle and grouped override for %s", slug => {
     const renderer = NEXT_CENTURY_PLUGIN_MODES[slug];
@@ -52,7 +53,9 @@ describe("next one-hundred promoted plugin React renderers", () => {
       ? "query-workflow"
       : renderer === "informational" ? "informational-workflow" : "async-workflow";
     expect(screen.getByTestId(testId)).toHaveTextContent(slug);
-    if (ANALYSIS_PLUGIN_RENDERERS[slug]) {
+    if (OMICS_CATEGORY_PLUGIN_RENDERERS[slug]) {
+      expect(resolveWorkbenchRenderer(renderer, slug)).toBe(OMICS_CATEGORY_PLUGIN_RENDERERS[slug]);
+    } else if (ANALYSIS_PLUGIN_RENDERERS[slug]) {
       expect(resolveWorkbenchRenderer(renderer, slug)).toBe(ANALYSIS_PLUGIN_RENDERERS[slug]);
     } else if (separatelyRegisteredOverrides.has(slug)) {
       expect(resolveWorkbenchRenderer(renderer, slug)).not.toBe(Renderer);

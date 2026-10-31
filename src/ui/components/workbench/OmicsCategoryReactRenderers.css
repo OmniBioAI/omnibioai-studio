@@ -1,0 +1,23 @@
+.omics-category-workspace { display: grid; gap: 14px; }
+.omics-category-workspace__badge { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 999px; padding: 4px 9px; color: var(--accent); font-size: 11px; font-weight: 700; }
+.omics-category-workspace__summary { margin: 0 0 16px; max-width: 88ch; color: var(--text-muted, var(--color-text-secondary)); line-height: 1.65; }
+.omics-category-workspace__steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin: 0 0 18px; padding: 0; list-style: none; }
+.omics-category-workspace__steps li { display: flex; align-items: center; gap: 9px; min-height: 42px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 12px; }
+.omics-category-workspace__steps li span { display: grid; flex: 0 0 23px; place-items: center; width: 23px; height: 23px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 800; }
+.omics-category-workspace__contracts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.omics-category-workspace__contracts section { min-width: 0; padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg2); }
+.omics-category-workspace__contracts h3 { margin: 0 0 9px; color: var(--text); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.omics-category-workspace__contracts ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.omics-category-workspace__contracts li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; color: var(--text); font-size: 12px; }
+.omics-category-workspace__contracts li > span { display: grid; gap: 3px; min-width: 0; }
+.omics-category-workspace__contracts li strong { font-weight: 650; }
+.omics-category-workspace__io-detail { color: var(--text-muted, var(--color-text-muted)); font-size: 10px; line-height: 1.45; }
+.omics-category-workspace__contracts li small { flex: 0 0 auto; color: var(--text-muted, var(--color-text-muted)); font-size: 10px; }
+.omics-category-workspace__contracts p, .omics-category-workspace__operations, .omics-category-workspace__notice { color: var(--text-muted, var(--color-text-secondary)); font-size: 12px; line-height: 1.6; }
+.omics-category-workspace__routes { margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg2); }
+.omics-category-workspace__routes h3 { margin: 0 0 8px; color: var(--text); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.omics-category-workspace__routes ul { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.omics-category-workspace__routes li { display: grid; gap: 3px; min-width: min(100%, 220px); padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 11px; text-transform: capitalize; }
+.omics-category-workspace__routes code { overflow-wrap: anywhere; color: var(--text-muted, var(--color-text-muted)); font-size: 10px; text-transform: none; }
+.omics-category-workspace__notice { margin: 12px 0 0; padding: 9px 11px; border-left: 3px solid var(--accent3); border-radius: 5px; background: color-mix(in srgb, var(--accent3) 8%, transparent); }
+@media (max-width: 640px) { .omics-category-workspace__steps { grid-template-columns: 1fr; } }

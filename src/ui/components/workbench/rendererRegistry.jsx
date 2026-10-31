@@ -69,6 +69,8 @@ import { ANALYSIS_PLUGIN_RENDERERS } from "./AnalysisPluginRenderers";
 import { GENOMICS_TEMPLATE_RENDERERS } from "./GenomicsTemplateRenderers";
 import LipidomicsAnalysisRenderer from "./LipidomicsAnalysisRenderer";
 import { OMICS_TEMPLATE_REACT_RENDERERS } from "./OmicsTemplateReactRenderers";
+import { OMICS_CATEGORY_PLUGIN_RENDERERS } from "./OmicsCategoryPluginRenderers";
+import { ProteomicsReactRenderer, SingleCellLoomViewerReactRenderer } from "./OmicsSpecializedReactRenderers";
 import { CRISPR_DRUG_PLUGIN_RENDERERS } from "./CrisprDrugReactRenderers";
 import { SEARCH_STRUCTURE_PLUGIN_RENDERERS } from "./SearchStructureReactRenderers";
 import {
@@ -166,6 +168,9 @@ const PLUGIN_RENDERER_OVERRIDES = Object.freeze({
   resource_monitoring: ResourceMonitoringRenderer,
   security_dashboard: SecurityDashboardRenderer,
   lipidomics_analysis: LipidomicsAnalysisRenderer,
+  ...OMICS_CATEGORY_PLUGIN_RENDERERS,
+  proteomics: ProteomicsReactRenderer,
+  single_cell_loom_viewer: SingleCellLoomViewerReactRenderer,
 });
 
 export function normalizeRendererName(renderer) {
