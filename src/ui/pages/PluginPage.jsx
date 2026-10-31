@@ -5,8 +5,9 @@ import { loadPluginDescriptor } from "../lib/pluginApi";
 import WorkbenchBase from "../components/WorkbenchBase";
 import OmniPage from "../components/OmniPage";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
+import ExistingRunRenderer from "../components/workbench/ExistingRunRenderer";
 
-export default function PluginPage({ slug, label, onBack, backLabel = "Back to Workbench" }) {
+export default function PluginPage({ slug, label, initialRunId = "", onBack, backLabel = "Back to Workbench" }) {
   const [descriptor, setDescriptor] = useState(null);
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -37,7 +38,9 @@ export default function PluginPage({ slug, label, onBack, backLabel = "Back to W
       <OmniPage title={descriptor.plugin.name} subtitle={descriptor.plugin.description}
         meta={<><span className="plugin-meta">v{descriptor.plugin.version}</span><span className="plugin-meta">{descriptor.plugin.category}</span></>}
         actions={<Button onClick={onBack}>{backLabel}</Button>}>
-        <Renderer descriptor={descriptor} />
+        {initialRunId
+          ? <ExistingRunRenderer descriptor={descriptor} slug={slug} runId={initialRunId} />
+          : <Renderer descriptor={descriptor} />}
       </OmniPage>
     </WorkbenchBase>
   );

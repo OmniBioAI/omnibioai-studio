@@ -164,6 +164,7 @@ const EXPLORE_PATH = "/studio/explore";
 const VIDEO_STUDIO_PATH = "/studio/videos";
 const ADMIN_CONSOLE_PATH = "/studio/admin";
 const LEGACY_PORTAL_PATH = "/workbench";
+const PLUGIN_STUDIO_PATH = /^\/studio\/plugins\/([a-z0-9][a-z0-9_-]*)\/?$/;
 
 // Every native page with its own bookmarkable URL, in both directions --
 // extends the exact mechanism the three Account pages already use (manual
@@ -213,7 +214,17 @@ export function resolveInitialPage() {
     url.pathname = legacyTarget;
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }
+  if (PLUGIN_STUDIO_PATH.test(window.location.pathname)) return 13;
   return PATH_TO_PAGE[window.location.pathname] ?? 7;
+}
+
+export function pluginSlugFromStudioPath(pathname) {
+  return PLUGIN_STUDIO_PATH.exec(pathname || "")?.[1] || null;
+}
+
+export function studioPluginPath(slug) {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug || "")) throw new Error("Invalid plugin slug.");
+  return `/studio/plugins/${slug}`;
 }
 
 // "Code" and "Workflows" are nav-only aliases onto the existing Launcher and
@@ -236,6 +247,17 @@ const EXTERNAL_NAV_SERVICES = {
 function getInitialService() {
   if (typeof window !== "undefined" && window.location.pathname === VIDEO_STUDIO_PATH) {
     return { url: "/_svc/videos", label: "Videos" };
+  }
+  const slug = typeof window !== "undefined" ? pluginSlugFromStudioPath(window.location.pathname) : null;
+  if (slug) {
+    return {
+      url: `/_svc/workbench/plugins/${slug}/`,
+      label: slug.replaceAll("_", " "),
+      source: "workbench",
+      pluginSlug: slug,
+      initialRunId: new URLSearchParams(window.location.search).get("run_id") || "",
+      backLabel: "Back to Workbench",
+    };
   }
   return null;
 }
@@ -450,7 +472,7 @@ export default function App() {
       {({ organizationId }) => <Billing currentUser={currentUser} organizationId={organizationId} onMembershipPlans={() => handleNavClick(STORAGE_PAGE)} onStorage={() => handleNavClick(STORAGE_PAGE)} />}
     </AccountLayout>,
     <Workbench state={workbenchState} onStateChange={setWorkbenchState}
-      onOpen={(url, label, plugin) => setService({ url, label, source: "workbench", pluginSlug: plugin?.slug || null })} />,
+      onOpen={openWorkbenchPlugin} />,
     <AccountLayout activeSection="api-keys" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       {({ organizationId }) => <Developer currentUser={{ ...currentUser, orgId: organizationId || currentUser?.orgId }} />}
     </AccountLayout>,
@@ -512,6 +534,27 @@ export default function App() {
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     setService(null);
     setStep(7);
+  }
+
+  function openWorkbenchPlugin(url, label, plugin) {
+    const slug = plugin?.slug;
+    if (!slug) return;
+    const next = new URL(window.location.href);
+    next.pathname = studioPluginPath(slug);
+    next.search = "";
+    next.hash = "";
+    window.history.replaceState(window.history.state, "", next.pathname);
+    setService({ url, label, source: "workbench", pluginSlug: slug });
+  }
+
+  function handlePluginBack() {
+    const url = new URL(window.location.href);
+    url.pathname = STUDIO_PATH;
+    url.search = "";
+    url.hash = "";
+    window.history.replaceState(window.history.state, "", url.pathname);
+    setService(null);
+    setStep(13);
   }
 
   function handleNavClick(idx) {
@@ -731,7 +774,7 @@ export default function App() {
               : (service.url.includes("/_svc/monitor") || service.url.includes("localhost:3000"))
                 ? <GrafanaViewer label={service.label} onBack={() => setService(null)} />
                 : service.source === "workbench" && service.pluginSlug
-                  ? <PluginPage slug={service.pluginSlug} url={service.url} label={service.label} backLabel={service.backLabel} onBack={() => setService(null)} />
+                  ? <PluginPage slug={service.pluginSlug} url={service.url} label={service.label} initialRunId={service.initialRunId} backLabel={service.backLabel} onBack={handlePluginBack} />
                   : <ServiceViewer key={service.openId} url={service.source === "workbench" ? service.url : resolveServiceUrl(service.url)} label={service.label}
                       backLabel={service.source === "workbench" ? "Back to Workbench" : undefined}
                       onBack={() => setService(null)} />

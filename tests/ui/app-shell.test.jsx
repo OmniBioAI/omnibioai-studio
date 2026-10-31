@@ -55,7 +55,12 @@ vi.mock("../../src/ui/pages/Artifacts", () => ({ default: () => <div>Artifacts p
 vi.mock("../../src/ui/pages/Explore", () => ({ default: () => <div>Explore page</div> }));
 vi.mock("../../src/ui/pages/Integrations", () => ({ default: () => <div>Integrations page</div> }));
 
-import App, { LEGACY_ACCOUNT_REDIRECTS, resolveInitialPage } from "../../src/ui/App";
+import App, {
+  LEGACY_ACCOUNT_REDIRECTS,
+  pluginSlugFromStudioPath,
+  resolveInitialPage,
+  studioPluginPath,
+} from "../../src/ui/App";
 
 const admin = { userId: 1, email: "alex@example.org", orgId: 1, permissions: ["manage_roles"] };
 
@@ -69,6 +74,20 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Account route migration", () => {
+  it("accepts only canonical bookmarkable plugin routes", () => {
+    expect(pluginSlugFromStudioPath("/studio/plugins/deseq2_analysis")).toBe("deseq2_analysis");
+    expect(pluginSlugFromStudioPath("/studio/plugins/deseq2_analysis/")).toBe("deseq2_analysis");
+    expect(pluginSlugFromStudioPath("/studio/plugins/../auth")).toBeNull();
+    expect(pluginSlugFromStudioPath("/studio/plugins/BadSlug")).toBeNull();
+    expect(studioPluginPath("alpha_diversity")).toBe("/studio/plugins/alpha_diversity");
+    expect(() => studioPluginPath("../auth")).toThrow("Invalid plugin slug");
+  });
+
+  it("opens plugin deep links on the Workbench page", () => {
+    window.history.replaceState({}, "", "/studio/plugins/alpha_diversity");
+    expect(resolveInitialPage()).toBe(13);
+  });
+
   it.each([
     ["Ask OmniBioAI", "/_svc/devhub", "chat"],
     ["Code", "/_svc/sdk", null],
