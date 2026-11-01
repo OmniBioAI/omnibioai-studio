@@ -4,6 +4,7 @@ import {
   getCurrentUserSync, getOAuthLoginUrl, getToken, hasPermission, isElectron, loginWithLicenseKey,
   loginWithPassword, logout, oauthProviders, onSessionChange, refresh, setSession,
 } from "../../src/ui/lib/session";
+import { loginWithLicenseKey as loginWithWebLicenseKey } from "../../src/ui/lib/web/session";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -88,9 +89,9 @@ describe("session boundary", () => {
   it("activates a valid license without creating an authenticated session", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify({ valid: true, tier: "developer" }), { status: 200 }));
-    await expect(loginWithLicenseKey(" KEY ", "k@k.test", "desktop"))
+    await expect(loginWithWebLicenseKey(" KEY ", "k@k.test", "desktop"))
       .resolves.toMatchObject({ valid: true, tier: "developer" });
-    expect(fetchMock.mock.calls[0][0]).toContain("/license/activate");
+    expect(fetchMock.mock.calls[0][0]).toContain("/license/validate");
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ key: " KEY ", email: "k@k.test", platform: "desktop" });
     expect(localStorage.getItem("omnibioai_access_token")).toBeNull();
   });

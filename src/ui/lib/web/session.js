@@ -210,7 +210,7 @@ function mfaRequiredError(result) {
 }
 
 export async function activateLicense(key, email, platform = "web") {
-  const res = await fetch(authUrl("/license/activate"), {
+  const res = await fetch(authUrl("/license/validate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key, email, platform }),
