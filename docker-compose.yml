@@ -1538,6 +1538,8 @@ services:
       # The lifecycle API (server.js) verifies every caller's bearer token with
       # omnibioai-auth and fails closed if it cannot reach it.
       IAM_URL: http://auth-service:8001
+      # Persistent workspace manifest store (launcher-state volume below).
+      LAUNCHER_STATE_DIR: /var/lib/omnibioai-launcher
     volumes:
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_SOCKET_PATH in environment: above. :ro because launcher
@@ -1545,6 +1547,7 @@ services:
       # to it.
       - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
+      - launcher-state:/var/lib/omnibioai-launcher
     restart: unless-stopped
     depends_on:
       docker-socket-proxy:
@@ -2299,6 +2302,10 @@ secrets:
     environment: GHCR_PULL_TOKEN
 
 volumes:
+  # Launcher's durable workspace manifests (omnibioai-launcher
+  # lib/manifest-store.js). Without it, GET /v1/workspaces/:id/manifest
+  # 404s after every launcher restart.
+  launcher-state:
   mysql_data:
   redis_data:
   ollama_data:

@@ -892,6 +892,10 @@ services:
       REACT_APP_OMNIBIOAI_BASE_URL: ${OMNIBIOAI_BASE_URL:-http://localhost:8000}
       REACT_APP_JUPYTER_BASE: ${JUPYTER_BASE:-http://localhost:8888}
       REACT_APP_USE_MOCK: "false"
+      # Persistent workspace manifest store (launcher-state volume below).
+      LAUNCHER_STATE_DIR: /var/lib/omnibioai-launcher
+    volumes:
+      - launcher-state:/var/lib/omnibioai-launcher
     depends_on:
       workbench:
         condition: service_started
@@ -1074,6 +1078,10 @@ services:
   # ghcr.io/omnibioai/omnibioai-plugin-variant-annotation:latest
 
 volumes:
+  # Launcher's durable workspace manifests (omnibioai-launcher
+  # lib/manifest-store.js). Without it, GET /v1/workspaces/:id/manifest
+  # 404s after every launcher restart.
+  launcher-state:
   mysql_data:
   redis_data:
   ollama_data:
