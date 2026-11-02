@@ -1559,10 +1559,7 @@ services:
     image: ghcr.io/omnibioai/omnibioai-jupyter:1.0
     container_name: omnibioai-jupyter
     ports:
-      # Loopback only, like rstudio/vscode: browsers reach Jupyter through the
-      # router's gated /jupyter/ route. HOST_IP is 0.0.0.0 on the DGX, which
-      # published Jupyter on every interface, bypassing that gate.
-      - "127.0.0.1:8888:8888"
+      - "${HOST_IP:-0.0.0.0}:8888:8888"
     volumes:
       - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
       # Bind the physical 26 TB path; the repository's work entry is a symlink.
@@ -2015,10 +2012,7 @@ services:
   api-gateway:
     image: ghcr.io/omnibioai/omnibioai-api-gateway:latest
     ports:
-      # Loopback only: the router reaches api-gateway:8080 on the Docker
-      # network, and the Cloudflare tunnel's api.omnibioai.org ingress uses
-      # localhost:8080. Nothing else needs it on HOST_IP (0.0.0.0).
-      - "127.0.0.1:8080:8080"
+      - "${HOST_IP:-0.0.0.0}:8080:8080"
     environment:
       PYTHONUNBUFFERED: "1"
       # Redis P1-5: purpose-separated named identities, isolated-validated
