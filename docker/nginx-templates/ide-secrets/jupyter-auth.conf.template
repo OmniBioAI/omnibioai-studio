@@ -1,11 +1,10 @@
-# Rendered at container start by the nginx image's
-# /docker-entrypoint.d/20-envsubst-on-templates.sh into
-# /etc/nginx/ide-secrets/jupyter-auth.conf (NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
-# plus this file's ide-secrets/ subdirectory; the script only creates
-# subdirectories, so the output dir itself must already exist). That is outside
-# conf.d, so nginx never loads it at http level; only `location /jupyter/` in
-# nginx-router.conf includes it. NGINX_ENVSUBST_FILTER limits substitution to
-# the Jupyter token. Never put a literal token in this file.
+# Rendered at container start by docker/nginx-entrypoint.d/
+# 15-render-jupyter-auth.sh from the jupyter_token compose secret into
+# /etc/nginx/ide-secrets/jupyter-auth.conf, a tmpfs outside conf.d: nginx never
+# loads it at http level, and it never reaches the container's writable layer.
+# Only `location /jupyter/` in nginx-router.conf includes it. Mounted at
+# /etc/nginx/ide-templates, not /etc/nginx/templates, so the image's own
+# envsubst step ignores it. Never put a literal token in this file.
 
 # Replaces any client-supplied Authorization header: a proxy_set_header for a
 # header means the client's own value is not forwarded.
