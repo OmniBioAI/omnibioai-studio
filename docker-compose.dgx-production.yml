@@ -41,6 +41,10 @@ services:
   launcher:
     labels: *loopback-note
     ports: !override ["127.0.0.1:5190:5190"]
+    environment:
+      LAUNCHER_STATE_DIR: /var/lib/omnibioai-launcher
+    volumes:
+      - launcher-state:/var/lib/omnibioai-launcher
   jupyter:
     labels: *loopback-note
     ports: !override ["127.0.0.1:8888:8888"]
@@ -83,3 +87,6 @@ services:
   redis-exporter:
     labels: *loopback-note
     ports: !override ["127.0.0.1:9121:9121"]
+
+volumes:
+  launcher-state:
