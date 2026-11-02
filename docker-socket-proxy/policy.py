@@ -53,10 +53,11 @@ reasoned about):
 from __future__ import annotations
 
 import json
+import os
 import posixpath
 import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Callable, Optional
 
 
 @dataclass(frozen=True)
@@ -150,9 +151,65 @@ class CreatePolicy:
     # different, narrower risk than allowed_bind_prefixes and must stay
     # an exact match, never a prefix.
     allowed_named_volumes: tuple = field(default_factory=tuple)
+    # Resolves a host path as the proxy sees it. The real default follows
+    # symlinks inside the allowed directories the proxy has mounted
+    # read-only at their host paths (docker-compose.yml); tests inject
+    # their own. Used only by the daemon-socket check, never by the prefix
+    # check: the prefixes are written as the host spells them (data/work is
+    # itself a symlink to the NAS), so resolving them would deny today's
+    # legitimate binds.
+    resolve_path: Callable[[str], str] = field(default=os.path.realpath, compare=False)
 
 
 _DENIED_BIND_EXACT = {"/", ""}
+
+# Container network modes a client may request: Docker's own default
+# (unset, "default" or "bridge") or no network at all ("none", which
+# workbench's plugin executors use). Everything else -- "container:<id>"
+# (joins another container's network namespace, e.g. the router's, which
+# can reach the IDEs) and any named network (e.g. the IDE network or the
+# Studio project network) -- is denied. "host" keeps its own explicit
+# deny above.
+_ALLOWED_NETWORK_MODES = {"", "default", "bridge", "none"}
+
+# Docker/containerd/podman control sockets. Binding one hands the container
+# the daemon itself (root on the host), whatever the allowed prefixes say.
+_DAEMON_SOCKET_NAME = re.compile(r"(?:^|/)(?:docker|containerd|podman)\.sock$")
+_DAEMON_SOCKET_PATHS = (
+    "/var/run/docker.sock",
+    "/run/docker.sock",
+    "/run/containerd/containerd.sock",
+    "/var/run/containerd/containerd.sock",
+    "/run/docker/containerd/containerd.sock",
+    "/var/run/docker/containerd/containerd.sock",
+    "/run/podman/podman.sock",
+)
+# Daemon state directories: hold every container's filesystem and config.
+_DAEMON_STATE_DIRS = ("/var/lib/docker", "/var/lib/containerd")
+
+
+def _reaches_daemon_socket(host_path: str, resolve: Callable[[str], str]) -> bool:
+    """True if binding host_path would expose a daemon socket or daemon
+    state: the path, lexically normalized or symlink-resolved, is a daemon
+    socket, an ancestor directory of one (e.g. /run, /var/run), or inside
+    a daemon state directory. Resolution covers a symlink planted inside an
+    allowed directory (allowed_dir/x -> /var/run/docker.sock), which the
+    daemon follows on the host when it performs the bind."""
+    candidates = {posixpath.normpath(host_path)}
+    try:
+        candidates.add(posixpath.normpath(resolve(host_path)))
+    except (OSError, ValueError):
+        pass
+    for path in candidates:
+        if _DAEMON_SOCKET_NAME.search(path):
+            return True
+        for sock in _DAEMON_SOCKET_PATHS:
+            if path == sock or sock.startswith(path.rstrip("/") + "/"):
+                return True
+        for state in _DAEMON_STATE_DIRS:
+            if path == state or path.startswith(state + "/"):
+                return True
+    return False
 
 
 def _bind_source(bind_entry: str) -> Optional[str]:
@@ -300,6 +357,32 @@ def check_create_body(raw_body: bytes, policy: CreatePolicy) -> Decision:
     network_mode = str(host_config.get("NetworkMode") or "").lower()
     if network_mode == "host":
         return Decision.deny("NetworkMode=host is not allowed")
+    if network_mode.startswith("container:"):
+        return Decision.deny("NetworkMode=container:<id> (joining another container's network namespace) is not allowed")
+    if network_mode not in _ALLOWED_NETWORK_MODES:
+        return Decision.deny(f"NetworkMode={network_mode!r} is not allowed (only the default bridge or none)")
+
+    # Network attachment at create time (`docker run --network X`,
+    # `docker create --network ...`) arrives as NetworkingConfig.
+    # EndpointsConfig keys. Only the same default/none networks.
+    networking = payload.get("NetworkingConfig") or {}
+    if not isinstance(networking, dict):
+        return Decision.deny("NetworkingConfig must be an object")
+    endpoints = networking.get("EndpointsConfig") or {}
+    if not isinstance(endpoints, dict):
+        return Decision.deny("NetworkingConfig.EndpointsConfig must be an object")
+    for net_name in endpoints:
+        if str(net_name).lower() not in _ALLOWED_NETWORK_MODES:
+            return Decision.deny(f"attaching network {net_name!r} at create time is not allowed (only the default bridge or none)")
+
+    if host_config.get("VolumesFrom"):
+        return Decision.deny(f"VolumesFrom is not allowed (requested: {host_config['VolumesFrom']})")
+
+    if host_config.get("Sysctls"):
+        return Decision.deny("Sysctls is not allowed")
+
+    if str(host_config.get("CgroupnsMode") or "").lower() == "host":
+        return Decision.deny("CgroupnsMode=host is not allowed")
 
     pid_mode = str(host_config.get("PidMode") or "").lower()
     if pid_mode == "host":
@@ -319,6 +402,10 @@ def check_create_body(raw_body: bytes, policy: CreatePolicy) -> Decision:
                     return Decision.deny(
                         f"bind mount source '{src}' is outside the allowed prefixes {policy.allowed_bind_prefixes}"
                     )
+                # Independent of the prefixes: a socket under an allowed
+                # directory, or a symlink to one, is still the daemon.
+                if _reaches_daemon_socket(src, policy.resolve_path):
+                    return Decision.deny(f"bind source '{src}' is or reaches a Docker/containerd socket or daemon state")
             elif not _is_allowed_named_volume(src, policy.allowed_named_volumes):
                 # #54: not a host path (doesn't start with '/') and not
                 # on the exact-match named-volume allowlist either --
@@ -385,6 +472,8 @@ def check_create_body(raw_body: bytes, policy: CreatePolicy) -> Decision:
             return Decision.deny(
                 f"mount source '{src}' is outside the allowed prefixes {policy.allowed_bind_prefixes}"
             )
+        if _reaches_daemon_socket(src, policy.resolve_path):
+            return Decision.deny(f"mount source '{src}' is or reaches a Docker/containerd socket or daemon state")
 
     devices = host_config.get("Devices") or []
     if devices:
