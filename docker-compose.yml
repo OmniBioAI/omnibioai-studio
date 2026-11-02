@@ -809,6 +809,21 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker-real.sock
       - docker-proxy-socket:/var/run/proxy-socket
+      # Read-only, at their host paths, so the daemon-socket check can
+      # resolve symlinks a client planted inside the user-writable allowed
+      # directories (e.g. data/work/x -> /var/run/docker.sock): the daemon
+      # follows them on the host when it performs the bind. data/work is
+      # itself a symlink to WORK_BIND_SOURCE (the NAS), so that target is
+      # mounted at its own path too. The proxy only reads paths here.
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data:ro
+      - type: bind
+        source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        target: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
+        read_only: true
+        bind:
+          create_host_path: false
+      - ${MACHINE_DIR}/omnibioai-workbench:${MACHINE_DIR}/omnibioai-workbench:ro
+      - ${MACHINE_DIR}/omnibioai-tool-images/sif:${MACHINE_DIR}/omnibioai-tool-images/sif:ro
 
   workbench:
     build:

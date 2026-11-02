@@ -247,6 +247,65 @@ class TestAdversarialRequestsAreBlocked:
             _docker(env, "rm", "-f", name)
 
 
+class TestCreateHardeningLive:
+    """VolumesFrom, NetworkMode=container:/named networks, create-time network
+    attachment, Sysctls, CgroupnsMode=host and a symlinked socket bind, sent
+    by the real docker CLI through the real proxy. Nothing is ever started:
+    each request is denied at /containers/create."""
+
+    def _assert_denied(self, result, fragment):
+        assert result.returncode != 0
+        assert "denied" in result.stderr.lower(), result.stderr
+        assert fragment.lower() in result.stderr.lower(), result.stderr
+
+    def test_volumes_from_blocked(self, proxy_env):
+        env, workdir = proxy_env
+        result = _docker(env, "run", "--rm", "--volumes-from", "some-other-container",
+                         "-v", f"{workdir}:/work", "alpine:latest", "true")
+        self._assert_denied(result, "volumesfrom")
+
+    def test_network_container_mode_blocked(self, proxy_env):
+        env, workdir = proxy_env
+        result = _docker(env, "run", "--rm", "--network", "container:some-other-container",
+                         "-v", f"{workdir}:/work", "alpine:latest", "true")
+        self._assert_denied(result, "container")
+
+    def test_named_network_blocked(self, proxy_env):
+        env, workdir = proxy_env
+        result = _docker(env, "run", "--rm", "--network", "some-named-network",
+                         "-v", f"{workdir}:/work", "alpine:latest", "true")
+        self._assert_denied(result, "network")
+
+    def test_sysctl_blocked(self, proxy_env):
+        env, workdir = proxy_env
+        result = _docker(env, "run", "--rm", "--sysctl", "net.ipv4.ip_unprivileged_port_start=0",
+                         "-v", f"{workdir}:/work", "alpine:latest", "true")
+        self._assert_denied(result, "sysctls")
+
+    def test_host_cgroupns_blocked(self, proxy_env):
+        env, workdir = proxy_env
+        result = _docker(env, "run", "--rm", "--cgroupns", "host",
+                         "-v", f"{workdir}:/work", "alpine:latest", "true")
+        self._assert_denied(result, "cgroupnsmode")
+
+    def test_symlink_to_docker_socket_inside_allowed_dir_blocked(self, proxy_env):
+        env, workdir = proxy_env
+        link = Path(workdir) / f"evil-{uuid.uuid4().hex[:8]}"
+        link.symlink_to(REAL_SOCK)
+        try:
+            result = _docker(env, "run", "--rm", "-v", f"{link}:/var/run/docker.sock",
+                             "alpine:latest", "true")
+            self._assert_denied(result, "socket")
+        finally:
+            link.unlink()
+
+    def test_network_none_still_allowed(self, proxy_env):
+        env, workdir = proxy_env
+        result = _docker(env, "run", "--rm", "--network", "none",
+                         "-v", f"{workdir}:/work", "alpine:latest", "true")
+        assert result.returncode == 0, result.stderr
+
+
 class TestConnectionReuseDoesNotCauseIntermittentFailures:
     """Regression test for the bug found while verifying #58's real
     published image (see _force_connection_close() in proxy.py, and
