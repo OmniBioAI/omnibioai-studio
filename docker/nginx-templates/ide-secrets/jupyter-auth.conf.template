@@ -1,0 +1,19 @@
+# Rendered at container start by the nginx image's
+# /docker-entrypoint.d/20-envsubst-on-templates.sh into
+# /etc/nginx/ide-secrets/jupyter-auth.conf (NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+# plus this file's ide-secrets/ subdirectory; the script only creates
+# subdirectories, so the output dir itself must already exist). That is outside
+# conf.d, so nginx never loads it at http level; only `location /jupyter/` in
+# nginx-router.conf includes it. NGINX_ENVSUBST_FILTER limits substitution to
+# the Jupyter token. Never put a literal token in this file.
+
+# Replaces any client-supplied Authorization header: a proxy_set_header for a
+# header means the client's own value is not forwarded.
+proxy_set_header Authorization "token ${JUPYTER_TOKEN}";
+
+# JupyterLab copies the server token into the page config of every Lab page
+# (jupyterlab/labapp.py page_config["token"]). Strip the value from every
+# filtered response so it never reaches the browser; the frontend does not
+# need it because this header authenticates every proxied request, including
+# the kernel WebSocket upgrade.
+sub_filter "${JUPYTER_TOKEN}" "";

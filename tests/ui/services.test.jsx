@@ -98,7 +98,8 @@ describe("Services page", () => {
     render(<Services config={{ mode: "local" }} currentUser={admin} />);
     await waitFor(() => expect(screen.getByText("Open ↗")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Open ↗"));
-    expect(openSpy).toHaveBeenCalledWith(expect.stringContaining("/jupyter/?token="), "_blank");
+    expect(openSpy).toHaveBeenCalledWith("/jupyter/", "_blank");
+    expect(openSpy.mock.calls.flat().join(" ")).not.toMatch(/token/i);
     cleanup();
 
     window.api = {}; // isElectron() true
@@ -107,7 +108,8 @@ describe("Services page", () => {
     render(<Services config={{ mode: "local" }} currentUser={admin} />);
     await waitFor(() => expect(screen.getByText("Open ↗")).toBeInTheDocument());
     fireEvent.click(screen.getByText("Open ↗"));
-    expect(window.electronAPI.openExternal).toHaveBeenCalledWith(expect.stringContaining("192.168.86.234:8888?token="));
+    expect(window.electronAPI.openExternal).toHaveBeenCalledWith("http://192.168.86.234:8888/jupyter/");
+    expect(window.electronAPI.openExternal.mock.calls.flat().join(" ")).not.toMatch(/token/i);
   });
 
   it("restarts a non-IDE service via window.api, and simulates the restart without it", async () => {

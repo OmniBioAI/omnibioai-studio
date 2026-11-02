@@ -1568,6 +1568,15 @@ services:
         target: ${MACHINE_DIR}/work
         bind:
           create_host_path: false
+      # Persistent home: the IDE's default root (/home/jovyan). Without it every
+      # recreate discards whatever users saved there. ~/work in the volume is
+      # a symlink to the mounted NAS work dir above. See the runbook note in
+      # release-candidates/compose.nas-live.yml before any IDE recreate.
+      - jupyter-home:/home/jovyan
+    # Served under /jupyter/ so its HTML, static assets, redirects and API sit
+    # below the prefix the router proxies unchanged (docker/nginx-router.conf).
+    # On the container port it is http://<host>:8888/jupyter/ too.
+    command: ["start-notebook.py", "--ServerApp.base_url=/jupyter/"]
     environment:
       - JUPYTER_TOKEN=${JUPYTER_TOKEN:-omnibioai}
       - GRANT_SUDO=yes
@@ -1589,6 +1598,11 @@ services:
         target: ${MACHINE_DIR}/work
         bind:
           create_host_path: false
+      # Persistent home: the IDE's default root (/home/rstudio). Without it every
+      # recreate discards whatever users saved there. ~/work in the volume is
+      # a symlink to the mounted NAS work dir above. See the runbook note in
+      # release-candidates/compose.nas-live.yml before any IDE recreate.
+      - rstudio-home:/home/rstudio
     environment:
       - PASSWORD=${RSTUDIO_PASSWORD:-omnibioai}
       - ROOT=TRUE
@@ -1610,6 +1624,11 @@ services:
         target: ${MACHINE_DIR}/work
         bind:
           create_host_path: false
+      # Persistent home: the IDE's default root (/home/coder). Without it every
+      # recreate discards whatever users saved there. ~/work in the volume is
+      # a symlink to the mounted NAS work dir above. See the runbook note in
+      # release-candidates/compose.nas-live.yml before any IDE recreate.
+      - vscode-home:/home/coder
     environment:
       - PASSWORD=${VSCODE_PASSWORD:-omnibioai}
     restart: unless-stopped
@@ -2261,6 +2280,15 @@ services:
       - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
       - ${MACHINE_DIR}/omnibioai-docs:/docs:ro
       - ./docker/static:/etc/nginx/omni-static:ro
+      # Templates rendered at start into /etc/nginx/ide-secrets/ (not
+      # conf.d/), included only by location /jupyter/.
+      - ./docker/nginx-templates:/etc/nginx/templates:ro
+    environment:
+      # Injected server-side as the Authorization header on /jupyter/ only;
+      # never sent to browsers. Must match the jupyter service's token.
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:?JUPYTER_TOKEN is required for the router's /jupyter/ token injection}
+      NGINX_ENVSUBST_FILTER: "^JUPYTER_TOKEN$$"
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
     depends_on:
       - workbench
       - web-ui
@@ -2306,6 +2334,11 @@ volumes:
   # lib/manifest-store.js). Without it, GET /v1/workspaces/:id/manifest
   # 404s after every launcher restart.
   launcher-state:
+  # IDE homes (jupyter, rstudio, vscode): survive recreates. Seeded from the
+  # running container's home before first use, not from the image.
+  jupyter-home:
+  rstudio-home:
+  vscode-home:
   mysql_data:
   redis_data:
   ollama_data:
