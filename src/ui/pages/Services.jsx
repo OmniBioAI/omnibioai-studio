@@ -16,14 +16,6 @@ function getHostIp() {
   );
 }
 
-function getJupyterToken() {
-  return (
-    window.__OMNIBIOAI_CONFIG__?.jupyterToken ||
-    localStorage.getItem("omnibioai_jupyter_token") ||
-    "devtoken"
-  );
-}
-
 function openUrl(url) {
   if (window.electronAPI?.openExternal) {
     window.electronAPI.openExternal(url);
@@ -327,17 +319,19 @@ function ServicesConsole({ config }) {
                                 <button
                                   onClick={() => {
                                     let url;
+                                    // No IDE credential ever goes into a URL. The web
+                                    // build opens the router's same-origin /jupyter/,
+                                    // /rstudio/ and /vscode/ locations, which gate on the
+                                    // Studio session and (for Jupyter) add the token
+                                    // server-side. Electron opens the container port
+                                    // directly, where Jupyter serves under its
+                                    // base_url /jupyter/ and shows its own login.
                                     if (isElectron()) {
                                       url = s.key === "jupyter"
-                                        ? `http://${getHostIp()}:${s.port}?token=${getJupyterToken()}`
+                                        ? `http://${getHostIp()}:${s.port}/jupyter/`
                                         : `http://${getHostIp()}:${s.port}`;
                                     } else {
-                                      // Web build — same-origin, nginx-router-proxied
-                                      // path (docker/nginx-router.conf's /jupyter/,
-                                      // /rstudio/, /vscode/ locations).
-                                      url = s.key === "jupyter"
-                                        ? `/jupyter/?token=${getJupyterToken()}`
-                                        : `/${s.key}/`;
+                                      url = `/${s.key}/`;
                                     }
                                     openUrl(url);
                                   }}

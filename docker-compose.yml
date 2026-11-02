@@ -1568,6 +1568,10 @@ services:
         target: ${MACHINE_DIR}/work
         bind:
           create_host_path: false
+    # Served under /jupyter/ so its HTML, static assets, redirects and API sit
+    # below the prefix the router proxies unchanged (docker/nginx-router.conf).
+    # On the container port it is http://<host>:8888/jupyter/ too.
+    command: ["start-notebook.py", "--ServerApp.base_url=/jupyter/"]
     environment:
       - JUPYTER_TOKEN=${JUPYTER_TOKEN:-omnibioai}
       - GRANT_SUDO=yes
@@ -2261,6 +2265,15 @@ services:
       - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
       - ${MACHINE_DIR}/omnibioai-docs:/docs:ro
       - ./docker/static:/etc/nginx/omni-static:ro
+      # Templates rendered at start into /etc/nginx/ide-secrets/ (not
+      # conf.d/), included only by location /jupyter/.
+      - ./docker/nginx-templates:/etc/nginx/templates:ro
+    environment:
+      # Injected server-side as the Authorization header on /jupyter/ only;
+      # never sent to browsers. Must match the jupyter service's token.
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:?JUPYTER_TOKEN is required for the router's /jupyter/ token injection}
+      NGINX_ENVSUBST_FILTER: "^JUPYTER_TOKEN$$"
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
     depends_on:
       - workbench
       - web-ui
