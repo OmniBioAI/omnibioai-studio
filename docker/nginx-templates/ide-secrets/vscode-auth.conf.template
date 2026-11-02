@@ -1,0 +1,13 @@
+# Rendered at container start by the nginx image's envsubst step into
+# /etc/nginx/ide-secrets/vscode-auth.conf (outside conf.d); only
+# `location /vscode/` in nginx-router.conf includes it. Never put a literal
+# value in this file.
+#
+# VSCODE_SESSION_COOKIE is a URL-encoded argon2id hash of VSCODE_PASSWORD,
+# generated once at deploy time with code-server's own argon2 (see the PR /
+# runbook). code-server (PASSWORD mode) accepts any argon2 hash of its
+# password as the code-server-session cookie, so this stays valid until the
+# password changes. It is password-equivalent: treat it as a secret. Moves to
+# the secret-file/tmpfs mechanism of Studio PR #227 together with the Jupyter
+# token.
+set $vscode_session_cookie "${VSCODE_SESSION_COOKIE}";

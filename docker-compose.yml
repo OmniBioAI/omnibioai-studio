@@ -2302,7 +2302,11 @@ services:
       # Injected server-side as the Authorization header on /jupyter/ only;
       # never sent to browsers. Must match the jupyter service's token.
       JUPYTER_TOKEN: ${JUPYTER_TOKEN:?JUPYTER_TOKEN is required for the router's /jupyter/ token injection}
-      NGINX_ENVSUBST_FILTER: "^JUPYTER_TOKEN$$"
+      # URL-encoded argon2id hash of VSCODE_PASSWORD, injected as the
+      # code-server-session cookie on /vscode/ only; never sent to browsers.
+      # Optional: unset means code-server keeps showing its own login.
+      VSCODE_SESSION_COOKIE: ${VSCODE_SESSION_COOKIE:-}
+      NGINX_ENVSUBST_FILTER: "^(JUPYTER_TOKEN|VSCODE_SESSION_COOKIE)$$"
       NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
     depends_on:
       - workbench
