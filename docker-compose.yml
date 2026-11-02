@@ -1577,8 +1577,13 @@ services:
     # below the prefix the router proxies unchanged (docker/nginx-router.conf).
     # On the container port it is http://<host>:8888/jupyter/ too.
     command: ["start-notebook.py", "--ServerApp.base_url=/jupyter/"]
+    # The token comes from the jupyter_token secret file, read natively by
+    # jupyter_server (IdentityProvider: JUPYTER_TOKEN_FILE), so it is in no
+    # container environment and `docker inspect` never shows it.
+    secrets:
+      - jupyter_token
     environment:
-      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-omnibioai}
+      - JUPYTER_TOKEN_FILE=/run/secrets/jupyter_token
       - GRANT_SUDO=yes
     restart: unless-stopped
     depends_on:
@@ -2280,15 +2285,18 @@ services:
       - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
       - ${MACHINE_DIR}/omnibioai-docs:/docs:ro
       - ./docker/static:/etc/nginx/omni-static:ro
-      # Templates rendered at start into /etc/nginx/ide-secrets/ (not
-      # conf.d/), included only by location /jupyter/.
-      - ./docker/nginx-templates:/etc/nginx/templates:ro
-    environment:
-      # Injected server-side as the Authorization header on /jupyter/ only;
-      # never sent to browsers. Must match the jupyter service's token.
-      JUPYTER_TOKEN: ${JUPYTER_TOKEN:?JUPYTER_TOKEN is required for the router's /jupyter/ token injection}
-      NGINX_ENVSUBST_FILTER: "^JUPYTER_TOKEN$$"
-      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+      # /jupyter/ token injection: the template plus the entrypoint step that
+      # renders it from the jupyter_token secret into the ide-secrets tmpfs
+      # below. Not /etc/nginx/templates, so the image's envsubst ignores it.
+      - ./docker/nginx-templates:/etc/nginx/ide-templates:ro
+      - ./docker/nginx-entrypoint.d/15-render-jupyter-auth.sh:/docker-entrypoint.d/15-render-jupyter-auth.sh:ro
+    # Same file as the jupyter service's token. Injected as the Authorization
+    # header on /jupyter/ only; never sent to browsers, never in the env.
+    secrets:
+      - jupyter_token
+    # Rendered include lives in memory only: not in the writable layer.
+    tmpfs:
+      - /etc/nginx/ide-secrets:mode=0700,size=64k
     depends_on:
       - workbench
       - web-ui
@@ -2317,6 +2325,11 @@ services:
     restart: unless-stopped
 
 secrets:
+  # Jupyter token for the jupyter service (JUPYTER_TOKEN_FILE) and the router's
+  # /jupyter/ Authorization header. One line, no trailing newline, mode 0600,
+  # owner uid 1000 (jupyter runs as jovyan): see the deploy steps in the PR.
+  jupyter_token:
+    file: ./.secrets/jupyter_token
   devhub_internal_proxy_secret:
     # Owner 10001:10001, mode 0400 on the host (dev-hub refuses anything else).
     file: /etc/omnibioai/runtime-secrets/devhub_internal_proxy_secret

@@ -114,6 +114,25 @@ check_not_empty "STRIPE_SECRET_KEY"
 check_not_empty "STRIPE_WEBHOOK_SECRET"
 check_not_empty "BILLING_WEB_BASE_URL"
 
+# Jupyter's token is a compose secret file (docker-compose.yml: secrets:
+# jupyter_token), read by the jupyter service (JUPYTER_TOKEN_FILE) and by the
+# router's /jupyter/ injection. jupyter_server reads it verbatim, so a trailing
+# newline would become part of the token.
+JUPYTER_TOKEN_SECRET="$(dirname "${ENV_FILE}")/.secrets/jupyter_token"
+if [[ ! -s "$JUPYTER_TOKEN_SECRET" ]]; then
+  echo "[ERROR] ${JUPYTER_TOKEN_SECRET} is missing or empty"
+  ERRORS=$((ERRORS + 1))
+elif [[ "$(tail -c 1 "$JUPYTER_TOKEN_SECRET" | od -An -c | tr -d ' ')" == '\n' ]]; then
+  echo "[ERROR] ${JUPYTER_TOKEN_SECRET} ends with a newline (write it with printf '%s')"
+  ERRORS=$((ERRORS + 1))
+elif ! grep -qxE '[A-Za-z0-9._~-]+' "$JUPYTER_TOKEN_SECRET"; then
+  echo "[ERROR] ${JUPYTER_TOKEN_SECRET} must be one line of [A-Za-z0-9._~-]"
+  ERRORS=$((ERRORS + 1))
+elif [[ "$(stat -c %a "$JUPYTER_TOKEN_SECRET")" != 600 ]]; then
+  echo "[ERROR] ${JUPYTER_TOKEN_SECRET} must be mode 0600"
+  ERRORS=$((ERRORS + 1))
+fi
+
 if [[ "$ERRORS" -gt 0 ]]; then
   echo ""
   echo "[FAIL] ${ERRORS} secret(s) need to be changed before running in production."
