@@ -21,6 +21,7 @@
 
 x-managed-storage-environment: &managed-storage-environment
   FTM_LOCAL_ROOT: /data/managed
+  TENANTS_ROOT: /mnt/nas/omnibioai/tenants
   STORAGE_BACKEND_IDENTITY_CHECKS: "true"
   STORAGE_PHYSICAL_CAPACITY_CHECKS: "true"
   STORAGE_EXPECTED_FS_UUID: ${MANAGED_STORAGE_FS_UUID:?MANAGED_STORAGE_FS_UUID must be set (run scripts/managed_storage_preflight.py)}
@@ -36,12 +37,21 @@ x-managed-storage-volume: &managed-storage-volume
   bind:
     create_host_path: false
 
+x-tenants-volume: &tenants-volume
+  type: bind
+  source: ${TENANTS_ROOT:-/mnt/nas/omnibioai/tenants}
+  target: /mnt/nas/omnibioai/tenants
+  bind:
+    create_host_path: false
+
 services:
   workbench:
     environment: *managed-storage-environment
     volumes:
       - *managed-storage-volume
+      - *tenants-volume
   celery-worker:
     environment: *managed-storage-environment
     volumes:
       - *managed-storage-volume
+      - *tenants-volume

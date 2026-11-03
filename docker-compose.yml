@@ -434,6 +434,8 @@ services:
       # success_url/cancel_url/return_url server-side -- never supplied by
       # the client. e.g. https://webstudio.omnibioai.org
       BILLING_WEB_BASE_URL: ${BILLING_WEB_BASE_URL:-}
+      TENANT_PROVISIONING_SERVICE_TOKEN: ${TENANT_PROVISIONING_SERVICE_TOKEN:-}
+      WORKBENCH_INTERNAL_URL: http://workbench:8000
     depends_on:
       mysql:
         condition: service_healthy
@@ -624,7 +626,7 @@ services:
       RAG_QUERY_TIMEOUT: "300"
       RAG_LLM_TIMEOUT: "300"
       NCBI_EMAIL: ${NCBI_EMAIL}
-      NCBI_API_KEY: ${NCBI_API_KEY}
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
       RAG_DATA_DIR: /workspace/data/PubMed
       FAISS_INDEX_DIR: /workspace/data/Index
       RAG_EMBEDDING_PROVIDER: sentence_transformers
@@ -887,6 +889,10 @@ services:
       STORAGE_BILLING_URL: http://billing-service:8005
       STORAGE_QUOTA_MODE: ${STORAGE_QUOTA_MODE:-audit}
       STORAGE_QUOTA_BASELINE_VERIFIED: ${STORAGE_QUOTA_BASELINE_VERIFIED:-false}
+      TENANTS_ROOT: ${TENANTS_ROOT:-/mnt/nas/omnibioai/tenants}
+      TENANT_UID: ${TENANT_UID:-}
+      TENANT_GID: ${TENANT_GID:-}
+      TENANT_PROVISIONING_SERVICE_TOKEN: ${TENANT_PROVISIONING_SERVICE_TOKEN:-}
       # Shared internal authentication for Auth provider-policy lookup and
       # Workbench credential-reference resolution. Required, independent of
       # browser JWTs, provider credentials, and CONFIG_ENCRYPTION_KEY.
@@ -1873,6 +1879,9 @@ services:
       # time on its internal resolver and supplies it to Workbench's internal
       # provider-policy endpoint; neither endpoint permits an empty value.
       INTEGRATION_CREDENTIAL_SERVICE_SECRET: ${INTEGRATION_CREDENTIAL_SERVICE_SECRET:?INTEGRATION_CREDENTIAL_SERVICE_SECRET must be set}
+      WORKBENCH_SERVICE_URL: http://workbench:8000
+      BILLING_SERVICE_URL: http://billing-service:8005
+      TENANT_PROVISIONING_SERVICE_TOKEN: ${TENANT_PROVISIONING_SERVICE_TOKEN:-}
 
       # OAuth2 SSO — optional; empty values keep SSO disabled without blocking startup.
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
