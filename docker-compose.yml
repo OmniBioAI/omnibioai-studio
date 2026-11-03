@@ -1612,7 +1612,8 @@ services:
     networks:
       - ide-rstudio
     volumes:
-      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
+      # Read-only: sample data and registries to read. Users write to ~/work.
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data:ro
       # Bind the physical 26 TB path; the repository's work entry is a symlink.
       - type: bind
         source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
