@@ -1603,10 +1603,17 @@ services:
   rstudio:
     image: ghcr.io/omnibioai/omnibioai-rstudio:1.0
     container_name: omnibioai-rstudio
-    ports:
-      - "127.0.0.1:8787:8787"
+    # No published port and only the ide-rstudio network: nginx-router is the
+    # one container that can reach rstudio:8787, so its /rstudio/ gate
+    # (workspace.launch) is the only way in. RStudio's own login is off
+    # (DISABLE_AUTH below). ide-rstudio is a plain bridge, so package
+    # installs (CRAN/p3m, Bioconductor) still reach the internet. Control
+    # Center checks it through the router's /internal/ide-health/rstudio.
+    networks:
+      - ide-rstudio
     volumes:
-      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data
+      # Read-only: sample data and registries to read. Users write to ~/work.
+      - ${MACHINE_DIR}/data:${MACHINE_DIR}/data:ro
       # Bind the physical 26 TB path; the repository's work entry is a symlink.
       - type: bind
         source: ${WORK_BIND_SOURCE:-/mnt/wdpro26tb/omnibioai/work}
@@ -1619,8 +1626,13 @@ services:
       # release-candidates/compose.nas-live.yml before any IDE recreate.
       - rstudio-home:/home/rstudio
     environment:
-      - PASSWORD=${RSTUDIO_PASSWORD:-omnibioai}
-      - ROOT=TRUE
+      # rocker: copies auth-none=1 into rserver.conf and runs the session as
+      # the rstudio user. No PASSWORD: nothing reads it once auth is off.
+      - DISABLE_AUTH=true
+      # No sudo for the rstudio user, so no apt-get from a session: an
+      # unauthenticated IDE must not be root inside its container. System
+      # libraries go into the image (omnibioai-launcher docker/rstudio/Dockerfile).
+      - ROOT=FALSE
     restart: unless-stopped
     depends_on:
       workbench:
@@ -2291,6 +2303,10 @@ services:
     image: nginx:latest
     ports:
       - "127.0.0.1:80:80"
+    # ide-rstudio: the router is rstudio's only peer (see the rstudio service).
+    networks:
+      - default
+      - ide-rstudio
     volumes:
       - ./docker/nginx-router.conf:/etc/nginx/conf.d/default.conf:ro
       - ${MACHINE_DIR}/omnibioai-docs:/docs:ro
@@ -2334,6 +2350,12 @@ services:
       - cadvisor
       - redis-exporter
     restart: unless-stopped
+
+networks:
+  # nginx-router and rstudio only. A plain bridge (not internal), so RStudio
+  # keeps internet egress for package installs; the other services on
+  # default cannot reach rstudio:8787.
+  ide-rstudio:
 
 secrets:
   devhub_internal_proxy_secret:

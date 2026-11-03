@@ -137,13 +137,36 @@ def test_datastore_still_reachable_internally(release_compose, service):
 
 
 
-def test_active_rstudio_not_publicly_bound():
-    """The active production compose routes /rstudio/ through nginx over the
-    Docker network (rstudio:8787), so the direct host publication must not
-    listen on every interface."""
+def test_active_rstudio_not_published():
+    """RStudio runs without its own login, so the router's /rstudio/ gate must
+    be the only way in: no host publication at all."""
     compose = _load(DEV_COMPOSE)
-    ports = compose["services"]["rstudio"].get("ports") or []
-    assert ports == ["127.0.0.1:8787:8787"]
+    assert not compose["services"]["rstudio"].get("ports")
+
+
+def test_active_rstudio_reachable_only_through_the_router():
+    """rstudio is on ide-rstudio alone, and nginx-router is the only other
+    service there; nothing on default can reach rstudio:8787."""
+    services = _load(DEV_COMPOSE)["services"]
+    assert services["rstudio"].get("networks") == ["ide-rstudio"]
+    on_ide = sorted(
+        name for name, svc in services.items() if "ide-rstudio" in (svc.get("networks") or [])
+    )
+    assert on_ide == ["nginx-router", "rstudio"]
+
+
+def test_active_rstudio_has_no_login_and_no_sudo():
+    """With auth off, the session must not be root (ROOT=FALSE), and no
+    password is left in its environment."""
+    env = _load(DEV_COMPOSE)["services"]["rstudio"]["environment"]
+    assert "DISABLE_AUTH=true" in env
+    assert "ROOT=FALSE" in env
+    assert not any(e.startswith("PASSWORD=") for e in env)
+
+
+def test_active_rstudio_data_mount_is_read_only():
+    volumes = _load(DEV_COMPOSE)["services"]["rstudio"]["volumes"]
+    assert "${MACHINE_DIR}/data:${MACHINE_DIR}/data:ro" in volumes
 
 
 def test_active_vscode_not_publicly_bound():
