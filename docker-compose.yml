@@ -1619,7 +1619,7 @@ services:
       # release-candidates/compose.nas-live.yml before any IDE recreate.
       - rstudio-home:/home/rstudio
     environment:
-      - PASSWORD=${RSTUDIO_PASSWORD:-omnibioai}
+      - PASSWORD=${RSTUDIO_PASSWORD:?RSTUDIO_PASSWORD must be set}
       - ROOT=TRUE
     restart: unless-stopped
     depends_on:
