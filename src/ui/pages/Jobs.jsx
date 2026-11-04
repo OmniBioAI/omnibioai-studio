@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { isElectron, getToken } from "../lib/session";
+import { isElectron, getToken, refresh } from "../lib/session";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 import { safeErrorMessage } from "../lib/safeErrorMessage";
 import PageHeader from "../components/PageHeader";
@@ -20,22 +20,35 @@ function tesUrl(path) {
   return isElectron() ? `http://${getHost()}:8081${path}` : `/_tes${path}`;
 }
 
+let tesRefreshInFlight = null;
+
+async function refreshTesSession() {
+  if (!tesRefreshInFlight) {
+    tesRefreshInFlight = refresh().finally(() => { tesRefreshInFlight = null; });
+  }
+  return tesRefreshInFlight;
+}
+
 async function apiFetch(path, opts = {}) {
   // TES's own auth middleware requires a bearer token ({"detail":"missing
   // bearer token"} on :8081) -- this fetch() is a normal same-origin XHR,
   // not an iframe navigation (unlike RAG/Control Center), so it's fully
   // able to attach a real header itself instead of relying on nginx to
   // synthesize one from a cookie. Same pattern as rolesApi.js's request().
-  const token = getToken();
-  const res = await fetch(tesUrl(path), {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts.headers || {}),
-    },
-    signal: opts.signal || AbortSignal.timeout(10000),
-  });
+  const send = () => {
+    const token = getToken();
+    return fetch(tesUrl(path), {
+      ...opts,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(opts.headers || {}),
+      },
+      signal: opts.signal || AbortSignal.timeout(10000),
+    });
+  };
+  let res = await send();
+  if (res.status === 401 && await refreshTesSession()) res = await send();
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`${res.status} ${res.statusText}: ${text}`);

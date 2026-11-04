@@ -2,11 +2,12 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { isElectron, getToken } = vi.hoisted(() => ({
+const { isElectron, getToken, refresh } = vi.hoisted(() => ({
   isElectron: vi.fn(() => false),
   getToken: vi.fn(() => "tok"),
+  refresh: vi.fn(),
 }));
-vi.mock("../../src/ui/lib/session", () => ({ isElectron, getToken }));
+vi.mock("../../src/ui/lib/session", () => ({ isElectron, getToken, refresh }));
 
 import Jobs from "../../src/ui/pages/Jobs";
 
@@ -39,6 +40,8 @@ function mockFetchByPath(handlers) {
 beforeEach(() => {
   isElectron.mockReturnValue(false);
   getToken.mockReturnValue("tok");
+  refresh.mockReset();
+  refresh.mockResolvedValue(null);
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
@@ -75,6 +78,50 @@ describe("Jobs page", () => {
     expect(screen.queryByText(/boom|500 Server Error/)).not.toBeInTheDocument();
     expect(screen.getByText("No servers configured")).toBeInTheDocument();
     expect(screen.getByText("No tools registered")).toBeInTheDocument();
+  });
+
+  it("refreshes once and retries a TES request once after a 401", async () => {
+    let runsCalls = 0;
+    getToken.mockImplementation(() => runsCalls >= 1 ? "new-token" : "old-token");
+    refresh.mockResolvedValue("new-token");
+    const fetchMock = vi.fn((url, options) => {
+      if (String(url).endsWith("/api/runs")) {
+        runsCalls += 1;
+        return Promise.resolve(runsCalls === 1 ? jsonRes({}, 401) : jsonRes([]));
+      }
+      if (String(url).endsWith("/api/tools") || String(url).endsWith("/api/servers")) {
+        return Promise.resolve(jsonRes([]));
+      }
+      return Promise.reject(new Error(`unhandled fetch: ${url}`));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<Jobs />);
+
+    await waitFor(() => expect(screen.getByText("No runs yet — submit one above")).toBeInTheDocument());
+    expect(refresh).toHaveBeenCalledOnce();
+    const runRequests = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/runs"));
+    expect(runRequests).toHaveLength(2);
+    expect(runRequests[0][1].headers.Authorization).toBe("Bearer old-token");
+    expect(runRequests[1][1].headers.Authorization).toBe("Bearer new-token");
+  });
+
+  it("fails after the retried TES request also returns 401", async () => {
+    refresh.mockResolvedValue("new-token");
+    const fetchMock = vi.fn((url) => {
+      if (String(url).endsWith("/api/runs")) return Promise.resolve(jsonRes({}, 401));
+      if (String(url).endsWith("/api/tools") || String(url).endsWith("/api/servers")) {
+        return Promise.resolve(jsonRes([]));
+      }
+      return Promise.reject(new Error(`unhandled fetch: ${url}`));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<Jobs />);
+
+    await waitFor(() => expect(screen.getByText("Could not load jobs. Please try again.")).toBeInTheDocument());
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/runs"))).toHaveLength(2);
   });
 
   it("contains malformed list responses instead of crashing the route", async () => {
