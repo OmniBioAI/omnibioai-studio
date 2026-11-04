@@ -51,3 +51,5 @@ docker-compose.mac-local.yml
 
 coverage.json
 .env.bak
+.env.bak*
+.env.*.bak*
