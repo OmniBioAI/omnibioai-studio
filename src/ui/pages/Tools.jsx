@@ -7,6 +7,11 @@ import "./NavigationRedesign.css";
 export const TOOL_CATEGORIES = ["QC", "Assembly", "Nanopore", "Single-cell", "RNA-seq", "Epigenomics", "Annotation", "More"];
 export const TOOL_BACKENDS = ["Any", "HTTP", "Slurm", "Cloud", "Kubernetes"];
 
+export function toolRunsTemporarilyUnavailable(config = globalThis.window?.__OMNIBIOAI_CONFIG__) {
+  const value = config?.toolRunsTemporarilyUnavailable;
+  return value === true || value === "true";
+}
+
 const CATEGORY_RULES = [
   ["QC", /quality|qc|fastqc|multiqc/], ["Assembly", /assembl/], ["Nanopore", /nanopore|ont/],
   ["Single-cell", /single.?cell|scrna/], ["RNA-seq", /rna.?seq|transcript/],
@@ -45,6 +50,8 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
   const [backend, setBackend] = useState("Any");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
+  const showUnavailableNotice = toolRunsTemporarilyUnavailable() && !noticeDismissed;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -64,6 +71,10 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
 
   return <section className="tools-page">
     <PageHeader title="Tools" description="Browse and run tools registered with TES" />
+    {showUnavailableNotice && <div className="tools-availability-notice" role="status">
+      <span>Tool runs are temporarily unavailable</span>
+      <button type="button" onClick={() => setNoticeDismissed(true)} aria-label="Dismiss tool availability notice">Dismiss</button>
+    </div>}
     <label className="tools-search">Search tools<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search tools…" /></label>
     <div className="tool-filter-block"><h2>Category</h2><div role="group" aria-label="Tool categories" className="tool-filter-row">
       {["All", ...TOOL_CATEGORIES].map(value => <button key={value} type="button" aria-pressed={category === value} onClick={() => setCategory(value)}>{value}</button>)}

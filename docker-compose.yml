@@ -2305,6 +2305,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+    environment:
+      OMNIBIOAI_TOOL_RUNS_TEMPORARILY_UNAVAILABLE: ${OMNIBIOAI_TOOL_RUNS_TEMPORARILY_UNAVAILABLE:-true}
     # image: ghcr.io/omnibioai/omnibioai-web:latest
     restart: unless-stopped
 

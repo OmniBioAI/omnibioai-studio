@@ -100,7 +100,8 @@ function startPackagedUiServer(root, { host = "127.0.0.1", port = 5174, csp, run
     if (request.method === "HEAD") {
       response.end();
     } else if (filePath === indexPath) {
-      const html = fs.readFileSync(indexPath, "utf8").replace(
+      const source = fs.readFileSync(indexPath, "utf8");
+      const html = source.includes('/__studio-runtime-config.js') ? source : source.replace(
         /<\/head>/i,
         '<script src="/__studio-runtime-config.js"></script></head>'
       );

@@ -2,6 +2,8 @@ import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../../src/ui/lib/tesApi", () => ({ tesApiFetch: vi.fn().mockResolvedValue([]) }));
+
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>General settings content</div> }));
 vi.mock("../../src/ui/pages/Mode", () => ({ default: () => <div>Mode settings content</div> }));
 vi.mock("../../src/ui/pages/LLM", () => ({ default: () => <div>LLM settings content</div> }));
@@ -12,10 +14,13 @@ import { buildNav } from "../../src/ui/App";
 import { ALL_SERVICES } from "../../src/ui/pages/AllServices";
 import SettingsHub from "../../src/ui/pages/SettingsHub";
 import { categoriesForDiscoveryView } from "../../src/ui/pages/Workbench";
-import { toolPresentation } from "../../src/ui/pages/Tools";
+import Tools, { toolPresentation, toolRunsTemporarilyUnavailable } from "../../src/ui/pages/Tools";
 import { pluginsIntegrationsView } from "../../src/ui/pages/PluginsIntegrations";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  delete window.__OMNIBIOAI_CONFIG__;
+});
 
 describe("redesigned Studio navigation", () => {
   it("hides Admin for users without an admin capability", () => {
@@ -64,5 +69,20 @@ describe("redesigned Studio navigation", () => {
   it("derives the approved tool category and plain-text runtime labels from TES metadata", () => {
     expect(toolPresentation({ tool_id: "fastqc", description: "Read quality control", tags: ["qc"], backends: ["slurm", "aws"] }))
       .toMatchObject({ category: "QC", backends: ["Slurm", "Cloud"] });
+  });
+
+  it("shows and dismisses the runtime-configured tool availability notice", () => {
+    window.__OMNIBIOAI_CONFIG__ = { toolRunsTemporarilyUnavailable: true };
+    expect(toolRunsTemporarilyUnavailable()).toBe(true);
+    render(<Tools />);
+    expect(screen.getByText("Tool runs are temporarily unavailable")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss tool availability notice" }));
+    expect(screen.queryByText("Tool runs are temporarily unavailable")).not.toBeInTheDocument();
+  });
+
+  it("keeps the availability notice hidden when the runtime flag is off", () => {
+    window.__OMNIBIOAI_CONFIG__ = { toolRunsTemporarilyUnavailable: false };
+    render(<Tools />);
+    expect(screen.queryByText("Tool runs are temporarily unavailable")).not.toBeInTheDocument();
   });
 });
