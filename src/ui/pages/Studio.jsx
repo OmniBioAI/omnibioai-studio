@@ -126,7 +126,7 @@ function buildCategories(BASE) {
       color: "var(--color-status-danger)",
       links: [
         { label:"API Gateway",      url:"/_svc/gateway/docs",        icon:"🔐", desc:"Entry point · JWT enforcement"    },
-        { label:"Auth Service",     url:"/_svc/auth/docs",           icon:"🪪", desc:"JWT · Login · Register"           },
+        { label:"Auth Service",     url:"/_svc/auth/health",         icon:"🪪", desc:"JWT · Login · Register"           },
         { label:"Policy Engine",    url:"/_svc/policy/docs",         icon:"📋", desc:"RBAC · ABAC decisions"            },
         { label:"HPC Policy",       url:"/_svc/hpc/",                icon:"⚡", desc:"GPU/CPU quota governance"         },
         { label:"Security Audit",   url:"/_svc/audit/docs",          icon:"📝", desc:"Redis Streams audit log"          },
@@ -160,10 +160,10 @@ function buildCategories(BASE) {
       name: "Core Platform",
       color: "var(--accent)",
       links: [
-        workbenchPluginLink("Genome Viewer", "genome_viewer", "👁️", "Inspect genomic features"),
+        workbenchPluginLink("Genome Viewer", "genome_viewer", "🧬", "Inspect genomic features"),
         workbenchPluginLink("Dataset Catalog", "dataset_catalog", "🗂️", "Browse governed datasets"),
-        workbenchPluginLink("Job Monitor", "job_monitor", "📊", "Monitor jobs"),
-        workbenchPluginLink("Plugin Manager", "plugin_manager", "🔌", "Manage plugins"),
+        workbenchPluginLink("Data Manager", "data_manager", "🗄️", "Upload and manage data"),
+        workbenchPluginLink("Dataset Ingest", "dataset_ingest", "📥", "Import datasets"),
         workbenchPluginLink("Activity Explorer", "audit_log", "📜", "Explore governed platform activity"),
         workbenchPluginLink("Workflow Runner", "workflow_runner", "⚡", "Run workflows"),
       ]
