@@ -57,7 +57,7 @@ export const CENTURY_PLUGIN_GROUPS = Object.freeze([
   ]),
 
   workflowGroup("Genomics Tools", "var(--accent-platform)", "Genomics tools", [
-    ["genome_viewer", "Genome Viewer", "👁️", "Inspect genomic features", "generic_runner"],
+    ["genome_viewer", "Genome Viewer", "🧬", "Inspect genomic features", "generic_runner"],
     ["network_analysis", "Network Analysis", "🕸️", "Analyze biological networks", "generic_runner"],
     ["object_transform", "Object Transform", "🔄", "Transform governed objects", "generic_runner"],
     ["omnilink_e2t", "Enhancer-to-Target", "🔗", "Map enhancers to targets", "generic_runner"],

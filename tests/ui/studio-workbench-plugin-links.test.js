@@ -6,7 +6,7 @@ import { NEXT_CENTURY_PLUGIN_SLUGS } from "../../src/ui/components/workbench/Nex
 import { FINAL_PLUGIN_SLUGS } from "../../src/ui/components/workbench/FinalPluginRenderers";
 
 const linkedPlugins = [
-  "onboardai", "genome_viewer", "dataset_catalog", "job_monitor", "plugin_manager", "audit_log",
+  "onboardai", "genome_viewer", "dataset_catalog", "audit_log",
   "workflow_runner", "workflow_builder", "agent_workflow_studio", "pipeline_dashboard",
   "multi_agent_bio_orchestrator", "workflow_compiler", "rnaseq_analysis", "single_cell_analysis",
   "exome_analysis", "fastq_qc", "proteomics", "metabolomics_importer",

@@ -160,10 +160,10 @@ function buildCategories(BASE) {
       name: "Core Platform",
       color: "var(--accent)",
       links: [
-        workbenchPluginLink("Genome Viewer", "genome_viewer", "👁️", "Inspect genomic features"),
+        workbenchPluginLink("Genome Viewer", "genome_viewer", "🧬", "Inspect genomic features"),
         workbenchPluginLink("Dataset Catalog", "dataset_catalog", "🗂️", "Browse governed datasets"),
-        workbenchPluginLink("Job Monitor", "job_monitor", "📊", "Monitor jobs"),
-        workbenchPluginLink("Plugin Manager", "plugin_manager", "🔌", "Manage plugins"),
+        workbenchPluginLink("Data Manager", "data_manager", "🗄️", "Upload and manage data"),
+        workbenchPluginLink("Dataset Ingest", "dataset_ingest", "📥", "Import datasets"),
         workbenchPluginLink("Activity Explorer", "audit_log", "📜", "Explore governed platform activity"),
         workbenchPluginLink("Workflow Runner", "workflow_runner", "⚡", "Run workflows"),
       ]

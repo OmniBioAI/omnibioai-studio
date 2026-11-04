@@ -327,8 +327,8 @@ from users who do not have access; the owning service still enforces access on
 every request.
 
 The Core Platform section is intentionally a short set of six frequently used
-Workbench tools: **Genome Viewer**, **Dataset Catalog**, **Job Monitor**,
-**Plugin Manager**, **Activity Explorer**, and **Workflow Runner**. It is a
+Workbench tools: **Genome Viewer**, **Dataset Catalog**, **Data Manager**,
+**Dataset Ingest**, **Activity Explorer**, and **Workflow Runner**. It is a
 curated launch area, not the full plugin catalog.
 
 ### Discover

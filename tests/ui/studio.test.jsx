@@ -52,10 +52,10 @@ describe("Studio portal", () => {
     const coreSection = screen.getByText("Core Platform").parentElement.parentElement;
     expect(within(coreSection).getByText("6 modules")).toBeInTheDocument();
     expect(within(coreSection).getAllByRole("button").map(button => button.textContent)).toEqual([
-      "👁️Genome ViewerInspect genomic features",
+      "🧬Genome ViewerInspect genomic features",
       "🗂️Dataset CatalogBrowse governed datasets",
-      "📊Job MonitorMonitor jobs",
-      "🔌Plugin ManagerManage plugins",
+      "🗄️Data ManagerUpload and manage data",
+      "📥Dataset IngestImport datasets",
       "📜Activity ExplorerExplore governed platform activity",
       "⚡Workflow RunnerRun workflows",
     ]);
