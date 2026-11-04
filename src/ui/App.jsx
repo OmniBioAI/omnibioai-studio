@@ -56,6 +56,23 @@ import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 import { safeErrorMessage } from "./lib/safeErrorMessage";
 import { openExternal } from "./lib/externalLink";
 import { getStandaloneOnlyApp, standaloneAppUrl } from "./lib/standaloneApps";
+import {
+  LEGACY_STUDIO_REDIRECTS,
+  STUDIO_HOME_PATH,
+  canonicalizeStudioLocation,
+  isKnownStudioPath,
+  listenForStudioNavigation,
+  pathForStudioPage,
+  pluginSlugFromStudioPath,
+  studioPluginPath,
+  writeStudioLocation,
+} from "./lib/studioRouter";
+
+export {
+  pluginSlugFromStudioPath,
+  studioPluginPath,
+};
+export const LEGACY_ACCOUNT_REDIRECTS = LEGACY_STUDIO_REDIRECTS;
 
 // idx values: 0-17 are real `step` pages (see `pages` below); 18/19 are the
 // Code/Workflows service aliases (never a real step -- see
@@ -164,106 +181,23 @@ const PAGE_LABELS = [
   "Plugins", "Agentic", "Omics & Analysis",
 ];
 
-const STUDIO_PATH = "/studio";
-const PROFILE_PATH = "/studio/account/profile";
+const STUDIO_PATH = STUDIO_HOME_PATH;
 const PROFILE_PAGE = 15;
-const SECURITY_PATH = "/studio/account/security";
 const SECURITY_PAGE = 16;
-const PREFERENCES_PATH = "/studio/account/preferences";
 const PREFERENCES_PAGE = 17;
-const NOTIFICATIONS_PATH = "/studio/account/preferences";
 const NOTIFICATIONS_PAGE = 23;
-const PERSONALIZATION_PATH = "/studio/account/preferences";
 const PERSONALIZATION_PAGE = 24;
-const APPEARANCE_PATH = "/studio/account/preferences";
 const APPEARANCE_PAGE = 25;
 const CONNECTIONS_PAGE = 26;
-const PRIVACY_PATH = "/studio/account/privacy-data";
 const PRIVACY_PAGE = 27;
-const PLAN_PATH = "/studio/account/organization/usage";
 const PLAN_PAGE = 28;
 const STORAGE_PAGE = 32;
-const STORAGE_PATH = "/studio/account/membership-storage";
-const HELP_PATH = "/studio/account/help";
 const HELP_PAGE = 29;
-const INTEGRATIONS_PATH = "/studio/integrations";
-const PLUGINS_PATH = "/studio/plugins";
-const AGENTIC_PATH = "/studio/agentic";
-const OMICS_ANALYSIS_PATH = "/studio/omics-analysis";
-const BILLING_PATH = "/studio/account/organization/billing";
-const DEVELOPER_PATH = "/studio/account/organization/api-keys";
-const ROLES_PATH = "/studio/account/organization/members-roles";
 const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, privacy: PRIVACY_PAGE, membership: STORAGE_PAGE, billing: 12, usage: PLAN_PAGE, "api-keys": 14, "members-roles": 11, help: HELP_PAGE };
-const PROJECTS_PATH = "/studio/projects";
-const ARTIFACTS_PATH = "/studio/artifacts";
-const EXPLORE_PATH = "/studio/explore";
 const VIDEO_STUDIO_PATH = "/studio/videos";
-const ADMIN_CONSOLE_PATH = "/studio/admin";
-const LEGACY_PORTAL_PATH = "/workbench";
-const PLUGIN_STUDIO_PATH = /^\/studio\/plugins\/([a-z0-9][a-z0-9_-]*)\/?$/;
-
-// Every native page with its own bookmarkable URL, in both directions --
-// extends the exact mechanism the three Account pages already use (manual
-// history.replaceState, no router) to the three new native shells.
-const PATH_TO_PAGE = {
-  "/studio/organization/connections": CONNECTIONS_PAGE,
-  [ROLES_PATH]: 11,
-  [PROFILE_PATH]:     PROFILE_PAGE,
-  [SECURITY_PATH]:    SECURITY_PAGE,
-  [PREFERENCES_PATH]: PREFERENCES_PAGE,
-  [PRIVACY_PATH]: PRIVACY_PAGE,
-  [PLAN_PATH]: PLAN_PAGE,
-  [STORAGE_PATH]: STORAGE_PAGE,
-  [HELP_PATH]: HELP_PAGE,
-  [PROJECTS_PATH]:    PROJECTS_PAGE,
-  [ARTIFACTS_PATH]:   ARTIFACTS_PAGE,
-  [EXPLORE_PATH]:     EXPLORE_PAGE,
-  [INTEGRATIONS_PATH]: INTEGRATIONS_PAGE,
-  [PLUGINS_PATH]: PLUGINS_PAGE,
-  [AGENTIC_PATH]: AGENTIC_PAGE,
-  [OMICS_ANALYSIS_PATH]: OMICS_ANALYSIS_PAGE,
-  [BILLING_PATH]: 12,
-  [DEVELOPER_PATH]: 14,
-  [ADMIN_CONSOLE_PATH]: ADMIN_CONSOLE_PAGE,
-};
-const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([path, page]) => [page, path]));
-const KNOWN_PAGE_PATHS = Object.keys(PATH_TO_PAGE);
-
-export const LEGACY_ACCOUNT_REDIRECTS = {
-  "/studio/billing": BILLING_PATH,
-  "/studio/developer": DEVELOPER_PATH,
-  "/studio/profile": PROFILE_PATH,
-  "/studio/security": SECURITY_PATH,
-  "/studio/preferences": PREFERENCES_PATH,
-  "/studio/appearance": PREFERENCES_PATH,
-  "/studio/personalization": PREFERENCES_PATH,
-  "/studio/notifications": PREFERENCES_PATH,
-  "/studio/privacy": PRIVACY_PATH,
-  "/studio/plan": STORAGE_PATH,
-  "/studio/storage": STORAGE_PATH,
-  "/studio/billing/plans": STORAGE_PATH,
-  "/studio/help": HELP_PATH,
-  "/studio/admin-console": ADMIN_CONSOLE_PATH,
-};
 
 export function resolveInitialPage() {
-  const legacyTarget = LEGACY_ACCOUNT_REDIRECTS[window.location.pathname];
-  if (legacyTarget) {
-    const url = new URL(window.location.href);
-    url.pathname = legacyTarget;
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-  }
-  if (PLUGIN_STUDIO_PATH.test(window.location.pathname)) return 13;
-  return PATH_TO_PAGE[window.location.pathname] ?? 7;
-}
-
-export function pluginSlugFromStudioPath(pathname) {
-  return PLUGIN_STUDIO_PATH.exec(pathname || "")?.[1] || null;
-}
-
-export function studioPluginPath(slug) {
-  if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug || "")) throw new Error("Invalid plugin slug.");
-  return `/studio/plugins/${slug}`;
+  return canonicalizeStudioLocation().page;
 }
 
 // "Code" and "Workflows" are nav-only aliases onto the existing Launcher and
@@ -399,16 +333,12 @@ export default function App() {
     return () => { active = false; };
   }, [currentUser?.userId]);
 
-  // The shell historically loaded at `/`. Keep that entry point working while
-  // giving the authenticated portal a stable `/studio` URL. `/workbench` is
-  // retained as a bookmark-safe alias for the portal; the real Workbench
-  // service remains under `/_svc/workbench/` and is never claimed here.
+  // Browser back/forward is routed through the same route registry as clicks.
   useEffect(() => {
-    const url = new URL(window.location.href);
-    if (url.pathname === "/" || url.pathname === LEGACY_PORTAL_PATH) {
-      url.pathname = STUDIO_PATH;
-      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-    }
+    return listenForStudioNavigation(route => {
+      setStep(route.page);
+      setService(route.pluginSlug ? getInitialService() : null);
+    });
   }, []);
 
   // ─── Listen for navigate events (from Workbench page) ──
@@ -579,17 +509,13 @@ export default function App() {
   const isWizardPage = !service && step <= WIZARD_MAX;
 
   function handleStudioClick() {
-    const url = new URL(window.location.href);
-    url.pathname = STUDIO_PATH;
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    writeStudioLocation(STUDIO_PATH);
     setService(null);
     setStep(7); // return to Studio
   }
 
   function handleVideoBack() {
-    const url = new URL(window.location.href);
-    url.pathname = STUDIO_PATH;
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    writeStudioLocation(STUDIO_PATH);
     setService(null);
     setStep(7);
   }
@@ -597,12 +523,8 @@ export default function App() {
   function openWorkbenchPlugin(url, label, plugin) {
     const slug = plugin?.slug;
     if (!slug) return;
-    const next = new URL(window.location.href);
     setPluginReturnPage([PLUGINS_PAGE, AGENTIC_PAGE, OMICS_ANALYSIS_PAGE].includes(step) ? step : 13);
-    next.pathname = studioPluginPath(slug);
-    next.search = "";
-    next.hash = "";
-    window.history.replaceState(window.history.state, "", next.pathname);
+    writeStudioLocation(studioPluginPath(slug), { preserveSearch: false });
     if (slug === "bio_agent") {
       setService({ source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent", returnToWorkbench: true });
       return;
@@ -611,11 +533,7 @@ export default function App() {
   }
 
   function handlePluginBack() {
-    const url = new URL(window.location.href);
-    url.pathname = PAGE_TO_PATH[pluginReturnPage] || STUDIO_PATH;
-    url.search = "";
-    url.hash = "";
-    window.history.replaceState(window.history.state, "", url.pathname);
+    writeStudioLocation(pathForStudioPage(pluginReturnPage), { preserveSearch: false });
     setService(null);
     setStep(pluginReturnPage);
   }
@@ -652,10 +570,8 @@ export default function App() {
       setWorkbenchState({ query: "", category: "__all__", focusSlug: null });
     }
     setStep(idx);
-    if (idx === 7 || PAGE_TO_PATH[idx] !== undefined || KNOWN_PAGE_PATHS.includes(window.location.pathname)) {
-      const url = new URL(window.location.href);
-      url.pathname = PAGE_TO_PATH[idx] || STUDIO_PATH;
-      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    if (idx === 7 || pathForStudioPage(idx) !== STUDIO_PATH || isKnownStudioPath(window.location.pathname)) {
+      writeStudioLocation(pathForStudioPage(idx));
     }
   }
 
