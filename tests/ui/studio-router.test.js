@@ -28,8 +28,11 @@ describe("Studio router", () => {
     window.history.replaceState({}, "", `${legacyPath}?keep=1#section`);
     const route = canonicalizeStudioLocation();
     expect(route.redirectTo).toBe(expected);
-    expect(window.location.pathname).toBe(expected);
-    expect(window.location.search).toBe("?keep=1");
+    const target = new URL(expected, window.location.origin);
+    expect(window.location.pathname).toBe(target.pathname);
+    const actual = new URL(window.location.href);
+    expect(actual.searchParams.get("keep")).toBe("1");
+    for (const [key, value] of target.searchParams) expect(actual.searchParams.get(key)).toBe(value);
     expect(window.location.hash).toBe("#section");
   });
 

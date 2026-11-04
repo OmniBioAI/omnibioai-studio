@@ -1,6 +1,6 @@
 import React from "react";
 vi.mock("../../src/ui/components/PreferencesProvider", () => ({ default: ({ children }) => <>{children}</> }));
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const { getCurrentUser, getIdentity, onSessionChange, consumeOAuthRedirectParams, openExternal } = vi.hoisted(() => ({
@@ -33,6 +33,11 @@ vi.mock("../../src/ui/pages/Launch", () => ({ default: () => <div>Launch page</d
 vi.mock("../../src/ui/pages/Services", () => ({ default: () => <div>Services page</div> }));
 vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> }));
 vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <div>Studio page</div> }));
+vi.mock("../../src/ui/pages/Home", () => ({ default: () => <div>Studio page</div> }));
+vi.mock("../../src/ui/pages/Tools", () => ({ default: () => <div>Tools page</div> }));
+vi.mock("../../src/ui/pages/DataHub", () => ({ default: () => <div>Data page</div> }));
+vi.mock("../../src/ui/pages/SettingsHub", () => ({ default: () => <div>Settings hub page</div> }));
+vi.mock("../../src/ui/pages/AllServices", () => ({ default: () => <div>All services page</div> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => <div>Jobs page</div> }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Roles page</div> }));
@@ -58,6 +63,7 @@ describe("application shell", () => {
     getCurrentUser.mockResolvedValueOnce({ userId: 1, email: "admin@test", permissions: ["manage_roles"] });
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /ADMIN/ }));
     expect(screen.getByText("Roles")).toBeInTheDocument();
     window.dispatchEvent(new CustomEvent("navigate", { detail: 9 }));
     await waitFor(() => expect(screen.getByText("Jobs page")).toBeInTheDocument());
@@ -95,9 +101,9 @@ describe("application shell", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
 
-    const aiSection = document.querySelector('[data-nav-section="AI"]');
-    expect([...aiSection.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual(["Ask OmniBioAI"]);
-    aiSection.querySelector('[data-nav-item="Ask OmniBioAI"]').click();
+    const askItems = document.querySelectorAll('[data-nav-item="Ask OmniBioAI"]');
+    expect(askItems).toHaveLength(1);
+    askItems[0].click();
     await waitFor(() => expect(screen.getByTestId("ai-chat-hub")).toHaveAttribute("data-initial-mode", "ask"));
     expect(screen.getByTitle("AI service")).toHaveAttribute("src", "/_svc/devhub?view=chat");
   });

@@ -13,9 +13,13 @@ import Launch    from "./pages/Launch";
 import Services  from "./pages/Services";
 import Logs      from "./pages/Logs";
 import Settings  from "./pages/Settings";
-import Studio from "./pages/Studio";
+import Home from "./pages/Home";
 import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
+import Tools from "./pages/Tools";
+import DataHub from "./pages/DataHub";
+import SettingsHub from "./pages/SettingsHub";
+import AllServices from "./pages/AllServices";
 import ServiceViewer from "./pages/ServiceViewer";
 import AIChatHub from "./pages/AIChatHub";
 import PluginPage from "./pages/PluginPage";
@@ -40,7 +44,7 @@ import AccountMembershipStorage from "./pages/AccountMembershipStorage";
 import Projects from "./pages/Projects";
 import Artifacts from "./pages/Artifacts";
 import Explore from "./pages/Explore";
-import Integrations from "./pages/Integrations";
+import PluginsIntegrations from "./pages/PluginsIntegrations";
 import StandaloneAppLaunch from "./pages/StandaloneAppLaunch";
 import PreferencesProvider from "./components/PreferencesProvider";
 import AppearanceProvider from "./components/AppearanceProvider";
@@ -56,6 +60,7 @@ import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 import { safeErrorMessage } from "./lib/safeErrorMessage";
 import { openExternal } from "./lib/externalLink";
 import { getStandaloneOnlyApp, standaloneAppUrl } from "./lib/standaloneApps";
+import { canShowAdmin, filterAdminItems } from "./lib/adminNavigation";
 import {
   LEGACY_STUDIO_REDIRECTS,
   STUDIO_HOME_PATH,
@@ -90,74 +95,62 @@ const ADMIN_CONSOLE_PAGE = 33;
 const PLUGINS_PAGE = 34;
 const AGENTIC_PAGE = 35;
 const OMICS_ANALYSIS_PAGE = 36;
-const MANAGE_CONFIG_PERMISSION = "manage_config";
-const MANAGE_ORG_PERMISSION = "manage_org";
-const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
-
-const P2_PAGE_PERMISSIONS = {
-  4: [MANAGE_CONFIG_PERMISSION],
-  6: [MANAGE_CONFIG_PERMISSION],
-  26: [MANAGE_ORG_PERMISSION, MANAGE_ALL_ORGS_PERMISSION],
-};
-
-function canAccessPage(currentUser, page) {
-  const required = P2_PAGE_PERMISSIONS[page];
-  if (!required) return true;
-  const permissions = currentUser?.permissions || [];
-  return required.some(permission => permissions.includes(permission));
-}
+const TOOLS_PAGE = 37;
+const DATA_PAGE = 38;
+const SETTINGS_HUB_PAGE = 39;
+const ALL_SERVICES_PAGE = 40;
 
 const BASE_NAV = [
-  { section: null, items: [{ name:"Studio", idx:7 }] },
-  // The real implementation lives in the sibling Dev Hub app (its own
-  // "Playground" nav section) -- see EXTERNAL_NAV_SERVICES below, same
-  // service-view mechanism Code/Workflows already use.
-  { section: "AI", items: [
-    { name:"Ask OmniBioAI", idx: ASK_NAV_IDX },
-  ]},
-  { section: "Work", items: [
+  { section: null, items: [{ name:"Home", idx:7 }, { name:"Ask OmniBioAI", idx: ASK_NAV_IDX }] },
+  { section: "WORK", items: [
     { name:"Projects",  idx: PROJECTS_PAGE },
     { name:"Code",      idx: 18 },
     { name:"Workflows", idx: 19 },
+    { name:"Tools", idx: TOOLS_PAGE },
     { name:"Jobs",      idx: 9  },
+    { name:"Data", idx: DATA_PAGE },
     { name:"Artifacts", idx: ARTIFACTS_PAGE },
   ]},
-  { section: "Discover", items: [
+  { section: "DISCOVER", items: [
     { name:"Explore", idx: EXPLORE_PAGE },
-    { name:"Integrations", idx: INTEGRATIONS_PAGE },
-    { name:"Plugins", idx: PLUGINS_PAGE },
-    { name:"Omics & Analysis", idx: OMICS_ANALYSIS_PAGE },
+    { name:"Plugins and integrations", idx: PLUGINS_PAGE },
+    { name:"Omics and analysis", idx: OMICS_ANALYSIS_PAGE },
     { name:"Agentic", idx: AGENTIC_PAGE },
-  ]},
-  { section: "Setup",   items: [
-    { name:"Mode",      idx:0 },
-    { name:"LLM",       idx:1 },
-    { name:"Cloud",     idx:2 },
-    { name:"HPC",       idx:3 },
-  ]},
-  { section: "Runtime", items: [
-    { name:"Launch",       idx:4  },
-    { name:"Services",     idx:5  },
-    { name:"Logs",         idx:6  },
-  ]},
-  { section: "Organization", items: [{ name: "Connections", idx: 26 }] },
-  { section: "System",  items: [
-    { name:"Settings",  idx:8 },
   ]},
 ];
 
-// "Roles" nav item is inserted only for users holding manage_roles — non-admins
-// never see it, per the Role Management definition of done. Spliced in right
-// after "Runtime" by section name (rather than a fixed array index) so this
-// keeps working regardless of how many groups precede Runtime.
-function buildNav(canManageRoles, currentUser) {
-  const visibleNav = BASE_NAV.map(group => ({
-    ...group,
-    items: group.items.filter(item => canAccessPage(currentUser, item.idx)),
-  })).filter(group => group.items.length > 0);
-  if (!canManageRoles) return visibleNav;
-  const afterRuntime = visibleNav.findIndex(group => group.section === "Runtime") + 1;
-  return [...visibleNav.slice(0, afterRuntime), { section: "Security", items: [{ name: "Roles", idx: 11 }] }, ...visibleNav.slice(afterRuntime)];
+const ADMIN_NAV_ITEMS = [
+  { name:"Runtime", group:true },
+  { name:"Launch", idx:4, permissions:["manage_config"] }, { name:"Services", idx:5, permissions:["manage_config"] }, { name:"Logs", idx:6, permissions:["manage_config"] },
+  { name:"Admin console", idx:-10, permissions:["platform.manage_infra"] }, { name:"Control center", idx:-11, permissions:["platform.manage_infra"] },
+  { name:"Platform health", idx:-12, permissions:["platform.manage_infra"] }, { name:"LLM runtime", idx:1, permissions:["manage_config"] },
+  { name:"Metrics", idx:-13, permissions:["platform.manage_infra"] }, { name:"Tool images", idx:-14, permissions:["manage_config"] }, { name:"Neo4j browser", idx:-15, permissions:["platform.manage_infra"] },
+  { name:"Security", group:true },
+  { name:"Roles", idx:11, permissions:["manage_roles"] }, { name:"API gateway", idx:-30, permissions:["platform.manage_infra"] },
+  { name:"Auth service", idx:-31, permissions:["platform.manage_infra"] }, { name:"Policy engine", idx:-32, permissions:["platform.manage_infra"] },
+  { name:"HPC policy", idx:-33, permissions:["manage_config"] }, { name:"Security audit", idx:-34, permissions:["manage_all_orgs"] },
+  { name:"API keys and service accounts", idx:-35, permissions:["manage_api_keys","manage_oauth_clients","manage_all_orgs"] },
+  { name:"Compliance center", idx:-36, permissions:["manage_all_orgs"] }, { name:"Security posture", idx:-37, permissions:["manage_all_orgs"] },
+  { name:"Tool executor", idx:-38, permissions:["manage_config"] }, { name:"Audit explorer", idx:-39, permissions:["manage_all_orgs"] }, { name:"Audit logs", idx:-40, permissions:["manage_all_orgs"] },
+  { name:"Organization", group:true },
+  { name:"Connections", idx:26, permissions:["manage_org","manage_all_orgs"] }, { name:"Organization settings", idx:-50, permissions:["manage_org","manage_all_orgs"] },
+];
+
+export function buildNav(user) {
+  if (!canShowAdmin(user)) return BASE_NAV;
+  const items = [];
+  let group = null;
+  let children = [];
+  const flush = () => {
+    const visible = filterAdminItems(children, user);
+    if (group && visible.length) items.push(group, ...visible);
+  };
+  for (const item of ADMIN_NAV_ITEMS) {
+    if (item.group) { flush(); group = item; children = []; }
+    else children.push(item);
+  }
+  flush();
+  return [...BASE_NAV, { section:"ADMIN", collapsed:true, items }];
 }
 
 const WIZARD_STEPS = ["Mode","LLM","Cloud","HPC","Launch"];
@@ -169,7 +162,7 @@ const PAGE_NAMES = [
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
   "projects","artifacts","explore","notifications","personalization","appearance","organization-connections",
   "privacy","plan","help","integrations","membership-plans","storage","admin-console",
-  "plugins","agentic","omics-analysis",
+  "plugins","agentic","omics-analysis","tools","data","settings","all-services",
 ];
 
 const PAGE_LABELS = [
@@ -178,7 +171,7 @@ const PAGE_LABELS = [
   "Code", "Workflows",
   "Projects", "Artifacts", "Explore", null, null, null, "Connections",
   "Privacy & data", "Usage", "Help & support", "Integrations", null, "Membership & storage", "Admin Console",
-  "Plugins", "Agentic", "Omics & Analysis",
+  "Plugins and integrations", "Agentic", "Omics and analysis", "Tools", "Data", "Settings", "All services",
 ];
 
 const STUDIO_PATH = STUDIO_HOME_PATH;
@@ -214,6 +207,24 @@ const EXTERNAL_NAV_SERVICES = {
   // Dev Hub's chat deep link; old Agent navigation/deep links select its tab.
   [ASK_NAV_IDX]: { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "ask" },
   [BIO_AGENT_NAV_IDX]: { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent" },
+  [-10]: { url:"https://admin.omnibioai.org/", label:"Admin console" },
+  [-11]: { url:"/_svc/control/", label:"Control center" },
+  [-12]: { url:"https://control.omnibioai.org", label:"Platform health" },
+  [-13]: { url:"/_svc/monitor", label:"Metrics" },
+  [-14]: { url:"/_svc/toolimages", label:"Tool images" },
+  [-15]: { url:"/neo4j/browser/", label:"Neo4j browser" },
+  [-30]: { url:"/_svc/gateway/docs", label:"API gateway" },
+  [-31]: { url:"/_svc/auth/health", label:"Auth service" },
+  [-32]: { url:"/_svc/policy/docs", label:"Policy engine" },
+  [-33]: { url:"/_svc/hpc/", label:"HPC policy" },
+  [-34]: { url:"/_svc/audit/docs", label:"Security audit" },
+  [-35]: { url:"https://admin.omnibioai.org/iam/service-accounts", label:"API keys and service accounts" },
+  [-36]: { url:"https://admin.omnibioai.org/hipaa-compliance", label:"Compliance center" },
+  [-37]: { url:"https://admin.omnibioai.org/security-posture", label:"Security posture" },
+  [-38]: { url:"/_svc/toolserver/docs", label:"Tool executor" },
+  [-39]: { url:"https://admin.omnibioai.org/audit-explorer", label:"Audit explorer" },
+  [-40]: { url:"https://admin.omnibioai.org/audit-logs", label:"Audit logs" },
+  [-50]: { url:"https://admin.omnibioai.org/organizations", label:"Organization settings" },
 };
 
 function getInitialService() {
@@ -279,7 +290,6 @@ export default function App() {
   }
   const [workbenchState, setWorkbenchState] = useState({ query: "", category: "__all__", focusSlug: null });
   const [pluginReturnPage, setPluginReturnPage] = useState(13);
-  const [integrationCount, setIntegrationCount] = useState(null);
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [accountIdentity, setAccountIdentity] = useState(null);
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved?
@@ -297,11 +307,11 @@ export default function App() {
             setConfig(prev => ({ ...prev, ...saved, mode: saved.mode || "beta" }));
             // First run — no data_dir set → go to Settings
             if (!saved?.settings?.data_dir) {
-              setStep(8);
+              setStep(SETTINGS_HUB_PAGE);
             }
           } else {
             // No config at all → first run → Settings
-            setStep(8);
+            setStep(SETTINGS_HUB_PAGE);
           }
         } else if (!isElectron()) {
           // Web/cloud deployment (e.g. webstudio.omnibioai.org): window.api
@@ -424,16 +434,7 @@ export default function App() {
     }
   }, [returnTo, currentUser]);
 
-  // Keep the nav item visible while signed out (or still loading) so there's
-  // an entry point to sign in — only hide it once we positively know the
-  // signed-in user lacks manage_roles.
-  const showRolesNav = currentUser === null || currentUser.permissions?.includes("manage_roles");
-  const nav = buildNav(showRolesNav, currentUser).map(section => ({
-    ...section,
-    items: section.items.map(item => item.name === "Integrations" && integrationCount !== null
-      ? { ...item, badge: integrationCount }
-      : item),
-  }));
+  const nav = buildNav(currentUser);
 
   const pages = [
     <Mode      config={config} setConfig={setConfig} currentUser={currentUser} />,
@@ -443,7 +444,7 @@ export default function App() {
     <Launch    config={config} onStatusChange={setSystemStatus} />,
     <Services  config={config} currentUser={currentUser} />,
     <Logs      />,
-    <Studio />,
+    <Home currentUser={currentUser} />,
     <Settings  config={config} setConfig={setConfig} currentUser={currentUser} />,
     <Jobs         />,
     null, // 10 — retired IDE Services slot; keep later page indices stable
@@ -491,18 +492,22 @@ export default function App() {
     <AccountLayout activeSection="help" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountHelp />
     </AccountLayout>,
-    <Integrations onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} onProviderCountChange={setIntegrationCount} />,
+    null, // 30 — legacy Integrations URL redirects to the combined discovery page
     null,
     <AccountLayout activeSection="membership" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountMembershipStorage currentUser={currentUser} />
     </AccountLayout>,
     <StandaloneAppLaunch />,
-    <Workbench view="plugins" state={workbenchState} onStateChange={setWorkbenchState}
-      onOpen={openWorkbenchPlugin} />,
+    <PluginsIntegrations state={workbenchState} onStateChange={setWorkbenchState} onOpen={openWorkbenchPlugin}
+      onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} />,
     <Workbench view="agentic" state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={openWorkbenchPlugin} />,
     <Workbench view="omics" state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={openWorkbenchPlugin} />,
+    <Tools initialQuery={new URLSearchParams(window.location.search).get("q") || ""} onOpenJobs={() => handleNavClick(9)} />,
+    <DataHub />,
+    <SettingsHub config={config} setConfig={setConfig} currentUser={currentUser} initialTab={new URLSearchParams(window.location.search).get("tab") || "General"} />,
+    <AllServices currentUser={currentUser} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
@@ -705,7 +710,7 @@ export default function App() {
               border:"1px solid rgba(255,165,2,0.2)",
               padding:"3px 10px", borderRadius:'var(--radius-xs)',
               cursor:"pointer",
-            }} onClick={() => setStep(8)}>
+            }} onClick={() => handleNavClick(SETTINGS_HUB_PAGE)}>
               ⚠ Setup required — configure data directory
             </div>
           )}

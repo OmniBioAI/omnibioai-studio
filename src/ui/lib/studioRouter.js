@@ -17,12 +17,17 @@ export const STUDIO_ROUTES = Object.freeze([
   ["/studio/account/privacy-data", 27],
   ["/studio/account/organization/usage", 28],
   ["/studio/account/help", 29],
-  ["/studio/integrations", 30],
   ["/studio/account/membership-storage", 32],
   ["/studio/admin", 33],
   ["/studio/plugins", 34],
   ["/studio/agentic", 35],
   ["/studio/omics-analysis", 36],
+  ["/studio/tools", 37],
+  ["/studio/data", 38],
+  ["/studio/settings", 39],
+  ["/studio/services", 40],
+  ["/studio/jobs", 9],
+  ["/studio/workbench", 13],
 ]);
 
 export const LEGACY_STUDIO_REDIRECTS = Object.freeze({
@@ -42,6 +47,7 @@ export const LEGACY_STUDIO_REDIRECTS = Object.freeze({
   "/studio/billing/plans": "/studio/account/membership-storage",
   "/studio/help": "/studio/account/help",
   "/studio/admin-console": "/studio/admin",
+  "/studio/integrations": "/studio/plugins?view=integrations",
 });
 
 const PATH_TO_PAGE = new Map(STUDIO_ROUTES);
@@ -67,7 +73,7 @@ export function isKnownStudioPath(pathname) {
 export function resolveStudioLocation(location = window.location) {
   const pathname = location.pathname || STUDIO_HOME_PATH;
   const redirectTo = LEGACY_STUDIO_REDIRECTS[pathname] || null;
-  const canonicalPath = redirectTo || pathname;
+  const canonicalPath = redirectTo ? new URL(redirectTo, location.origin || window.location.origin).pathname : pathname;
   const pluginSlug = pluginSlugFromStudioPath(canonicalPath);
   return {
     page: pluginSlug ? 13 : (PATH_TO_PAGE.get(canonicalPath) ?? 7),
@@ -79,7 +85,9 @@ export function resolveStudioLocation(location = window.location) {
 
 export function writeStudioLocation(pathname, { replace = false, preserveSearch = true } = {}) {
   const url = new URL(window.location.href);
-  url.pathname = pathname;
+  const target = new URL(pathname, url.origin);
+  url.pathname = target.pathname;
+  for (const [key, value] of target.searchParams) url.searchParams.set(key, value);
   if (!preserveSearch) {
     url.search = "";
     url.hash = "";
