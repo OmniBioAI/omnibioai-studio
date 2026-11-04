@@ -73,6 +73,22 @@ const ADMIN_CONSOLE_PAGE = 33;
 const PLUGINS_PAGE = 34;
 const AGENTIC_PAGE = 35;
 const OMICS_ANALYSIS_PAGE = 36;
+const MANAGE_CONFIG_PERMISSION = "manage_config";
+const MANAGE_ORG_PERMISSION = "manage_org";
+const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
+
+const P2_PAGE_PERMISSIONS = {
+  4: [MANAGE_CONFIG_PERMISSION],
+  6: [MANAGE_CONFIG_PERMISSION],
+  26: [MANAGE_ORG_PERMISSION, MANAGE_ALL_ORGS_PERMISSION],
+};
+
+function canAccessPage(currentUser, page) {
+  const required = P2_PAGE_PERMISSIONS[page];
+  if (!required) return true;
+  const permissions = currentUser?.permissions || [];
+  return required.some(permission => permissions.includes(permission));
+}
 
 const BASE_NAV = [
   { section: null, items: [{ name:"Studio", idx:7 }] },
@@ -117,10 +133,14 @@ const BASE_NAV = [
 // never see it, per the Role Management definition of done. Spliced in right
 // after "Runtime" by section name (rather than a fixed array index) so this
 // keeps working regardless of how many groups precede Runtime.
-function buildNav(canManageRoles) {
-  if (!canManageRoles) return BASE_NAV;
-  const afterRuntime = BASE_NAV.findIndex(group => group.section === "Runtime") + 1;
-  return [...BASE_NAV.slice(0, afterRuntime), { section: "Security", items: [{ name: "Roles", idx: 11 }] }, ...BASE_NAV.slice(afterRuntime)];
+function buildNav(canManageRoles, currentUser) {
+  const visibleNav = BASE_NAV.map(group => ({
+    ...group,
+    items: group.items.filter(item => canAccessPage(currentUser, item.idx)),
+  })).filter(group => group.items.length > 0);
+  if (!canManageRoles) return visibleNav;
+  const afterRuntime = visibleNav.findIndex(group => group.section === "Runtime") + 1;
+  return [...visibleNav.slice(0, afterRuntime), { section: "Security", items: [{ name: "Roles", idx: 11 }] }, ...visibleNav.slice(afterRuntime)];
 }
 
 const WIZARD_STEPS = ["Mode","LLM","Cloud","HPC","Launch"];
@@ -396,7 +416,7 @@ export default function App() {
     const handler = (e) => handleNavClick(e.detail === 10 ? 4 : e.detail);
     window.addEventListener("navigate", handler);
     return () => window.removeEventListener("navigate", handler);
-  }, []);
+  }, [currentUser]);
 
   // ─── Listen for service open events (from Workbench tiles) ──
   useEffect(() => {
@@ -478,7 +498,7 @@ export default function App() {
   // an entry point to sign in — only hide it once we positively know the
   // signed-in user lacks manage_roles.
   const showRolesNav = currentUser === null || currentUser.permissions?.includes("manage_roles");
-  const nav = buildNav(showRolesNav).map(section => ({
+  const nav = buildNav(showRolesNav, currentUser).map(section => ({
     ...section,
     items: section.items.map(item => item.name === "Integrations" && integrationCount !== null
       ? { ...item, badge: integrationCount }
@@ -601,6 +621,14 @@ export default function App() {
   }
 
   function handleNavClick(idx) {
+    if (!canAccessPage(currentUser, idx)) {
+      setService(null);
+      setStep(7);
+      const url = new URL(window.location.href);
+      url.pathname = STUDIO_PATH;
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+      return;
+    }
     const externalService = EXTERNAL_NAV_SERVICES[idx];
     if (externalService) {
       if (externalService.source === "ai-chat-hub") {
@@ -630,6 +658,12 @@ export default function App() {
       window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     }
   }
+
+  useEffect(() => {
+    if (authChecked && currentUser && !canAccessPage(currentUser, step)) {
+      handleNavClick(7);
+    }
+  }, [authChecked, currentUser, step]);
 
   // Electron webview bypasses Vite proxy for relative URLs; prefix /_svc/*
   // with the Vite dev server so the proxy routes them correctly.
@@ -836,7 +870,7 @@ export default function App() {
                       onBack={() => setService(null)} />
             : (
               <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
-                {pages[step]}
+                {canAccessPage(currentUser, step) ? pages[step] : pages[7]}
               </div>
             )
           }
@@ -852,10 +886,10 @@ export default function App() {
             padding:"0 20px", gap:10, flexShrink:0,
           }}>
             <div style={{ display:"flex", alignItems:"center", gap:5, flex:1 }}>
-              {WIZARD_STEPS.map((name, i) => (
+              {WIZARD_STEPS.map((name, i) => canAccessPage(currentUser, i) && (
                 <div
                   key={i}
-                  onClick={() => setStep(i)}
+                  onClick={() => handleNavClick(i)}
                   title={name}
                   style={{
                     width:28, height:3, borderRadius:'var(--radius-xs)', cursor:"pointer",
@@ -889,13 +923,13 @@ export default function App() {
             >Back</button>
 
             <button
-              onClick={() => setStep(s => Math.min(WIZARD_MAX, s + 1))}
-              disabled={step === WIZARD_MAX}
+              onClick={() => handleNavClick(Math.min(canAccessPage(currentUser, WIZARD_MAX) ? WIZARD_MAX : WIZARD_MAX - 1, step + 1))}
+              disabled={step === (canAccessPage(currentUser, WIZARD_MAX) ? WIZARD_MAX : WIZARD_MAX - 1)}
               style={{
                 padding:"7px 16px", borderRadius:'var(--radius-sm)', fontSize:'var(--font-size-xs)',
                 fontFamily:"var(--font)", fontWeight:500,
-                cursor: step === WIZARD_MAX ? "not-allowed" : "pointer",
-                opacity: step === WIZARD_MAX ? 0.4 : 1,
+                cursor: step === (canAccessPage(currentUser, WIZARD_MAX) ? WIZARD_MAX : WIZARD_MAX - 1) ? "not-allowed" : "pointer",
+                opacity: step === (canAccessPage(currentUser, WIZARD_MAX) ? WIZARD_MAX : WIZARD_MAX - 1) ? 0.4 : 1,
                 background:"var(--accent)", border:"none",
                 color:"#000", transition:"all 0.15s",
               }}

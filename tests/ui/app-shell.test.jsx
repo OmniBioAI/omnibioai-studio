@@ -62,7 +62,7 @@ import App, {
   studioPluginPath,
 } from "../../src/ui/App";
 
-const admin = { userId: 1, email: "alex@example.org", orgId: 1, permissions: ["manage_roles"] };
+const admin = { userId: 1, email: "alex@example.org", orgId: 1, permissions: ["manage_roles", "manage_config", "manage_org"] };
 
 beforeEach(() => {
   cleanup();
@@ -190,6 +190,48 @@ describe("Account route migration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
     await screen.findByText("Profile page");
     expect(window.location.pathname).toBe("/studio/account/profile");
+  });
+
+  it("hides and blocks Launch and Logs without manage_config", async () => {
+    session.user = { ...admin, permissions: [] };
+    render(<App />);
+    await screen.findByText("Studio page");
+    const runtime = document.querySelector('[data-nav-section="Runtime"]');
+    expect([...runtime.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual(["Services"]);
+    expect(screen.queryByRole("button", { name: "Launch" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Logs" })).not.toBeInTheDocument();
+
+    act(() => window.dispatchEvent(new CustomEvent("navigate", { detail: 4 })));
+    expect(await screen.findByText("Studio page")).toBeInTheDocument();
+    expect(screen.queryByText("Launch page")).not.toBeInTheDocument();
+  });
+
+  it("shows Launch and Logs with manage_config", async () => {
+    session.user = { ...admin, permissions: ["manage_config"] };
+    render(<App />);
+    await screen.findByText("Studio page");
+    fireEvent.click(screen.getByRole("button", { name: "Launch" }));
+    expect(await screen.findByText("Launch page")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Logs" }));
+    expect(await screen.findByText("Logs page")).toBeInTheDocument();
+  });
+
+  it("hides and blocks Organization Connections without organization administration", async () => {
+    session.user = { ...admin, permissions: [] };
+    window.history.replaceState({}, "", "/studio/organization/connections");
+    render(<App />);
+    await screen.findByText("Studio page");
+    expect(window.location.pathname).toBe("/studio");
+    expect(document.querySelector('[data-nav-section="Organization"]')).toBeNull();
+    expect(screen.queryByText("Connections page")).not.toBeInTheDocument();
+  });
+
+  it.each(["manage_org", "manage_all_orgs"])("shows Organization Connections with %s", async permission => {
+    session.user = { ...admin, permissions: [permission] };
+    window.history.replaceState({}, "", "/studio/organization/connections");
+    render(<App />);
+    expect(await screen.findByText("Connections page")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Connections" })).toBeInTheDocument();
   });
 
   it.each([
