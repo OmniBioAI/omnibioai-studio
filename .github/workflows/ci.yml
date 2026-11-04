@@ -46,6 +46,8 @@ jobs:
                             tests/test_integration_credentials.py -q
       - name: P0 admin route authorization tests
         run: python3 -m pytest tests/test_toolimages_router_security.py tests/test_neo4j_router_security.py -q
+      - name: P1 admin proxy authorization tests
+        run: python3 -m pytest tests/test_p1_admin_proxy_security.py -q
       - name: Validate isolated MySQL recovery drill contract
         run: python3 -m pytest tests/test_mysql_recovery_drill.py -q
       - name: Create .env for compose validation

@@ -361,7 +361,7 @@ describe("Studio portal", () => {
   });
 
   it("shows all 12 Security Control Plane modules to a fully authorized user", () => {
-    usePermissions(["manage_api_keys", "manage_oauth_clients", "manage_all_orgs"]);
+    usePermissions(["manage_api_keys", "manage_oauth_clients", "manage_all_orgs", "manage_config", "platform.manage_infra"]);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
     render(<Studio />);
 
@@ -380,6 +380,29 @@ describe("Studio portal", () => {
       "Audit Logs",
     ].forEach(label => expect(screen.getByText(label)).toBeInTheDocument());
     expect(screen.getByText("12 modules")).toBeInTheDocument();
+  });
+
+  it("hides the P2 operator pages unless their backend permission is present", () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 200 })));
+    usePermissions([]);
+    const view = render(<Studio />);
+    ["Policy Engine", "HPC Policy", "Tool Executor"].forEach(label => {
+      expect(screen.queryByText(label)).not.toBeInTheDocument();
+    });
+
+    view.unmount();
+    usePermissions(["platform.manage_infra"]);
+    render(<Studio />);
+    expect(screen.getByText("Policy Engine")).toBeInTheDocument();
+    expect(screen.queryByText("HPC Policy")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tool Executor")).not.toBeInTheDocument();
+
+    cleanup();
+    usePermissions(["manage_config"]);
+    render(<Studio />);
+    expect(screen.queryByText("Policy Engine")).not.toBeInTheDocument();
+    expect(screen.getByText("HPC Policy")).toBeInTheDocument();
+    expect(screen.getByText("Tool Executor")).toBeInTheDocument();
   });
 
   it("shows 18 Platform Services modules to a fully authorized user", () => {

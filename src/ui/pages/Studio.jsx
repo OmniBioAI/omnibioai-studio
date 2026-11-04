@@ -127,8 +127,8 @@ function buildCategories(BASE) {
       links: [
         { label:"API Gateway",      url:"/_svc/gateway/docs",        icon:"🔐", desc:"Entry point · JWT enforcement"    },
         { label:"Auth Service",     url:"/_svc/auth/health",         icon:"🪪", desc:"JWT · Login · Register"           },
-        { label:"Policy Engine",    url:"/_svc/policy/docs",         icon:"📋", desc:"RBAC · ABAC decisions"            },
-        { label:"HPC Policy",       url:"/_svc/hpc/",                icon:"⚡", desc:"GPU/CPU quota governance"         },
+        { label:"Policy Engine",    url:"/_svc/policy/docs",         icon:"📋", desc:"RBAC · ABAC decisions", requiresPermission:ADMIN_CONSOLE_PERMISSION },
+        { label:"HPC Policy",       url:"/_svc/hpc/",                icon:"⚡", desc:"GPU/CPU quota governance", requiresPermission:MANAGE_CONFIG_PERMISSION },
         { label:"Security Audit",   url:"/_svc/audit/docs",          icon:"📝", desc:"Redis Streams audit log"          },
         // Trailing slash is required, not cosmetic: nginx-router.conf's
         // `location ^~ /_svc/opa { rewrite ^/_svc/opa(/.*)$ $1 break; ... }`
@@ -146,12 +146,10 @@ function buildCategories(BASE) {
         { label:"API Keys & Service Accounts", url:"https://admin.omnibioai.org/iam/service-accounts", icon:"🔑", desc:"API Keys · OAuth · Revocation", requiresAnyPermission:["manage_api_keys", "manage_oauth_clients", MANAGE_ALL_ORGS_PERMISSION] },
         { label:"Compliance Center", url:"https://admin.omnibioai.org/hipaa-compliance", icon:"🛡️", desc:"HIPAA · Controls · Evidence", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
         { label:"Security Posture",  url:"https://admin.omnibioai.org/security-posture", icon:"🔍", desc:"Controls · Enforcement · Readiness", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
-        // toolserver — already proxied at /_svc/toolserver (nginx-router.conf),
-        // gated there by its own auth_request (admin cookie, MANAGE_CONFIG-
-        // level), not a frontend requiresPermission check — same as every
-        // other tile in this section, which rely on the backend/nginx gate
-        // rather than hiding the tile client-side.
-        { label:"Tool Executor",    url:"/_svc/toolserver/docs",     icon:"🧰", desc:"Register · execute · results"     },
+        // Match the server-side manage_config gate so researchers are not
+        // offered a ToolServer surface whose run/register endpoints they
+        // cannot use. The nginx and service checks remain authoritative.
+        { label:"Tool Executor",    url:"/_svc/toolserver/docs",     icon:"🧰", desc:"Register · execute · results", requiresPermission:MANAGE_CONFIG_PERMISSION },
         { label:"Audit Explorer",   url:"https://admin.omnibioai.org/audit-explorer", icon:"🔎", desc:"Events · Evidence · Investigation", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
         { label:"Audit Logs",       url:"https://admin.omnibioai.org/audit-logs", icon:"📜", desc:"Identity · Access · Changes", requiresPermission:MANAGE_ALL_ORGS_PERMISSION },
       ]
