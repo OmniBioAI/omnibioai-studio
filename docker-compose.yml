@@ -938,7 +938,11 @@ services:
       OMNIBIOAI_HOST_APP_PREFIX: ${MACHINE_DIR}/omnibioai-workbench
       OMNIBIOAI_WORK_DIR: ${WORK_DIR}
       OMNI_OBJECT_STORAGE_DIR: /app/work/objects
-      OMNI_OBJECT_REGISTRY_PATH: /app/work/object_registry.json
+      # Shared with workbench-files on a local host volume: both are flock-guarded
+      # JSON, and flock over the NAS is unreliable. The storage guard refuses
+      # a registry on network storage.
+      OMNI_OBJECT_REGISTRY_PATH: /app/registry/object_registry.json
+      OMNIBIOAI_DATASET_REGISTRY_PATH: /app/registry/dataset_registry.json
       OMNIBIOAI_RUNS_ROOT: /app/work/runs
       BIOQUERYAI_SANDBOX_SIF: ${MACHINE_DIR}/omnibioai-tool-images/sif/bioqueryai_sandbox.sif
       OMNIBIOAI_MYSQL_HOST: mysql
@@ -1060,6 +1064,7 @@ services:
       # docker-socket-proxy service above and DOCKER_HOST in
       # environment: above. :ro because workbench only ever needs to
       # *connect to* this socket file, never write to it.
+      - workbench-registry:/app/registry
       - docker-proxy-socket:/var/run/proxy-socket:ro
       - type: bind
         source: /usr/bin/docker
@@ -1091,6 +1096,53 @@ services:
       deploy-verify:
         condition: service_completed_successfully
     command: ["bash", "-lc", "python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate) && python manage.py runserver 0.0.0.0:8000 --noreload"]
+
+  # My files transfers: the Workbench image, settings and middleware under
+  # gunicorn, because Daphne spools uploads and can't slow down for a slow
+  # download. Only the router's /api/storage/me/files locations reach it; it
+  # publishes no port and never runs migrations. workers x threads is its
+  # concurrency limit and matches my_files_total in docker/nginx-router.conf.
+  # The long timeout covers multi-GB downloads and exists only on this service.
+  # Overlays that change `workbench` don't reach this service through `extends`,
+  # so an overlay adding Workbench mounts or env must add them here too.
+  workbench-files:
+    extends:
+      service: workbench
+    ports: !reset []
+    environment:
+      MY_FILES_MAX_UPLOAD_BYTES: ${MY_FILES_MAX_UPLOAD_BYTES:-95000000}
+    command:
+      - gunicorn
+      - omnibioai.wsgi:application
+      - --bind=0.0.0.0:8000
+      - --worker-class=gthread
+      - --workers=${WORKBENCH_FILES_WORKERS:-2}
+      - --threads=${WORKBENCH_FILES_THREADS:-12}
+      - --timeout=3600
+      - --graceful-timeout=60
+      - --keep-alive=5
+      - --access-logfile=-
+    # No Docker socket or analysis mounts: this service only moves stored files.
+    volumes: !override
+      - type: bind
+        source: ${WORK_DIR}/objects
+        target: /app/work/objects
+        bind:
+          create_host_path: false
+      - workbench-registry:/app/registry
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 5
+      start_period: 90s
+    depends_on: !override
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      workbench:
+        condition: service_started
 
   celery-worker:
     build:
@@ -2380,6 +2432,8 @@ secrets:
     environment: GHCR_PULL_TOKEN
 
 volumes:
+  # Object and dataset registries, shared by workbench and workbench-files.
+  workbench-registry:
   # Launcher's durable workspace manifests (omnibioai-launcher
   # lib/manifest-store.js). Without it, GET /v1/workspaces/:id/manifest
   # 404s after every launcher restart.
