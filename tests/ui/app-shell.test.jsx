@@ -205,8 +205,7 @@ describe("Account route migration", () => {
     session.user = { ...admin, permissions: [] };
     render(<App />);
     await screen.findByText("Studio page");
-    const runtime = document.querySelector('[data-nav-section="Runtime"]');
-    expect([...runtime.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual(["Services"]);
+    expect(document.querySelector('[data-nav-section="ADMIN"]')).toBeNull();
     expect(screen.queryByRole("button", { name: "Launch" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Logs" })).not.toBeInTheDocument();
 
@@ -219,6 +218,7 @@ describe("Account route migration", () => {
     session.user = { ...admin, permissions: ["manage_config"] };
     render(<App />);
     await screen.findByText("Studio page");
+    fireEvent.click(screen.getByRole("button", { name: /ADMIN/ }));
     fireEvent.click(screen.getByRole("button", { name: "Launch" }));
     expect(await screen.findByText("Launch page")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Logs" }));
@@ -240,6 +240,8 @@ describe("Account route migration", () => {
     window.history.replaceState({}, "", "/studio/organization/connections");
     render(<App />);
     expect(await screen.findByText("Connections page")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/studio/admin/organization/connections");
+    fireEvent.click(screen.getByRole("button", { name: /ADMIN/ }));
     expect(screen.getByRole("button", { name: "Connections" })).toBeInTheDocument();
   });
 

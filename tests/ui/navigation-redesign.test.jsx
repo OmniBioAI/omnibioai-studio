@@ -16,6 +16,8 @@ import SettingsHub from "../../src/ui/pages/SettingsHub";
 import { categoriesForDiscoveryView } from "../../src/ui/pages/Workbench";
 import Tools, { toolPresentation, toolRunsTemporarilyUnavailable } from "../../src/ui/pages/Tools";
 import { pluginsIntegrationsView } from "../../src/ui/pages/PluginsIntegrations";
+import { ADMIN_ROUTE_DEFINITIONS, canAccessAdminRoute } from "../../src/ui/lib/adminRoutes";
+import { LEGACY_STUDIO_REDIRECTS, resolveStudioLocation } from "../../src/ui/lib/studioRouter";
 
 afterEach(() => {
   cleanup();
@@ -23,6 +25,29 @@ afterEach(() => {
 });
 
 describe("redesigned Studio navigation", () => {
+  it("gates every canonical and legacy Admin route for a non-admin", () => {
+    const expectedPaths = [
+      "/studio/admin/runtime/launch", "/studio/admin/runtime/services", "/studio/admin/runtime/logs",
+      "/studio/admin/runtime/admin-console", "/studio/admin/runtime/control-center", "/studio/admin/runtime/platform-health",
+      "/studio/admin/runtime/llm", "/studio/admin/runtime/metrics", "/studio/admin/runtime/tool-images", "/studio/admin/runtime/neo4j",
+      "/studio/admin/security/roles", "/studio/admin/security/api-gateway", "/studio/admin/security/auth-service",
+      "/studio/admin/security/policy-engine", "/studio/admin/security/hpc-policy", "/studio/admin/security/security-audit",
+      "/studio/admin/security/service-accounts", "/studio/admin/security/compliance", "/studio/admin/security/posture",
+      "/studio/admin/security/tool-executor", "/studio/admin/security/audit-explorer", "/studio/admin/security/audit-logs",
+      "/studio/admin/organization/connections", "/studio/admin/organization/settings",
+    ];
+    expect(ADMIN_ROUTE_DEFINITIONS.map(route => route.path)).toEqual(expectedPaths);
+    expect(new Set(expectedPaths).size).toBe(expectedPaths.length);
+    for (const route of ADMIN_ROUTE_DEFINITIONS) {
+      expect(route.permissions.length, route.path).toBeGreaterThan(0);
+      expect(canAccessAdminRoute({ permissions: [] }, route), route.path).toBe(false);
+      expect(resolveStudioLocation({ pathname: route.path })).toMatchObject({ page: route.idx, adminRoute: route });
+      if (route.oldUrl) expect(route.boundary, route.oldUrl).toMatch(/^(p0|p1|control-center|standalone-admin|frontend)$/);
+    }
+    expect(LEGACY_STUDIO_REDIRECTS["/studio/admin"]).toBe("/studio/admin/runtime/admin-console");
+    expect(LEGACY_STUDIO_REDIRECTS["/studio/admin-console"]).toBe("/studio/admin/runtime/admin-console");
+  });
+
   it("hides Admin for users without an admin capability", () => {
     expect(buildNav({ permissions: [] }).some(section => section.section === "ADMIN")).toBe(false);
   });

@@ -83,13 +83,14 @@ describe("application shell", () => {
     expect(screen.queryByTitle("Service page")).not.toBeInTheDocument();
   });
 
-  it("resolves /studio/admin to the standalone launch page, never an embedded service", async () => {
+  it("redirects the legacy /studio/admin URL and denies a non-admin", async () => {
     const originalPath = window.location.pathname;
     window.history.replaceState({}, "", "/studio/admin");
-    getCurrentUser.mockResolvedValueOnce({ userId: 1, email: "admin@test", permissions: ["manage_roles"] });
+    getCurrentUser.mockResolvedValueOnce({ userId: 1, email: "user@test", permissions: [] });
     try {
       render(<App />);
-      await waitFor(() => expect(screen.getByText("Standalone Admin launch page")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText("Studio page")).toBeInTheDocument());
+      expect(window.location.pathname).toBe("/studio");
       expect(document.querySelector("iframe")).toBeNull();
     } finally {
       window.history.replaceState({}, "", originalPath);

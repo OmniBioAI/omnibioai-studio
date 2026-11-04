@@ -61,6 +61,7 @@ import { safeErrorMessage } from "./lib/safeErrorMessage";
 import { openExternal } from "./lib/externalLink";
 import { getStandaloneOnlyApp, standaloneAppUrl } from "./lib/standaloneApps";
 import { canShowAdmin, filterAdminItems } from "./lib/adminNavigation";
+import { ADMIN_ROUTE_DEFINITIONS, adminRouteForIndex, adminRouteForPath, canAccessAdminRoute } from "./lib/adminRoutes";
 import {
   LEGACY_STUDIO_REDIRECTS,
   STUDIO_HOME_PATH,
@@ -119,22 +120,10 @@ const BASE_NAV = [
   ]},
 ];
 
-const ADMIN_NAV_ITEMS = [
-  { name:"Runtime", group:true },
-  { name:"Launch", idx:4, permissions:["manage_config"] }, { name:"Services", idx:5, permissions:["manage_config"] }, { name:"Logs", idx:6, permissions:["manage_config"] },
-  { name:"Admin console", idx:-10, permissions:["platform.manage_infra"] }, { name:"Control center", idx:-11, permissions:["platform.manage_infra"] },
-  { name:"Platform health", idx:-12, permissions:["platform.manage_infra"] }, { name:"LLM runtime", idx:1, permissions:["manage_config"] },
-  { name:"Metrics", idx:-13, permissions:["platform.manage_infra"] }, { name:"Tool images", idx:-14, permissions:["manage_config"] }, { name:"Neo4j browser", idx:-15, permissions:["platform.manage_infra"] },
-  { name:"Security", group:true },
-  { name:"Roles", idx:11, permissions:["manage_roles"] }, { name:"API gateway", idx:-30, permissions:["platform.manage_infra"] },
-  { name:"Auth service", idx:-31, permissions:["platform.manage_infra"] }, { name:"Policy engine", idx:-32, permissions:["platform.manage_infra"] },
-  { name:"HPC policy", idx:-33, permissions:["manage_config"] }, { name:"Security audit", idx:-34, permissions:["manage_all_orgs"] },
-  { name:"API keys and service accounts", idx:-35, permissions:["manage_api_keys","manage_oauth_clients","manage_all_orgs"] },
-  { name:"Compliance center", idx:-36, permissions:["manage_all_orgs"] }, { name:"Security posture", idx:-37, permissions:["manage_all_orgs"] },
-  { name:"Tool executor", idx:-38, permissions:["manage_config"] }, { name:"Audit explorer", idx:-39, permissions:["manage_all_orgs"] }, { name:"Audit logs", idx:-40, permissions:["manage_all_orgs"] },
-  { name:"Organization", group:true },
-  { name:"Connections", idx:26, permissions:["manage_org","manage_all_orgs"] }, { name:"Organization settings", idx:-50, permissions:["manage_org","manage_all_orgs"] },
-];
+const ADMIN_NAV_ITEMS = ADMIN_ROUTE_DEFINITIONS.flatMap((route, index, routes) => [
+  ...(index === 0 || route.group !== routes[index - 1].group ? [{ name: route.group, heading: true }] : []),
+  route,
+]);
 
 export function buildNav(user) {
   if (!canShowAdmin(user)) return BASE_NAV;
@@ -146,8 +135,11 @@ export function buildNav(user) {
     if (group && visible.length) items.push(group, ...visible);
   };
   for (const item of ADMIN_NAV_ITEMS) {
-    if (item.group) { flush(); group = item; children = []; }
-    else children.push(item);
+    if (item.heading) { flush(); group = { ...item, group: true }; children = []; }
+    else {
+      const { group: _group, ...navItem } = item;
+      children.push(navItem);
+    }
   }
   flush();
   return [...BASE_NAV, { section:"ADMIN", collapsed:true, items }];
@@ -193,6 +185,11 @@ export function resolveInitialPage() {
   return canonicalizeStudioLocation().page;
 }
 
+function canAccessPage(user, page) {
+  const route = adminRouteForIndex(page);
+  return !route || canAccessAdminRoute(user, route);
+}
+
 // "Code" and "Workflows" are nav-only aliases onto the existing Launcher and
 // Workflow Registry services already reachable from Studio's dashboard tiles
 // -- idx 18/19 never become the `step` (handleNavClick intercepts them below
@@ -207,27 +204,12 @@ const EXTERNAL_NAV_SERVICES = {
   // Dev Hub's chat deep link; old Agent navigation/deep links select its tab.
   [ASK_NAV_IDX]: { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "ask" },
   [BIO_AGENT_NAV_IDX]: { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent" },
-  [-10]: { url:"https://admin.omnibioai.org/", label:"Admin console" },
-  [-11]: { url:"/_svc/control/", label:"Control center" },
-  [-12]: { url:"https://control.omnibioai.org", label:"Platform health" },
-  [-13]: { url:"/_svc/monitor", label:"Metrics" },
-  [-14]: { url:"/_svc/toolimages", label:"Tool images" },
-  [-15]: { url:"/neo4j/browser/", label:"Neo4j browser" },
-  [-30]: { url:"/_svc/gateway/docs", label:"API gateway" },
-  [-31]: { url:"/_svc/auth/health", label:"Auth service" },
-  [-32]: { url:"/_svc/policy/docs", label:"Policy engine" },
-  [-33]: { url:"/_svc/hpc/", label:"HPC policy" },
-  [-34]: { url:"/_svc/audit/docs", label:"Security audit" },
-  [-35]: { url:"https://admin.omnibioai.org/iam/service-accounts", label:"API keys and service accounts" },
-  [-36]: { url:"https://admin.omnibioai.org/hipaa-compliance", label:"Compliance center" },
-  [-37]: { url:"https://admin.omnibioai.org/security-posture", label:"Security posture" },
-  [-38]: { url:"/_svc/toolserver/docs", label:"Tool executor" },
-  [-39]: { url:"https://admin.omnibioai.org/audit-explorer", label:"Audit explorer" },
-  [-40]: { url:"https://admin.omnibioai.org/audit-logs", label:"Audit logs" },
-  [-50]: { url:"https://admin.omnibioai.org/organizations", label:"Organization settings" },
+  ...Object.fromEntries(ADMIN_ROUTE_DEFINITIONS.filter(route => route.oldUrl).map(route => [route.idx, { url: route.oldUrl, label: route.name }])),
 };
 
 function getInitialService() {
+  const adminRoute = typeof window !== "undefined" ? adminRouteForPath(window.location.pathname) : null;
+  if (adminRoute?.oldUrl) return { url: adminRoute.oldUrl, label: adminRoute.name };
   const pluginService = typeof window !== "undefined"
     ? resolveWorkbenchPluginDeepLink(window.location.search)
     : null;
@@ -544,7 +526,8 @@ export default function App() {
   }
 
   function handleNavClick(idx) {
-    if (!canAccessPage(currentUser, idx)) {
+    const adminRoute = adminRouteForIndex(idx);
+    if (adminRoute && !canAccessAdminRoute(currentUser, adminRoute)) {
       setService(null);
       setStep(7);
       const url = new URL(window.location.href);
@@ -567,6 +550,7 @@ export default function App() {
         const devHost = url.startsWith("/_svc/") && import.meta.env.DEV ? "http://localhost:5174" : "http://localhost";
         url = `${devHost}${url}`;
       }
+      if (adminRoute) writeStudioLocation(adminRoute.path);
       setService({ ...externalService, url });
       return;
     }
@@ -575,13 +559,15 @@ export default function App() {
       setWorkbenchState({ query: "", category: "__all__", focusSlug: null });
     }
     setStep(idx);
-    if (idx === 7 || pathForStudioPage(idx) !== STUDIO_PATH || isKnownStudioPath(window.location.pathname)) {
-      writeStudioLocation(pathForStudioPage(idx));
+    const targetPath = adminRoute?.path || pathForStudioPage(idx);
+    if (idx === 7 || targetPath !== STUDIO_PATH || isKnownStudioPath(window.location.pathname)) {
+      writeStudioLocation(targetPath);
     }
   }
 
   useEffect(() => {
-    if (authChecked && currentUser && !canAccessPage(currentUser, step)) {
+    const adminRoute = adminRouteForIndex(step);
+    if (authChecked && currentUser && adminRoute && !canAccessAdminRoute(currentUser, adminRoute)) {
       handleNavClick(7);
     }
   }, [authChecked, currentUser, step]);
@@ -777,7 +763,7 @@ export default function App() {
           scrollbarColor:"var(--border2) transparent",
         }}>
           <ErrorBoundary key={service?.openId || `page-${step}`} compact onReset={handleStudioClick}>
-          {service
+          {service && canAccessPage(currentUser, step)
             ? service.source === "ai-chat-hub"
               ? <AIChatHub key={service.openId} initialMode={service.initialMode} onBack={() => service.returnToWorkbench ? handlePluginBack() : setService(null)} />
               : service.url.includes("/_svc/videos")

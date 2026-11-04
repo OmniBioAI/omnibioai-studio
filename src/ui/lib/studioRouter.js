@@ -1,10 +1,11 @@
+import { ADMIN_ROUTE_DEFINITIONS, adminRouteForPath } from "./adminRoutes";
+
 export const STUDIO_HOME_PATH = "/studio";
 export const LEGACY_PORTAL_PATH = "/workbench";
 
 const PLUGIN_PATH = /^\/studio\/plugins\/([a-z0-9][a-z0-9_-]*)\/?$/;
 
 export const STUDIO_ROUTES = Object.freeze([
-  ["/studio/account/organization/members-roles", 11],
   ["/studio/account/organization/billing", 12],
   ["/studio/account/organization/api-keys", 14],
   ["/studio/account/profile", 15],
@@ -13,12 +14,10 @@ export const STUDIO_ROUTES = Object.freeze([
   ["/studio/projects", 20],
   ["/studio/artifacts", 21],
   ["/studio/explore", 22],
-  ["/studio/organization/connections", 26],
   ["/studio/account/privacy-data", 27],
   ["/studio/account/organization/usage", 28],
   ["/studio/account/help", 29],
   ["/studio/account/membership-storage", 32],
-  ["/studio/admin", 33],
   ["/studio/plugins", 34],
   ["/studio/agentic", 35],
   ["/studio/omics-analysis", 36],
@@ -28,6 +27,7 @@ export const STUDIO_ROUTES = Object.freeze([
   ["/studio/services", 40],
   ["/studio/jobs", 9],
   ["/studio/workbench", 13],
+  ...ADMIN_ROUTE_DEFINITIONS.map(route => [route.path, route.idx]),
 ]);
 
 export const LEGACY_STUDIO_REDIRECTS = Object.freeze({
@@ -46,7 +46,10 @@ export const LEGACY_STUDIO_REDIRECTS = Object.freeze({
   "/studio/storage": "/studio/account/membership-storage",
   "/studio/billing/plans": "/studio/account/membership-storage",
   "/studio/help": "/studio/account/help",
-  "/studio/admin-console": "/studio/admin",
+  "/studio/admin": "/studio/admin/runtime/admin-console",
+  "/studio/admin-console": "/studio/admin/runtime/admin-console",
+  "/studio/account/organization/members-roles": "/studio/admin/security/roles",
+  "/studio/organization/connections": "/studio/admin/organization/connections",
   "/studio/integrations": "/studio/plugins?view=integrations",
 });
 
@@ -75,11 +78,13 @@ export function resolveStudioLocation(location = window.location) {
   const redirectTo = LEGACY_STUDIO_REDIRECTS[pathname] || null;
   const canonicalPath = redirectTo ? new URL(redirectTo, location.origin || window.location.origin).pathname : pathname;
   const pluginSlug = pluginSlugFromStudioPath(canonicalPath);
+  const adminRoute = adminRouteForPath(canonicalPath);
   return {
     page: pluginSlug ? 13 : (PATH_TO_PAGE.get(canonicalPath) ?? 7),
     pathname: canonicalPath,
     pluginSlug,
     redirectTo,
+    adminRoute,
   };
 }
 
