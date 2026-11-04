@@ -1,5 +1,5 @@
 import React from "react";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({ user: null, identity: { organizations: [] }, crashJobs: false }));
@@ -32,11 +32,16 @@ vi.mock("../../src/ui/pages/Launch", () => ({ default: () => <div>Launch page</d
 vi.mock("../../src/ui/pages/Services", () => ({ default: () => <div>Services page</div> }));
 vi.mock("../../src/ui/pages/Logs", () => ({ default: () => <div>Logs page</div> }));
 vi.mock("../../src/ui/pages/Studio", () => ({ default: () => <div>Studio page</div> }));
+vi.mock("../../src/ui/pages/Home", () => ({ default: () => <div>Studio page</div> }));
+vi.mock("../../src/ui/pages/Tools", () => ({ default: () => <div>Tools page</div> }));
+vi.mock("../../src/ui/pages/DataHub", () => ({ default: () => <div>Data page</div> }));
+vi.mock("../../src/ui/pages/SettingsHub", () => ({ default: () => <div>Settings hub page</div> }));
+vi.mock("../../src/ui/pages/AllServices", () => ({ default: () => <div>All services page</div> }));
 vi.mock("../../src/ui/pages/Settings", () => ({ default: () => <div>Settings page</div> }));
 vi.mock("../../src/ui/pages/Jobs", () => ({ default: () => { if (session.crashJobs) throw new Error("private crash detail"); return <div>Jobs page</div>; } }));
 vi.mock("../../src/ui/pages/RoleManagement", () => ({ default: () => <div>Members &amp; roles page</div> }));
 vi.mock("../../src/ui/pages/Billing", () => ({ default: ({ view }) => <div>{view === "usage" ? "Usage page" : "Billing page"}</div> }));
-vi.mock("../../src/ui/pages/Workbench", () => ({ default: ({ view }) => <div>{view === "agentic" ? "Agentic catalog page" : view === "omics" ? "Omics & Analysis catalog page" : view === "plugins" ? "Plugins catalog page" : "Workbench page"}</div> }));
+vi.mock("../../src/ui/pages/Workbench", () => ({ default: ({ view }) => <div>{view === "agentic" ? "Agentic catalog page" : view === "omics" ? "Omics & Analysis catalog page" : ["plugins", "plugins-integrations", "integrations"].includes(view) ? "Plugins catalog page" : "Workbench page"}</div> }));
 vi.mock("../../src/ui/pages/Developer", () => ({ default: () => <div>API keys page</div> }));
 vi.mock("../../src/ui/pages/Profile", () => ({ default: () => <div>Profile page</div> }));
 vi.mock("../../src/ui/pages/AccountSecurity", () => ({ default: () => <div>Security page</div> }));
@@ -109,20 +114,20 @@ describe("Account route migration", () => {
     expect(resolveInitialPage()).toBe(page);
   });
 
-  it("exposes Integrations, Plugins, Omics & Analysis, and Agentic under Discover as native pages", async () => {
+  it("exposes the approved Discover destinations as native pages", async () => {
     render(<App />);
     await screen.findByText("Studio page");
-    const discover = document.querySelector('[data-nav-section="Discover"]');
+    const discover = document.querySelector('[data-nav-section="DISCOVER"]');
     expect([...discover.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual([
-      "Explore", "Integrations", "Plugins", "Omics & Analysis", "Agentic",
+      "Explore", "Plugins and integrations", "Omics and analysis", "Agentic",
     ]);
-    fireEvent.click(screen.getByRole("button", { name: "Plugins" }));
+    fireEvent.click(screen.getByRole("button", { name: "Plugins and integrations" }));
     await screen.findByText("Plugins catalog page");
     expect(window.location.pathname).toBe("/studio/plugins");
     fireEvent.click(screen.getByRole("button", { name: "Agentic" }));
     await screen.findByText("Agentic catalog page");
     expect(window.location.pathname).toBe("/studio/agentic");
-    fireEvent.click(screen.getByRole("button", { name: "Omics & Analysis" }));
+    fireEvent.click(screen.getByRole("button", { name: "Omics and analysis" }));
     await screen.findByText("Omics & Analysis catalog page");
     expect(window.location.pathname).toBe("/studio/omics-analysis");
   });
@@ -166,7 +171,7 @@ describe("Account route migration", () => {
     fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
     expect(await screen.findByText("Something went wrong on this page")).toBeInTheDocument();
     expect(screen.queryByText("private crash detail")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Studio" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Platform Health/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Back to Studio" }));
     expect(await screen.findByText("Studio page")).toBeInTheDocument();
@@ -175,16 +180,20 @@ describe("Account route migration", () => {
     for (const [legacy, destination] of Object.entries(LEGACY_ACCOUNT_REDIRECTS)) {
       window.history.replaceState({}, "", `${legacy}?checkout=success&organization_id=7`);
       resolveInitialPage();
-      expect(window.location.pathname).toBe(destination);
-      expect(window.location.search).toBe("?checkout=success&organization_id=7");
+      expect(window.location.pathname).toBe(new URL(destination, window.location.origin).pathname);
+      const actual = new URL(window.location.href);
+      expect(actual.searchParams.get("checkout")).toBe("success");
+      expect(actual.searchParams.get("organization_id")).toBe("7");
     }
   });
 
-  it("keeps Runtime to Launch, Services and Logs and opens Account from the footer button", async () => {
+  it("keeps admin navigation collapsed and opens Account from the footer button", async () => {
     render(<App />);
     await screen.findByText("Studio page");
-    const runtime = document.querySelector('[data-nav-section="Runtime"]');
-    expect([...runtime.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual(["Launch", "Services", "Logs"]);
+    const adminSection = document.querySelector('[data-nav-section="ADMIN"]');
+    expect(adminSection).toBeInTheDocument();
+    expect(within(adminSection).getByRole("button", { name: /ADMIN/ })).toHaveAttribute("aria-expanded", "false");
+    expect(adminSection.querySelector("[data-nav-item]")).toBeNull();
     expect(screen.queryByText("Billing", { selector: "[data-nav-item]" })).not.toBeInTheDocument();
     expect(screen.queryByText("Developer", { selector: "[data-nav-item]" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Open Account" }));
@@ -196,8 +205,7 @@ describe("Account route migration", () => {
     session.user = { ...admin, permissions: [] };
     render(<App />);
     await screen.findByText("Studio page");
-    const runtime = document.querySelector('[data-nav-section="Runtime"]');
-    expect([...runtime.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual(["Services"]);
+    expect(document.querySelector('[data-nav-section="ADMIN"]')).toBeNull();
     expect(screen.queryByRole("button", { name: "Launch" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Logs" })).not.toBeInTheDocument();
 
@@ -210,6 +218,7 @@ describe("Account route migration", () => {
     session.user = { ...admin, permissions: ["manage_config"] };
     render(<App />);
     await screen.findByText("Studio page");
+    fireEvent.click(screen.getByRole("button", { name: /ADMIN/ }));
     fireEvent.click(screen.getByRole("button", { name: "Launch" }));
     expect(await screen.findByText("Launch page")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Logs" }));
@@ -231,6 +240,8 @@ describe("Account route migration", () => {
     window.history.replaceState({}, "", "/studio/organization/connections");
     render(<App />);
     expect(await screen.findByText("Connections page")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/studio/admin/organization/connections");
+    fireEvent.click(screen.getByRole("button", { name: /ADMIN/ }));
     expect(screen.getByRole("button", { name: "Connections" })).toBeInTheDocument();
   });
 

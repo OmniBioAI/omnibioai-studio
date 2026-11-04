@@ -14,6 +14,11 @@ const CHAT_DESTINATIONS = {
     label: "OmniBioAI Agent",
     description: "Analyze data, run bioinformatics tools, search literature, and plan workflows. Ask history is not shared; Agent model and data policies apply.",
   },
+  literature: {
+    label: "Literature AI",
+    url: "/_svc/rag/",
+    description: "Search and synthesize biomedical literature with the existing RAG and Literature AI service.",
+  },
 };
 
 function resolveEmbeddedServiceUrl(url) {
@@ -23,7 +28,7 @@ function resolveEmbeddedServiceUrl(url) {
 }
 
 export default function AIChatHub({ initialMode = "ask", onBack }) {
-  const [activeMode, setActiveMode] = useState(initialMode === "agent" ? "agent" : "ask");
+  const [activeMode, setActiveMode] = useState(["agent", "literature"].includes(initialMode) ? initialMode : "ask");
   const [agentVisited, setAgentVisited] = useState(initialMode === "agent");
 
   useEffect(() => {
@@ -52,7 +57,7 @@ export default function AIChatHub({ initialMode = "ask", onBack }) {
           aria-controls={`ai-chat-panel-${mode}`}
           className={activeMode === mode ? "is-active" : ""}
           onClick={() => selectMode(mode)}
-        >{mode === "ask" ? "Ask · Documentation" : "Agent · Tools & workflows"}</button>)}
+        >{mode === "ask" ? "Ask · Documentation" : mode === "agent" ? "Agent · Tools & workflows" : "Literature · RAG"}</button>)}
       </nav>
       <p className="ai-chat-hub__description">{CHAT_DESTINATIONS[activeMode].description}</p>
     </header>
@@ -63,6 +68,9 @@ export default function AIChatHub({ initialMode = "ask", onBack }) {
       {agentVisited && <div id="ai-chat-panel-agent" className="ai-chat-hub__agent" role="tabpanel" aria-labelledby="ai-chat-tab-agent" hidden={activeMode !== "agent"}>
         <PluginPage slug="bio_agent" label={CHAT_DESTINATIONS.agent.label} backLabel="Back to Ask OmniBioAI" onBack={() => selectMode("ask")} />
       </div>}
+      <div id="ai-chat-panel-literature" role="tabpanel" aria-labelledby="ai-chat-tab-literature" hidden={activeMode !== "literature"}>
+        <ServiceViewer url={resolveEmbeddedServiceUrl(CHAT_DESTINATIONS.literature.url)} label={CHAT_DESTINATIONS.literature.label} onBack={onBack} hideHeader />
+      </div>
     </div>
   </section>;
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import AccountMenu from "./AccountMenuButton";
 import { NAV_ICONS } from "./NavIcons";
 import OmniBioAILogo from "./brand/OmniBioAILogo";
@@ -19,6 +19,7 @@ const statusLabel = {
 };
 
 export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onAppearanceClick, isAppearanceActive = false, onPersonalizationClick, isPersonalizationActive = false, onNotificationsClick, isNotificationsActive, onPrivacyClick, isPrivacyActive = false, onPlanClick, isPlanActive = false, onStorageClick, isStorageActive = false, onHelpClick, isHelpActive = false, isProfileActive, isSecurityActive, isPreferencesActive }) {
+  const [adminExpanded, setAdminExpanded] = useState(false);
   return (
     <div style={{
       width:200, height:"100%", background:"var(--bg2)",
@@ -61,16 +62,19 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
 
       {/* Nav */}
       <nav style={{ padding:"12px 8px", flex:1, minHeight:0, overflowY:"auto" }}>
-        {nav.map(({ section, items }) => (
+        {nav.map(({ section, items, collapsed }) => (
           <div key={section || "top-level"} data-nav-section={section || ""}>
-            {section && <div style={{
+            {section && (collapsed ? <button type="button" aria-expanded={adminExpanded} onClick={() => setAdminExpanded(value => !value)} className="studio-nav-section-toggle">
+              <span>{section}</span><span aria-hidden="true">{adminExpanded ? "−" : "+"}</span>
+            </button> : <div style={{
               fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)", color:"var(--color-text-muted)",
               letterSpacing:"0.12em", textTransform:"uppercase",
               padding:"8px 8px 4px", marginTop:8,
             }}>
               {section}
-            </div>}
-            {items.map(({ name, idx, disabled, badge }) => {
+            </div>)}
+            {(!collapsed || adminExpanded) && items.map(({ name, idx, disabled, badge, group }) => {
+              if (group) return <div key={name} className="studio-nav-subgroup">{name}</div>;
               const isActive = !disabled && step === idx;
               const Icon = NAV_ICONS[name];
               return (
@@ -128,6 +132,12 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
           </div>
         ))}
       </nav>
+
+      <div className="studio-settings-entry">
+        <button type="button" data-nav-item="Settings" aria-current={step === 39 ? "page" : undefined} onClick={() => setStep(39)}>
+          {NAV_ICONS.Settings && React.createElement(NAV_ICONS.Settings)}<span>Settings</span>
+        </button>
+      </div>
 
       {/* Personal account control plane entry point. */}
       {currentUser && (

@@ -87,6 +87,8 @@ export function categoriesForDiscoveryView(categories, view = "all") {
       ...category,
       plugins: category.plugins.filter(plugin => {
         if (view === "integrations") return INTEGRATION_CATEGORIES.has(plugin.category);
+        if (view === "plugins-integrations") return INTEGRATION_CATEGORIES.has(plugin.category)
+          || (plugin.category !== "ai" && !OMICS_ANALYSIS_CATEGORIES.has(plugin.category));
         if (view === "agentic") return plugin.category === "ai";
         if (view === "omics") return OMICS_ANALYSIS_CATEGORIES.has(plugin.category);
         return !INTEGRATION_CATEGORIES.has(plugin.category) && plugin.category !== "ai" && !OMICS_ANALYSIS_CATEGORIES.has(plugin.category);
@@ -121,7 +123,7 @@ export default function Workbench({ state, onStateChange, onOpen, view = "all" }
   const query = state.query.trim().toLowerCase();
   const categories = categoriesForDiscoveryView(catalog?.categories || [], view);
   const available = categories.reduce((sum, category) => sum + category.plugins.length, 0);
-  const title = view === "agentic" ? "Agentic" : view === "omics" ? "Omics & Analysis" : view === "plugins" ? "Plugins" : "Workbench";
+  const title = view === "agentic" ? "Agentic" : view === "omics" ? "Omics & Analysis" : ["plugins", "plugins-integrations", "integrations"].includes(view) ? "Plugins and integrations" : "Workbench";
   const panelTitle = view === "all" ? "Plugins" : title;
   // Preserve legacy search fields and its temporary all-category search mode.
   // Filtering never grants permission; launch destinations come from Django.
@@ -144,7 +146,7 @@ export default function Workbench({ state, onStateChange, onOpen, view = "all" }
       <OmniPage
         title={title}
         subtitle={catalog ? (view === "all" ? `${catalog.total_count} bioinformatics applications` : `${available} bioinformatics plugins`) : "Loading applications…"}
-        className={`native-workbench-page${["plugins", "omics"].includes(view) ? " native-workbench-page--apps" : ""}${view === "agentic" ? " native-workbench-page--agentic" : ""}`}
+        className={`native-workbench-page${["plugins", "plugins-integrations", "integrations", "omics"].includes(view) ? " native-workbench-page--apps" : ""}${view === "agentic" ? " native-workbench-page--agentic" : ""}`}
       >
 
       {loading ? <div role="status" className="native-workbench-message"><Spinner /> Loading applications…</div>
@@ -210,7 +212,7 @@ export default function Workbench({ state, onStateChange, onOpen, view = "all" }
                         </button>
                       </Card>
                     </div>;
-                  })() : ["plugins", "omics"].includes(view) ? (() => {
+                  })() : ["plugins", "plugins-integrations", "integrations", "omics"].includes(view) ? (() => {
                     const { accent, icon } = appVisual(plugin.category);
                     return <div key={plugin.slug} className="native-workbench-app-shell" style={{ "--plugin-accent": accent }}>
                       <Card className="native-workbench-card native-workbench-app-card">

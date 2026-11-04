@@ -1006,6 +1006,8 @@ services:
 
   web-ui:
     image: ghcr.io/omnibioai/omnibioai-web:latest
+    environment:
+      OMNIBIOAI_TOOL_RUNS_TEMPORARILY_UNAVAILABLE: ${OMNIBIOAI_TOOL_RUNS_TEMPORARILY_UNAVAILABLE:-true}
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------

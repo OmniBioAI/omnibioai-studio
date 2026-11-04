@@ -13,9 +13,13 @@ import Launch    from "./pages/Launch";
 import Services  from "./pages/Services";
 import Logs      from "./pages/Logs";
 import Settings  from "./pages/Settings";
-import Studio from "./pages/Studio";
+import Home from "./pages/Home";
 import Workbench from "./pages/Workbench";
 import Jobs      from "./pages/Jobs";
+import Tools from "./pages/Tools";
+import DataHub from "./pages/DataHub";
+import SettingsHub from "./pages/SettingsHub";
+import AllServices from "./pages/AllServices";
 import ServiceViewer from "./pages/ServiceViewer";
 import AIChatHub from "./pages/AIChatHub";
 import PluginPage from "./pages/PluginPage";
@@ -40,7 +44,7 @@ import AccountMembershipStorage from "./pages/AccountMembershipStorage";
 import Projects from "./pages/Projects";
 import Artifacts from "./pages/Artifacts";
 import Explore from "./pages/Explore";
-import Integrations from "./pages/Integrations";
+import PluginsIntegrations from "./pages/PluginsIntegrations";
 import StandaloneAppLaunch from "./pages/StandaloneAppLaunch";
 import PreferencesProvider from "./components/PreferencesProvider";
 import AppearanceProvider from "./components/AppearanceProvider";
@@ -56,6 +60,25 @@ import { loadConfig as loadWebConfig } from "./lib/web/webApi";
 import { safeErrorMessage } from "./lib/safeErrorMessage";
 import { openExternal } from "./lib/externalLink";
 import { getStandaloneOnlyApp, standaloneAppUrl } from "./lib/standaloneApps";
+import { canShowAdmin, filterAdminItems } from "./lib/adminNavigation";
+import { ADMIN_ROUTE_DEFINITIONS, adminRouteForIndex, adminRouteForPath, canAccessAdminRoute } from "./lib/adminRoutes";
+import {
+  LEGACY_STUDIO_REDIRECTS,
+  STUDIO_HOME_PATH,
+  canonicalizeStudioLocation,
+  isKnownStudioPath,
+  listenForStudioNavigation,
+  pathForStudioPage,
+  pluginSlugFromStudioPath,
+  studioPluginPath,
+  writeStudioLocation,
+} from "./lib/studioRouter";
+
+export {
+  pluginSlugFromStudioPath,
+  studioPluginPath,
+};
+export const LEGACY_ACCOUNT_REDIRECTS = LEGACY_STUDIO_REDIRECTS;
 
 // idx values: 0-17 are real `step` pages (see `pages` below); 18/19 are the
 // Code/Workflows service aliases (never a real step -- see
@@ -73,74 +96,53 @@ const ADMIN_CONSOLE_PAGE = 33;
 const PLUGINS_PAGE = 34;
 const AGENTIC_PAGE = 35;
 const OMICS_ANALYSIS_PAGE = 36;
-const MANAGE_CONFIG_PERMISSION = "manage_config";
-const MANAGE_ORG_PERMISSION = "manage_org";
-const MANAGE_ALL_ORGS_PERMISSION = "manage_all_orgs";
-
-const P2_PAGE_PERMISSIONS = {
-  4: [MANAGE_CONFIG_PERMISSION],
-  6: [MANAGE_CONFIG_PERMISSION],
-  26: [MANAGE_ORG_PERMISSION, MANAGE_ALL_ORGS_PERMISSION],
-};
-
-function canAccessPage(currentUser, page) {
-  const required = P2_PAGE_PERMISSIONS[page];
-  if (!required) return true;
-  const permissions = currentUser?.permissions || [];
-  return required.some(permission => permissions.includes(permission));
-}
+const TOOLS_PAGE = 37;
+const DATA_PAGE = 38;
+const SETTINGS_HUB_PAGE = 39;
+const ALL_SERVICES_PAGE = 40;
 
 const BASE_NAV = [
-  { section: null, items: [{ name:"Studio", idx:7 }] },
-  // The real implementation lives in the sibling Dev Hub app (its own
-  // "Playground" nav section) -- see EXTERNAL_NAV_SERVICES below, same
-  // service-view mechanism Code/Workflows already use.
-  { section: "AI", items: [
-    { name:"Ask OmniBioAI", idx: ASK_NAV_IDX },
-  ]},
-  { section: "Work", items: [
+  { section: null, items: [{ name:"Home", idx:7 }, { name:"Ask OmniBioAI", idx: ASK_NAV_IDX }] },
+  { section: "WORK", items: [
     { name:"Projects",  idx: PROJECTS_PAGE },
     { name:"Code",      idx: 18 },
     { name:"Workflows", idx: 19 },
+    { name:"Tools", idx: TOOLS_PAGE },
     { name:"Jobs",      idx: 9  },
+    { name:"Data", idx: DATA_PAGE },
     { name:"Artifacts", idx: ARTIFACTS_PAGE },
   ]},
-  { section: "Discover", items: [
+  { section: "DISCOVER", items: [
     { name:"Explore", idx: EXPLORE_PAGE },
-    { name:"Integrations", idx: INTEGRATIONS_PAGE },
-    { name:"Plugins", idx: PLUGINS_PAGE },
-    { name:"Omics & Analysis", idx: OMICS_ANALYSIS_PAGE },
+    { name:"Plugins and integrations", idx: PLUGINS_PAGE },
+    { name:"Omics and analysis", idx: OMICS_ANALYSIS_PAGE },
     { name:"Agentic", idx: AGENTIC_PAGE },
-  ]},
-  { section: "Setup",   items: [
-    { name:"Mode",      idx:0 },
-    { name:"LLM",       idx:1 },
-    { name:"Cloud",     idx:2 },
-    { name:"HPC",       idx:3 },
-  ]},
-  { section: "Runtime", items: [
-    { name:"Launch",       idx:4  },
-    { name:"Services",     idx:5  },
-    { name:"Logs",         idx:6  },
-  ]},
-  { section: "Organization", items: [{ name: "Connections", idx: 26 }] },
-  { section: "System",  items: [
-    { name:"Settings",  idx:8 },
   ]},
 ];
 
-// "Roles" nav item is inserted only for users holding manage_roles — non-admins
-// never see it, per the Role Management definition of done. Spliced in right
-// after "Runtime" by section name (rather than a fixed array index) so this
-// keeps working regardless of how many groups precede Runtime.
-function buildNav(canManageRoles, currentUser) {
-  const visibleNav = BASE_NAV.map(group => ({
-    ...group,
-    items: group.items.filter(item => canAccessPage(currentUser, item.idx)),
-  })).filter(group => group.items.length > 0);
-  if (!canManageRoles) return visibleNav;
-  const afterRuntime = visibleNav.findIndex(group => group.section === "Runtime") + 1;
-  return [...visibleNav.slice(0, afterRuntime), { section: "Security", items: [{ name: "Roles", idx: 11 }] }, ...visibleNav.slice(afterRuntime)];
+const ADMIN_NAV_ITEMS = ADMIN_ROUTE_DEFINITIONS.flatMap((route, index, routes) => [
+  ...(index === 0 || route.group !== routes[index - 1].group ? [{ name: route.group, heading: true }] : []),
+  route,
+]);
+
+export function buildNav(user) {
+  if (!canShowAdmin(user)) return BASE_NAV;
+  const items = [];
+  let group = null;
+  let children = [];
+  const flush = () => {
+    const visible = filterAdminItems(children, user);
+    if (group && visible.length) items.push(group, ...visible);
+  };
+  for (const item of ADMIN_NAV_ITEMS) {
+    if (item.heading) { flush(); group = { ...item, group: true }; children = []; }
+    else {
+      const { group: _group, ...navItem } = item;
+      children.push(navItem);
+    }
+  }
+  flush();
+  return [...BASE_NAV, { section:"ADMIN", collapsed:true, items }];
 }
 
 const WIZARD_STEPS = ["Mode","LLM","Cloud","HPC","Launch"];
@@ -152,7 +154,7 @@ const PAGE_NAMES = [
   "code","workflows", // 18/19 -- never a real `step` (see EXTERNAL_NAV_SERVICES); kept only so later indices stay aligned
   "projects","artifacts","explore","notifications","personalization","appearance","organization-connections",
   "privacy","plan","help","integrations","membership-plans","storage","admin-console",
-  "plugins","agentic","omics-analysis",
+  "plugins","agentic","omics-analysis","tools","data","settings","all-services",
 ];
 
 const PAGE_LABELS = [
@@ -161,109 +163,31 @@ const PAGE_LABELS = [
   "Code", "Workflows",
   "Projects", "Artifacts", "Explore", null, null, null, "Connections",
   "Privacy & data", "Usage", "Help & support", "Integrations", null, "Membership & storage", "Admin Console",
-  "Plugins", "Agentic", "Omics & Analysis",
+  "Plugins and integrations", "Agentic", "Omics and analysis", "Tools", "Data", "Settings", "All services",
 ];
 
-const STUDIO_PATH = "/studio";
-const PROFILE_PATH = "/studio/account/profile";
+const STUDIO_PATH = STUDIO_HOME_PATH;
 const PROFILE_PAGE = 15;
-const SECURITY_PATH = "/studio/account/security";
 const SECURITY_PAGE = 16;
-const PREFERENCES_PATH = "/studio/account/preferences";
 const PREFERENCES_PAGE = 17;
-const NOTIFICATIONS_PATH = "/studio/account/preferences";
 const NOTIFICATIONS_PAGE = 23;
-const PERSONALIZATION_PATH = "/studio/account/preferences";
 const PERSONALIZATION_PAGE = 24;
-const APPEARANCE_PATH = "/studio/account/preferences";
 const APPEARANCE_PAGE = 25;
 const CONNECTIONS_PAGE = 26;
-const PRIVACY_PATH = "/studio/account/privacy-data";
 const PRIVACY_PAGE = 27;
-const PLAN_PATH = "/studio/account/organization/usage";
 const PLAN_PAGE = 28;
 const STORAGE_PAGE = 32;
-const STORAGE_PATH = "/studio/account/membership-storage";
-const HELP_PATH = "/studio/account/help";
 const HELP_PAGE = 29;
-const INTEGRATIONS_PATH = "/studio/integrations";
-const PLUGINS_PATH = "/studio/plugins";
-const AGENTIC_PATH = "/studio/agentic";
-const OMICS_ANALYSIS_PATH = "/studio/omics-analysis";
-const BILLING_PATH = "/studio/account/organization/billing";
-const DEVELOPER_PATH = "/studio/account/organization/api-keys";
-const ROLES_PATH = "/studio/account/organization/members-roles";
 const ACCOUNT_PAGES = { profile: PROFILE_PAGE, security: SECURITY_PAGE, preferences: PREFERENCES_PAGE, privacy: PRIVACY_PAGE, membership: STORAGE_PAGE, billing: 12, usage: PLAN_PAGE, "api-keys": 14, "members-roles": 11, help: HELP_PAGE };
-const PROJECTS_PATH = "/studio/projects";
-const ARTIFACTS_PATH = "/studio/artifacts";
-const EXPLORE_PATH = "/studio/explore";
 const VIDEO_STUDIO_PATH = "/studio/videos";
-const ADMIN_CONSOLE_PATH = "/studio/admin";
-const LEGACY_PORTAL_PATH = "/workbench";
-const PLUGIN_STUDIO_PATH = /^\/studio\/plugins\/([a-z0-9][a-z0-9_-]*)\/?$/;
-
-// Every native page with its own bookmarkable URL, in both directions --
-// extends the exact mechanism the three Account pages already use (manual
-// history.replaceState, no router) to the three new native shells.
-const PATH_TO_PAGE = {
-  "/studio/organization/connections": CONNECTIONS_PAGE,
-  [ROLES_PATH]: 11,
-  [PROFILE_PATH]:     PROFILE_PAGE,
-  [SECURITY_PATH]:    SECURITY_PAGE,
-  [PREFERENCES_PATH]: PREFERENCES_PAGE,
-  [PRIVACY_PATH]: PRIVACY_PAGE,
-  [PLAN_PATH]: PLAN_PAGE,
-  [STORAGE_PATH]: STORAGE_PAGE,
-  [HELP_PATH]: HELP_PAGE,
-  [PROJECTS_PATH]:    PROJECTS_PAGE,
-  [ARTIFACTS_PATH]:   ARTIFACTS_PAGE,
-  [EXPLORE_PATH]:     EXPLORE_PAGE,
-  [INTEGRATIONS_PATH]: INTEGRATIONS_PAGE,
-  [PLUGINS_PATH]: PLUGINS_PAGE,
-  [AGENTIC_PATH]: AGENTIC_PAGE,
-  [OMICS_ANALYSIS_PATH]: OMICS_ANALYSIS_PAGE,
-  [BILLING_PATH]: 12,
-  [DEVELOPER_PATH]: 14,
-  [ADMIN_CONSOLE_PATH]: ADMIN_CONSOLE_PAGE,
-};
-const PAGE_TO_PATH = Object.fromEntries(Object.entries(PATH_TO_PAGE).map(([path, page]) => [page, path]));
-const KNOWN_PAGE_PATHS = Object.keys(PATH_TO_PAGE);
-
-export const LEGACY_ACCOUNT_REDIRECTS = {
-  "/studio/billing": BILLING_PATH,
-  "/studio/developer": DEVELOPER_PATH,
-  "/studio/profile": PROFILE_PATH,
-  "/studio/security": SECURITY_PATH,
-  "/studio/preferences": PREFERENCES_PATH,
-  "/studio/appearance": PREFERENCES_PATH,
-  "/studio/personalization": PREFERENCES_PATH,
-  "/studio/notifications": PREFERENCES_PATH,
-  "/studio/privacy": PRIVACY_PATH,
-  "/studio/plan": STORAGE_PATH,
-  "/studio/storage": STORAGE_PATH,
-  "/studio/billing/plans": STORAGE_PATH,
-  "/studio/help": HELP_PATH,
-  "/studio/admin-console": ADMIN_CONSOLE_PATH,
-};
 
 export function resolveInitialPage() {
-  const legacyTarget = LEGACY_ACCOUNT_REDIRECTS[window.location.pathname];
-  if (legacyTarget) {
-    const url = new URL(window.location.href);
-    url.pathname = legacyTarget;
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-  }
-  if (PLUGIN_STUDIO_PATH.test(window.location.pathname)) return 13;
-  return PATH_TO_PAGE[window.location.pathname] ?? 7;
+  return canonicalizeStudioLocation().page;
 }
 
-export function pluginSlugFromStudioPath(pathname) {
-  return PLUGIN_STUDIO_PATH.exec(pathname || "")?.[1] || null;
-}
-
-export function studioPluginPath(slug) {
-  if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug || "")) throw new Error("Invalid plugin slug.");
-  return `/studio/plugins/${slug}`;
+function canAccessPage(user, page) {
+  const route = adminRouteForIndex(page);
+  return !route || canAccessAdminRoute(user, route);
 }
 
 // "Code" and "Workflows" are nav-only aliases onto the existing Launcher and
@@ -280,9 +204,12 @@ const EXTERNAL_NAV_SERVICES = {
   // Dev Hub's chat deep link; old Agent navigation/deep links select its tab.
   [ASK_NAV_IDX]: { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "ask" },
   [BIO_AGENT_NAV_IDX]: { source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent" },
+  ...Object.fromEntries(ADMIN_ROUTE_DEFINITIONS.filter(route => route.oldUrl).map(route => [route.idx, { url: route.oldUrl, label: route.name }])),
 };
 
 function getInitialService() {
+  const adminRoute = typeof window !== "undefined" ? adminRouteForPath(window.location.pathname) : null;
+  if (adminRoute?.oldUrl) return { url: adminRoute.oldUrl, label: adminRoute.name };
   const pluginService = typeof window !== "undefined"
     ? resolveWorkbenchPluginDeepLink(window.location.search)
     : null;
@@ -345,7 +272,6 @@ export default function App() {
   }
   const [workbenchState, setWorkbenchState] = useState({ query: "", category: "__all__", focusSlug: null });
   const [pluginReturnPage, setPluginReturnPage] = useState(13);
-  const [integrationCount, setIntegrationCount] = useState(null);
   const [currentUser,  setCurrentUser]  = useState(null); // decoded JWT claims, or null if signed out
   const [accountIdentity, setAccountIdentity] = useState(null);
   const [authChecked,  setAuthChecked]  = useState(false); // has the initial session check resolved?
@@ -363,11 +289,11 @@ export default function App() {
             setConfig(prev => ({ ...prev, ...saved, mode: saved.mode || "beta" }));
             // First run — no data_dir set → go to Settings
             if (!saved?.settings?.data_dir) {
-              setStep(8);
+              setStep(SETTINGS_HUB_PAGE);
             }
           } else {
             // No config at all → first run → Settings
-            setStep(8);
+            setStep(SETTINGS_HUB_PAGE);
           }
         } else if (!isElectron()) {
           // Web/cloud deployment (e.g. webstudio.omnibioai.org): window.api
@@ -399,16 +325,12 @@ export default function App() {
     return () => { active = false; };
   }, [currentUser?.userId]);
 
-  // The shell historically loaded at `/`. Keep that entry point working while
-  // giving the authenticated portal a stable `/studio` URL. `/workbench` is
-  // retained as a bookmark-safe alias for the portal; the real Workbench
-  // service remains under `/_svc/workbench/` and is never claimed here.
+  // Browser back/forward is routed through the same route registry as clicks.
   useEffect(() => {
-    const url = new URL(window.location.href);
-    if (url.pathname === "/" || url.pathname === LEGACY_PORTAL_PATH) {
-      url.pathname = STUDIO_PATH;
-      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-    }
+    return listenForStudioNavigation(route => {
+      setStep(route.page);
+      setService(route.pluginSlug ? getInitialService() : null);
+    });
   }, []);
 
   // ─── Listen for navigate events (from Workbench page) ──
@@ -494,16 +416,7 @@ export default function App() {
     }
   }, [returnTo, currentUser]);
 
-  // Keep the nav item visible while signed out (or still loading) so there's
-  // an entry point to sign in — only hide it once we positively know the
-  // signed-in user lacks manage_roles.
-  const showRolesNav = currentUser === null || currentUser.permissions?.includes("manage_roles");
-  const nav = buildNav(showRolesNav, currentUser).map(section => ({
-    ...section,
-    items: section.items.map(item => item.name === "Integrations" && integrationCount !== null
-      ? { ...item, badge: integrationCount }
-      : item),
-  }));
+  const nav = buildNav(currentUser);
 
   const pages = [
     <Mode      config={config} setConfig={setConfig} currentUser={currentUser} />,
@@ -513,7 +426,7 @@ export default function App() {
     <Launch    config={config} onStatusChange={setSystemStatus} />,
     <Services  config={config} currentUser={currentUser} />,
     <Logs      />,
-    <Studio />,
+    <Home currentUser={currentUser} />,
     <Settings  config={config} setConfig={setConfig} currentUser={currentUser} />,
     <Jobs         />,
     null, // 10 — retired IDE Services slot; keep later page indices stable
@@ -561,35 +474,35 @@ export default function App() {
     <AccountLayout activeSection="help" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountHelp />
     </AccountLayout>,
-    <Integrations onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} onProviderCountChange={setIntegrationCount} />,
+    null, // 30 — legacy Integrations URL redirects to the combined discovery page
     null,
     <AccountLayout activeSection="membership" currentUser={currentUser} identity={accountIdentity} onNavigate={section => handleNavClick(ACCOUNT_PAGES[section])}>
       <AccountMembershipStorage currentUser={currentUser} />
     </AccountLayout>,
     <StandaloneAppLaunch />,
-    <Workbench view="plugins" state={workbenchState} onStateChange={setWorkbenchState}
-      onOpen={openWorkbenchPlugin} />,
+    <PluginsIntegrations state={workbenchState} onStateChange={setWorkbenchState} onOpen={openWorkbenchPlugin}
+      onOrganizationConnections={() => handleNavClick(CONNECTIONS_PAGE)} />,
     <Workbench view="agentic" state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={openWorkbenchPlugin} />,
     <Workbench view="omics" state={workbenchState} onStateChange={setWorkbenchState}
       onOpen={openWorkbenchPlugin} />,
+    <Tools initialQuery={new URLSearchParams(window.location.search).get("q") || ""} onOpenJobs={() => handleNavClick(9)} />,
+    <DataHub />,
+    <SettingsHub config={config} setConfig={setConfig} currentUser={currentUser} initialTab={new URLSearchParams(window.location.search).get("tab") || "General"} />,
+    <AllServices currentUser={currentUser} />,
   ];
 
   const currentName = service ? service.label : (PAGE_NAMES[step] || "—");
   const isWizardPage = !service && step <= WIZARD_MAX;
 
   function handleStudioClick() {
-    const url = new URL(window.location.href);
-    url.pathname = STUDIO_PATH;
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    writeStudioLocation(STUDIO_PATH);
     setService(null);
     setStep(7); // return to Studio
   }
 
   function handleVideoBack() {
-    const url = new URL(window.location.href);
-    url.pathname = STUDIO_PATH;
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    writeStudioLocation(STUDIO_PATH);
     setService(null);
     setStep(7);
   }
@@ -597,12 +510,8 @@ export default function App() {
   function openWorkbenchPlugin(url, label, plugin) {
     const slug = plugin?.slug;
     if (!slug) return;
-    const next = new URL(window.location.href);
     setPluginReturnPage([PLUGINS_PAGE, AGENTIC_PAGE, OMICS_ANALYSIS_PAGE].includes(step) ? step : 13);
-    next.pathname = studioPluginPath(slug);
-    next.search = "";
-    next.hash = "";
-    window.history.replaceState(window.history.state, "", next.pathname);
+    writeStudioLocation(studioPluginPath(slug), { preserveSearch: false });
     if (slug === "bio_agent") {
       setService({ source: "ai-chat-hub", label: "Ask OmniBioAI", initialMode: "agent", returnToWorkbench: true });
       return;
@@ -611,17 +520,14 @@ export default function App() {
   }
 
   function handlePluginBack() {
-    const url = new URL(window.location.href);
-    url.pathname = PAGE_TO_PATH[pluginReturnPage] || STUDIO_PATH;
-    url.search = "";
-    url.hash = "";
-    window.history.replaceState(window.history.state, "", url.pathname);
+    writeStudioLocation(pathForStudioPage(pluginReturnPage), { preserveSearch: false });
     setService(null);
     setStep(pluginReturnPage);
   }
 
   function handleNavClick(idx) {
-    if (!canAccessPage(currentUser, idx)) {
+    const adminRoute = adminRouteForIndex(idx);
+    if (adminRoute && !canAccessAdminRoute(currentUser, adminRoute)) {
       setService(null);
       setStep(7);
       const url = new URL(window.location.href);
@@ -644,6 +550,7 @@ export default function App() {
         const devHost = url.startsWith("/_svc/") && import.meta.env.DEV ? "http://localhost:5174" : "http://localhost";
         url = `${devHost}${url}`;
       }
+      if (adminRoute) writeStudioLocation(adminRoute.path);
       setService({ ...externalService, url });
       return;
     }
@@ -652,15 +559,15 @@ export default function App() {
       setWorkbenchState({ query: "", category: "__all__", focusSlug: null });
     }
     setStep(idx);
-    if (idx === 7 || PAGE_TO_PATH[idx] !== undefined || KNOWN_PAGE_PATHS.includes(window.location.pathname)) {
-      const url = new URL(window.location.href);
-      url.pathname = PAGE_TO_PATH[idx] || STUDIO_PATH;
-      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    const targetPath = adminRoute?.path || pathForStudioPage(idx);
+    if (idx === 7 || targetPath !== STUDIO_PATH || isKnownStudioPath(window.location.pathname)) {
+      writeStudioLocation(targetPath);
     }
   }
 
   useEffect(() => {
-    if (authChecked && currentUser && !canAccessPage(currentUser, step)) {
+    const adminRoute = adminRouteForIndex(step);
+    if (authChecked && currentUser && adminRoute && !canAccessAdminRoute(currentUser, adminRoute)) {
       handleNavClick(7);
     }
   }, [authChecked, currentUser, step]);
@@ -789,7 +696,7 @@ export default function App() {
               border:"1px solid rgba(255,165,2,0.2)",
               padding:"3px 10px", borderRadius:'var(--radius-xs)',
               cursor:"pointer",
-            }} onClick={() => setStep(8)}>
+            }} onClick={() => handleNavClick(SETTINGS_HUB_PAGE)}>
               ⚠ Setup required — configure data directory
             </div>
           )}
@@ -856,7 +763,7 @@ export default function App() {
           scrollbarColor:"var(--border2) transparent",
         }}>
           <ErrorBoundary key={service?.openId || `page-${step}`} compact onReset={handleStudioClick}>
-          {service
+          {service && canAccessPage(currentUser, step)
             ? service.source === "ai-chat-hub"
               ? <AIChatHub key={service.openId} initialMode={service.initialMode} onBack={() => service.returnToWorkbench ? handlePluginBack() : setService(null)} />
               : service.url.includes("/_svc/videos")
