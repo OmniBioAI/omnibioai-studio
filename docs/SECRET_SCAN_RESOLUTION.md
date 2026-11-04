@@ -75,3 +75,13 @@ fingerprint above. Kept the 5 pre-existing entries as-is.
 - Comment on issue #63 with this resolution once the PR is up.
 - Close issue #63 after the PR merges (not before — merge is a human
   decision, not automated here).
+
+## Update, 2026-11-04: tags and releases removed
+
+The `v0.2.0` and `v0.2.0-beta` releases and tags were deleted, so CI no longer scans
+those tag tips. Their `.env` commits stay reachable on GitHub by direct URL until GitHub
+Support purges them. The `.gitleaksignore` entries for them are now unused and can be
+removed once that's confirmed.
+
+This document's review didn't cover `MYSQL_ROOT_PASSWORD`, which was still live when the
+tags were found; it was rotated on 2026-11-04.
