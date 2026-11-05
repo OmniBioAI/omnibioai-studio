@@ -1,6 +1,9 @@
 # Docker API proxy profiles v1: taking the raw socket away from workflow-bundles
 
-Status: **design, not implemented**. Part 1 of the passwordless-IDE work
+Status: **design, partially implemented**. Studio #229 completed the shared
+proxy's create-body denials listed below. Per-client profiles, container-name
+scoping, and removal of workflow-bundles' raw Docker socket remain unimplemented.
+Part 1 of the passwordless-IDE work
 (Studio #224 "Phase 2"). Parts 2 (IDE network isolation) and 3 (RStudio and
 code-server auth off) are blocked on this. Parts 2 and 3 stay blocked until
 this design is deployed on the DGX and a real Nextflow run has passed through
@@ -24,23 +27,25 @@ also passes the socket on to every per-run `wfrun-*-guard` sidecar it starts
 (`omnibioai-workflow-bundles/api/execution_guard/lifecycle.py`, `start()`:
 `-v /var/run/docker.sock:/var/run/docker.sock`).
 
-## What the existing proxy enforces (measured 2026-11-02)
+## Current baseline after Studio #229
 
 `docker-socket-proxy/` is a custom Python proxy that inspects request bodies:
 `policy.evaluate_request()` validates `POST /containers/create`. Measured by
 calling `evaluate_request()` directly, with allowed prefixes
 `/data/bundles, /data/runs, /data/nxf, /usr/bin/docker`:
 
-| Request | Result |
+| Request | Current result |
 |---|---|
 | `Privileged`, `CapAdd`, `NetworkMode=host`, `PidMode=host`, `IpcMode=host`, `Devices`, `SecurityOpt`, `UsernsMode=host` | denied |
-| bind outside allowed prefixes (`/etc`, `/var/run/docker.sock`); `Mounts` bind to the socket | denied, but only because `/var/run` isn't in the prefixes. There is no explicit socket deny |
+| bind outside allowed prefixes (`/etc`) | denied |
+| Docker/containerd/podman socket or daemon-state binds, including symlinks and ancestor directories | **done in #229**: explicitly denied regardless of allowed prefixes |
 | create with any `?name=` | **allowed**: no name scoping |
 | `POST /containers/omnibioai-rstudio/stop`, `DELETE /containers/omnibioai-studio-nginx-router-1`, `GET /containers/omnibioai-jupyter/json` | **allowed**: per-container ops work on any container. Inspect returns its env |
-| `VolumesFrom: [omnibioai-jupyter]` | **allowed** |
-| `NetworkMode=container:omnibioai-studio-nginx-router-1` | **allowed** |
-| `NetworkMode=omnibioai-studio_default`, `EndpointsConfig` to another network | **allowed** |
-| `DeviceRequests` (GPU), `CgroupnsMode=host`, `Sysctls` | **allowed** |
+| `VolumesFrom: [omnibioai-jupyter]` | **done in #229**: denied |
+| `NetworkMode=container:omnibioai-studio-nginx-router-1` | **done in #229**: denied |
+| named `NetworkMode`, or `EndpointsConfig` attaching another network | **done in #229**: denied; only unset/default/bridge/none remain allowed |
+| `CgroupnsMode=host`, `Sysctls` | **done in #229**: denied |
+| `DeviceRequests` (GPU), `UTSMode=host`, `Links`, `PublishAllPorts`, or a `0.0.0.0` `PortBindings` host IP | **allowed or not yet profile-scoped** |
 | `/networks/*`, `/exec` | denied (workflow-bundles needs some of these) |
 
 The per-run guard (`execution_guard/policy.py`) is stricter on several fields
@@ -49,8 +54,9 @@ forbids only `NetworkMode=host`, so `container:<x>` or a named network is
 accepted.
 
 All five current clients of the shared proxy (launcher, control-center,
-workbench, celery-worker, tes) can use the **allowed** rows today. This design
-therefore hardens the shared proxy too, not just the new instance.
+workbench, celery-worker, tes) still share one identity and can operate on
+containers outside their own responsibility. #229 closed the generic create
+escapes; it deliberately did not implement profiles or name scoping.
 
 ## Option considered: OPA Docker authorization plugin
 
@@ -83,17 +89,23 @@ Only the proxy containers mount `/var/run/docker.sock`, as `docker-real.sock`.
 No other service mounts it.
 
 ### Hardening common to every profile (`check_create_body`)
-- **Deny** `VolumesFrom`, `CgroupnsMode=host`, `UTSMode=host`, `Sysctls`,
-  `DeviceRequests` (unless the profile allows GPUs; none does today), `Links`,
-  `PublishAllPorts`, and `PortBindings` on a `0.0.0.0` host IP.
-- **`NetworkMode`:** only `""`, `default`, `bridge`, `none`, or a network the
-  profile allows by name. **Deny `container:*`** and every other named network.
-- **`NetworkingConfig.EndpointsConfig`:** the same network allowlist.
-- **Explicit socket deny:** any bind or `Mounts` source whose realpath ends in
-  `docker.sock`, `containerd.sock` or `podman.sock`, or is under `/run/containerd`,
-  `/var/lib/docker` or `/var/lib/containerd`, regardless of the prefixes.
-- **Bind realpath:** resolve symlinks before the prefix check. The guard already
-  does this; the shared proxy normalises, but doesn't resolve.
+
+Completed by #229 in the shared proxy:
+
+- deny `VolumesFrom`, `CgroupnsMode=host`, and `Sysctls`;
+- deny `NetworkMode=container:*`, named networks, and non-allowlisted
+  `NetworkingConfig.EndpointsConfig` attachments;
+- explicitly deny Docker/containerd/podman sockets, daemon-state paths and
+  their ancestors regardless of allowed bind prefixes; and
+- resolve bind-source symlinks before applying the socket and prefix checks.
+
+Remaining profile work:
+
+- retain those #229 denials in every profile;
+- deny `UTSMode=host`, `DeviceRequests` unless a future profile explicitly
+  permits GPUs, `Links`, `PublishAllPorts`, and `PortBindings` on `0.0.0.0`;
+- allow a named network only when the selected profile owns it; and
+- apply the same profile allowlist to `NetworkingConfig.EndpointsConfig`.
 
 ### Name scoping (both profiles)
 - **On create:** `?name=` is required and must match the profile's pattern.
@@ -152,6 +164,19 @@ Measured from `lifecycle.py` and `server.py`; Nextflow's calls go through the gu
   - the shared proxy gets `PROXY_PROFILE=shared`.
 - `compose.nas-live.yml` (ecosystem): no change expected. Verify with the
   four-file config before any recreate.
+
+## Remaining effort estimate
+
+Estimated effort: **8–11 engineering days**.
+
+- **3–4 days:** profile configuration, per-profile endpoint policy, upstream
+  ID-to-name resolution, name-scoped container operations, and filtered lists.
+- **2–3 days:** `wfb-docker-proxy`, workflow-bundles/guard socket migration,
+  runner naming, and healthcheck-based readiness without `exec`.
+- **2–3 days:** unit and live-proxy negative tests, workflow-bundles tests, and
+  rollback tooling.
+- **1 day:** DGX qualification with real Nextflow plus available Snakemake/WDL
+  bundles and verification that only proxy containers retain the raw socket.
 
 ## Test plan (implementation session)
 1. **Unit:** every row of the table above becomes a test, in both profiles.
