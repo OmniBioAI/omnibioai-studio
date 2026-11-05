@@ -1875,6 +1875,14 @@ services:
       #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
       CONFIG_ENCRYPTION_KEY: ${CONFIG_ENCRYPTION_KEY:-}
 
+      # Manual-license issuance (fail-closed until the pepper is present) and
+      # the explicit bootstrap identity used by the deployed RC stack. Keep
+      # these in the canonical service definition; deployment overlays may
+      # repeat them but must not be their only source of truth.
+      ADMIN_BOOTSTRAP_EMAIL: "admin@omnibioai.org"
+      LICENSE_KEY_PEPPER_FILE: /run/secrets/license_key_pepper
+      LICENSE_ALLOWED_VALIDITY_DAYS: "30,90,365"
+
       # Must exactly match Workbench. Auth compares this value in constant
       # time on its internal resolver and supplies it to Workbench's internal
       # provider-policy endpoint; neither endpoint permits an empty value.
@@ -1901,6 +1909,18 @@ services:
       # forwarded to this service at all so the bootstrap was unreachable
       # here even with the var set in .env.
       BIO_AGENT_SVC_EMAIL: ${BIO_AGENT_SVC_EMAIL:-}
+
+    volumes:
+      - ./.secrets/license_key_pepper:/run/secrets/license_key_pepper:ro
+
+    healthcheck:
+      # /health is liveness-only. Schema validation and the admin bootstrap
+      # run during startup, so 200 also proves initialization completed.
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8001/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 30s
 
     depends_on:
       mysql:
