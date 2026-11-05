@@ -23,10 +23,11 @@ describe("unified AI chat hub", () => {
     expect(screen.getByTitle("Ask OmniBioAI")).toHaveAttribute("src", "/_svc/devhub?view=chat");
     expect(screen.queryByTitle("OmniBioAI Agent")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Agent · Tools & workflows" }));
-    expect(screen.getByRole("tab", { name: "Agent · Tools & workflows" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("tab", { name: "Run analyses" }));
+    expect(screen.getByRole("tab", { name: "Run analyses" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("agent-react-ui")).toHaveAttribute("data-plugin", "bio_agent");
     expect(screen.getByRole("textbox", { name: "Agent chat" })).toBeInTheDocument();
+    expect(screen.getByText("Finds and runs tools, workflows and plugins")).toBeInTheDocument();
     expect(document.getElementById("ai-chat-panel-ask")).not.toBeVisible();
 
     fireEvent.click(screen.getByRole("tab", { name: "Ask · Documentation" }));
@@ -38,7 +39,7 @@ describe("unified AI chat hub", () => {
   it("opens directly on Agent for legacy OmniBioAgent links and exposes back navigation", () => {
     const onBack = vi.fn();
     render(<AIChatHub initialMode="agent" onBack={onBack} />);
-    expect(screen.getByRole("tab", { name: "Agent · Tools & workflows" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Run analyses" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("agent-react-ui")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Back to Ask OmniBioAI" }));
     expect(screen.getByRole("tab", { name: "Ask · Documentation" })).toHaveAttribute("aria-selected", "true");
