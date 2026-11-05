@@ -8,11 +8,11 @@ const CHAT_DESTINATIONS = {
   ask: {
     label: "Ask OmniBioAI",
     url: "/_svc/devhub?view=chat",
-    description: "Evidence-grounded answers from published OmniBioAI documentation, with citations. Ask and Agent keep separate conversations.",
+    description: "Evidence-grounded answers from published OmniBioAI documentation, with citations. Ask and Run analyses keep separate conversations.",
   },
   agent: {
     label: "OmniBioAI Agent",
-    description: "Analyze data, run bioinformatics tools, search literature, and plan workflows. Ask history is not shared; Agent model and data policies apply.",
+    description: "Finds and runs tools, workflows and plugins",
   },
   literature: {
     label: "Literature AI",
@@ -57,7 +57,7 @@ export default function AIChatHub({ initialMode = "ask", onBack }) {
           aria-controls={`ai-chat-panel-${mode}`}
           className={activeMode === mode ? "is-active" : ""}
           onClick={() => selectMode(mode)}
-        >{mode === "ask" ? "Ask · Documentation" : mode === "agent" ? "Agent · Tools & workflows" : "Literature · RAG"}</button>)}
+        >{mode === "ask" ? "Ask · Documentation" : mode === "agent" ? "Run analyses" : "Literature · RAG"}</button>)}
       </nav>
       <p className="ai-chat-hub__description">{CHAT_DESTINATIONS[activeMode].description}</p>
     </header>

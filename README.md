@@ -350,8 +350,7 @@ The **Ask OmniBioAI** navigation entry opens one workspace with two tabs:
 
 - **Ask · Documentation** answers from published OmniBioAI documentation and
   cites its sources.
-- **Agent · Tools & workflows** can analyze data, run bioinformatics tools,
-  search literature, and plan workflows.
+- **Run analyses** finds and runs tools, workflows and plugins.
 
 The two experiences retain separate conversation histories and their own
 service/model/data policies; the unified entry does not merge their backends.
