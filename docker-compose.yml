@@ -940,6 +940,9 @@ services:
       OMNI_OBJECT_STORAGE_DIR: /app/work/objects
       OMNI_OBJECT_REGISTRY_PATH: /app/work/object_registry.json
       OMNIBIOAI_RUNS_ROOT: /app/work/runs
+      # Dataset Catalog entries use this container-local root. The host source
+      # is configurable on the read-only bind below.
+      OMNIBIOAI_REFERENCE_DATA_DIR: /data/reference
       BIOQUERYAI_SANDBOX_SIF: ${MACHINE_DIR}/omnibioai-tool-images/sif/bioqueryai_sandbox.sif
       OMNIBIOAI_MYSQL_HOST: mysql
       GATEWAY_URL: http://api-gateway:8080
@@ -979,6 +982,16 @@ services:
       SERVICENOW_CLIENT_ID: ${SERVICENOW_CLIENT_ID:-}
       SERVICENOW_CLIENT_SECRET: ${SERVICENOW_CLIENT_SECRET:-}
     volumes:
+      # Dataset Catalog source data is inventory-only: never let Workbench
+      # mutate the reference tree. Its JSON registry remains separately
+      # writable in the named volume below for create/upsert/delete APIs.
+      - type: bind
+        source: ${OMNIBIOAI_REFERENCE_DATA_DIR:-/home/manish/Desktop/omnibioai-ecosystem/data/reference}
+        target: /data/reference
+        read_only: true
+        bind:
+          create_host_path: false
+      - dataset-catalog-registry:/app/data/registry
       # #265: this used to be a single `${WORKSPACE_HOST}:/workspace` RW
       # bind mount of the ENTIRE host machine directory (WORKSPACE_HOST ==
       # MACHINE_DIR == the shared parent workspace) -- confirmed live to
@@ -2382,6 +2395,8 @@ secrets:
     environment: GHCR_PULL_TOKEN
 
 volumes:
+  # Workbench's file-backed Dataset Catalog survives service recreation.
+  dataset-catalog-registry:
   # Launcher's durable workspace manifests (omnibioai-launcher
   # lib/manifest-store.js). Without it, GET /v1/workspaces/:id/manifest
   # 404s after every launcher restart.
