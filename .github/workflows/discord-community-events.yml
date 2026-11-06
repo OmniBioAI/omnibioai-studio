@@ -1,0 +1,19 @@
+name: Discord community events
+
+on:
+  issues:
+    types: [labeled, closed]
+  milestone:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  submit:
+    uses: OmniBioAI/omnibioai-control-center/.github/workflows/discord-github-community-events.yml@main
+    with:
+      DISCORD_EVENT_ROUTER_URL: ${{ vars.DISCORD_EVENT_ROUTER_URL }}
+    secrets:
+      DISCORD_EVENT_GITHUB_SECRET: ${{ secrets.DISCORD_EVENT_GITHUB_SECRET }}

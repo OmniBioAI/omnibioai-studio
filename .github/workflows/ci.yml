@@ -331,6 +331,7 @@ jobs:
           path: artifacts/windows/
 
       - name: Create GitHub Release
+        id: gh_release
         uses: softprops/action-gh-release@v2
         with:
           name: "OmniBioAI Studio ${{ github.ref_name }}"
@@ -395,3 +396,26 @@ jobs:
             artifacts/windows/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Releases created with GITHUB_TOKEN don't trigger `release: published`
+      # workflows, so queue the announcement for approval here.
+      - name: Queue Discord release announcement for approval
+        continue-on-error: true
+        env:
+          DISCORD_EVENT_ROUTER_URL: ${{ vars.DISCORD_EVENT_ROUTER_URL }}
+          DISCORD_EVENT_SOURCE_SECRET: ${{ secrets.DISCORD_EVENT_GITHUB_SECRET }}
+          DISCORD_ALLOW_PRERELEASE: "true"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ steps.gh_release.outputs.id }}
+          REPO_PRIVATE: ${{ github.event.repository.private }}
+        run: |
+          if [ -z "$DISCORD_EVENT_ROUTER_URL" ] || [ -z "$DISCORD_EVENT_SOURCE_SECRET" ]; then
+            echo "::notice::Discord event router not configured; skipping"
+            exit 0
+          fi
+          git clone --quiet --depth 1 --branch main https://github.com/OmniBioAI/omnibioai-control-center.git "$RUNNER_TEMP/cc"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --jq '{id, draft, prerelease}' > "$RUNNER_TEMP/release.json"
+          jq -n --slurpfile r "$RUNNER_TEMP/release.json" --argjson private "$REPO_PRIVATE" \
+            '{action: "published", repository: {private: $private}, release: $r[0]}' > "$RUNNER_TEMP/release-event.json"
+          GITHUB_EVENT_NAME=release GITHUB_EVENT_PATH="$RUNNER_TEMP/release-event.json" \
+            python3 "$RUNNER_TEMP/cc/scripts/publish_github_community_event.py"
