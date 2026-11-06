@@ -404,6 +404,8 @@ jobs:
         env:
           DISCORD_EVENT_ROUTER_URL: ${{ vars.DISCORD_EVENT_ROUTER_URL }}
           DISCORD_EVENT_SOURCE_SECRET: ${{ secrets.DISCORD_EVENT_GITHUB_SECRET }}
+          DISCORD_EVENT_ACCESS_CLIENT_ID: ${{ secrets.DISCORD_EVENT_ACCESS_CLIENT_ID }}
+          DISCORD_EVENT_ACCESS_CLIENT_SECRET: ${{ secrets.DISCORD_EVENT_ACCESS_CLIENT_SECRET }}
           DISCORD_ALLOW_PRERELEASE: "true"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ steps.gh_release.outputs.id }}
