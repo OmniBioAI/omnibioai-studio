@@ -102,6 +102,8 @@ step "Scan Git history for secrets (gitleaks)" ci_step lint "Scan Git history fo
 step "Python venv for compose tests" python3 -m venv "$WT/.ci-venv"
 export PATH="$WT/.ci-venv/bin:$PATH"
 step "Compose security regression tests" ci_step lint "Compose security regression tests"
+step "P0 admin route authorization tests" ci_step lint "P0 admin route authorization tests"
+step "P1 admin proxy authorization tests" ci_step lint "P1 admin proxy authorization tests"
 step "MySQL recovery drill contract" ci_step lint "Validate isolated MySQL recovery drill contract"
 step "Create .env for compose validation" ci_step lint "Create .env for compose validation"
 step "Validate docker-compose" ci_step lint "Validate docker-compose"
