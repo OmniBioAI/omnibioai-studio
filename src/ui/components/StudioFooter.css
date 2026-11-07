@@ -4,7 +4,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 8px 20px;
+  /* No vertical padding: the 44px links set the footer's height (#254). */
+  padding: 0 20px;
   border-top: 1px solid var(--border);
   background: var(--bg2);
   color: var(--color-text-muted);
@@ -38,6 +39,12 @@
 }
 
 .studio-footer-links a {
+  /* 44x44px minimum touch target (#254). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   color: var(--color-text-muted);
   text-decoration: none;
   white-space: nowrap;
@@ -61,6 +68,6 @@
   .studio-footer-links {
     justify-content: flex-start;
     margin-left: 0;
-    gap: 6px 14px;
+    gap: 0 14px;
   }
 }
