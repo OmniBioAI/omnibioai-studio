@@ -95,7 +95,10 @@ services:
     networks: [default, development_database]
 
   workbench:
-    command: ["bash", "-lc", "python manage.py runserver 0.0.0.0:8000 --noreload"]
+    # Workbench#790: gunicorn + uvicorn workers, no migrate on start (migrations
+    # are a release step here). Rollback: put back
+    #   command: ["bash", "-lc", "python manage.py runserver 0.0.0.0:8000 --noreload"]
+    command: ["/app/docker/workbench/serve.sh"]
     environment:
       DB_HOST: omnibioai-full-mac-dev-v1
       DB_NAME: omnibioai
