@@ -1103,7 +1103,23 @@ services:
         condition: service_started
       deploy-verify:
         condition: service_completed_successfully
-    command: ["bash", "-lc", "python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate) && python manage.py runserver 0.0.0.0:8000 --noreload"]
+    # Workbench#790: gunicorn + uvicorn (ASGI) workers via the image's
+    # docker/workbench/serve.sh, replacing `runserver`. Needs a Workbench
+    # image that has serve.sh. Server settings are env-driven (WEB_CONCURRENCY,
+    # GUNICORN_*, WORKBENCH_REQUEST_TIMEOUT_SECONDS; see
+    # omnibioai/server/gunicorn_conf.py). WEB_CONCURRENCY stays 1 until
+    # Workbench#795 (per-process state) is fixed.
+    command: ["bash", "-lc", "python manage.py migrate || (python manage.py migrate --fake-initial && python manage.py migrate) && exec /app/docker/workbench/serve.sh"]
+    healthcheck:
+      # /health/ is unauthenticated and doesn't touch the database.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Longer than gunicorn's graceful timeout (GUNICORN_GRACEFUL_TIMEOUT, 30s)
+    # so in-flight requests can finish before Docker sends SIGKILL.
+    stop_grace_period: 45s
 
   celery-worker:
     build:
@@ -1291,6 +1307,13 @@ services:
       deploy-verify:
         condition: service_completed_successfully
     command: ["bash", "-lc", "celery -A omnibioai worker -l info"]
+    healthcheck:
+      # Workbench#790: ping only this worker's own node (~1.5s, imports Django).
+      test: ["CMD-SHELL", "celery -A omnibioai inspect ping -d celery@$$HOSTNAME --timeout 10 >/dev/null"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
 
   control-center:
     build:
