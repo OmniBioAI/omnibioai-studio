@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "node:http";
+import { serveRuntimeConfig } from "./runtime-config.mjs";
 import { readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +23,7 @@ before(async () => {
   const worker = await readFile(resolve(build, "sw.js"), "utf8");
   assert.match(worker, /omnibioai-studio-web-v2/, "the worker cache version must be bumped");
   server = createServer(async (req, res) => {
+    if (serveRuntimeConfig(req, res)) return;
     const url = new URL(req.url, "http://localhost");
     if (url.pathname === "/auth/google/callback") {
       callbackRequests.push(req.url);

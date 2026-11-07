@@ -12,6 +12,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "node:http";
+import { serveRuntimeConfig } from "./runtime-config.mjs";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { extname, dirname, resolve } from "node:path";
@@ -41,6 +42,7 @@ before(async () => {
   if (!existsSync(resolve(devhubBuild, "index.html"))) return;
   await readFile(resolve(studioBuild, "index.html"));
   server = createServer(async (req, res) => {
+    if (serveRuntimeConfig(req, res)) return;
     const pathname = new URL(req.url, "http://localhost").pathname;
     if (pathname === "/_svc/devhub" || pathname.startsWith("/_svc/devhub/")) {
       // Dev Hub's own `base: "/_svc/devhub"` build emits asset hrefs

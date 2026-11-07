@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "node:http";
+import { serveRuntimeConfig } from "../browser/runtime-config.mjs";
 import { mkdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { chromiumLaunchOptions } from "../browser/chromium-launch-options.mjs";
@@ -59,6 +60,7 @@ let origin;
 before(async () => {
   await readFile(resolve(build, "index.html"));
   server = createServer(async (request, response) => {
+    if (serveRuntimeConfig(request, response)) return;
     const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
     let file = resolve(build, `.${pathname}`);
     if (!file.startsWith(`${build}/`)) return response.writeHead(404).end();
