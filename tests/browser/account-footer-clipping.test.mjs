@@ -83,9 +83,13 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 1440, height: 900
       await accountTrigger.waitFor();
 
       assert.equal(await page.locator('[data-nav-item="IDE Services"]').count(), 0);
-      assert.deepEqual(await page.locator('.studio-sidebar-wrap [data-nav-section="Runtime"] [data-nav-item]').evaluateAll(
+      // #254: Runtime is the first group of the ADMIN section, which starts collapsed.
+      const admin = page.locator('.studio-sidebar-wrap [data-nav-section="ADMIN"]');
+      assert.equal(await admin.locator("[data-nav-item]").count(), 0);
+      await admin.locator(".studio-nav-section-toggle").click();
+      assert.deepEqual((await admin.locator("[data-nav-item]").evaluateAll(
         items => items.map(item => item.dataset.navItem),
-      ), ["Launch", "Services", "Logs"]);
+      )).slice(0, 3), ["Launch", "Services", "Logs"]);
 
       // 1 + 2. Footer exists and is fully contained inside the Sidebar's
       // viewport-clipped wrapper, not pushed past it.
@@ -150,7 +154,8 @@ test("mobile navigation keeps Runtime and Account without IDE Services", async (
   await page.route("**/*", route => {
     const url = new URL(route.request().url());
     if (url.origin !== origin) return route.abort();
-    if (url.pathname === "/auth/validate") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...ADMIN_USER, permissions: [] }) });
+    // #254: Runtime items need manage_config; without manage_roles, Roles stays hidden.
+    if (url.pathname === "/auth/validate") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...ADMIN_USER, permissions: ["manage_config"] }) });
     if (url.pathname.startsWith("/_svc/")) return route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
     return route.continue();
   });
@@ -160,10 +165,11 @@ test("mobile navigation keeps Runtime and Account without IDE Services", async (
     const drawer = page.getByRole("dialog", { name: "Navigation", exact: true });
     assert.equal(await drawer.isVisible(), true);
     assert.equal(await drawer.locator('[data-nav-item="IDE Services"]').count(), 0);
+    await drawer.locator('[data-nav-section="ADMIN"] .studio-nav-section-toggle').click();
     assert.equal(await drawer.locator('[data-nav-item="Roles"]').count(), 0);
-    assert.deepEqual(await drawer.locator('[data-nav-section="Runtime"] [data-nav-item]').evaluateAll(
+    assert.deepEqual((await drawer.locator('[data-nav-section="ADMIN"] [data-nav-item]').evaluateAll(
       items => items.map(item => item.dataset.navItem),
-    ), ["Launch", "Services", "Logs"]);
+    )).slice(0, 3), ["Launch", "Services", "Logs"]);
     const account = drawer.getByRole("button", { name: "Open Account" });
     const box = await account.boundingBox();
     assert.ok(box && box.y >= 0 && box.y + box.height <= 844, "Mobile Account is within the viewport");

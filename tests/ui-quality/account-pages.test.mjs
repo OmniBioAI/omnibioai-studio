@@ -158,7 +158,12 @@ async function clickNav(page, width, name) {
   const navigation = width === 390
     ? page.getByRole("dialog", { name: "Navigation" })
     : page.locator(".studio-sidebar-wrap");
-  await navigation.locator(`[data-nav-item="${name}"]`).click();
+  const item = navigation.locator(`[data-nav-item="${name}"]`);
+  // #254: the ADMIN section starts collapsed; open it to reach admin items.
+  if (!(await item.count())) {
+    await navigation.locator('[data-nav-section="ADMIN"] .studio-nav-section-toggle').click();
+  }
+  await item.click();
 }
 
 function checkResult(pageName, width, theme, check, failures) {
@@ -291,7 +296,7 @@ for (const width of [1440, 390]) {
 
       if (width === 390) await page.getByRole("button", { name: "Open navigation" }).click();
       await clickNav(page, width, "Settings");
-      await page.getByRole("heading", { name: "Settings" }).waitFor();
+      await page.getByRole("heading", { name: "Settings", level: 1 }).first().waitFor();
       assert.deepEqual(await contrastFailures(page), [], "shared primary button contrast");
     } finally { await context.close(); }
   });
@@ -302,8 +307,8 @@ for (const width of [1440, 390]) test(`${FIXED_ISSUES.targets}: shared fields an
   try {
     if (width === 390) {
       await page.getByRole("button", { name: "Open navigation" }).click();
-      await clickNav(page, 390, "LLM");
-    } else await clickNav(page, 1440, "LLM");
+      await clickNav(page, 390, "LLM runtime");
+    } else await clickNav(page, 1440, "LLM runtime");
     await page.getByRole("heading", { name: "LLM Configuration" }).waitFor();
     assert.deepEqual(await undersizedTargets(page, ".studio-field"), [], "shared Input and Select controls");
 
@@ -311,7 +316,7 @@ for (const width of [1440, 390]) test(`${FIXED_ISSUES.targets}: shared fields an
       await page.getByRole("button", { name: "Open navigation" }).click();
       await clickNav(page, 390, "Settings");
     } else await clickNav(page, 1440, "Settings");
-    await page.getByRole("heading", { name: "Settings" }).waitFor();
+    await page.getByRole("heading", { name: "Settings", level: 1 }).first().waitFor();
     assert.deepEqual(await undersizedTargets(page, "button.studio-field"), [], "shared buttons");
 
     if (width === 390) {
