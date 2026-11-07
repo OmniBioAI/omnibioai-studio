@@ -56,7 +56,8 @@ for (const theme of ["light", "dark"]) {
         return route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ valid: true, user_id: 7, email: "grafana@example.test", roles: [], permissions: [] }),
+          // The Metrics tile is gated on platform.manage_infra (#254).
+          body: JSON.stringify({ valid: true, user_id: 7, email: "grafana@example.test", roles: [], permissions: ["platform.manage_infra"] }),
         });
       }
       if (url.pathname === "/me") {
@@ -68,7 +69,10 @@ for (const theme of ["light", "dark"]) {
 
     try {
       await page.goto(`${origin}/studio`);
-      await page.getByRole("button", { name: "Metrics — Grafana dashboard" }).click();
+      // #254: the Studio tile dashboard is gone; Metrics is an ADMIN > Runtime nav item.
+      const sidebar = page.locator(".studio-sidebar-wrap");
+      await sidebar.locator('[data-nav-section="ADMIN"] .studio-nav-section-toggle').click();
+      await sidebar.locator('[data-nav-item="Metrics"]').click();
       const src = await page.locator('iframe[title="Metrics"]').getAttribute("src");
       assert.equal(new URL(src, origin).searchParams.get("theme"), theme);
     } finally {
