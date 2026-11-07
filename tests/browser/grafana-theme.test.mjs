@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "node:http";
+import { serveRuntimeConfig } from "./runtime-config.mjs";
 import { readFile } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +18,7 @@ let server, browser, origin;
 before(async () => {
   await readFile(resolve(build, "index.html"));
   server = createServer(async (req, res) => {
+    if (serveRuntimeConfig(req, res)) return;
     const pathname = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
     if (pathname.startsWith("/_svc/monitor/")) {
       res.writeHead(200, { "Content-Type": "text/html" });

@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { createServer } from "node:http";
+import { serveRuntimeConfig } from "./runtime-config.mjs";
 import { readFile, mkdir } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,6 +40,7 @@ before(async () => {
   await readFile(resolve(build, "index.html"));
   if (screenshots) await mkdir(screenshots, { recursive: true });
   server = createServer(async (req, res) => {
+    if (serveRuntimeConfig(req, res)) return;
     const pathname = new URL(req.url, "http://localhost").pathname;
     let file = resolve(build, `.${decodeURIComponent(pathname)}`);
     if (!file.startsWith(`${build}/`)) { res.writeHead(404).end(); return; }
