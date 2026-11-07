@@ -1148,6 +1148,12 @@ services:
       # token attached and would silently 401 if this var suddenly routed
       # through gateway's AuthMiddleware.
       GATEWAY_URL: http://api-gateway:8080
+      # Same credential workbench has. BioQueryAI analysis tasks
+      # (run_bioquery_task) mint the owner's TES token in this container,
+      # and minting first logs in as this account (tes_auth.py), so without
+      # these every analysis fails with "auth_unavailable".
+      BIO_AGENT_SVC_EMAIL: ${BIO_AGENT_SVC_EMAIL:-}
+      BIO_AGENT_SVC_PASSWORD: ${BIO_AGENT_SVC_PASSWORD:-}
       TOOLSERVER_BASE_URL: http://toolserver:9090
       MODEL_REGISTRY_BASE_URL: http://model-registry:8095
       ORCHESTRATOR_MAX_RETRIES: "10"
