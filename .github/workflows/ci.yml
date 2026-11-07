@@ -43,6 +43,7 @@ jobs:
                             tests/test_compose_release_config.py \
                             tests/test_safe_compose_diagnostics.py \
                             tests/test_canonical_compose_path.py \
+                            tests/test_workbench_server_compose.py \
                             tests/test_integration_credentials.py -q
       - name: P0 admin route authorization tests
         run: python3 -m pytest tests/test_toolimages_router_security.py tests/test_neo4j_router_security.py -q
