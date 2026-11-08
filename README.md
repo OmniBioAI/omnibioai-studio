@@ -4,6 +4,8 @@
 
 **OmniBioAI Studio** is the browser and Electron desktop workspace for the OmniBioAI platform. It brings together bioinformatics plugins, AI chat and orchestration, projects, workflows, and platform services; the desktop app can also launch and manage the local stack.
 
+![OmniBioAI Studio Architecture](docs/architecture/omnibioai-studio-architecture.png)
+
 ## System documentation
 
 - [System architecture](docs/SYSTEM_ARCHITECTURE.md) — boundaries, flows, deployment topology, and the current 42-service Compose catalog
