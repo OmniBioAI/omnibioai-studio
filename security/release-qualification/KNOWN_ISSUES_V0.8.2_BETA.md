@@ -24,7 +24,8 @@ Users should report authentication or session-restoration problems with relevant
 
 ## Packaging and platform support
 
-- Installers are built by GitHub Actions from the release tag. Only artifacts listed in `SHA256SUMS-v0.8.2-beta.txt` are qualified.
+- Only the ARM64 AppImage (`OmniBioAI.Studio-0.8.2-arm64.AppImage`) and ARM64 DEB (`omnibioai-studio_0.8.2_arm64.deb`) are qualified. Both were built on the DGX from the release tag. The other 7 installers were built by GitHub Actions from the same tag.
+- `SHA256SUMS-v0.8.2-beta.txt` lists all 9 published installers so you can check your download. A file being listed there does not mean it is qualified.
 - RPM, x64 Linux, macOS and Windows installers have build-only coverage; installation and launch on those platforms have not been qualified.
 - macOS and Windows installers are unsigned and not notarized.
 - Installation, upgrade, uninstall and rollback procedures have not all been independently verified.
