@@ -1204,6 +1204,12 @@ services:
       MASTERMIND_API_TOKEN: ${MASTERMIND_API_TOKEN:-}
       BIOCYC_EMAIL: ${BIOCYC_EMAIL:-}
       BIOCYC_PASSWORD: ${BIOCYC_PASSWORD:-}
+      # Workbench #771: shadow Skills validation of planner plans. Log only;
+      # never changes or blocks a plan. Read only by this worker (the planner
+      # runs in submit_workflow_plan_task), not by the workbench web service.
+      # Enable with SKILLS_SHADOW_VALIDATION=1 in .env (1/true/yes/on).
+      # Results: /app/work/planner/<ask_id>/skills_shadow.json.
+      SKILLS_SHADOW_VALIDATION: ${SKILLS_SHADOW_VALIDATION:-0}
       CODE_LLM_MODEL: ${CODE_LLM_MODEL:-qwen2.5-coder:32b}
       REASONING_LLM_MODEL: ${REASONING_LLM_MODEL:-deepseek-r1:32b}
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-deepseek-r1:32b}

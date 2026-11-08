@@ -614,6 +614,12 @@ services:
       OMNIBIOAI_HOST_APP_PREFIX: ${MACHINE_DIR}/omnibioai-workbench
       OMNIBIOAI_HOST_WORK_PREFIX: ${WORK_DIR}
       OMNIBIOAI_RUNS_ROOT: /app/work/runs
+      # Workbench #771: shadow Skills validation of planner plans. Log only;
+      # never changes or blocks a plan. Read only by this worker (the planner
+      # runs in submit_workflow_plan_task), not by the workbench web service.
+      # Enable with SKILLS_SHADOW_VALIDATION=1 in .env (1/true/yes/on).
+      # Results: /app/work/planner/<ask_id>/skills_shadow.json.
+      SKILLS_SHADOW_VALIDATION: ${SKILLS_SHADOW_VALIDATION:-0}
       # #54: talk to the docker-socket-proxy's exposed socket, not the
       # raw host one -- see docker-compose.yml's own celery-worker
       # comment for the full traffic-pattern analysis (same image, same
@@ -627,6 +633,8 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      # #771: planner status and skills_shadow.json, kept across recreates.
+      - ${WORK_DIR}/planner:/app/work/planner
       # #54: proxy's exposed socket, not the raw host one -- see
       # DOCKER_HOST in environment: above.
       - docker-proxy-socket:/var/run/proxy-socket:ro
