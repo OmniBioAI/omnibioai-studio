@@ -2275,6 +2275,18 @@ services:
       # those two tables) instead of falling back to AUDIT_DATABASE_URL
       # above (root).
       AUDIT_WRITER_DATABASE_URL: mysql+pymysql://audit_writer:${AUDIT_WRITER_DB_PASSWORD}@mysql:3306/omnibioai_audit
+      # Record-integrity HMAC key for audit_events / quarantined rows
+      # (consumers/sink.py, consumers/quarantine.py). Without these the
+      # worker rejects every message and nothing reaches the ledger
+      # (ecosystem#69). Values already live in .env; nothing to generate.
+      AUDIT_RECORD_INTEGRITY_KEY: ${AUDIT_RECORD_INTEGRITY_KEY:?AUDIT_RECORD_INTEGRITY_KEY must be set}
+      AUDIT_RECORD_INTEGRITY_KEY_ID: ${AUDIT_RECORD_INTEGRITY_KEY_ID:?AUDIT_RECORD_INTEGRITY_KEY_ID must be set}
+    # Retry loops have written millions of log lines with no limit.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     depends_on:
       redis:
         condition: service_healthy
