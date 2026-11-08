@@ -17,7 +17,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); delete window.api; });
 describe("Sidebar", () => {
   it("shows the current Studio version from the shared package version", () => {
     render(<Sidebar nav={nav} step={4} setStep={vi.fn()} systemStatus="idle" currentUser={null} />);
-    expect(screen.getByText("STUDIO v0.8.1")).toBeInTheDocument();
+    expect(screen.getByText("STUDIO v0.8.2")).toBeInTheDocument();
   });
 
   it("opens Account directly from the former Personalization entry point", () => {
