@@ -81,6 +81,8 @@ jobs:
           AUTH_AUDIT_INTEGRITY_KEY=ciauditintegrity
           AUDIT_READER_DB_PASSWORD=ciauditreader
           AUDIT_WRITER_DB_PASSWORD=ciauditwriter
+          AUDIT_RECORD_INTEGRITY_KEY=ciauditrecordintegrity
+          AUDIT_RECORD_INTEGRITY_KEY_ID=ci-audit-key
           INTERACTION_DB_PASSWORD=ciinteraction
           NEO4J_PASSWORD=cineo4j
           REDIS_HEALTHCHECK_PASSWORD=ciredishealth
