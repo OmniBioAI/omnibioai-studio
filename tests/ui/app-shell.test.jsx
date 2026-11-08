@@ -89,7 +89,7 @@ describe("Account route migration", () => {
   it("shows the shared Studio version in the header and preserves the BETA badge", async () => {
     render(<App />);
     await screen.findByText("Studio page");
-    expect(screen.getAllByText("v0.8.1")).toHaveLength(2);
+    expect(screen.getAllByText("v0.8.2")).toHaveLength(2);
     expect(screen.getByText("BETA")).toBeInTheDocument();
   });
 

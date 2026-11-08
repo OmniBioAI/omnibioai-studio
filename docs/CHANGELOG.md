@@ -9,6 +9,42 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
+## v0.8.2-beta (unreleased) — Edge Hardening, IDE Access & Stability
+
+### Security
+- Enforce P0 admin route gates, gate P1 operator proxies and guard P2 operator pages (#238, #240).
+- Router: deny the public agent-run API and Workbench self-signup/email pages (Workbench #784, #785) (#246); commit the live OPA closure so `/_svc/opa` returns 404 (#247); serve `workbench.omnibioai.org` with the Workbench deny rules (#248).
+- docker-socket-proxy: deny `VolumesFrom`, `container:`/named networks, `EndpointsConfig`, sysctls, host cgroupns and socket/daemon-state binds (#229).
+- Require `RSTUDIO_PASSWORD` instead of falling back to a fixed password; ignore `.env` backup files (#232, #235).
+
+### IDE access
+- Gate the IDE routes on a Studio session with IDE permission; keep IDE redirects on HTTPS behind cloudflared (#224).
+- Serve JupyterLab under `/jupyter/` with a server-side token (#226); open VS Code (#230) and RStudio (#232) without their own logins, with RStudio reachable only through the router and `data/` mounted read-only.
+- Persist the Jupyter, RStudio and VS Code home directories in named volumes (#226).
+
+### Studio UI
+- Redesign navigation and home, add a browser routing layer and a runtime tool-outage notice (#237).
+- Put Data Manager and Dataset Ingest on the home page and point the Auth Service tile at its health page (#233).
+- Rename the Agent mode to "Run analyses" (#242).
+- 44px touch targets for the ADMIN toggle, Settings entry and footer links (#256).
+- Display the Studio version in the footer and Logs page (#222).
+
+### Services and compose
+- Run Workbench with gunicorn and add Workbench and celery-worker healthchecks; requires a Workbench image with Workbench #790 (#251).
+- Give celery-worker the bio-agent service credential, fixing `auth_unavailable` for BioQueryAI analyses (#252).
+- Refresh and retry TES requests on 401 (#236); validate web licenses through the Auth endpoint (#234); canonicalize Auth license wiring (#241).
+- Persist launcher workspace manifests in a named volume (#223); configure tenant provisioning services (#231); mount reference data and populate the dataset catalog.
+
+### Tests, CI and docs
+- Update UI tests for the collapsed ADMIN nav and gated Metrics route; serve `/__studio-runtime-config.js` from the test servers (#255, #257).
+- Local CI runs the P0/P1 admin route authorization steps like `ci.yml` (#253).
+- Route labelled issues, milestones and releases to the Discord router (#243, #244).
+- Docker API proxy profiles design (#228); mark v0.2.0-beta withdrawn (#239).
+
+### Release metadata
+- Bump the Studio application version and Sentry release identifiers to 0.8.2.
+
+---
 ## v0.8.1-beta (2026-10-31) — Desktop Authentication & Electron Hardening
 
 ### Fixed
