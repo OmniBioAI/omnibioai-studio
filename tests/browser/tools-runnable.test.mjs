@@ -66,7 +66,10 @@ after(async () => {
   if (server) await new Promise(resolve => server.close(resolve));
 });
 
-async function open(path, width) {
+// Tools without any verification block, as an older TES (or a rollback) serves them.
+const UNVERIFIED_TOOLS = TOOLS.map(({ verification, ...tool }) => tool);
+
+async function open(path, width, { unverified = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 1000 }, colorScheme: "dark", serviceWorkers: "block" });
   await context.addInitScript(() => { localStorage.setItem("omnibioai_access_token", "FAKE-SCIENTIST-SESSION"); });
   const page = await context.newPage();
@@ -82,6 +85,7 @@ async function open(path, width) {
     if (url.pathname === "/me/preferences") return json({ timezone: "UTC" });
     if (url.pathname === "/_tes/api/tools") {
       requested.push(url.pathname + url.search);
+      if (unverified) return json(UNVERIFIED_TOOLS);   // old TES: ignores ?status=, no verification block
       const status = url.searchParams.get("status");
       return json(status ? TOOLS.filter(t => t.verification.status === status) : TOOLS);
     }
@@ -137,6 +141,26 @@ for (const width of [1440, 390]) {
 
       await page.getByRole("button", { name: "Runnable only" }).click();
       await page.getByText(/Showing 4 of 4 tools/).waitFor();
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  });
+
+  test(`tools page at ${width}px without verification data: fails open, no badges, no toggle`, async () => {
+    const { context, page, errors } = await open("/studio/tools", width, { unverified: true });
+    try {
+      await page.getByText("Showing 6 of 6 tools (verification status unavailable)").waitFor();
+      assert.equal(await page.locator(".tool-card__badge").count(), 0);
+      assert.equal(await page.getByRole("button", { name: "Show all" }).count(), 0);
+      assert.equal(await page.locator(".tool-card").count(), 6);
+      await capture(page, ".tools-page", "tools-no-verification", width);
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  });
+
+  test(`home at ${width}px without verification data: counts every tool as available`, async () => {
+    const { context, page, errors } = await open("/studio", width, { unverified: true });
+    try {
+      await page.getByText("6 tools available").waitFor();
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
   });

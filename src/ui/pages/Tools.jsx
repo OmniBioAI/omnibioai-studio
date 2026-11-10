@@ -18,6 +18,13 @@ export const VERIFICATION = {
   out_of_scope: { label: null, className: null },
 };
 
+// True when TES served a verification block for at least one tool. Without it
+// (an older TES, or a rollback) the page fails open: every tool is listed and no
+// badge is shown, instead of hiding the whole catalog as "not yet tested".
+export function hasVerificationData(tools) {
+  return Array.isArray(tools) && tools.some(tool => tool?.verification && typeof tool.verification === "object");
+}
+
 export function toolVerification(tool) {
   const block = tool?.verification && typeof tool.verification === "object" ? tool.verification : {};
   const status = VERIFICATION[block.status] ? block.status : "not_yet_tested";
@@ -90,12 +97,13 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
   }, []);
 
   const cards = useMemo(() => tools.map(toolPresentation), [tools]);
+  const verified = useMemo(() => hasVerificationData(tools), [tools]);
   const backendOptions = cards.some(tool => tool.backends.includes("Local")) ? [...TOOL_BACKENDS, "Local"] : TOOL_BACKENDS;
   const runnableCount = cards.filter(tool => tool.verification.status === "runnable").length;
   const hiddenCount = cards.filter(tool => !tool.verification.listedByDefault).length;
   const visible = cards.filter(tool => {
     const matchesQuery = !query.trim() || `${tool.name} ${tool.description}`.toLowerCase().includes(query.trim().toLowerCase());
-    const matchesStatus = showAll || tool.verification.listedByDefault;
+    const matchesStatus = !verified || showAll || tool.verification.listedByDefault;
     return matchesStatus && matchesQuery && (category === "All" || tool.category === category) && (backend === "Any" || tool.backends.includes(backend));
   });
 
@@ -112,18 +120,20 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
     <div className="tool-filter-block tool-filter-block--compact"><h2>Runs on</h2><div role="group" aria-label="Runs on" className="tool-filter-row">
       {backendOptions.map(value => <button key={value} type="button" aria-pressed={backend === value} onClick={() => setBackend(value)}>{value}</button>)}
     </div></div>
-    <div className="tool-filter-block tool-filter-block--compact"><h2>Verified</h2><div role="group" aria-label="Verification" className="tool-filter-row">
+    {verified && <div className="tool-filter-block tool-filter-block--compact"><h2>Verified</h2><div role="group" aria-label="Verification" className="tool-filter-row">
       <button type="button" aria-pressed={!showAll} onClick={() => setShowAll(false)}>Runnable only</button>
       <button type="button" aria-pressed={showAll} onClick={() => setShowAll(true)}>Show all</button>
-    </div></div>
+    </div></div>}
     {loading ? <p role="status">Loading tools…</p> : error ? <p role="alert">{error}</p> : <>
-      <p role="status">{showAll
-        ? `Showing ${visible.length} of ${cards.length} tools (${runnableCount} runnable HTTP tools)`
-        : `Showing ${visible.length} of ${cards.length - hiddenCount} tools (${runnableCount} runnable HTTP tools; ${hiddenCount} not working or not yet tested hidden)`}</p>
-      {!showAll && runnableCount === 0 && hiddenCount > 0 && <p className="tools-empty-hint">No HTTP tool has passed an end-to-end run yet. Choose “Show all” to see the {hiddenCount} hidden HTTP tools.</p>}
+      <p role="status">{!verified
+        ? `Showing ${visible.length} of ${cards.length} tools (verification status unavailable)`
+        : showAll
+          ? `Showing ${visible.length} of ${cards.length} tools (${runnableCount} runnable HTTP tools)`
+          : `Showing ${visible.length} of ${cards.length - hiddenCount} tools (${runnableCount} runnable HTTP tools; ${hiddenCount} not working or not yet tested hidden)`}</p>
+      {verified && !showAll && runnableCount === 0 && hiddenCount > 0 && <p className="tools-empty-hint">No HTTP tool has passed an end-to-end run yet. Choose “Show all” to see the {hiddenCount} hidden HTTP tools.</p>}
       <div className="tool-card-grid">{visible.map(tool => <article className="tool-card" key={tool.id}>
         <div className="tool-card__labels"><span className="tool-card__category">{tool.category}</span>
-          {tool.verification.label && <span className={`tool-card__badge ${tool.verification.className}`} title={tool.verification.title} aria-label={`${tool.verification.label}: ${tool.verification.title}`}>{tool.verification.label}</span>}</div>
+          {verified && tool.verification.label && <span className={`tool-card__badge ${tool.verification.className}`} title={tool.verification.title} aria-label={`${tool.verification.label}: ${tool.verification.title}`}>{tool.verification.label}</span>}</div>
         <h2>{tool.name}</h2><p>{tool.description}</p>
         <div className="tool-card__footer"><span>Runs on: {tool.backends.join(", ")}</span><button type="button" onClick={() => onOpenJobs?.(tool.id)}>View and submit</button></div>
       </article>)}</div>

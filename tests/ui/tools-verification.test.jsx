@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const tesApiFetch = vi.fn();
 vi.mock("../../src/ui/lib/tesApi", () => ({ tesApiFetch: (...args) => tesApiFetch(...args) }));
 
-import Tools, { toolPresentation, toolVerification } from "../../src/ui/pages/Tools";
+import Tools, { hasVerificationData, toolPresentation, toolVerification } from "../../src/ui/pages/Tools";
 import Home from "../../src/ui/pages/Home";
 
 const TOOLS = [
@@ -81,11 +81,17 @@ describe("Tools page verification badges", () => {
     expect(screen.getByText("legacy tool")).toBeInTheDocument();
   });
 
-  it("a TES without any verification block lists nothing by default except non-HTTP tools", async () => {
+  it("fails open when TES serves no verification data: every tool listed, no badges, no toggle", async () => {
     tesApiFetch.mockImplementation(() => Promise.resolve([{ tool_id: "fastqc", slurm: {} }, { tool_id: "ensembl_lookup", http: {} }]));
     render(<Tools />);
-    await screen.findByText(/Showing 0 of 0 tools/);   // no block at all: both not_yet_tested, both hidden
-    expect(screen.getByText(/No HTTP tool has passed/)).toBeInTheDocument();
+    await screen.findByText("Showing 2 of 2 tools (verification status unavailable)");
+    expect(screen.getByText("fastqc")).toBeInTheDocument();
+    expect(screen.getByText("ensembl lookup")).toBeInTheDocument();
+    expect(document.querySelectorAll(".tool-card__badge")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "Show all" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/No HTTP tool has passed/)).not.toBeInTheDocument();
+    expect(hasVerificationData([{ tool_id: "x" }])).toBe(false);
+    expect(hasVerificationData(TOOLS)).toBe(true);
   });
 });
 
@@ -96,8 +102,14 @@ describe("Home runnable tool count", () => {
     expect(tesApiFetch).toHaveBeenCalledWith("/api/tools?status=runnable", expect.anything());
   });
 
+  it("fails open on a TES that ignores the status filter: counts every tool and says 'available'", async () => {
+    tesApiFetch.mockImplementation(() => Promise.resolve([{ tool_id: "a", http: {} }, { tool_id: "b", slurm: {} }, { tool_id: "c", http: {} }]));
+    render(<Home currentUser={{ email: "ada@example.test" }} />);
+    await waitFor(() => expect(screen.getByText("3 tools available")).toBeInTheDocument());
+  });
+
   it("formats a large runnable count", async () => {
-    tesApiFetch.mockImplementation(path => Promise.resolve(path === "/api/tools?status=runnable" ? Array.from({ length: 803 }, (_, i) => ({ tool_id: `t${i}` })) : []));
+    tesApiFetch.mockImplementation(path => Promise.resolve(path === "/api/tools?status=runnable" ? Array.from({ length: 803 }, (_, i) => ({ tool_id: `t${i}`, verification: { status: "runnable" } })) : []));
     render(<Home currentUser={{ email: "ada@example.test" }} />);
     await waitFor(() => expect(screen.getByText("803 runnable HTTP tools")).toBeInTheDocument());
   });
