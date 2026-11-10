@@ -64,6 +64,21 @@ set +a
 BACKUP_DIR="${BACKUP_DIR:-${SCRIPT_DIR}/../work/backups/mysql}"
 RETAIN_DAYS="${RETAIN_DAYS:-7}"
 CONTAINER="${MYSQL_CONTAINER:-omnibioai-studio-mysql-1}"
+# Who dumps, and with which credential. Default: root with MYSQL_ROOT_PASSWORD
+# from the protected .env (the historical behaviour). Set
+# MYSQL_BACKUP_PASSWORD_FILE (mode 600, one line) to read the password from a
+# file instead, e.g. the read-only obai_backup account's file that
+# ops/obai-deploy also uses; MYSQL_BACKUP_USER names the account (default
+# root). MYSQL_BACKUP_DATABASES (comma- or space-separated) limits the dump to
+# those schemas (--databases) instead of --all-databases, which a non-root
+# account cannot read in full (--no-tablespaces: a non-PROCESS account cannot
+# dump tablespaces, and the application schemas have none). Either way the
+# password reaches mysqldump only
+# as a defaults file created inside the container (never argv, never the
+# container's environment).
+BACKUP_USER="${MYSQL_BACKUP_USER:-root}"
+PASSWORD_FILE="${MYSQL_BACKUP_PASSWORD_FILE:-}"
+BACKUP_DATABASES="${MYSQL_BACKUP_DATABASES:-}"
 HEALTH_FILE="${BACKUP_HEALTH_FILE:-${BACKUP_DIR}/../mysql-backup-health.env}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 # Encryption config: no default passphrase-file path is baked in here
@@ -194,8 +209,20 @@ trap 'fail "unexpected command failure" "$?"' ERR
 # invisible in the health file even though the process exit code was
 # still non-zero.
 STAGE="credentials"
-if [[ -z "${MYSQL_ROOT_PASSWORD:-}" ]]; then
-  fail "MYSQL_ROOT_PASSWORD must be set in the protected environment"
+if [[ -n "$PASSWORD_FILE" ]]; then
+  if [[ ! -r "$PASSWORD_FILE" || ! -s "$PASSWORD_FILE" ]]; then
+    fail "MYSQL_BACKUP_PASSWORD_FILE is missing, unreadable or empty"
+  fi
+  if [[ -n "$(find "$PASSWORD_FILE" -maxdepth 0 -perm /077 -print 2>/dev/null)" ]]; then
+    fail "MYSQL_BACKUP_PASSWORD_FILE must not be readable by group or others (mode 600)"
+  fi
+elif [[ -z "${MYSQL_ROOT_PASSWORD:-}" ]]; then
+  fail "MYSQL_ROOT_PASSWORD must be set in the protected environment (or set MYSQL_BACKUP_PASSWORD_FILE)"
+fi
+DUMP_SCOPE=(--all-databases)
+if [[ -n "$BACKUP_DATABASES" ]]; then
+  # shellcheck disable=SC2206
+  DUMP_SCOPE=(--databases ${BACKUP_DATABASES//,/ })
 fi
 
 # ── Pre-flight ────────────────────────────────────────────────
@@ -216,29 +243,43 @@ echo "[INFO] $(date -Iseconds) Starting MySQL backup → ${DUMP_FILE}"
 # status). So both errexit AND the trap are suspended around the pipe,
 # PIPESTATUS is captured immediately, then both are restored before we
 # make our own stage-specific decision from PIPESTATUS.
+# The credential travels on stdin as a [client] defaults file that the
+# container-side shell writes to a private temp file and removes afterwards;
+# the host-side password source is a builtin printf or a `cat` of the password
+# file, so the value never appears in any argv or in `docker inspect`.
 set +e
 trap - ERR
-docker exec \
-  -e MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" \
-  "${CONTAINER}" \
-  mysqldump \
-    -uroot \
-    --all-databases \
+{
+  printf '[client]\nuser=%s\npassword=' "${BACKUP_USER}"
+  if [[ -n "$PASSWORD_FILE" ]]; then cat -- "$PASSWORD_FILE"; else printf '%s' "${MYSQL_ROOT_PASSWORD}"; fi
+  printf '\n'
+} \
+| docker exec -i "${CONTAINER}" sh -c '
+    umask 077
+    f=$(mktemp /tmp/.backup-mysql.XXXXXX) || exit 1
+    trap "rm -f \"$f\"" EXIT
+    cat > "$f"
+    mysqldump --defaults-extra-file="$f" "$@"
+  ' sh \
     --single-transaction \
     --quick \
     --lock-tables=false \
+    --no-tablespaces \
+    "${DUMP_SCOPE[@]}" \
 | gzip > "${DUMP_TMP}"
 PIPE_STATUS=("${PIPESTATUS[@]}")
 set -e
 trap 'fail "unexpected command failure" "$?"' ERR
 
-if [[ "${PIPE_STATUS[0]}" -ne 0 ]]; then
-  STAGE="dump"
-  fail "mysqldump exited ${PIPE_STATUS[0]}"
-fi
+# PIPE_STATUS[0] is the credential printf group; it may see EPIPE when the dump
+# fails early, so only the dump and compress stages decide.
 if [[ "${PIPE_STATUS[1]}" -ne 0 ]]; then
+  STAGE="dump"
+  fail "mysqldump exited ${PIPE_STATUS[1]}"
+fi
+if [[ "${PIPE_STATUS[2]}" -ne 0 ]]; then
   STAGE="compress"
-  fail "gzip exited ${PIPE_STATUS[1]}"
+  fail "gzip exited ${PIPE_STATUS[2]}"
 fi
 
 # ── Integrity verification (of the plaintext dump) ──────────────
