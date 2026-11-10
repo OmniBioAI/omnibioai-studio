@@ -3,7 +3,7 @@ import { Spinner } from "@omnibioai/ui";
 import { useAccountDateTime } from "../components/PreferencesProvider";
 import { useStorageUsage } from "../lib/useStorageUsage";
 import { MEMBERSHIP_PLANS } from "../lib/membershipCatalog";
-import { formatStorageBytes, storageSegments } from "../lib/storageDashboard";
+import { formatHeldPercent, formatStorageBytes, MIN_VISIBLE_SEGMENT_PX, storageSegments } from "../lib/storageDashboard";
 import AccountState from "../components/AccountState";
 import MyFiles from "../components/MyFiles";
 import "./AccountStorage.css";
@@ -25,7 +25,7 @@ function StorageSummary({ value, onRetry }) {
   const formatDate = useAccountDateTime();
   const segments = storageSegments(value);
   const plan = MEMBERSHIP_PLANS.find(item => item.id === value.plan);
-  const percentage = segments.percent === null ? null : `${Number(segments.percent.toFixed(1))}%`;
+  const percentage = formatHeldPercent(value.usedBytes + value.reservedBytes, value.quotaBytes);
 
   return <section className="storage-dashboard__summary" aria-labelledby="storage-summary-heading">
     <div className="storage-dashboard__summary-heading">
@@ -48,7 +48,7 @@ function StorageSummary({ value, onRetry }) {
         <div className="storage-dashboard__bar" role="img"
           aria-label={`Personal storage: ${formatStorageBytes(value.usedBytes)} used, ${formatStorageBytes(value.reservedBytes)} reserved, ${formatStorageBytes(value.availableBytes)} available, ${formatStorageBytes(value.quotaBytes)} total.${percentage === null ? " No percentage is defined for a zero-byte allowance." : ` ${percentage} used or reserved.`}`}>
           {segments.parts.map(part => <span key={part.name} className={`storage-dashboard__segment storage-dashboard__segment--${part.name}`}
-            style={{ width: `${part.percent}%` }} />)}
+            style={{ width: `${part.percent}%`, ...(part.minVisible ? { minWidth: `${MIN_VISIBLE_SEGMENT_PX}px` } : {}) }} />)}
         </div>
         <ul className="storage-dashboard__legend" aria-label="Usage legend">
           {["Used", "Reserved", "Available"].map(label => <li key={label}><span className={`storage-dashboard__dot storage-dashboard__dot--${label.toLowerCase()}`} aria-hidden="true" />{label}</li>)}
