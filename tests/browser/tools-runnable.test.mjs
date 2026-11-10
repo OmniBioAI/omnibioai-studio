@@ -37,7 +37,7 @@ const TOOLS = [
   { tool_id: "retired_gene_api", description: "Endpoint moved to an HTML landing page", http: { url: "https://old.example.org" },
     verification: { status: "not_working", tested_at: "2026-11-09", reason: "upstream HTTP 404 not found", ...RUN } },
   { tool_id: "fastqc", description: "Read quality control", tags: ["qc"], slurm: { image: "/sif/fastqc.sif" },
-    verification: { status: "not_yet_tested", tested_at: null, reason: "end-to-end verification covers HTTP tools only", run_id: null } },
+    verification: { status: "out_of_scope", tested_at: null, reason: "end-to-end verification covers HTTP tools only", run_id: null } },
   { tool_id: "ebi_blast_chain", description: "BLAST job chain through EBI Job Dispatcher", http: { url: "https://www.ebi.ac.uk" },
     verification: { status: "not_yet_tested", tested_at: "2026-11-09", reason: "direct job cap reached", ...RUN } },
 ];
@@ -114,28 +114,29 @@ for (const width of [1440, 390]) {
   test(`tools page at ${width}px: runnable by default, badges, show all`, async () => {
     const { context, page, errors } = await open("/studio/tools", width);
     try {
-      await page.getByText("Showing 3 of 3 runnable tools").waitFor();
+      await page.getByText("Showing 4 of 4 tools (3 runnable HTTP tools; 2 not working or not yet tested hidden)").waitFor();
       const badges = page.locator(".tool-card__badge");
       assert.equal(await badges.count(), 3);
       assert.deepEqual(await badges.allTextContents(), ["Runnable", "Runnable", "Runnable"]);
       assert.equal(await badges.first().getAttribute("title"), "Tested end to end on 2026-11-09");
       assert.equal(await page.getByRole("button", { name: "Runnable only" }).getAttribute("aria-pressed"), "true");
       assert.equal(await page.getByText("retired gene api").count(), 0);
+      const fastqcCard = page.locator(".tool-card", { hasText: "fastqc" });
+      assert.equal(await fastqcCard.count(), 1, "Slurm tool is listed by default");
+      assert.equal(await fastqcCard.locator(".tool-card__badge").count(), 0, "Slurm tool carries no badge");
       await capture(page, ".tools-page", "tools-runnable", width);
 
       await page.getByRole("button", { name: "Show all" }).click();
-      await page.getByText("Showing 6 of 6 tools (3 runnable)").waitFor();
+      await page.getByText("Showing 6 of 6 tools (3 runnable HTTP tools)").waitFor();
       const labels = await page.locator(".tool-card__badge").allTextContents();
-      assert.deepEqual([...labels].sort(), ["Not working", "Not yet tested", "Not yet tested", "Runnable", "Runnable", "Runnable"]);
+      assert.deepEqual([...labels].sort(), ["Not working", "Not yet tested", "Runnable", "Runnable", "Runnable"]);
       const broken = page.locator(".tool-card", { hasText: "retired gene api" }).locator(".tool-card__badge");
       assert.equal(await broken.textContent(), "Not working");
       assert.equal(await broken.getAttribute("title"), "Failed end to end on 2026-11-09: upstream HTTP 404 not found");
-      const fastqc = page.locator(".tool-card", { hasText: "fastqc" }).locator(".tool-card__badge");
-      assert.equal(await fastqc.getAttribute("title"), "end-to-end verification covers HTTP tools only");
       await capture(page, ".tools-page", "tools-show-all", width);
 
       await page.getByRole("button", { name: "Runnable only" }).click();
-      await page.getByText("Showing 3 of 3 runnable tools").waitFor();
+      await page.getByText(/Showing 4 of 4 tools/).waitFor();
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
   });
@@ -143,7 +144,7 @@ for (const width of [1440, 390]) {
   test(`home at ${width}px: counts runnable tools only`, async () => {
     const { context, page, errors, requested } = await open("/studio", width);
     try {
-      await page.getByText("3 runnable tools").waitFor();
+      await page.getByText("3 runnable HTTP tools").waitFor();
       assert.ok(requested.includes("/_tes/api/tools?status=runnable"), `requested: ${requested.join(", ")}`);
       await capture(page, ".studio-home", "home-runnable-count", width);
       assert.deepEqual(errors, []);

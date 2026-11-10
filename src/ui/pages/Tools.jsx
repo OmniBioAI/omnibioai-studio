@@ -8,10 +8,14 @@ export const TOOL_CATEGORIES = ["QC", "Assembly", "Nanopore", "Single-cell", "RN
 export const TOOL_BACKENDS = ["Any", "HTTP", "Slurm", "Cloud", "Kubernetes"];
 
 // End-to-end verification status, as served by TES on /api/tools ("verification" block).
+// HTTP tools are runnable / not_working / not_yet_tested; non-HTTP tools (Slurm, cloud)
+// are out_of_scope: the end-to-end run does not exercise them, so they get no badge
+// and are always listed.
 export const VERIFICATION = {
   runnable: { label: "Runnable", className: "tool-card__badge--runnable" },
   not_working: { label: "Not working", className: "tool-card__badge--not-working" },
   not_yet_tested: { label: "Not yet tested", className: "tool-card__badge--not-yet-tested" },
+  out_of_scope: { label: null, className: null },
 };
 
 export function toolVerification(tool) {
@@ -21,8 +25,11 @@ export function toolVerification(tool) {
   const reason = typeof block.reason === "string" && block.reason ? block.reason : null;
   const title = status === "runnable" ? `Tested end to end on ${testedAt || "an unknown date"}`
     : status === "not_working" ? `Failed end to end${testedAt ? ` on ${testedAt}` : ""}${reason ? `: ${reason}` : ""}`
-      : reason || "Not yet run end to end";
-  return { status, label: VERIFICATION[status].label, className: VERIFICATION[status].className, testedAt, reason, title };
+      : status === "out_of_scope" ? (reason || "Not covered by end-to-end verification")
+        : reason || "Not yet run end to end";
+  // listedByDefault: hidden by default only when an HTTP tool is known not to run or has never been tested.
+  return { status, label: VERIFICATION[status].label, className: VERIFICATION[status].className, testedAt, reason, title,
+    listedByDefault: status === "runnable" || status === "out_of_scope" };
 }
 
 export function toolRunsTemporarilyUnavailable(config = globalThis.window?.__OMNIBIOAI_CONFIG__) {
@@ -85,9 +92,10 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
   const cards = useMemo(() => tools.map(toolPresentation), [tools]);
   const backendOptions = cards.some(tool => tool.backends.includes("Local")) ? [...TOOL_BACKENDS, "Local"] : TOOL_BACKENDS;
   const runnableCount = cards.filter(tool => tool.verification.status === "runnable").length;
+  const hiddenCount = cards.filter(tool => !tool.verification.listedByDefault).length;
   const visible = cards.filter(tool => {
     const matchesQuery = !query.trim() || `${tool.name} ${tool.description}`.toLowerCase().includes(query.trim().toLowerCase());
-    const matchesStatus = showAll || tool.verification.status === "runnable";
+    const matchesStatus = showAll || tool.verification.listedByDefault;
     return matchesStatus && matchesQuery && (category === "All" || tool.category === category) && (backend === "Any" || tool.backends.includes(backend));
   });
 
@@ -110,12 +118,12 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
     </div></div>
     {loading ? <p role="status">Loading tools…</p> : error ? <p role="alert">{error}</p> : <>
       <p role="status">{showAll
-        ? `Showing ${visible.length} of ${cards.length} tools (${runnableCount} runnable)`
-        : `Showing ${visible.length} of ${runnableCount} runnable tools`}</p>
-      {!showAll && runnableCount === 0 && cards.length > 0 && <p className="tools-empty-hint">No tool has passed an end-to-end run yet. Choose “Show all” to see the {cards.length} registered tools.</p>}
+        ? `Showing ${visible.length} of ${cards.length} tools (${runnableCount} runnable HTTP tools)`
+        : `Showing ${visible.length} of ${cards.length - hiddenCount} tools (${runnableCount} runnable HTTP tools; ${hiddenCount} not working or not yet tested hidden)`}</p>
+      {!showAll && runnableCount === 0 && hiddenCount > 0 && <p className="tools-empty-hint">No HTTP tool has passed an end-to-end run yet. Choose “Show all” to see the {hiddenCount} hidden HTTP tools.</p>}
       <div className="tool-card-grid">{visible.map(tool => <article className="tool-card" key={tool.id}>
         <div className="tool-card__labels"><span className="tool-card__category">{tool.category}</span>
-          <span className={`tool-card__badge ${tool.verification.className}`} title={tool.verification.title} aria-label={`${tool.verification.label}: ${tool.verification.title}`}>{tool.verification.label}</span></div>
+          {tool.verification.label && <span className={`tool-card__badge ${tool.verification.className}`} title={tool.verification.title} aria-label={`${tool.verification.label}: ${tool.verification.title}`}>{tool.verification.label}</span>}</div>
         <h2>{tool.name}</h2><p>{tool.description}</p>
         <div className="tool-card__footer"><span>Runs on: {tool.backends.join(", ")}</span><button type="button" onClick={() => onOpenJobs?.(tool.id)}>View and submit</button></div>
       </article>)}</div>
