@@ -746,3 +746,35 @@ def test_bad_password_file_fails_closed_before_any_dump(tmp_path, setup):
     assert sb.artifacts() == []
     assert sb.health()["LAST_RESULT"] == "failure"
     assert sb.health()["LAST_STAGE"] == "credentials"
+
+
+# ---------------------------------------------------------------------------
+# Artifact permissions (2026-11-10): dumps are private to the backup user
+# ---------------------------------------------------------------------------
+
+def test_published_artifact_checksum_and_health_file_are_mode_600(tmp_path):
+    sb = Sandbox(tmp_path)
+    result = sb.run()
+    assert result.returncode == 0, result.stderr
+    (artifact,) = sb.artifacts()
+    for f in (artifact, Path(f"{artifact}.sha256"), sb.health_file):
+        assert stat.S_IMODE(f.stat().st_mode) == 0o600, f"{f.name} is {oct(stat.S_IMODE(f.stat().st_mode))}"
+
+
+def test_health_file_is_private_even_after_a_failed_run(tmp_path):
+    sb = Sandbox(tmp_path, mysqldump_exit=1)
+    sb.run()
+    assert sb.partials() == []
+    assert stat.S_IMODE(sb.health_file.stat().st_mode) == 0o600
+
+
+def test_encrypted_artifact_is_mode_600(tmp_path):
+    passphrase = tmp_path / "passphrase"
+    passphrase.write_text("test-passphrase-not-real", encoding="utf-8")
+    passphrase.chmod(0o600)
+    sb = Sandbox(tmp_path)
+    result = sb.run({"MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase)})
+    assert result.returncode == 0, result.stderr
+    (artifact,) = sb.encrypted_artifacts()
+    assert stat.S_IMODE(artifact.stat().st_mode) == 0o600
+    assert stat.S_IMODE(Path(f"{artifact}.sha256").stat().st_mode) == 0o600
