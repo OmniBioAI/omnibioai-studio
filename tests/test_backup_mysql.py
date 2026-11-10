@@ -667,3 +667,82 @@ def test_retention_rotates_both_plaintext_and_encrypted_artifacts(tmp_path):
     assert not plain.exists(), "old plaintext artifact must still be rotated"
     assert not encrypted_old.exists(), "old encrypted artifact must also be rotated"
     assert len(sb.encrypted_artifacts()) == 1  # only today's fresh one survives
+
+
+# ---------------------------------------------------------------------------
+# Credential source and dump scope (live-DB backup, 2026-11-10)
+# ---------------------------------------------------------------------------
+
+RECORDING_DOCKER = """#!/usr/bin/env bash
+# Fake docker that records `docker exec` argv and stdin, never the real daemon.
+if [[ "$1" == "ps" ]]; then echo "fake-mysql-1"; exit 0; fi
+if [[ "$1" == "exec" ]]; then
+  printf '%s\\n' "$@" > "{argv_file}"
+  cat > "{stdin_file}"
+  printf -- "-- fake sql dump\\nSELECT 1;\\n"; exit 0
+fi
+exit 1
+"""
+
+
+def _recording_sandbox(tmp_path):
+    sb = Sandbox(tmp_path)
+    sb.env_file.write_text("MYSQL_ROOT_PASSWORD=test-password-not-real\n", encoding="utf-8")   # a real newline, unlike the template default
+    argv_file, stdin_file = tmp_path / "exec-argv.txt", tmp_path / "exec-stdin.txt"
+    (sb.bin_dir / "docker").write_text(RECORDING_DOCKER.format(argv_file=argv_file, stdin_file=stdin_file), encoding="utf-8")
+    return sb, argv_file, stdin_file
+
+
+def test_default_credentials_reach_mysqldump_only_through_a_defaults_file(tmp_path):
+    sb, argv_file, stdin_file = _recording_sandbox(tmp_path)
+    result = sb.run()
+    assert result.returncode == 0, result.stderr
+    argv = argv_file.read_text(encoding="utf-8")
+    assert "MYSQL_PWD" not in argv and "-uroot" not in argv
+    assert "test-password-not-real" not in argv
+    assert "--defaults-extra-file=" in argv
+    assert "--all-databases" in argv
+    assert stdin_file.read_text(encoding="utf-8") == "[client]\nuser=root\npassword=test-password-not-real\n"
+    assert "test-password-not-real" not in result.stdout + result.stderr
+
+
+def test_password_file_user_and_databases_are_honoured(tmp_path):
+    sb, argv_file, stdin_file = _recording_sandbox(tmp_path)
+    pw = tmp_path / "obai_backup.pass"
+    pw.write_text("file-password-not-real", encoding="utf-8")
+    pw.chmod(0o600)
+    result = sb.run({"MYSQL_BACKUP_PASSWORD_FILE": str(pw), "MYSQL_BACKUP_USER": "obai_backup",
+                     "MYSQL_BACKUP_DATABASES": "omnibioai,limsdb model_registry"})
+    assert result.returncode == 0, result.stderr
+    argv = argv_file.read_text(encoding="utf-8").splitlines()
+    assert "--all-databases" not in argv
+    assert argv[argv.index("--databases") + 1:argv.index("--databases") + 4] == ["omnibioai", "limsdb", "model_registry"]
+    assert stdin_file.read_text(encoding="utf-8") == "[client]\nuser=obai_backup\npassword=file-password-not-real\n"
+    assert "file-password-not-real" not in "\n".join(argv) + result.stdout + result.stderr
+    assert sb.health()["LAST_RESULT"] == "success"
+
+
+def test_password_file_takes_precedence_and_root_password_is_not_required(tmp_path):
+    sb, _, stdin_file = _recording_sandbox(tmp_path)
+    sb.env_file.write_text("", encoding="utf-8")   # no MYSQL_ROOT_PASSWORD at all
+    pw = tmp_path / "obai_backup.pass"
+    pw.write_text("only-source", encoding="utf-8")
+    pw.chmod(0o600)
+    result = sb.run({"MYSQL_BACKUP_PASSWORD_FILE": str(pw), "MYSQL_ROOT_PASSWORD": ""})
+    assert result.returncode == 0, result.stderr
+    assert stdin_file.read_text(encoding="utf-8").endswith("password=only-source\n")
+
+
+@pytest.mark.parametrize("setup", ["missing", "empty", "world-readable"])
+def test_bad_password_file_fails_closed_before_any_dump(tmp_path, setup):
+    sb, argv_file, _ = _recording_sandbox(tmp_path)
+    pw = tmp_path / "obai_backup.pass"
+    if setup != "missing":
+        pw.write_text("" if setup == "empty" else "leaky", encoding="utf-8")
+        pw.chmod(0o644 if setup == "world-readable" else 0o600)
+    result = sb.run({"MYSQL_BACKUP_PASSWORD_FILE": str(pw)})
+    assert result.returncode != 0
+    assert not argv_file.exists(), "mysqldump must not run"
+    assert sb.artifacts() == []
+    assert sb.health()["LAST_RESULT"] == "failure"
+    assert sb.health()["LAST_STAGE"] == "credentials"
