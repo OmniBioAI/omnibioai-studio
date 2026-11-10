@@ -30,7 +30,8 @@ export default function Home({ currentUser }) {
     const controller = new AbortController();
     tesApiFetch("/api/runs", { signal: controller.signal }).then(value => setRuns(Array.isArray(value) ? value : []))
       .catch(() => { if (!controller.signal.aborted) setJobsUnavailable(true); });
-    tesApiFetch("/api/tools", { signal: controller.signal }).then(value => setToolCount(Array.isArray(value) ? value.length : null))
+    // Only tools that passed an end-to-end run count as runnable (TES /api/tools?status=runnable).
+    tesApiFetch("/api/tools?status=runnable", { signal: controller.signal }).then(value => setToolCount(Array.isArray(value) ? value.length : null))
       .catch(() => {});
     return () => controller.abort();
   }, []);
@@ -46,7 +47,7 @@ export default function Home({ currentUser }) {
       <form role="search" onSubmit={submitSearch}><label htmlFor="global-search">Search tools, workflows, and data</label><div><input id="global-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search tools, workflows, and data…" /><button type="submit">Search</button></div><small>Search currently opens the Tools catalog; no combined search endpoint is available.</small></form>
     </header>
     <section><div className="home-section-heading"><div><span>Quick actions</span><h2>Start here</h2></div></div><div className="start-card-grid">
-      {START.map(([label, description, destination]) => <button key={label} type="button" onClick={() => navigate(destination)}><span>{label}</span><small>{description}</small>{label === "Run a tool" && <strong>{toolCount === null ? `${runs.length} recent runs` : `${toolCount} tools available`}</strong>}</button>)}
+      {START.map(([label, description, destination]) => <button key={label} type="button" onClick={() => navigate(destination)}><span>{label}</span><small>{description}</small>{label === "Run a tool" && <strong>{toolCount === null ? `${runs.length} recent runs` : `${toolCount.toLocaleString("en-US")} runnable ${toolCount === 1 ? "tool" : "tools"}`}</strong>}</button>)}
     </div></section>
     <section><div className="home-section-heading"><div><span>Your activity</span><h2>Recent jobs</h2></div><button type="button" onClick={() => navigate({ nav: 9 })}>View all</button></div>
       {jobsUnavailable ? <p role="alert">Recent jobs are unavailable.</p> : recent.length ? <div className="recent-jobs">{recent.map(run => <button type="button" key={run.run_id} onClick={() => navigate({ nav: 9 })}><span><strong>{run.tool_id || "Tool run"}</strong><small>{run.run_id}</small></span><em data-state={run.state}>{run.state || "Unknown"}</em></button>)}</div> : <p>No tool runs yet.</p>}

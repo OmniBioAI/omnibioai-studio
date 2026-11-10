@@ -7,6 +7,24 @@ import "./NavigationRedesign.css";
 export const TOOL_CATEGORIES = ["QC", "Assembly", "Nanopore", "Single-cell", "RNA-seq", "Epigenomics", "Annotation", "More"];
 export const TOOL_BACKENDS = ["Any", "HTTP", "Slurm", "Cloud", "Kubernetes"];
 
+// End-to-end verification status, as served by TES on /api/tools ("verification" block).
+export const VERIFICATION = {
+  runnable: { label: "Runnable", className: "tool-card__badge--runnable" },
+  not_working: { label: "Not working", className: "tool-card__badge--not-working" },
+  not_yet_tested: { label: "Not yet tested", className: "tool-card__badge--not-yet-tested" },
+};
+
+export function toolVerification(tool) {
+  const block = tool?.verification && typeof tool.verification === "object" ? tool.verification : {};
+  const status = VERIFICATION[block.status] ? block.status : "not_yet_tested";
+  const testedAt = typeof block.tested_at === "string" && block.tested_at ? block.tested_at : null;
+  const reason = typeof block.reason === "string" && block.reason ? block.reason : null;
+  const title = status === "runnable" ? `Tested end to end on ${testedAt || "an unknown date"}`
+    : status === "not_working" ? `Failed end to end${testedAt ? ` on ${testedAt}` : ""}${reason ? `: ${reason}` : ""}`
+      : reason || "Not yet run end to end";
+  return { status, label: VERIFICATION[status].label, className: VERIFICATION[status].className, testedAt, reason, title };
+}
+
 export function toolRunsTemporarilyUnavailable(config = globalThis.window?.__OMNIBIOAI_CONFIG__) {
   const value = config?.toolRunsTemporarilyUnavailable;
   return value === true || value === "true";
@@ -40,6 +58,7 @@ export function toolPresentation(tool) {
     description: String(tool.description || tool.summary || "Registered TES tool"),
     category,
     backends,
+    verification: toolVerification(tool),
   };
 }
 
@@ -51,6 +70,7 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [noticeDismissed, setNoticeDismissed] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const showUnavailableNotice = toolRunsTemporarilyUnavailable() && !noticeDismissed;
 
   useEffect(() => {
@@ -64,9 +84,11 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
 
   const cards = useMemo(() => tools.map(toolPresentation), [tools]);
   const backendOptions = cards.some(tool => tool.backends.includes("Local")) ? [...TOOL_BACKENDS, "Local"] : TOOL_BACKENDS;
+  const runnableCount = cards.filter(tool => tool.verification.status === "runnable").length;
   const visible = cards.filter(tool => {
     const matchesQuery = !query.trim() || `${tool.name} ${tool.description}`.toLowerCase().includes(query.trim().toLowerCase());
-    return matchesQuery && (category === "All" || tool.category === category) && (backend === "Any" || tool.backends.includes(backend));
+    const matchesStatus = showAll || tool.verification.status === "runnable";
+    return matchesStatus && matchesQuery && (category === "All" || tool.category === category) && (backend === "Any" || tool.backends.includes(backend));
   });
 
   return <section className="tools-page">
@@ -82,10 +104,19 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
     <div className="tool-filter-block tool-filter-block--compact"><h2>Runs on</h2><div role="group" aria-label="Runs on" className="tool-filter-row">
       {backendOptions.map(value => <button key={value} type="button" aria-pressed={backend === value} onClick={() => setBackend(value)}>{value}</button>)}
     </div></div>
+    <div className="tool-filter-block tool-filter-block--compact"><h2>Verified</h2><div role="group" aria-label="Verification" className="tool-filter-row">
+      <button type="button" aria-pressed={!showAll} onClick={() => setShowAll(false)}>Runnable only</button>
+      <button type="button" aria-pressed={showAll} onClick={() => setShowAll(true)}>Show all</button>
+    </div></div>
     {loading ? <p role="status">Loading tools…</p> : error ? <p role="alert">{error}</p> : <>
-      <p role="status">Showing {visible.length} of {cards.length} tools</p>
+      <p role="status">{showAll
+        ? `Showing ${visible.length} of ${cards.length} tools (${runnableCount} runnable)`
+        : `Showing ${visible.length} of ${runnableCount} runnable tools`}</p>
+      {!showAll && runnableCount === 0 && cards.length > 0 && <p className="tools-empty-hint">No tool has passed an end-to-end run yet. Choose “Show all” to see the {cards.length} registered tools.</p>}
       <div className="tool-card-grid">{visible.map(tool => <article className="tool-card" key={tool.id}>
-        <span className="tool-card__category">{tool.category}</span><h2>{tool.name}</h2><p>{tool.description}</p>
+        <div className="tool-card__labels"><span className="tool-card__category">{tool.category}</span>
+          <span className={`tool-card__badge ${tool.verification.className}`} title={tool.verification.title} aria-label={`${tool.verification.label}: ${tool.verification.title}`}>{tool.verification.label}</span></div>
+        <h2>{tool.name}</h2><p>{tool.description}</p>
         <div className="tool-card__footer"><span>Runs on: {tool.backends.join(", ")}</span><button type="button" onClick={() => onOpenJobs?.(tool.id)}>View and submit</button></div>
       </article>)}</div>
     </>}
