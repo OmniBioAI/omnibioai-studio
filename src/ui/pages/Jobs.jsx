@@ -89,6 +89,15 @@ export default function Jobs() {
     return () => clearInterval(pollRef.current);
   }, [loadData]);
 
+  // Deep link from the tool detail page: /studio/jobs?run=<run_id> opens that run once it is listed.
+  const linkedRun = useRef(typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("run") : null);
+  useEffect(() => {
+    const target = linkedRun.current;
+    if (!target || loading) return;
+    linkedRun.current = null;
+    if (runs.some(run => run.run_id === target)) openDetail(target);
+  }, [runs, loading]);
+
   const orderedRuns = useMemo(() => [...runs].reverse(), [runs]);
   const pageCount = Math.max(1, Math.ceil(orderedRuns.length / JOBS_PAGE_SIZE));
   const visibleRuns = useMemo(

@@ -61,3 +61,16 @@ describe("Studio router", () => {
     unsubscribe();
   });
 });
+
+describe("tool detail routes", () => {
+  it("resolves /studio/tools/:toolId to the Tools page with the tool id", async () => {
+    const { isKnownStudioPath, resolveStudioLocation, studioToolPath, toolIdFromStudioPath } = await import("../../src/ui/lib/studioRouter");
+    expect(resolveStudioLocation({ pathname: "/studio/tools/fastqc" })).toMatchObject({ page: 37, toolId: "fastqc" });
+    expect(resolveStudioLocation({ pathname: "/studio/tools" })).toMatchObject({ page: 37, toolId: null });
+    expect(toolIdFromStudioPath("/studio/tools/ensembl_lookup/")).toBe("ensembl_lookup");
+    expect(toolIdFromStudioPath("/studio/tools/Bad-Id")).toBeNull();
+    expect(isKnownStudioPath("/studio/tools/fastqc")).toBe(true);
+    expect(studioToolPath("fastqc")).toBe("/studio/tools/fastqc");
+    expect(() => studioToolPath("../x")).toThrow("Invalid tool id.");
+  });
+});

@@ -87,8 +87,9 @@ describe("Tools page verification badges", () => {
     tesApiFetch.mockImplementation(() => Promise.resolve([TOOLS[2], TOOLS[3]]));
     render(<Tools />);
     await screen.findByText("Showing 0 of 0 tools (0 runnable HTTP tools; 2 not working, not yet tested or unavailable hidden)");
-    expect(screen.getByText(/No HTTP tool has passed an end-to-end run yet/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Show all" }));
+    expect(screen.getByText("No runnable tools yet.")).toBeInTheDocument();
+    expect(screen.getByText("Show all to browse the 2 tools that are not working, not yet tested or unavailable.")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Show all" })[1]);   // the empty-state action
     expect(screen.getByText("legacy tool")).toBeInTheDocument();
   });
 
