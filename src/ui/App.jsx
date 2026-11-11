@@ -117,6 +117,7 @@ const BASE_NAV = [
     { name:"Plugins and integrations", idx: PLUGINS_PAGE },
     { name:"Omics and analysis", idx: OMICS_ANALYSIS_PAGE },
     { name:"Agentic", idx: AGENTIC_PAGE },
+    { name:"All services", idx: ALL_SERVICES_PAGE },
   ]},
 ];
 
