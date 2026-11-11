@@ -10,12 +10,15 @@ export const TOOL_BACKENDS = ["Any", "HTTP", "Slurm", "Cloud", "Kubernetes"];
 // End-to-end verification status, as served by TES on /api/tools ("verification" block).
 // HTTP tools are runnable / not_working / not_yet_tested; non-HTTP tools (Slurm, cloud)
 // are out_of_scope: the end-to-end run does not exercise them, so they get no badge
-// and are always listed.
+// and are always listed. Any tool is "unavailable" when no configured backend can run it
+// right now (Slurm not answering, an x86_64-only image on an ARM64 host, a backend whose
+// handshake failed): hidden by default, shown with an "Unavailable" badge behind "Show all".
 export const VERIFICATION = {
   runnable: { label: "Runnable", className: "tool-card__badge--runnable" },
   not_working: { label: "Not working", className: "tool-card__badge--not-working" },
   not_yet_tested: { label: "Not yet tested", className: "tool-card__badge--not-yet-tested" },
   out_of_scope: { label: null, className: null },
+  unavailable: { label: "Unavailable", className: "tool-card__badge--unavailable" },
 };
 
 // True when TES served a verification block for at least one tool. Without it
@@ -33,8 +36,10 @@ export function toolVerification(tool) {
   const title = status === "runnable" ? `Tested end to end on ${testedAt || "an unknown date"}`
     : status === "not_working" ? `Failed end to end${testedAt ? ` on ${testedAt}` : ""}${reason ? `: ${reason}` : ""}`
       : status === "out_of_scope" ? (reason || "Not covered by end-to-end verification")
-        : reason || "Not yet run end to end";
-  // listedByDefault: hidden by default only when an HTTP tool is known not to run or has never been tested.
+        : status === "unavailable" ? `No backend can run this tool right now${reason ? `: ${reason}` : ""}`
+          : reason || "Not yet run end to end";
+  // listedByDefault: hidden by default when an HTTP tool is known not to run or has never been
+  // tested, and when no backend can run the tool at all.
   return { status, label: VERIFICATION[status].label, className: VERIFICATION[status].className, testedAt, reason, title,
     listedByDefault: status === "runnable" || status === "out_of_scope" };
 }
@@ -129,8 +134,8 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
         ? `Showing ${visible.length} of ${cards.length} tools (verification status unavailable)`
         : showAll
           ? `Showing ${visible.length} of ${cards.length} tools (${runnableCount} runnable HTTP tools)`
-          : `Showing ${visible.length} of ${cards.length - hiddenCount} tools (${runnableCount} runnable HTTP tools; ${hiddenCount} not working or not yet tested hidden)`}</p>
-      {verified && !showAll && runnableCount === 0 && hiddenCount > 0 && <p className="tools-empty-hint">No HTTP tool has passed an end-to-end run yet. Choose “Show all” to see the {hiddenCount} hidden HTTP tools.</p>}
+          : `Showing ${visible.length} of ${cards.length - hiddenCount} tools (${runnableCount} runnable HTTP tools; ${hiddenCount} not working, not yet tested or unavailable hidden)`}</p>
+      {verified && !showAll && runnableCount === 0 && hiddenCount > 0 && <p className="tools-empty-hint">No HTTP tool has passed an end-to-end run yet. Choose “Show all” to see the {hiddenCount} hidden tools.</p>}
       <div className="tool-card-grid">{visible.map(tool => <article className="tool-card" key={tool.id}>
         <div className="tool-card__labels"><span className="tool-card__category">{tool.category}</span>
           {verified && tool.verification.label && <span className={`tool-card__badge ${tool.verification.className}`} title={tool.verification.title} aria-label={`${tool.verification.label}: ${tool.verification.title}`}>{tool.verification.label}</span>}</div>
