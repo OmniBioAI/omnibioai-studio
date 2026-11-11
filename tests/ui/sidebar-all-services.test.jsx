@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, within } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildNav } from "../../src/ui/App";
@@ -14,54 +14,55 @@ const ADMIN = { email: "ops@example.org", permissions: ["platform.manage_infra",
 
 afterEach(cleanup);
 
-function discoverItems(container) {
-  const discover = container.querySelector('[data-nav-section="DISCOVER"]');
-  return [...discover.querySelectorAll("[data-nav-item]")];
+// The pinned bottom block below the scrolling nav list, in document order.
+function pinnedItems(container) {
+  return [...container.querySelectorAll(".studio-settings-entry [data-nav-item]")];
 }
 
-describe("All services in the DISCOVER navigation", () => {
-  it.each([["member", MEMBER], ["admin", ADMIN]])("is the last DISCOVER item for a %s", (_, user) => {
-    const { container } = render(<Sidebar nav={buildNav(user)} step={7} setStep={vi.fn()} systemStatus="idle" currentUser={user} />);
-    expect(discoverItems(container).map(item => item.textContent.trim())).toEqual([
-      "Explore", "Plugins and integrations", "Omics and analysis", "Agentic", "All services",
+describe.each([
+  ["sidebar", (props) => <Sidebar systemStatus="idle" {...props} />],
+  ["mobile drawer", (props) => <MobileNav open onClose={vi.fn()} {...props} />],
+])("All services pinned above Settings in the %s", (_, renderNav) => {
+  it.each([["member", MEMBER], ["admin", ADMIN]])("sits directly above Settings, outside DISCOVER, for a %s", (__, user) => {
+    const { container } = render(renderNav({ nav: buildNav(user), step: 7, setStep: vi.fn(), currentUser: user }));
+    expect(pinnedItems(container).map(item => item.getAttribute("data-nav-item"))).toEqual(["All services", "Settings"]);
+    expect(container.querySelector("nav [data-nav-item='All services']")).toBeNull();
+    const discover = container.querySelector('[data-nav-section="DISCOVER"]');
+    expect([...discover.querySelectorAll("[data-nav-item]")].map(item => item.getAttribute("data-nav-item"))).toEqual([
+      "Explore", "Plugins and integrations", "Omics and analysis", "Agentic",
     ]);
   });
 
   it("opens the /studio/services page and is active only on it", () => {
     const setStep = vi.fn();
-    const { container, rerender } = render(<Sidebar nav={buildNav(MEMBER)} step={7} setStep={setStep} systemStatus="idle" currentUser={MEMBER} />);
-    const item = container.querySelector('[data-nav-item="All services"]');
-    expect(item.tagName).toBe("BUTTON");
-    expect(item).not.toHaveAttribute("aria-current");
-    fireEvent.click(item);
+    const { container, rerender } = render(renderNav({ nav: buildNav(MEMBER), step: 7, setStep, currentUser: MEMBER }));
+    const item = () => container.querySelector('.studio-settings-entry [data-nav-item="All services"]');
+    expect(item().tagName).toBe("BUTTON");
+    expect(item()).not.toHaveAttribute("aria-current");
+    fireEvent.click(item());
     expect(setStep).toHaveBeenCalledWith(ALL_SERVICES_PAGE);
     expect(pathForStudioPage(ALL_SERVICES_PAGE)).toBe("/studio/services");
     expect(resolveStudioLocation({ pathname: "/studio/services", origin: "http://localhost" }).page).toBe(ALL_SERVICES_PAGE);
 
-    rerender(<Sidebar nav={buildNav(MEMBER)} step={ALL_SERVICES_PAGE} setStep={setStep} systemStatus="idle" currentUser={MEMBER} />);
-    expect(container.querySelector('[data-nav-item="All services"]')).toHaveAttribute("aria-current", "page");
-    expect(container.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+    rerender(renderNav({ nav: buildNav(MEMBER), step: ALL_SERVICES_PAGE, setStep, currentUser: MEMBER }));
+    expect(item()).toHaveAttribute("aria-current", "page");
+    expect(container.querySelector('.studio-settings-entry [data-nav-item="Settings"]')).not.toHaveAttribute("aria-current");
   });
 
-  it("uses the layout-grid icon like the other items", () => {
-    const { container } = render(<Sidebar nav={buildNav(MEMBER)} step={7} setStep={vi.fn()} systemStatus="idle" currentUser={MEMBER} />);
+  it("uses the layout-grid icon", () => {
+    const { container } = render(renderNav({ nav: buildNav(MEMBER), step: 7, setStep: vi.fn(), currentUser: MEMBER }));
     expect(NAV_ICONS["All services"]).toBeDefined();
-    const icon = container.querySelector('[data-nav-item="All services"] svg');
+    const icon = container.querySelector('.studio-settings-entry [data-nav-item="All services"] svg');
     expect(icon).toHaveAttribute("aria-hidden", "true");
     expect(icon.querySelectorAll("rect")).toHaveLength(4);
   });
+});
 
-  it("appears in the mobile drawer, navigates and closes it", () => {
-    const setStep = vi.fn();
-    const onClose = vi.fn();
-    const { container } = render(<MobileNav nav={buildNav(MEMBER)} step={ALL_SERVICES_PAGE} setStep={setStep} currentUser={MEMBER} open onClose={onClose} />);
-    const items = discoverItems(container);
-    expect(items.at(-1).textContent.trim()).toBe("All services");
-    // The drawer marks the active item by style only (no aria-current on any item).
-    expect(items.at(-1).style.color).toBe("var(--accent)");
-    expect(items.slice(0, -1).map(item => item.style.color)).toEqual(Array(4).fill("var(--text)"));
-    fireEvent.click(within(container.querySelector('[data-nav-section="DISCOVER"]')).getByText("All services"));
-    expect(setStep).toHaveBeenCalledWith(ALL_SERVICES_PAGE);
-    expect(onClose).toHaveBeenCalled();
-  });
+it("closes the mobile drawer after opening All services", () => {
+  const setStep = vi.fn();
+  const onClose = vi.fn();
+  const { container } = render(<MobileNav nav={buildNav(MEMBER)} step={7} setStep={setStep} currentUser={MEMBER} open onClose={onClose} />);
+  fireEvent.click(container.querySelector('.studio-settings-entry [data-nav-item="All services"]'));
+  expect(setStep).toHaveBeenCalledWith(ALL_SERVICES_PAGE);
+  expect(onClose).toHaveBeenCalled();
 });

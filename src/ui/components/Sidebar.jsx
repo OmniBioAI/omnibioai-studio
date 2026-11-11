@@ -134,6 +134,9 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
       </nav>
 
       <div className="studio-settings-entry">
+        <button type="button" data-nav-item="All services" aria-current={step === 40 ? "page" : undefined} onClick={() => setStep(40)}>
+          {React.createElement(NAV_ICONS["All services"])}<span>All services</span>
+        </button>
         <button type="button" data-nav-item="Settings" aria-current={step === 39 ? "page" : undefined} onClick={() => setStep(39)}>
           {NAV_ICONS.Settings && React.createElement(NAV_ICONS.Settings)}<span>Settings</span>
         </button>

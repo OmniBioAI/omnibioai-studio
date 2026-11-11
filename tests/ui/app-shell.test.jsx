@@ -119,7 +119,7 @@ describe("Account route migration", () => {
     await screen.findByText("Studio page");
     const discover = document.querySelector('[data-nav-section="DISCOVER"]');
     expect([...discover.querySelectorAll("[data-nav-item]")].map(item => item.textContent.trim())).toEqual([
-      "Explore", "Plugins and integrations", "Omics and analysis", "Agentic", "All services",
+      "Explore", "Plugins and integrations", "Omics and analysis", "Agentic",
     ]);
     fireEvent.click(screen.getByRole("button", { name: "Plugins and integrations" }));
     await screen.findByText("Plugins catalog page");
@@ -132,7 +132,7 @@ describe("Account route migration", () => {
     expect(window.location.pathname).toBe("/studio/omics-analysis");
   });
 
-  it("opens All services from DISCOVER at /studio/services and marks it active", async () => {
+  it("opens All services from the pinned sidebar area at /studio/services and marks it active", async () => {
     session.user = { userId: 2, email: "member@example.org", orgId: 1, permissions: [] };
     render(<App />);
     await screen.findByText("Studio page");
