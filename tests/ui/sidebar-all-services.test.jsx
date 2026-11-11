@@ -58,6 +58,22 @@ describe.each([
   });
 });
 
+it("uses the same active and idle styles as the sidebar's list items", () => {
+  const nav = buildNav(MEMBER);
+  const styleOf = (step, name) => {
+    const { container, unmount } = render(<Sidebar nav={nav} step={step} setStep={vi.fn()} systemStatus="idle" currentUser={MEMBER} />);
+    const item = container.querySelector(`[data-nav-item="${name}"]`);
+    const result = { className: item.className, style: item.getAttribute("style"), accentBar: !!item.querySelector(":scope > div") };
+    unmount();
+    return result;
+  };
+  // Explore (page 22) is a regular DISCOVER list item.
+  expect(styleOf(ALL_SERVICES_PAGE, "All services")).toEqual(styleOf(22, "Explore"));
+  expect(styleOf(7, "All services")).toEqual(styleOf(7, "Explore"));
+  expect(styleOf(ALL_SERVICES_PAGE, "All services").accentBar).toBe(true);
+  expect(styleOf(7, "All services").accentBar).toBe(false);
+});
+
 it("closes the mobile drawer after opening All services", () => {
   const setStep = vi.fn();
   const onClose = vi.fn();

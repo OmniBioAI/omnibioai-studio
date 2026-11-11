@@ -111,6 +111,13 @@ for (const role of ["admin", "member"]) {
             : ["Learn", "Your account", "Science and data"]);
           const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
           assert.ok(overflow <= 0, `horizontal scroll of ${overflow}px`);
+          // auto-fit: every group's first row ends at the same right edge as the Learn row.
+          const rowEnds = await page.locator(".service-group__grid").evaluateAll(grids => grids.map(grid => {
+            const cards = [...grid.children].map(card => card.getBoundingClientRect());
+            const firstRow = cards.filter(box => Math.abs(box.top - cards[0].top) < 1);
+            return Math.round(Math.max(...firstRow.map(box => box.right)));
+          }));
+          assert.deepEqual(rowEnds, Array(rowEnds.length).fill(rowEnds[0]), `first-row right edges ${rowEnds}`);
           await page.addScriptTag({ content: axeSource });
           const violations = await page.evaluate(async () => (await window.axe.run(".all-services", {
             runOnly: { type: "rule", values: ["color-contrast", "label", "link-name", "nested-interactive"] },

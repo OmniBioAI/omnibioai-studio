@@ -52,6 +52,10 @@ export function visibleServices(user) {
   return ALL_SERVICES.filter(card => !card.permissions || hasAnyPermission(user, card.permissions));
 }
 
+export function opensAnotherSite(card) {
+  return /^https?:\/\//.test(card.href);
+}
+
 export function matchesQuery(card, query) {
   const needle = query.trim().toLowerCase();
   return !needle || `${card.title} ${card.description}`.toLowerCase().includes(needle);
@@ -136,7 +140,9 @@ function HealthStatus({ health }) {
 
 function ServiceCard({ card, status }) {
   const Icon = SERVICE_ICONS[card.icon];
-  const Arrow = SERVICE_ICONS.arrowUpRight;
+  // ↗ only for a card that opens another site; → for everything shown inside Studio.
+  const external = opensAnotherSite(card);
+  const Arrow = external ? SERVICE_ICONS.arrowUpRight : SERVICE_ICONS.arrowRight;
   return <a className="service-card" href={card.href} onClick={event => openCard(event, card)}>
     <span className="service-card__icon"><Icon width={20} height={20} /></span>
     <span className="service-card__body">
@@ -144,7 +150,7 @@ function ServiceCard({ card, status }) {
       <span className="service-card__description">{card.description}</span>
       {status && <span className="service-card__status">{status}</span>}
     </span>
-    <Arrow className="service-card__arrow" />
+    <Arrow className="service-card__arrow" data-opens={external ? "another-site" : "studio"} />
   </a>;
 }
 
@@ -174,6 +180,7 @@ export default function AllServices({ currentUser }) {
       </div>
       <div className="all-services__search" role="search">
         <label htmlFor="all-services-search" className="studio-visually-hidden">Search services</label>
+        <SERVICE_ICONS.search className="all-services__search-icon" width={16} height={16} />
         <input id="all-services-search" type="search" value={query} placeholder="Search services"
           onChange={event => setQuery(event.target.value)} />
       </div>
