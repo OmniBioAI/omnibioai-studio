@@ -13,7 +13,7 @@ export default function ToolDetail({ toolId, fallbackTool = null, servers = [], 
   const [tool, setTool] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [values, setValues] = useState({});
+  const [form, setForm] = useState({ tool: null, values: {} });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -36,7 +36,12 @@ export default function ToolDetail({ toolId, fallbackTool = null, servers = [], 
   }, [toolId]);
 
   const fields = useMemo(() => tool ? schemaFields(tool) : [], [tool]);
-  useEffect(() => { if (tool) { setValues(defaultValues(fields)); setErrors({}); setSubmitError(""); setExampleState(""); } }, [tool, fields]);
+  useEffect(() => { if (tool) { setErrors({}); setSubmitError(""); setExampleState(""); } }, [tool]);
+  const values = form.tool === tool ? form.values : defaultValues(fields);
+  const setValues = next => setForm(current => {
+    const base = current.tool === tool ? current.values : defaultValues(fields);
+    return { tool, values: typeof next === "function" ? next(base) : next };
+  });
 
   if (loading) return <p role="status">Loading tool…</p>;
   if (error || !tool) return <div className="tools-empty" role="alert"><strong>{error || "Could not load this tool."}</strong><button type="button" onClick={onBack}>Back to Tools</button></div>;
