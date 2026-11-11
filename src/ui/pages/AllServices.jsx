@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { hasAnyPermission } from "../lib/adminNavigation";
+import { adminRouteForIndex } from "../lib/adminRoutes";
+import { isElectron } from "../lib/session";
 import { pathForStudioPage } from "../lib/studioRouter";
 import { standaloneAppUrl } from "../lib/standaloneApps";
 import { useStorageUsage } from "../lib/useStorageUsage";
@@ -57,10 +59,14 @@ export function matchesQuery(card, query) {
 
 // Plain left clicks keep Studio's in-app navigation; modified clicks fall
 // through to the browser so the href opens in a new tab or window.
+// On desktop, App's `navigate` route rewrites an admin service's relative URL
+// to http://localhost/..., while the flat list's `open-service` resolved it
+// against the app origin. Desktop keeps the flat list's event and URL.
 function openCard(event, card) {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  if (card.url) window.dispatchEvent(new CustomEvent("open-service", { detail: { url: card.url, label: card.title } }));
+  const url = card.url || (isElectron() ? adminRouteForIndex(card.nav)?.oldUrl : null);
+  if (url) window.dispatchEvent(new CustomEvent("open-service", { detail: { url, label: card.title } }));
   else window.dispatchEvent(new CustomEvent("navigate", { detail: card.nav }));
 }
 
