@@ -201,6 +201,13 @@
   --font-size-base: 13px;
   --font-size-md: 14px;
   --focus-ring: #3b82f6;
+  /* All services group colours; --group-tint-base/-share shade icon and pill text per theme. */
+  --group-learn: #9aa4b2;
+  --group-account: #5b9cff;
+  --group-science: #22c55e;
+  --group-operations: #f5a524;
+  --group-tint-base: #ffffff;
+  --group-tint-share: 70%;
 }
 
 .studio-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
@@ -249,6 +256,8 @@
 
 html[data-theme="light"] {
   color-scheme: light;
+  --group-tint-base: #000000;
+  --group-tint-share: 45%;
   --bg: #f7f8fa;
   --bg2: #ffffff;
   --bg3: #eef0f4;

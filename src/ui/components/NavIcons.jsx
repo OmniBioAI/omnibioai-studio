@@ -30,6 +30,26 @@ const IconShield       = p => <svg {...base} {...p}><path d="M12 3l7 3v5c0 5-3.5
 const IconPlug         = p => <svg {...base} {...p}><path d="M9 2v5" /><path d="M15 2v5" /><path d="M6 8h12v4a6 6 0 0 1-12 0z" /><path d="M12 18v4" /></svg>;
 const IconSettings     = p => <svg {...base} {...p}><circle cx="12" cy="12" r="3" /><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.9-1.4-2-3.4-2.2.7a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.5 2.4a7.6 7.6 0 0 0-2.6 1.5l-2.2-.7-2 3.4L4.6 10.5a7.6 7.6 0 0 0 0 3L2.7 15l2 3.4 2.2-.7a7.6 7.6 0 0 0 2.6 1.5l.5 2.4h4l.5-2.4a7.6 7.6 0 0 0 2.6-1.5l2.2.7 2-3.4z" /></svg>;
 
+const IconBookOpen     = p => <svg {...base} {...p}><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z" /><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z" /></svg>;
+const IconMonitorPlay  = p => <svg {...base} {...p}><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M10 7.5v5l4-2.5z" /><path d="M12 17v4" /><path d="M8 21h8" /></svg>;
+const IconFlask        = p => <svg {...base} {...p}><path d="M10 2v7.5L4.7 20.5a1 1 0 0 0 .9 1.5h12.8a1 1 0 0 0 .9-1.5L14 9.5V2" /><path d="M8.5 2h7" /><path d="M7 16h10" /></svg>;
+const IconLayers       = p => <svg {...base} {...p}><path d="M12 2 22 7l-10 5L2 7z" /><path d="m2 12 10 5 10-5" /><path d="m2 17 10 5 10-5" /></svg>;
+const IconShare        = p => <svg {...base} {...p}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4" /><path d="m15.4 6.5-6.8 4" /></svg>;
+const IconBox          = p => <svg {...base} {...p}><path d="M21 8 12 3 3 8v8l9 5 9-5z" /><path d="m3.3 7.5 8.7 5 8.7-5" /><path d="M12 22V12.5" /></svg>;
+const IconHardDrive    = p => <svg {...base} {...p}><path d="M22 12H2" /><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z" /><path d="M6 16h.01" /><path d="M10 16h.01" /></svg>;
+const IconKey          = p => <svg {...base} {...p}><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15.5 7.5 3 3L22 7l-3-3" /></svg>;
+const IconBarChart     = p => <svg {...base} {...p}><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>;
+const IconArrowUpRight = p => <svg {...base} {...p}><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg>;
+
+// Service-directory icons, keyed by meaning rather than nav name so All
+// services can pick them per card without colliding with NAV_ICONS.
+export const SERVICE_ICONS = {
+  bookOpen: IconBookOpen, monitorPlay: IconMonitorPlay, flask: IconFlask, layers: IconLayers,
+  code: IconCode, share: IconShare, box: IconBox, hardDrive: IconHardDrive, creditCard: IconCreditCard,
+  key: IconKey, shield: IconShield, sliders: IconSliders, activity: IconActivity, barChart: IconBarChart,
+  arrowUpRight: IconArrowUpRight,
+};
+
 // Keyed by the exact nav-item `name` used throughout App.jsx/Sidebar/MobileNav
 // -- shared by both desktop and mobile so there is exactly one icon mapping.
 export const NAV_ICONS = {
