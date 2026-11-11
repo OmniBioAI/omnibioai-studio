@@ -163,6 +163,25 @@ describe("Jobs page", () => {
     }
   });
 
+  it("filters the run list by ?state= and opens the submit form for ?submit=1", async () => {
+    window.history.replaceState({}, "", "/studio/jobs?state=running&submit=1");
+    vi.stubGlobal("fetch", mockFetchByPath([
+      ["/api/runs", () => jsonRes(runs)], ["/api/tools", () => jsonRes([])], ["/api/servers", () => jsonRes([])],
+    ]));
+    try {
+      render(<Jobs />);
+      await waitFor(() => expect(screen.getByText("call-variants")).toBeInTheDocument());
+      expect(screen.queryByText("align")).not.toBeInTheDocument();          // COMPLETED run hidden by state=running
+      expect(screen.getByText(/running only/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Submit" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Show all runs" }));
+      await waitFor(() => expect(screen.getByText("align")).toBeInTheDocument());
+      expect(window.location.search).not.toContain("state=");
+    } finally {
+      window.history.replaceState({}, "", "/studio/jobs");
+    }
+  });
+
   it("opens a run's detail panel with inputs and error, then closes it", async () => {
     vi.stubGlobal("fetch", mockFetchByPath([
       ["/api/runs", () => jsonRes(runs)],

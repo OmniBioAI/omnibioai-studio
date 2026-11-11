@@ -145,29 +145,47 @@ async function capture(page, selector, name, width) {
 }
 
 for (const width of [1440, 390]) {
-  test(`tools list at ${width}px: one filter row with counts, clickable cards, badges`, async () => {
+  test(`tools list at ${width}px: backend strip, single filter row, dense cards, side panel`, async () => {
     const { context, page, errors } = await open("/studio/tools", width);
     try {
       await page.getByText("Showing 3 of 3 tools (3 runnable HTTP tools; 4 not working, not yet tested or unavailable hidden)").waitFor();
-      const runsOn = page.getByRole("group", { name: "Runs on" });
-      assert.match(await runsOn.textContent(), /Any 3/);
-      assert.match(await runsOn.textContent(), /HTTP 3/);
-      assert.equal(await page.locator(".tool-filter-block").count(), 0, "no stacked filter blocks");
+      assert.equal(await page.getByText("7 tools · 3 runnable HTTP tools").count(), 1);
+      const strip = page.getByRole("list", { name: "Tools per backend" });
+      const stats = (await strip.getByRole("listitem").allTextContents()).map(t => t.replace(/\s+/g, " ").trim());
+      assert.deepEqual(stats, ["HTTP 5", "Slurm 2 unavailable", "AWS Batch 0", "Azure Batch 0", "GCP Batch 0", "Kubernetes 0", "Local 0"]);
+      assert.equal(await page.getByRole("status", { name: "Tools shown" }).textContent(), "3 / 7");
+      assert.equal(await page.getByRole("checkbox", { name: "Runnable only" }).isChecked(), true);
       assert.equal(await page.getByText("registered with TES").count(), 0);
+      assert.equal(await page.getByText("live from").count(), 0);
       const card = page.getByRole("link", { name: "Ensembl gene lookup, runnable" });
       assert.equal(await card.getAttribute("href"), "/studio/tools/ensembl_gene_lookup");
-      assert.match(await card.textContent(), /Look up an Ensembl gene/);
-      assert.match(await card.textContent(), /HTTP/);
+      assert.equal(await card.locator(".tool-card__name").textContent(), "ensembl_gene_lookup");
+      assert.equal(await card.locator(".backend-badge--http").textContent(), "HTTP");
       assert.equal(await card.locator(".tool-card__badge").textContent(), "Runnable");
+      assert.equal(await card.locator(".tool-card__chevron").count(), 1);
+      if (width === 1440) {
+        const columns = await page.locator(".tools-docs__grid").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+        assert.equal(columns, 5, `expected 5 columns at 1440px, got ${columns}`);
+      }
+      const side = page.getByRole("complementary", { name: "Runs and backends" });
+      assert.equal(await side.getByRole("link", { name: /^All/ }).textContent(), "All0");
+      assert.equal(await side.getByRole("link", { name: /^Running/ }).getAttribute("href"), "/studio/jobs?state=running");
+      assert.match(await side.getByText("Local Slurm (DGX)").locator("..").textContent(), /unavailable/);
+      assert.match(await side.getByText("HTTP ToolServer").locator("..").textContent(), /online/);
+      assert.equal(await side.getByRole("button", { name: "+ Submit Run" }).count(), 1);
       await capture(page, ".tools-page", "tools-list", width);
 
-      await page.getByRole("button", { name: "Show all" }).click();
+      await page.getByRole("checkbox", { name: "Runnable only" }).uncheck();
       await page.getByText("Showing 7 of 7 tools (3 runnable HTTP tools)").waitFor();
-      assert.match(await runsOn.textContent(), /Slurm 2/);
+      assert.equal(await page.getByRole("status", { name: "Tools shown" }).textContent(), "7 / 7");
       const unavailable = page.locator(".tool-card__badge--unavailable");
       assert.equal(await unavailable.count(), 2);
       assert.equal(await unavailable.first().getAttribute("title"), `No backend can run this tool right now: ${SLURM_DOWN}`);
       await capture(page, ".tools-page", "tools-list-show-all", width);
+
+      await side.getByRole("button", { name: "+ Submit Run" }).click();
+      await page.waitForFunction(() => `${location.pathname}${location.search}` === "/studio/jobs?submit=1");
+      await page.getByRole("button", { name: "Submit", exact: true }).waitFor();
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
   });
@@ -176,9 +194,7 @@ for (const width of [1440, 390]) {
     const { context, page, errors } = await open("/studio/tools", width);
     try {
       await page.getByText(/Showing 3 of 3 tools/).waitFor();
-      await page.getByRole("button", { name: "Show all" }).click();
-      await page.getByRole("button", { name: /^Slurm/ }).click();
-      await page.getByRole("button", { name: "Runnable only" }).click();
+      await page.getByRole("group", { name: "Runs on" }).getByRole("button", { name: "Slurm" }).click();
       await page.getByText("No runnable Slurm tools yet: the Slurm backend isn't available.").waitFor();
       await page.getByText("Show all to browse them.").waitFor();
       await capture(page, ".tools-page", "tools-empty-slurm", width);

@@ -108,12 +108,15 @@ export function deriveBackends(tool, servers = []) {
 
 export function toolPresentation(tool, servers = []) {
   const id = String(tool.tool_id || tool.id || tool.name || "Unnamed tool");
+  const backends = deriveBackends(tool, servers);
   return {
     id,
     name: String(tool.display_name || tool.title || tool.name || id).replaceAll("_", " "),
     description: String(tool.description || tool.summary || "No description yet."),
     category: toolCategory(tool),
-    backends: deriveBackends(tool, servers),
+    tags: Array.isArray(tool.tags) ? tool.tags.map(String) : [],
+    backends,
+    backendKeys: backendKeys(backends),
     verification: toolVerification(tool),
   };
 }
@@ -126,6 +129,10 @@ export function backendCounts(cards) {
 }
 
 export function backendLabel(key) { return BACKEND_BY_KEY[key]?.label || key; }
+
+export function backendKeyForServer(server) { return BACKEND_BY_ADAPTER[server?.adapter_type] || null; }
+
+export function backendKeys(labels) { return BACKENDS.filter(b => labels.includes(b.label)).map(b => b.key); }
 
 // Why the current filters leave nothing to show. `context` carries the counts the
 // list page already computed; returns { title, hint, action } or null when tools exist.

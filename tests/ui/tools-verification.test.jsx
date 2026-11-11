@@ -56,30 +56,30 @@ describe("toolVerification", () => {
 describe("Tools page verification badges", () => {
   it("lists runnable HTTP tools and out-of-scope tools by default; badge only for HTTP tools", async () => {
     render(<Tools />);
-    await screen.findByText("ensembl lookup");
+    await screen.findByText("ensembl_lookup");
     expect(screen.getByText("Showing 2 of 2 tools (1 runnable HTTP tools; 3 not working, not yet tested or unavailable hidden)")).toBeInTheDocument();
     expect(screen.getByText("Runnable")).toHaveAttribute("title", "Tested end to end on 2026-11-09");
     expect(screen.getByText("fastqc")).toBeInTheDocument();          // Slurm tool: listed, no badge
     expect(screen.queryByText("Not yet tested")).not.toBeInTheDocument();
     expect(document.querySelectorAll(".tool-card__badge")).toHaveLength(1);
-    expect(screen.queryByText("broken api")).not.toBeInTheDocument();
-    expect(screen.queryByText("legacy tool")).not.toBeInTheDocument();
-    expect(screen.queryByText("bwa x86")).not.toBeInTheDocument();      // unavailable: hidden by default
-    expect(screen.getByRole("button", { name: "Runnable only" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText("broken_api")).not.toBeInTheDocument();
+    expect(screen.queryByText("legacy_tool")).not.toBeInTheDocument();
+    expect(screen.queryByText("bwa_x86")).not.toBeInTheDocument();      // unavailable: hidden by default
+    expect(screen.getByRole("checkbox", { name: "Runnable only" })).toBeChecked();
   });
 
   it("Show all reveals the hidden tools with their badges, including Unavailable", async () => {
     render(<Tools />);
-    await screen.findByText("ensembl lookup");
-    fireEvent.click(screen.getByRole("button", { name: "Show all" }));
+    await screen.findByText("ensembl_lookup");
+    fireEvent.click(screen.getByRole("checkbox", { name: "Runnable only" }));
     expect(screen.getByText("Showing 5 of 5 tools (1 runnable HTTP tools)")).toBeInTheDocument();
-    expect(screen.getByText("broken api")).toBeInTheDocument();
+    expect(screen.getByText("broken_api")).toBeInTheDocument();
     expect(screen.getByText("Not working")).toHaveAttribute("title", "Failed end to end on 2026-11-09: upstream HTTP 404 not found");
     expect(screen.getAllByText("Not yet tested")).toHaveLength(1);   // legacy_tool only; fastqc is out of scope
-    expect(screen.getByText("bwa x86")).toBeInTheDocument();
+    expect(screen.getByText("bwa_x86")).toBeInTheDocument();
     expect(screen.getByText("Unavailable")).toHaveAttribute("title", "No backend can run this tool right now: x86_64-only container image; this host is aarch64");
     expect(document.querySelectorAll(".tool-card__badge")).toHaveLength(4);
-    fireEvent.click(screen.getByRole("button", { name: "Runnable only" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Runnable only" }));
     expect(screen.getByText(/Showing 2 of 2 tools/)).toBeInTheDocument();
   });
 
@@ -89,8 +89,8 @@ describe("Tools page verification badges", () => {
     await screen.findByText("Showing 0 of 0 tools (0 runnable HTTP tools; 2 not working, not yet tested or unavailable hidden)");
     expect(screen.getByText("No runnable tools yet.")).toBeInTheDocument();
     expect(screen.getByText("Show all to browse the 2 tools that are not working, not yet tested or unavailable.")).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole("button", { name: "Show all" })[1]);   // the empty-state action
-    expect(screen.getByText("legacy tool")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show all" }));   // the empty-state action
+    expect(screen.getByText("legacy_tool")).toBeInTheDocument();
   });
 
   it("fails open when TES serves no verification data: every tool listed, no badges, no toggle", async () => {
@@ -98,9 +98,9 @@ describe("Tools page verification badges", () => {
     render(<Tools />);
     await screen.findByText("Showing 2 of 2 tools (verification status unavailable)");
     expect(screen.getByText("fastqc")).toBeInTheDocument();
-    expect(screen.getByText("ensembl lookup")).toBeInTheDocument();
+    expect(screen.getByText("ensembl_lookup")).toBeInTheDocument();
     expect(document.querySelectorAll(".tool-card__badge")).toHaveLength(0);
-    expect(screen.queryByRole("button", { name: "Show all" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Runnable only" })).not.toBeInTheDocument();
     expect(screen.queryByText(/No HTTP tool has passed/)).not.toBeInTheDocument();
     expect(hasVerificationData([{ tool_id: "x" }])).toBe(false);
     expect(hasVerificationData(TOOLS)).toBe(true);

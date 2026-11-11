@@ -16,6 +16,7 @@ export { TOOL_CATEGORIES, TOOL_BACKENDS, VERIFICATION, hasVerificationData, tool
 export default function Tools({ initialQuery = "", onOpenJobs }) {
   const [tools, setTools] = useState([]);
   const [servers, setServers] = useState([]);
+  const [runs, setRuns] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [noticeDismissed, setNoticeDismissed] = useState(false);
@@ -27,8 +28,13 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
     Promise.all([
       tesApiFetch("/api/tools", { signal: controller.signal }),
       tesApiFetch("/api/servers", { signal: controller.signal }).catch(() => []),
+      tesApiFetch("/api/runs", { signal: controller.signal }).catch(() => []),
     ])
-      .then(([toolList, serverList]) => { setTools(Array.isArray(toolList) ? toolList : []); setServers(Array.isArray(serverList) ? serverList : []); })
+      .then(([toolList, serverList, runList]) => {
+        setTools(Array.isArray(toolList) ? toolList : []);
+        setServers(Array.isArray(serverList) ? serverList : []);
+        setRuns(Array.isArray(runList) ? runList : []);
+      })
       .catch(failure => { if (!controller.signal.aborted) setError(safeErrorMessage(failure, "Could not load tools.")); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -41,14 +47,12 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
 
   const openTool = id => { writeStudioLocation(studioToolPath(id), { preserveSearch: false }); setToolId(id); window.scrollTo?.(0, 0); };
   const backToList = () => { writeStudioLocation("/studio/tools", { preserveSearch: false }); setToolId(null); };
-  const runSubmitted = runId => {
-    // Land on Jobs with the new run selected; handleNavClick keeps the query string.
-    window.history.pushState(window.history.state, "", `/studio/jobs?run=${encodeURIComponent(runId)}`);
-    onOpenJobs?.(runId);
-  };
+  // Land on Jobs with a query string (run=<id>, state=<view>, submit=1); handleNavClick keeps it.
+  const goToJobs = search => { window.history.pushState(window.history.state, "", `/studio/jobs${search || ""}`); onOpenJobs?.(); };
+  const runSubmitted = runId => goToJobs(`?run=${encodeURIComponent(runId)}`);
 
-  return <section className="tools-page">
-    <PageHeader title={toolId ? "Tools" : "Tools"} description={toolId ? undefined : "Browse tools and run them on the available backends"} />
+  return <section className={`tools-page${toolId ? "" : " tools-page--docs"}`}>
+    {toolId && <PageHeader title="Tools" />}
     {showUnavailableNotice && <div className="tools-availability-notice" role="status">
       <span>Tool runs are temporarily unavailable</span>
       <button type="button" onClick={() => setNoticeDismissed(true)} aria-label="Dismiss tool availability notice">Dismiss</button>
@@ -57,6 +61,6 @@ export default function Tools({ initialQuery = "", onOpenJobs }) {
       ? <ToolDetail toolId={toolId} fallbackTool={tools.find(t => t.tool_id === toolId) || null} servers={servers} onBack={backToList} onRunSubmitted={runSubmitted} />
       : loading ? <p role="status">Loading tools…</p>
         : error ? <p role="alert">{error}</p>
-          : <ToolsList cards={cards} verified={verified} servers={servers} initialQuery={initialQuery} onOpen={openTool} />}
+          : <ToolsList cards={cards} verified={verified} servers={servers} runs={runs} initialQuery={initialQuery} onOpen={openTool} onOpenJobs={goToJobs} />}
   </section>;
 }
