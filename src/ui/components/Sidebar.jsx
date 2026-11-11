@@ -143,7 +143,8 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
 
       <div className="studio-settings-entry">
         <NavItemButton name="All services" isActive={step === 40} onClick={() => setStep(40)} />
-        <button type="button" data-nav-item="Settings" aria-current={step === 39 ? "page" : undefined} onClick={() => setStep(39)}>
+        {/* Same text size as the nav items above (sidebar only; the drawer keeps its own). */}
+        <button type="button" data-nav-item="Settings" aria-current={step === 39 ? "page" : undefined} onClick={() => setStep(39)} style={{ fontSize:'var(--font-size-sm)' }}>
           {NAV_ICONS.Settings && React.createElement(NAV_ICONS.Settings)}<span>Settings</span>
         </button>
       </div>

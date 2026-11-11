@@ -74,6 +74,18 @@ it("uses the same active and idle styles as the sidebar's list items", () => {
   expect(styleOf(7, "All services").accentBar).toBe(false);
 });
 
+it("gives Settings the sidebar items' text size in the sidebar only", () => {
+  const nav = buildNav(MEMBER);
+  const sidebar = render(<Sidebar nav={nav} step={7} setStep={vi.fn()} systemStatus="idle" currentUser={MEMBER} />);
+  const size = name => sidebar.container.querySelector(`[data-nav-item="${name}"]`).style.fontSize;
+  expect(size("Settings")).toBe("var(--font-size-sm)");
+  expect(size("Settings")).toBe(size("All services"));
+  expect(size("Settings")).toBe(size("Explore"));
+  sidebar.unmount();
+  const drawer = render(<MobileNav nav={nav} step={7} setStep={vi.fn()} currentUser={MEMBER} open onClose={vi.fn()} />);
+  expect(drawer.container.querySelector('.studio-settings-entry [data-nav-item="Settings"]').style.fontSize).toBe("");
+});
+
 it("closes the mobile drawer after opening All services", () => {
   const setStep = vi.fn();
   const onClose = vi.fn();
