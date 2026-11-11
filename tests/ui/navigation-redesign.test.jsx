@@ -65,7 +65,7 @@ describe("redesigned Studio navigation", () => {
     const adminNames = buildNav({ permissions: ["platform.manage_infra", "manage_config"] })
       .flatMap(section => section.items.map(item => item.name));
     expect(adminNames).not.toContain("OPA");
-    expect(ALL_SERVICES.map(item => item.name)).not.toContain("OPA");
+    expect(ALL_SERVICES.map(item => item.title)).not.toContain("OPA");
   });
 
   it("reuses the five existing settings pages as tabs", () => {
