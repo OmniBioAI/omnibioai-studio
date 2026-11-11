@@ -90,6 +90,7 @@ async function open(path, width, { unverified = false } = {}) {
       return json(status ? TOOLS.filter(t => t.verification.status === status) : TOOLS);
     }
     if (url.pathname === "/_tes/api/runs") return json([]);
+    if (url.pathname === "/_tes/api/servers") return json([]);
     if (url.pathname.startsWith("/_svc/") || url.pathname.startsWith("/billing/") || url.pathname.startsWith("/_tes/")) return json({}, 503);
     if (url.pathname.startsWith("/studio") || url.pathname.startsWith("/assets/") || /\.(js|png|svg|ico|webmanifest)$/.test(url.pathname)) return route.continue();
     return json({}, 404);
@@ -123,23 +124,23 @@ for (const width of [1440, 390]) {
       assert.equal(await badges.count(), 3);
       assert.deepEqual(await badges.allTextContents(), ["Runnable", "Runnable", "Runnable"]);
       assert.equal(await badges.first().getAttribute("title"), "Tested end to end on 2026-11-09");
-      assert.equal(await page.getByRole("button", { name: "Runnable only" }).getAttribute("aria-pressed"), "true");
-      assert.equal(await page.getByText("retired gene api").count(), 0);
+      assert.equal(await page.getByRole("checkbox", { name: "Runnable only" }).isChecked(), true);
+      assert.equal(await page.getByText("retired_gene_api").count(), 0);
       const fastqcCard = page.locator(".tool-card", { hasText: "fastqc" });
       assert.equal(await fastqcCard.count(), 1, "Slurm tool is listed by default");
       assert.equal(await fastqcCard.locator(".tool-card__badge").count(), 0, "Slurm tool carries no badge");
       await capture(page, ".tools-page", "tools-runnable", width);
 
-      await page.getByRole("button", { name: "Show all" }).click();
+      await page.getByRole("checkbox", { name: "Runnable only" }).uncheck();
       await page.getByText("Showing 6 of 6 tools (3 runnable HTTP tools)").waitFor();
       const labels = await page.locator(".tool-card__badge").allTextContents();
       assert.deepEqual([...labels].sort(), ["Not working", "Not yet tested", "Runnable", "Runnable", "Runnable"]);
-      const broken = page.locator(".tool-card", { hasText: "retired gene api" }).locator(".tool-card__badge");
+      const broken = page.locator(".tool-card", { hasText: "retired_gene_api" }).locator(".tool-card__badge");
       assert.equal(await broken.textContent(), "Not working");
       assert.equal(await broken.getAttribute("title"), "Failed end to end on 2026-11-09: upstream HTTP 404 not found");
       await capture(page, ".tools-page", "tools-show-all", width);
 
-      await page.getByRole("button", { name: "Runnable only" }).click();
+      await page.getByRole("checkbox", { name: "Runnable only" }).check();
       await page.getByText(/Showing 4 of 4 tools/).waitFor();
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
@@ -150,7 +151,7 @@ for (const width of [1440, 390]) {
     try {
       await page.getByText("Showing 6 of 6 tools (verification status unavailable)").waitFor();
       assert.equal(await page.locator(".tool-card__badge").count(), 0);
-      assert.equal(await page.getByRole("button", { name: "Show all" }).count(), 0);
+      assert.equal(await page.getByRole("checkbox", { name: "Runnable only" }).count(), 0);
       assert.equal(await page.locator(".tool-card").count(), 6);
       await capture(page, ".tools-page", "tools-no-verification", width);
       assert.deepEqual(errors, []);

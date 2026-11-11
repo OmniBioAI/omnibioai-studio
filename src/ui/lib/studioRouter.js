@@ -4,6 +4,9 @@ export const STUDIO_HOME_PATH = "/studio";
 export const LEGACY_PORTAL_PATH = "/workbench";
 
 const PLUGIN_PATH = /^\/studio\/plugins\/([a-z0-9][a-z0-9_-]*)\/?$/;
+// Tool detail pages: /studio/tools/<tool_id> (TES tool ids match ^[a-z0-9_]+$).
+const TOOL_PATH = /^\/studio\/tools\/([a-z0-9_]+)\/?$/;
+export const TOOLS_PAGE_INDEX = 37;
 
 export const STUDIO_ROUTES = Object.freeze([
   ["/studio/account/organization/billing", 12],
@@ -60,6 +63,15 @@ export function pluginSlugFromStudioPath(pathname) {
   return PLUGIN_PATH.exec(pathname || "")?.[1] || null;
 }
 
+export function toolIdFromStudioPath(pathname) {
+  return TOOL_PATH.exec(pathname || "")?.[1] || null;
+}
+
+export function studioToolPath(toolId) {
+  if (!/^[a-z0-9_]+$/.test(toolId || "")) throw new Error("Invalid tool id.");
+  return `/studio/tools/${toolId}`;
+}
+
 export function studioPluginPath(slug) {
   if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug || "")) throw new Error("Invalid plugin slug.");
   return `/studio/plugins/${slug}`;
@@ -70,7 +82,7 @@ export function pathForStudioPage(page) {
 }
 
 export function isKnownStudioPath(pathname) {
-  return pathname === STUDIO_HOME_PATH || PATH_TO_PAGE.has(pathname) || PLUGIN_PATH.test(pathname || "");
+  return pathname === STUDIO_HOME_PATH || PATH_TO_PAGE.has(pathname) || PLUGIN_PATH.test(pathname || "") || TOOL_PATH.test(pathname || "");
 }
 
 export function resolveStudioLocation(location = window.location) {
@@ -78,11 +90,13 @@ export function resolveStudioLocation(location = window.location) {
   const redirectTo = LEGACY_STUDIO_REDIRECTS[pathname] || null;
   const canonicalPath = redirectTo ? new URL(redirectTo, location.origin || window.location.origin).pathname : pathname;
   const pluginSlug = pluginSlugFromStudioPath(canonicalPath);
+  const toolId = toolIdFromStudioPath(canonicalPath);
   const adminRoute = adminRouteForPath(canonicalPath);
   return {
-    page: pluginSlug ? 13 : (PATH_TO_PAGE.get(canonicalPath) ?? 7),
+    page: pluginSlug ? 13 : toolId ? TOOLS_PAGE_INDEX : (PATH_TO_PAGE.get(canonicalPath) ?? 7),
     pathname: canonicalPath,
     pluginSlug,
+    toolId,
     redirectTo,
     adminRoute,
   };

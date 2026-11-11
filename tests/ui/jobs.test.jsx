@@ -145,6 +145,43 @@ describe("Jobs page", () => {
     await waitFor(() => expect(screen.getByText("No runs yet — submit one above")).toBeInTheDocument());
   });
 
+  it("opens the run named in ?run= once the list has loaded (deep link from a tool page)", async () => {
+    window.history.replaceState({}, "", `/studio/jobs?run=${run1.run_id}`);
+    vi.stubGlobal("fetch", mockFetchByPath([
+      ["/api/runs", () => jsonRes(runs)],
+      ["/api/tools", () => jsonRes([])],
+      ["/api/servers", () => jsonRes([])],
+      [`/api/runs/${run1.run_id}/logs`, () => jsonRes("line one")],
+      [`/api/runs/${run1.run_id}`, () => jsonRes({ ...run1, updated_epoch: 1700000100, exit_code: 0, inputs: { a: 1 } })],
+    ]));
+    try {
+      render(<Jobs />);
+      expect(await screen.findByText("Run Detail")).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText(/"a": 1/)).toBeInTheDocument());
+    } finally {
+      window.history.replaceState({}, "", "/studio/jobs");
+    }
+  });
+
+  it("filters the run list by ?state= and opens the submit form for ?submit=1", async () => {
+    window.history.replaceState({}, "", "/studio/jobs?state=running&submit=1");
+    vi.stubGlobal("fetch", mockFetchByPath([
+      ["/api/runs", () => jsonRes(runs)], ["/api/tools", () => jsonRes([])], ["/api/servers", () => jsonRes([])],
+    ]));
+    try {
+      render(<Jobs />);
+      await waitFor(() => expect(screen.getByText("call-variants")).toBeInTheDocument());
+      expect(screen.queryByText("align")).not.toBeInTheDocument();          // COMPLETED run hidden by state=running
+      expect(screen.getByText(/running only/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Submit" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Show all runs" }));
+      await waitFor(() => expect(screen.getByText("align")).toBeInTheDocument());
+      expect(window.location.search).not.toContain("state=");
+    } finally {
+      window.history.replaceState({}, "", "/studio/jobs");
+    }
+  });
+
   it("opens a run's detail panel with inputs and error, then closes it", async () => {
     vi.stubGlobal("fetch", mockFetchByPath([
       ["/api/runs", () => jsonRes(runs)],

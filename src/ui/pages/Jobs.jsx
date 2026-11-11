@@ -41,6 +41,14 @@ function Badge({ state }) {
   );
 }
 
+// Run views shared with the Tools page side panel (v0.8.1 TES sidebar views).
+export const JOB_STATE_VIEWS = {
+  running: run => run.state === "RUNNING",
+  submitted: run => ["CREATED", "VALIDATED", "QUEUED"].includes(run.state),
+  failed: run => run.state === "FAILED" || run.state === "TIMED_OUT",
+  completed: run => run.state === "COMPLETED",
+};
+
 export default function Jobs() {
   const formatDate = useAccountDateTime();
   const ts = epoch => epoch ? formatDate(epoch * 1000, true) : "—";
@@ -56,7 +64,10 @@ export default function Jobs() {
   const [toolsPage, setToolsPage] = useState(1);
 
   // Submit form state
-  const [showSubmit,  setShowSubmit]  = useState(false);
+  // Deep links from the Tools page: ?submit=1 opens the submit form, ?state=<view> filters the run list.
+  const linkedQuery = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const [showSubmit,  setShowSubmit]  = useState(linkedQuery.get("submit") === "1");
+  const [stateFilter, setStateFilter] = useState(JOB_STATE_VIEWS[linkedQuery.get("state")] ? linkedQuery.get("state") : "");
   const [toolId,      setToolId]      = useState("");
   const [inputsJson,  setInputsJson]  = useState("{}");
   const [resourcesJson, setResourcesJson] = useState("{}");
@@ -89,7 +100,16 @@ export default function Jobs() {
     return () => clearInterval(pollRef.current);
   }, [loadData]);
 
-  const orderedRuns = useMemo(() => [...runs].reverse(), [runs]);
+  // Deep link from the tool detail page: /studio/jobs?run=<run_id> opens that run once it is listed.
+  const linkedRun = useRef(typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("run") : null);
+  useEffect(() => {
+    const target = linkedRun.current;
+    if (!target || loading) return;
+    linkedRun.current = null;
+    if (runs.some(run => run.run_id === target)) openDetail(target);
+  }, [runs, loading]);
+
+  const orderedRuns = useMemo(() => [...runs].reverse().filter(run => !stateFilter || JOB_STATE_VIEWS[stateFilter](run)), [runs, stateFilter]);
   const pageCount = Math.max(1, Math.ceil(orderedRuns.length / JOBS_PAGE_SIZE));
   const visibleRuns = useMemo(
     () => orderedRuns.slice((page - 1) * JOBS_PAGE_SIZE, page * JOBS_PAGE_SIZE),
@@ -310,7 +330,9 @@ export default function Jobs() {
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
             <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text)" }}>
-              Run History
+              Run History{stateFilter && <span style={{ marginLeft: 10, textTransform: "none", letterSpacing: 0, color: "var(--color-text-muted)", fontWeight: 400 }}>
+                · {stateFilter} only <button type="button" onClick={() => { setStateFilter(""); const url = new URL(window.location.href); url.searchParams.delete("state"); window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`); }}
+                  style={{ marginLeft: 6, background: "transparent", border: "1px solid var(--border2)", borderRadius: 999, color: "var(--text)", padding: "1px 8px", fontSize: "var(--font-size-xs)" }}>Show all runs</button></span>}
             </span>
             <span role="status" aria-label="Run count" aria-live="polite" style={{ fontSize: 'var(--font-size-xs)', ...mono, color: "var(--color-text-muted)" }}>
               {runs.length} {runs.length === 1 ? "run" : "runs"}{runs.length ? `; showing ${firstVisible}–${lastVisible}` : ""}

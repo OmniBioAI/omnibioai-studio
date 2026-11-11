@@ -93,7 +93,7 @@ describe("redesigned Studio navigation", () => {
 
   it("derives the approved tool category and plain-text runtime labels from TES metadata", () => {
     expect(toolPresentation({ tool_id: "fastqc", description: "Read quality control", tags: ["qc"], backends: ["slurm", "aws"] }))
-      .toMatchObject({ category: "QC", backends: ["Slurm", "Cloud"] });
+      .toMatchObject({ category: "QC", backends: ["Slurm", "AWS Batch"] });
   });
 
   it("shows and dismisses the runtime-configured tool availability notice", () => {
