@@ -118,7 +118,7 @@ for (const width of [1440, 390]) {
   test(`tools page at ${width}px: runnable by default, badges, show all`, async () => {
     const { context, page, errors } = await open("/studio/tools", width);
     try {
-      await page.getByText("Showing 4 of 4 tools (3 runnable HTTP tools; 2 not working or not yet tested hidden)").waitFor();
+      await page.getByText("Showing 4 of 4 tools (3 runnable HTTP tools; 2 not working, not yet tested or unavailable hidden)").waitFor();
       const badges = page.locator(".tool-card__badge");
       assert.equal(await badges.count(), 3);
       assert.deepEqual(await badges.allTextContents(), ["Runnable", "Runnable", "Runnable"]);

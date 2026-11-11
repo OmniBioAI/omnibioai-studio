@@ -16,6 +16,8 @@ const TOOLS = [
   { tool_id: "broken_api", description: "Retired endpoint", http: { url: "https://y" },
     verification: { status: "not_working", tested_at: "2026-11-09", reason: "upstream HTTP 404 not found", run_id: "full_run_20261109" } },
   { tool_id: "legacy_tool", description: "No verification block at all", http: { url: "https://z" } },
+  { tool_id: "bwa_x86", description: "x86 only aligner", slurm: { image: "docker://quay.io/biocontainers/bwa:0.7.18" },
+    verification: { status: "unavailable", tested_at: null, reason: "x86_64-only container image; this host is aarch64", run_id: null } },
 ];
 
 beforeEach(() => {
@@ -38,6 +40,12 @@ describe("toolVerification", () => {
     expect(toolVerification(TOOLS[2]).listedByDefault).toBe(false);
   });
 
+  it("maps an unavailable tool to a hidden-by-default Unavailable badge with the backend reason", () => {
+    expect(toolVerification(TOOLS[4])).toMatchObject({ status: "unavailable", label: "Unavailable", listedByDefault: false,
+      title: "No backend can run this tool right now: x86_64-only container image; this host is aarch64" });
+    expect(toolVerification({ tool_id: "x", verification: { status: "unavailable" } }).title).toBe("No backend can run this tool right now");
+  });
+
   it("treats a missing or unknown block as not yet tested", () => {
     expect(toolVerification(TOOLS[3])).toMatchObject({ status: "not_yet_tested", title: "Not yet run end to end" });
     expect(toolVerification({ tool_id: "x", verification: { status: "verified" } }).status).toBe("not_yet_tested");
@@ -49,25 +57,28 @@ describe("Tools page verification badges", () => {
   it("lists runnable HTTP tools and out-of-scope tools by default; badge only for HTTP tools", async () => {
     render(<Tools />);
     await screen.findByText("ensembl lookup");
-    expect(screen.getByText("Showing 2 of 2 tools (1 runnable HTTP tools; 2 not working or not yet tested hidden)")).toBeInTheDocument();
+    expect(screen.getByText("Showing 2 of 2 tools (1 runnable HTTP tools; 3 not working, not yet tested or unavailable hidden)")).toBeInTheDocument();
     expect(screen.getByText("Runnable")).toHaveAttribute("title", "Tested end to end on 2026-11-09");
     expect(screen.getByText("fastqc")).toBeInTheDocument();          // Slurm tool: listed, no badge
     expect(screen.queryByText("Not yet tested")).not.toBeInTheDocument();
     expect(document.querySelectorAll(".tool-card__badge")).toHaveLength(1);
     expect(screen.queryByText("broken api")).not.toBeInTheDocument();
     expect(screen.queryByText("legacy tool")).not.toBeInTheDocument();
+    expect(screen.queryByText("bwa x86")).not.toBeInTheDocument();      // unavailable: hidden by default
     expect(screen.getByRole("button", { name: "Runnable only" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("Show all reveals the hidden HTTP tools with their badges", async () => {
+  it("Show all reveals the hidden tools with their badges, including Unavailable", async () => {
     render(<Tools />);
     await screen.findByText("ensembl lookup");
     fireEvent.click(screen.getByRole("button", { name: "Show all" }));
-    expect(screen.getByText("Showing 4 of 4 tools (1 runnable HTTP tools)")).toBeInTheDocument();
+    expect(screen.getByText("Showing 5 of 5 tools (1 runnable HTTP tools)")).toBeInTheDocument();
     expect(screen.getByText("broken api")).toBeInTheDocument();
     expect(screen.getByText("Not working")).toHaveAttribute("title", "Failed end to end on 2026-11-09: upstream HTTP 404 not found");
     expect(screen.getAllByText("Not yet tested")).toHaveLength(1);   // legacy_tool only; fastqc is out of scope
-    expect(document.querySelectorAll(".tool-card__badge")).toHaveLength(3);
+    expect(screen.getByText("bwa x86")).toBeInTheDocument();
+    expect(screen.getByText("Unavailable")).toHaveAttribute("title", "No backend can run this tool right now: x86_64-only container image; this host is aarch64");
+    expect(document.querySelectorAll(".tool-card__badge")).toHaveLength(4);
     fireEvent.click(screen.getByRole("button", { name: "Runnable only" }));
     expect(screen.getByText(/Showing 2 of 2 tools/)).toBeInTheDocument();
   });
@@ -75,7 +86,7 @@ describe("Tools page verification badges", () => {
   it("explains an empty default view when no HTTP tool is verified yet", async () => {
     tesApiFetch.mockImplementation(() => Promise.resolve([TOOLS[2], TOOLS[3]]));
     render(<Tools />);
-    await screen.findByText("Showing 0 of 0 tools (0 runnable HTTP tools; 2 not working or not yet tested hidden)");
+    await screen.findByText("Showing 0 of 0 tools (0 runnable HTTP tools; 2 not working, not yet tested or unavailable hidden)");
     expect(screen.getByText(/No HTTP tool has passed an end-to-end run yet/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show all" }));
     expect(screen.getByText("legacy tool")).toBeInTheDocument();
