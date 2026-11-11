@@ -139,7 +139,7 @@ for (const role of ["admin", "member"]) {
 
 // Every card against the targets the flat list opened on main. Plain clicks must
 // load the same document as main (admin cards also move the address bar to their
-// agreed admin route path); Ctrl-clicks open the card's href in a new tab.
+// agreed admin route path); modified clicks are left to the browser.
 const THEMED = "?obai_theme=light&obai_accent=teal&obai_density=comfortable&obai_motion=system";
 const CARD_TARGETS = [
   ["Getting started", { iframe: `/_svc/docs/user/getting-started/${THEMED}` }, "/_svc/docs/user/getting-started/"],
@@ -181,8 +181,49 @@ async function clickCard(title, modifiers) {
   return { href, path, documents };
 }
 
+// Modified clicks belong to the browser: Studio must leave the event's default
+// action alone and must not navigate in-app. What the browser then does with the
+// href (new tab, background tab, nothing) differs between Chromium builds, so it
+// is deliberately not asserted.
+const MODIFIED_CLICKS = [["Ctrl-click", { modifiers: ["Control"] }], ["Cmd-click", { modifiers: ["Meta"] }], ["middle-click", { button: "middle" }]];
+
+async function modifiedClicks(title) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "light", serviceWorkers: "block" });
+  await context.addInitScript(() => localStorage.setItem("omnibioai_access_token", "QUALITY-SESSION"));
+  await context.route("**/*", route => fixtureRoute(route, USERS.admin));
+  const page = await context.newPage();
+  await page.goto(`${origin}/studio/services`);
+  await page.getByRole("heading", { level: 1, name: "All services" }).waitFor();
+  // Window bubble-phase listeners run after React's root listener, so they see
+  // whether Studio called preventDefault() and whether it sent an in-app event.
+  await page.evaluate(() => {
+    window.__cardClicks = [];
+    const record = event => window.__cardClicks.push({ type: event.type, defaultPrevented: event.defaultPrevented });
+    for (const type of ["click", "auxclick", "navigate", "open-service"]) window.addEventListener(type, record);
+    // Registered after `record`, so Studio's decision is captured first; then the
+    // browser's own action is cancelled so every Chromium build behaves the same.
+    for (const type of ["click", "auxclick"]) window.addEventListener(type, event => event.preventDefault());
+  });
+  const link = page.getByRole("link", { name: new RegExp(`^${title}`) });
+  const results = [];
+  for (const [label, options] of MODIFIED_CLICKS) {
+    await page.evaluate(() => { window.__cardClicks.length = 0; });
+    await link.click(options);
+    results.push({
+      label,
+      tag: await link.evaluate(element => element.tagName),
+      href: await link.getAttribute("href"),
+      events: await page.evaluate(() => window.__cardClicks.slice()),
+      path: await page.evaluate(() => location.pathname),
+      embedded: await page.locator("iframe").count(),
+    });
+  }
+  await context.close();
+  return results;
+}
+
 for (const [title, plain, href] of CARD_TARGETS) {
-  test(`${title} opens main's target on click and its href on Ctrl-click`, async () => {
+  test(`${title} opens main's target on click and leaves modified clicks to the browser`, async () => {
     const clicked = await clickCard(title, []);
     assert.equal(clicked.href, href);
     const expected = [];
@@ -191,8 +232,13 @@ for (const [title, plain, href] of CARD_TARGETS) {
     assert.deepEqual(clicked.documents, expected);
     assert.equal(clicked.path, plain.path || "/studio/services");
 
-    const modified = await clickCard(title, ["Control"]);
-    assert.deepEqual(modified.documents[0], { kind: "tab", url: href });
-    assert.equal(modified.path, "/studio/services");
+    for (const result of await modifiedClicks(title)) {
+      assert.equal(result.tag, "A", result.label);
+      assert.equal(result.href, href, result.label);
+      const type = result.label === "middle-click" ? "auxclick" : "click";
+      assert.deepEqual(result.events, [{ type, defaultPrevented: false }], result.label);
+      assert.equal(result.path, "/studio/services", result.label);
+      assert.equal(result.embedded, 0, result.label);
+    }
   });
 }
