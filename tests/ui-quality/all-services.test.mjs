@@ -136,3 +136,63 @@ for (const role of ["admin", "member"]) {
     }
   }
 }
+
+// Every card against the targets the flat list opened on main. Plain clicks must
+// load the same document as main (admin cards also move the address bar to their
+// agreed admin route path); Ctrl-clicks open the card's href in a new tab.
+const THEMED = "?obai_theme=light&obai_accent=teal&obai_density=comfortable&obai_motion=system";
+const CARD_TARGETS = [
+  ["Getting started", { iframe: `/_svc/docs/user/getting-started/${THEMED}` }, "/_svc/docs/user/getting-started/"],
+  ["Video tutorials", { iframe: "/_svc/videos/" }, "/_svc/videos"],
+  ["Membership and storage", { path: "/studio/account/membership-storage" }, "/studio/account/membership-storage"],
+  ["Billing", { path: "/studio/account/organization/billing" }, "/studio/account/organization/billing"],
+  ["API keys", { path: "/studio/account/organization/api-keys" }, "/studio/account/organization/api-keys"],
+  ["LIMS", { iframe: `/_svc/lims/${THEMED}` }, "/_svc/lims/"],
+  ["Model registry", { iframe: `/_svc/modelregistry${THEMED}` }, "/_svc/modelregistry"],
+  ["Dev Hub", { iframe: `/_svc/devhub${THEMED}` }, "/_svc/devhub"],
+  ["Admin console", { tab: "https://admin.omnibioai.org/?obai_theme=dark" }, "https://admin.omnibioai.org/?obai_theme=dark"],
+  ["Control center", { iframe: `/_svc/control/${THEMED}`, path: "/studio/admin/runtime/control-center" }, "/studio/admin/runtime/control-center"],
+  ["Platform health", { iframe: `https://control.omnibioai.org/${THEMED}`, path: "/studio/admin/runtime/platform-health" }, "/studio/admin/runtime/platform-health"],
+  ["Metrics", { iframe: "/_svc/monitor/d/omnibioai-services/omnibioai-services?kiosk=tv&refresh=30s&from=now-1h&to=now&theme=light", path: "/studio/admin/runtime/metrics" }, "/studio/admin/runtime/metrics"],
+  ["Neo4j browser", { iframe: `/neo4j/browser/${THEMED}`, path: "/studio/admin/runtime/neo4j" }, "/studio/admin/runtime/neo4j"],
+  ["Tool images", { iframe: `/_svc/toolimages${THEMED}`, path: "/studio/admin/runtime/tool-images" }, "/studio/admin/runtime/tool-images"],
+];
+
+async function clickCard(title, modifiers) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "light", serviceWorkers: "block" });
+  await context.addInitScript(() => localStorage.setItem("omnibioai_access_token", "QUALITY-SESSION"));
+  await context.route("**/*", route => fixtureRoute(route, USERS.admin));
+  const page = await context.newPage();
+  await page.goto(`${origin}/studio/services`);
+  await page.getByRole("heading", { level: 1, name: "All services" }).waitFor();
+  const documents = [];
+  context.on("request", request => {
+    if (request.resourceType() !== "document") return;
+    let kind = "tab";
+    try { kind = request.frame().parentFrame() ? "iframe" : "main"; } catch { /* a new tab's frame does not exist yet */ }
+    documents.push({ kind, url: request.url().replace(origin, "") });
+  });
+  const link = page.getByRole("link", { name: new RegExp(`^${title}`) });
+  const href = await link.getAttribute("href");
+  await link.click({ modifiers });
+  await page.waitForTimeout(500);
+  const path = await page.evaluate(() => location.pathname);
+  await context.close();
+  return { href, path, documents };
+}
+
+for (const [title, plain, href] of CARD_TARGETS) {
+  test(`${title} opens main's target on click and its href on Ctrl-click`, async () => {
+    const clicked = await clickCard(title, []);
+    assert.equal(clicked.href, href);
+    const expected = [];
+    if (plain.iframe) expected.push({ kind: "iframe", url: plain.iframe });
+    if (plain.tab) expected.push({ kind: "tab", url: plain.tab });
+    assert.deepEqual(clicked.documents, expected);
+    assert.equal(clicked.path, plain.path || "/studio/services");
+
+    const modified = await clickCard(title, ["Control"]);
+    assert.deepEqual(modified.documents[0], { kind: "tab", url: href });
+    assert.equal(modified.path, "/studio/services");
+  });
+}

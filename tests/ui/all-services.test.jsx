@@ -14,6 +14,7 @@ vi.mock("../../src/ui/lib/serviceHealth", () => ({
 
 import * as billingApi from "../../src/ui/lib/billingApi";
 import AllServices, { ALL_SERVICES, matchesQuery } from "../../src/ui/pages/AllServices";
+import { ADMIN_ROUTE_DEFINITIONS } from "../../src/ui/lib/adminRoutes";
 
 const ADMIN = { userId: "a", orgId: "org-1", permissions: ["platform.manage_infra", "manage_config", "manage_api_keys"] };
 const MEMBER = { userId: "m", orgId: "org-1", permissions: [] };
@@ -109,7 +110,7 @@ describe("All services directory", () => {
       LIMS: "/_svc/lims/",
       "Model registry": "/_svc/modelregistry",
       "Dev Hub": "/_svc/devhub",
-      "Admin console": "/studio/admin/runtime/admin-console",
+      "Admin console": "https://admin.omnibioai.org/?obai_theme=dark",
       "Control center": "/studio/admin/runtime/control-center",
       "Platform health": "/studio/admin/runtime/platform-health",
       Metrics: "/studio/admin/runtime/metrics",
@@ -121,22 +122,69 @@ describe("All services directory", () => {
     }
   });
 
-  it("keeps in-app navigation on plain click and leaves modified clicks to the browser", () => {
-    const navigate = vi.fn();
-    const openService = vi.fn();
-    window.addEventListener("navigate", navigate);
-    window.addEventListener("open-service", openService);
+  // The flat list on main before the redesign: every card's event and target.
+  // Admin cards (except the standalone Admin console) moved to `navigate` with
+  // their admin route index, which App resolves to the same oldUrl and label.
+  const MAIN_TARGETS = {
+    "Getting started": { event: "open-service", detail: { url: "/_svc/docs/user/getting-started/", label: "Getting started" } },
+    "Video tutorials": { event: "open-service", detail: { url: "/_svc/videos", label: "Video tutorials" } },
+    LIMS: { event: "open-service", detail: { url: "/_svc/lims/", label: "LIMS" } },
+    "Model registry": { event: "open-service", detail: { url: "/_svc/modelregistry", label: "Model registry" } },
+    "Dev Hub": { event: "open-service", detail: { url: "/_svc/devhub", label: "Dev Hub" } },
+    Billing: { event: "navigate", detail: 12 },
+    "Membership and storage": { event: "navigate", detail: 32 },
+    "API keys": { event: "navigate", detail: 14 },
+    "Admin console": { event: "open-service", detail: { url: "https://admin.omnibioai.org/", label: "Admin console" } },
+    "Control center": { event: "open-service", detail: { url: "/_svc/control/", label: "Control center" } },
+    "Platform health": { event: "open-service", detail: { url: "https://control.omnibioai.org", label: "Platform health" } },
+    Metrics: { event: "open-service", detail: { url: "/_svc/monitor", label: "Metrics" } },
+    "Tool images": { event: "open-service", detail: { url: "/_svc/toolimages", label: "Tool images" } },
+    "Neo4j browser": { event: "open-service", detail: { url: "/neo4j/browser/", label: "Neo4j browser" } },
+  };
+  const ADMIN_ROUTE_CARDS = { "Control center": -11, "Platform health": -12, Metrics: -13, "Tool images": -14, "Neo4j browser": -15 };
+
+  function clickEvents(title, init) {
+    const events = [];
+    const record = type => event => events.push({ event: type, detail: event.detail });
+    const onNavigate = record("navigate");
+    const onOpen = record("open-service");
+    window.addEventListener("navigate", onNavigate);
+    window.addEventListener("open-service", onOpen);
     try {
-      render(<AllServices currentUser={ADMIN} />);
-      fireEvent.click(card("Control center"));
-      expect(navigate.mock.calls[0][0].detail).toBe(-11);
-      fireEvent.click(card("LIMS"));
-      expect(openService.mock.calls[0][0].detail).toEqual({ url: "/_svc/lims/", label: "LIMS" });
-      expect(fireEvent.click(card("Billing"), { ctrlKey: true })).toBe(true);
-      expect(navigate).toHaveBeenCalledTimes(1);
+      const notPrevented = fireEvent.click(card(title), init);
+      return { events, notPrevented };
     } finally {
-      window.removeEventListener("navigate", navigate);
-      window.removeEventListener("open-service", openService);
+      window.removeEventListener("navigate", onNavigate);
+      window.removeEventListener("open-service", onOpen);
+    }
+  }
+
+  it("opens exactly main's target for every card on plain click", () => {
+    render(<AllServices currentUser={ADMIN} />);
+    expect(Object.keys(MAIN_TARGETS).sort()).toEqual(ALL_SERVICES.map(item => item.title).sort());
+    for (const [title, target] of Object.entries(MAIN_TARGETS)) {
+      const { events, notPrevented } = clickEvents(title);
+      expect(notPrevented, title).toBe(false);
+      const route = ADMIN_ROUTE_CARDS[title];
+      if (route === undefined) {
+        expect(events, title).toEqual([target]);
+      } else {
+        expect(events, title).toEqual([{ event: "navigate", detail: route }]);
+        const definition = ADMIN_ROUTE_DEFINITIONS.find(item => item.idx === route);
+        expect({ url: definition.oldUrl, label: definition.name }, title).toEqual(target.detail);
+        expect(card(title).getAttribute("href"), title).toBe(definition.path);
+      }
+    }
+  });
+
+  it("leaves modified and non-primary clicks to the browser", () => {
+    render(<AllServices currentUser={ADMIN} />);
+    for (const title of Object.keys(MAIN_TARGETS)) {
+      for (const init of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { button: 1 }]) {
+        const { events, notPrevented } = clickEvents(title, init);
+        expect(events, `${title} ${JSON.stringify(init)}`).toEqual([]);
+        expect(notPrevented, title).toBe(true);
+      }
     }
   });
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { hasAnyPermission } from "../lib/adminNavigation";
 import { pathForStudioPage } from "../lib/studioRouter";
+import { standaloneAppUrl } from "../lib/standaloneApps";
 import { useStorageUsage } from "../lib/useStorageUsage";
 import { formatStorageBytes, MIN_VISIBLE_SEGMENT_PX } from "../lib/storageDashboard";
 import { HEALTH_ENDPOINTS, refreshServiceHealth, useServiceHealth } from "../lib/serviceHealth";
@@ -17,10 +18,11 @@ export const SERVICE_GROUPS = Object.freeze([
 
 // `nav` cards open a Studio page (href is that page's canonical path, so the
 // admin cards resolve through the admin route registry and its permission
-// gate); `url` cards open an embedded service. `permissions` is the card's
+// gate); `url` cards send `open-service`, exactly as the flat list did. `permissions` is the card's
 // visibility check, unchanged from the flat list this replaces.
 const page = nav => ({ nav, href: pathForStudioPage(nav) });
 const service = url => ({ url, href: url });
+const ADMIN_CONSOLE_URL = "https://admin.omnibioai.org/";
 
 export const ALL_SERVICES = Object.freeze([
   { group: "learn", title: "Getting started", description: "Setup and platform guide", icon: "bookOpen", ...service("/_svc/docs/user/getting-started/") },
@@ -31,7 +33,10 @@ export const ALL_SERVICES = Object.freeze([
   { group: "science", title: "LIMS", description: "Laboratory data management", icon: "flask", ...service("/_svc/lims/") },
   { group: "science", title: "Model registry", description: "ML model versioning", icon: "layers", ...service("/_svc/modelregistry") },
   { group: "science", title: "Dev Hub", description: "Knowledge graph and developer tools", icon: "code", ...service("/_svc/devhub") },
-  { group: "operations", title: "Admin console", description: "Organization and platform administration", icon: "shield", ...page(-10), permissions: ["platform.manage_infra"] },
+  // Standalone-only app: App opens it in a new tab only from `open-service`
+  // (its admin route just shows a "cannot be embedded" panel), so the href is
+  // the same standalone URL App opens.
+  { group: "operations", title: "Admin console", description: "Organization and platform administration", icon: "shield", url: ADMIN_CONSOLE_URL, href: standaloneAppUrl(ADMIN_CONSOLE_URL), permissions: ["platform.manage_infra"] },
   { group: "operations", title: "Control center", description: "Ecosystem operations", icon: "sliders", ...page(-11), permissions: ["platform.manage_infra"] },
   { group: "operations", title: "Platform health", description: "Platform service health", icon: "activity", statusKey: "health", ...page(-12), permissions: ["platform.manage_infra"] },
   { group: "operations", title: "Metrics", description: "Grafana dashboards", icon: "barChart", ...page(-13), permissions: ["platform.manage_infra"] },
@@ -55,8 +60,8 @@ export function matchesQuery(card, query) {
 function openCard(event, card) {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
-  if (card.nav !== undefined) window.dispatchEvent(new CustomEvent("navigate", { detail: card.nav }));
-  else window.dispatchEvent(new CustomEvent("open-service", { detail: { url: card.url, label: card.title } }));
+  if (card.url) window.dispatchEvent(new CustomEvent("open-service", { detail: { url: card.url, label: card.title } }));
+  else window.dispatchEvent(new CustomEvent("navigate", { detail: card.nav }));
 }
 
 function usePlan(orgId) {
