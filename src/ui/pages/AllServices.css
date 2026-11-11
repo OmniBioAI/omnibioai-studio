@@ -4,8 +4,9 @@
 .all-services__eyebrow{font:600 var(--font-size-xs)/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
 .all-services__header h1{font-size:32px;margin:8px 0}
 .all-services__header p{margin:0;color:var(--color-text-muted)}
-.all-services__search{flex:0 1 320px;min-width:0}
-.all-services__search input{width:100%;box-sizing:border-box;min-height:40px;padding:10px 12px;background:var(--color-input-bg,var(--bg));border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font:inherit}
+.all-services__search{position:relative;flex:0 1 320px;min-width:0}
+.all-services__search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-text-muted);pointer-events:none}
+.all-services__search input{width:100%;box-sizing:border-box;min-height:40px;padding:10px 12px 10px 36px;background:var(--color-input-bg,var(--bg));border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font:inherit}
 .all-services__search input::placeholder{color:var(--color-text-muted)}
 .all-services__empty{color:var(--color-text-muted);padding:24px 0}
 
@@ -16,7 +17,7 @@
 .service-group h2{display:flex;align-items:center;gap:8px;margin:0 0 12px;font:600 var(--font-size-xs)/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--color-text-muted)}
 .service-group__marker{width:8px;height:8px;border-radius:2px;background:var(--group);flex:none}
 .service-group__pill{margin-left:4px;padding:2px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--group) 40%,transparent);background:color-mix(in srgb,var(--group) 13%,transparent);color:color-mix(in srgb,var(--group) var(--group-tint-share),var(--group-tint-base));letter-spacing:.06em;text-transform:none}
-.service-group__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:16px}
+.service-group__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:16px}
 .service-group[data-layout=wide] .service-group__grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 
 .service-card{position:relative;display:flex;flex-direction:column;gap:14px;min-width:0;padding:18px;background:var(--bg3);border:1px solid var(--border);border-top:2px solid var(--group);border-radius:var(--radius);color:var(--text);text-decoration:none;transition:transform .15s ease,border-color .15s ease}

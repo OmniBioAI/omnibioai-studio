@@ -246,6 +246,26 @@ describe("All services directory", () => {
     expect(card("Membership and storage").querySelector(".service-card__status")).toBeEmptyDOMElement();
   });
 
+  it("shows → for cards that open inside Studio and ↗ only for another site", () => {
+    render(<AllServices currentUser={ADMIN} />);
+    const opens = Object.fromEntries(screen.getAllByRole("link").map(link => [
+      link.querySelector("strong").textContent,
+      link.querySelector(".service-card__arrow").getAttribute("data-opens"),
+    ]));
+    expect(Object.entries(opens).filter(([, value]) => value === "another-site").map(([title]) => title)).toEqual(["Admin console"]);
+    expect(Object.values(opens).filter(value => value === "studio")).toHaveLength(13);
+    for (const arrow of document.querySelectorAll(".service-card__arrow")) expect(arrow).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("shows a decorative magnifier inside the labelled search field", () => {
+    const { container } = render(<AllServices currentUser={MEMBER} />);
+    const search = screen.getByRole("searchbox", { name: "Search services" });
+    const icon = container.querySelector(".all-services__search-icon");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon.parentElement).toBe(search.parentElement);
+    expect(screen.getByRole("search")).toContainElement(search);
+  });
+
   it("uses no emoji in the directory", () => {
     const { container } = render(<AllServices currentUser={ADMIN} />);
     expect(container.textContent).not.toMatch(/\p{Extended_Pictographic}/u);

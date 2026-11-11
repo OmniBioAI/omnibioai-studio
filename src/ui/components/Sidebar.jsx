@@ -18,6 +18,61 @@ const statusLabel = {
   error:    "ERROR",
 };
 
+// One sidebar destination: the nav list's items and the pinned All services
+// entry share it, so they share the active-state style.
+function NavItemButton({ name, isActive, disabled, badge, onClick }) {
+  const Icon = NAV_ICONS[name];
+  return (
+    <button
+      data-nav-item={name}
+      type="button"
+      className="studio-nav-item"
+      aria-current={isActive ? "page" : undefined}
+      onClick={disabled ? undefined : onClick}
+      aria-disabled={disabled || undefined}
+      style={{
+        display:"flex", alignItems:"center", gap:8,
+        width:"100%", minHeight:44, textAlign:"left", padding:"7px 8px", borderRadius:'var(--radius-sm)', cursor: disabled ? "default" : "pointer",
+        fontSize:'var(--font-size-sm)', fontFamily:"inherit", marginBottom:1, position:"relative",
+        transition:"color 0.15s, background-color 0.15s, border-color 0.15s", opacity: disabled ? 0.5 : 1,
+        color:      isActive ? "var(--accent)" : "var(--color-text-muted)",
+        background: isActive ? "rgba(0,229,160,0.08)" : "transparent",
+        border:     isActive ? "1px solid rgba(0,229,160,0.15)" : "1px solid transparent",
+      }}
+    >
+      {isActive && (
+        <div style={{
+          position:"absolute", left:0, top:"50%",
+          transform:"translateY(-50%)",
+          width:2, height:16, background:"var(--accent)", borderRadius:'var(--radius-xs)',
+        }} />
+      )}
+      <span style={{
+        width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center",
+        flexShrink:0, opacity: isActive ? 1 : 0.75,
+      }}>
+        {Icon && <Icon />}
+      </span>
+      {name}
+      {badge !== undefined && (
+        <span aria-label={`${badge} integrations`} style={{
+          marginLeft:"auto", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+          color:"var(--color-text-muted)", background:"var(--bg3)",
+          border:"1px solid var(--border)", borderRadius:999, padding:"1px 6px",
+        }}>{badge}</span>
+      )}
+      {disabled && (
+        <span style={{
+          marginLeft:"auto", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
+          color:"var(--color-text-muted)", letterSpacing:"0.04em",
+        }}>
+          Coming soon
+        </span>
+      )}
+    </button>
+  );
+}
+
 export default function Sidebar({ nav, step, setStep, systemStatus, isServiceView, onStudioClick, currentUser, onProfileClick, onSecurityClick, onPreferencesClick, onAppearanceClick, isAppearanceActive = false, onPersonalizationClick, isPersonalizationActive = false, onNotificationsClick, isNotificationsActive, onPrivacyClick, isPrivacyActive = false, onPlanClick, isPlanActive = false, onStorageClick, isStorageActive = false, onHelpClick, isHelpActive = false, isProfileActive, isSecurityActive, isPreferencesActive }) {
   const [adminExpanded, setAdminExpanded] = useState(false);
   return (
@@ -76,56 +131,9 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
             {(!collapsed || adminExpanded) && items.map(({ name, idx, disabled, badge, group }) => {
               if (group) return <div key={name} className="studio-nav-subgroup">{name}</div>;
               const isActive = !disabled && step === idx;
-              const Icon = NAV_ICONS[name];
               return (
                 <div key={name}>
-                <button
-                  data-nav-item={name}
-                  type="button"
-                  className="studio-nav-item"
-                  aria-current={isActive ? "page" : undefined}
-                  onClick={disabled ? undefined : () => setStep(idx)}
-                  aria-disabled={disabled || undefined}
-                  style={{
-                    display:"flex", alignItems:"center", gap:8,
-                    width:"100%", minHeight:44, textAlign:"left", padding:"7px 8px", borderRadius:'var(--radius-sm)', cursor: disabled ? "default" : "pointer",
-                    fontSize:'var(--font-size-sm)', fontFamily:"inherit", marginBottom:1, position:"relative",
-                    transition:"color 0.15s, background-color 0.15s, border-color 0.15s", opacity: disabled ? 0.5 : 1,
-                    color:      isActive ? "var(--accent)" : "var(--color-text-muted)",
-                    background: isActive ? "rgba(0,229,160,0.08)" : "transparent",
-                    border:     isActive ? "1px solid rgba(0,229,160,0.15)" : "1px solid transparent",
-                  }}
-                >
-                  {isActive && (
-                    <div style={{
-                      position:"absolute", left:0, top:"50%",
-                      transform:"translateY(-50%)",
-                      width:2, height:16, background:"var(--accent)", borderRadius:'var(--radius-xs)',
-                    }} />
-                  )}
-                  <span style={{
-                    width:16, height:16, display:"flex", alignItems:"center", justifyContent:"center",
-                    flexShrink:0, opacity: isActive ? 1 : 0.75,
-                  }}>
-                    {Icon && <Icon />}
-                  </span>
-                  {name}
-                  {badge !== undefined && (
-                    <span aria-label={`${badge} integrations`} style={{
-                      marginLeft:"auto", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
-                      color:"var(--color-text-muted)", background:"var(--bg3)",
-                      border:"1px solid var(--border)", borderRadius:999, padding:"1px 6px",
-                    }}>{badge}</span>
-                  )}
-                  {disabled && (
-                    <span style={{
-                      marginLeft:"auto", fontSize:'var(--font-size-xs)', fontFamily:"var(--mono)",
-                      color:"var(--color-text-muted)", letterSpacing:"0.04em",
-                    }}>
-                      Coming soon
-                    </span>
-                  )}
-                </button>
+                <NavItemButton name={name} isActive={isActive} disabled={disabled} badge={badge} onClick={() => setStep(idx)} />
                 </div>
               );
             })}
@@ -134,10 +142,9 @@ export default function Sidebar({ nav, step, setStep, systemStatus, isServiceVie
       </nav>
 
       <div className="studio-settings-entry">
-        <button type="button" data-nav-item="All services" aria-current={step === 40 ? "page" : undefined} onClick={() => setStep(40)}>
-          {React.createElement(NAV_ICONS["All services"])}<span>All services</span>
-        </button>
-        <button type="button" data-nav-item="Settings" aria-current={step === 39 ? "page" : undefined} onClick={() => setStep(39)}>
+        <NavItemButton name="All services" isActive={step === 40} onClick={() => setStep(40)} />
+        {/* Same text size as the nav items above (sidebar only; the drawer keeps its own). */}
+        <button type="button" data-nav-item="Settings" aria-current={step === 39 ? "page" : undefined} onClick={() => setStep(39)} style={{ fontSize:'var(--font-size-sm)' }}>
           {NAV_ICONS.Settings && React.createElement(NAV_ICONS.Settings)}<span>Settings</span>
         </button>
       </div>

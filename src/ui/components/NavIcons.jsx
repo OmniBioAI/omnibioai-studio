@@ -41,6 +41,8 @@ const IconHardDrive    = p => <svg {...base} {...p}><path d="M22 12H2" /><path d
 const IconKey          = p => <svg {...base} {...p}><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15.5 7.5 3 3L22 7l-3-3" /></svg>;
 const IconBarChart     = p => <svg {...base} {...p}><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>;
 const IconArrowUpRight = p => <svg {...base} {...p}><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg>;
+const IconArrowRight   = p => <svg {...base} {...p}><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>;
+const IconSearch       = p => <svg {...base} {...p}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>;
 
 // Service-directory icons, keyed by meaning rather than nav name so All
 // services can pick them per card without colliding with NAV_ICONS.
@@ -48,7 +50,7 @@ export const SERVICE_ICONS = {
   bookOpen: IconBookOpen, monitorPlay: IconMonitorPlay, flask: IconFlask, layers: IconLayers,
   code: IconCode, share: IconShare, box: IconBox, hardDrive: IconHardDrive, creditCard: IconCreditCard,
   key: IconKey, shield: IconShield, sliders: IconSliders, activity: IconActivity, barChart: IconBarChart,
-  arrowUpRight: IconArrowUpRight,
+  arrowUpRight: IconArrowUpRight, arrowRight: IconArrowRight, search: IconSearch,
 };
 
 // Keyed by the exact nav-item `name` used throughout App.jsx/Sidebar/MobileNav
