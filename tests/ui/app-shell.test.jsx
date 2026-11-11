@@ -132,6 +132,17 @@ describe("Account route migration", () => {
     expect(window.location.pathname).toBe("/studio/omics-analysis");
   });
 
+  it("opens All services from the pinned sidebar area at /studio/services and marks it active", async () => {
+    session.user = { userId: 2, email: "member@example.org", orgId: 1, permissions: [] };
+    render(<App />);
+    await screen.findByText("Studio page");
+    const item = screen.getByRole("button", { name: "All services" });
+    fireEvent.click(item);
+    await screen.findByText("All services page");
+    expect(window.location.pathname).toBe("/studio/services");
+    expect(item).toHaveAttribute("aria-current", "page");
+  });
+
   it.each([
     ["Ask OmniBioAI", "/_svc/devhub", "chat"],
     ["Code", "/_svc/sdk", null],
