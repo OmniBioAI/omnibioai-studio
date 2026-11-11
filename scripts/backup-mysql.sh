@@ -47,6 +47,10 @@
 # or a failing gpg command fails the whole backup closed.
 
 set -euo pipefail
+# Everything this script creates on the host (dump, .partial, .sha256, health
+# file, the backup directory itself) is private to the backup user: the dumps
+# hold every application schema in plaintext unless encryption is configured.
+umask 077
 
 # ── Config ────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
