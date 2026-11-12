@@ -918,3 +918,140 @@ def test_retention_rotates_age_artifacts_too(tmp_path):
     assert result.returncode == 0, result.stderr
     assert not old.exists()
     assert len(sb.age_artifacts()) == 1
+
+
+# ---------------------------------------------------------------------------
+# Accounts and grants dump (2026-11-12, opt-in MYSQL_BACKUP_ACCOUNTS=1)
+# ---------------------------------------------------------------------------
+
+ACCOUNTS_DOCKER = """#!/usr/bin/env bash
+# Fake docker: tells the mysqldump exec from the accounts exec by the script,
+# records each exec's argv and stdin; never the real daemon.
+if [[ "$1" == "ps" ]]; then echo "fake-mysql-1"; exit 0; fi
+if [[ "$1" == "exec" ]]; then
+  if [[ "$*" == *print_identified_with_as_hex* ]]; then
+    printf '%s\\n' "$@" > "{dir}/accounts-argv.txt"; cat > "{dir}/accounts-stdin.txt"
+    [[ -n "${{FAKE_ACCOUNTS_EXIT:-}}" ]] && {{ echo "ERROR 1044 fake" >&2; exit "$FAKE_ACCOUNTS_EXIT"; }}
+    printf -- "-- accounts: 1\\nCREATE USER IF NOT EXISTS \\x60svc\\x60@\\x60%%\\x60 IDENTIFIED WITH 'caching_sha2_password' AS 0xFAKEHASH;\\nGRANT USAGE ON *.* TO \\x60svc\\x60@\\x60%%\\x60;\\n"
+    exit 0
+  fi
+  cat > /dev/null
+  printf -- "-- fake sql dump\\nSELECT 1;\\n"; exit 0
+fi
+exit 1
+"""
+
+
+def _accounts_sandbox(tmp_path):
+    sb = Sandbox(tmp_path)
+    sb.env_file.write_text("MYSQL_ROOT_PASSWORD=test-password-not-real\n", encoding="utf-8")
+    (sb.bin_dir / "docker").write_text(ACCOUNTS_DOCKER.format(dir=tmp_path), encoding="utf-8")
+    return sb
+
+
+def _accounts_artifacts(sb):
+    return sorted(sb.backup_dir.glob("omnibioai_accounts_*.sql.gz.age"))
+
+
+def _data_artifacts(sb):
+    return [p for p in sb.age_artifacts() if not p.name.startswith("omnibioai_accounts_")]
+
+
+def test_accounts_dump_is_off_by_default(tmp_path):
+    sb = _accounts_sandbox(tmp_path)
+    assert sb.run().returncode == 0
+    assert _accounts_artifacts(sb) == []
+    assert not (tmp_path / "accounts-argv.txt").exists()
+
+
+def test_accounts_dump_is_age_encrypted_next_to_the_data_dump(tmp_path):
+    sb = _accounts_sandbox(tmp_path)
+    result = sb.run({"MYSQL_BACKUP_ACCOUNTS": "1"})
+    assert result.returncode == 0, result.stderr
+    [data] = _data_artifacts(sb)
+    [acct] = _accounts_artifacts(sb)
+    # Same timestamp as the data dump it belongs to.
+    assert acct.name == data.name.replace("omnibioai_", "omnibioai_accounts_", 1)
+    raw = acct.read_bytes()
+    assert raw.startswith(b"age-encryption.org/v1\n") and b"FAKEHASH" not in raw
+    dec = _age_decrypt(acct, sb.age_identity)
+    assert dec.returncode == 0, dec.stderr
+    import gzip as gzip_module
+    sql = gzip_module.decompress(dec.stdout).decode()
+    assert "CREATE USER IF NOT EXISTS `svc`@`%`" in sql and "GRANT USAGE" in sql
+    check = subprocess.run(["sha256sum", "-c", acct.name + ".sha256"], cwd=acct.parent,
+                           capture_output=True, text=True, timeout=10, check=False)
+    assert check.returncode == 0, check.stdout + check.stderr
+    # Never plaintext on disk: every file in the backup dir is ciphertext or a checksum.
+    for f in sb.backup_dir.iterdir():
+        assert f.name.endswith((".age", ".sha256")), f.name
+        assert b"FAKEHASH" not in f.read_bytes()
+    assert sb.partials() == []
+
+
+def test_accounts_credentials_reach_the_container_only_on_stdin(tmp_path):
+    sb = _accounts_sandbox(tmp_path)
+    pw = tmp_path / "obai_backup.pass"
+    pw.write_text("file-password-not-real", encoding="utf-8")
+    pw.chmod(0o600)
+    result = sb.run({"MYSQL_BACKUP_ACCOUNTS": "1", "MYSQL_BACKUP_PASSWORD_FILE": str(pw),
+                     "MYSQL_BACKUP_USER": "obai_backup"})
+    assert result.returncode == 0, result.stderr
+    argv = (tmp_path / "accounts-argv.txt").read_text(encoding="utf-8")
+    assert "file-password-not-real" not in argv + result.stdout + result.stderr
+    assert "--defaults-extra-file" in argv and "NOT LIKE 'mysql.%'" in argv
+    assert (tmp_path / "accounts-stdin.txt").read_text(encoding="utf-8") == \
+        "[client]\nuser=obai_backup\npassword=file-password-not-real\n"
+
+
+def test_accounts_failure_keeps_the_data_dump_and_fails_the_run(tmp_path):
+    sb = _accounts_sandbox(tmp_path)
+    result = sb.run({"MYSQL_BACKUP_ACCOUNTS": "1", "FAKE_ACCOUNTS_EXIT": "1"})
+    assert result.returncode != 0
+    assert "SELECT on mysql.*" in result.stderr
+    [data] = _data_artifacts(sb)
+    assert (sb.backup_dir / (data.name + ".sha256")).exists()
+    assert _accounts_artifacts(sb) == [] and sb.partials() == []
+    health = sb.health()
+    assert health["LAST_RESULT"] == "failure" and health["LAST_STAGE"] == "accounts"
+    assert health["LAST_ARTIFACT"] == str(data) and health["LAST_SUCCESS_TS"]
+
+
+def test_accounts_dump_is_refused_in_gpg_mode(tmp_path):
+    sb = _accounts_sandbox(tmp_path)
+    passphrase_file = _make_passphrase_file(tmp_path)
+    result = sb.run({"MYSQL_BACKUP_ACCOUNTS": "1",
+                     "MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE": str(passphrase_file)})
+    assert result.returncode != 0
+    assert "needs age encryption" in result.stderr
+    assert list(sb.backup_dir.iterdir()) == []
+
+
+def test_retention_rotates_accounts_with_their_data_dump(tmp_path):
+    sb = _accounts_sandbox(tmp_path)
+    old_data = sb.backup_dir / "omnibioai_20200103_000000.sql.gz.age"
+    old_acct = sb.backup_dir / "omnibioai_accounts_20200103_000000.sql.gz.age"
+    for f in (old_data, old_acct):
+        f.write_bytes(b"age-encryption.org/v1\n" + b"0" * 50)
+        f.with_suffix(f.suffix + ".sha256").write_text("deadbeef  fake\n")
+        os.utime(f, (1_000_000, 1_000_000))
+    result = sb.run({"MYSQL_BACKUP_ACCOUNTS": "1", "RETAIN_DAYS": "7"})
+    assert result.returncode == 0, result.stderr
+    assert not old_data.exists() and not old_acct.exists()
+    assert not old_acct.with_suffix(old_acct.suffix + ".sha256").exists()
+    assert len(_data_artifacts(sb)) == 1 and len(_accounts_artifacts(sb)) == 1
+
+
+def test_accounts_files_are_not_rotated_as_data_dumps(tmp_path):
+    """Retention selects data dumps only; old accounts files go only with the data
+    dump of the same timestamp, so orphans are left alone."""
+    sb = _accounts_sandbox(tmp_path)
+    for ts in ("20200101_000000", "20200102_000000"):
+        f = sb.backup_dir / f"omnibioai_accounts_{ts}.sql.gz.age"
+        f.write_bytes(b"age-encryption.org/v1\n" + b"0" * 50)
+        os.utime(f, (1_000_000, 1_000_000))
+    result = sb.run({"MYSQL_BACKUP_ACCOUNTS": "1", "RETAIN_DAYS": "7"})
+    assert result.returncode == 0, result.stderr
+    assert len(_data_artifacts(sb)) == 1
+    # Orphan accounts files (no data dump of that timestamp) are left alone.
+    assert (sb.backup_dir / "omnibioai_accounts_20200101_000000.sql.gz.age").exists()

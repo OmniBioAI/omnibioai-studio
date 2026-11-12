@@ -49,6 +49,21 @@
 # holds a private key, a missing age binary or a failing age run all fail the
 # backup closed with no artifact. MYSQL_BACKUP_REQUIRE_ENCRYPTION is no longer
 # read (encryption is always required).
+#
+# --- accounts and grants (2026-11-12, opt-in: MYSQL_BACKUP_ACCOUNTS=1) ---
+# The data dump holds the application schemas only (not the mysql schema), so
+# a restore would come back without the per-service accounts. With
+# MYSQL_BACKUP_ACCOUNTS=1 a second artifact is written next to the data dump:
+#   omnibioai_accounts_<ts>.sql.gz.age (+ .sha256)
+# holding SHOW CREATE USER + SHOW GRANTS for every non-system account (root
+# and the mysql.* system accounts are skipped), replayable with `mysql -uroot`
+# after the data restore. It contains password hashes, so it goes through the
+# same age pipeline (no plaintext on disk) and is refused in GPG mode. It runs
+# after the data dump is published: a failure here never costs the data
+# dump, but it fails the run (stage "accounts", health + alert). The dump
+# account needs SELECT on the mysql schema (`GRANT SELECT ON mysql.* TO ...`;
+# table-level SELECT on mysql.user/db/tables_priv is not enough for
+# SHOW CREATE USER).
 
 set -euo pipefail
 
@@ -94,6 +109,9 @@ AGE_RECIPIENT_FILE="${MYSQL_BACKUP_AGE_RECIPIENT_FILE:-${HOME:-}/.config/omnibio
 if [[ -n "$ENCRYPTION_PASSPHRASE_FILE" ]]; then ENCRYPTION_MODE="gpg"; else ENCRYPTION_MODE="age"; fi
 DUMP_FILE="${BACKUP_DIR}/omnibioai_${TIMESTAMP}.sql.gz"
 DUMP_TMP="${DUMP_FILE}.partial"
+ACCOUNTS="${MYSQL_BACKUP_ACCOUNTS:-0}"
+ACCOUNTS_FILE="${BACKUP_DIR}/omnibioai_accounts_${TIMESTAMP}.sql.gz.age"
+ACCOUNTS_TMP="${ACCOUNTS_FILE}.partial"
 STAGE="init"
 ARTIFACT_SHA256=""
 ARTIFACT_SIZE_BYTES=""
@@ -189,7 +207,7 @@ fail() {
   local msg="$1" code="${2:-1}"
   echo "[ERROR] $(date -Iseconds) ${msg} (stage: ${STAGE})" >&2
   record_health "failure"
-  rm -f "${DUMP_TMP}" "${DUMP_TMP}.gpg" "${DUMP_TMP}.age" "${TMP_FILE}" 2>/dev/null || true
+  rm -f "${DUMP_TMP}" "${DUMP_TMP}.gpg" "${DUMP_TMP}.age" "${TMP_FILE}" "${ACCOUNTS_TMP}" 2>/dev/null || true
   # A failure after the atomic rename must not leave a final-looking artifact
   # or checksum from a run whose metadata/health publication never completed.
   if [[ "$STAGE" == "publish" && -n "$OUT_FILE" ]]; then
@@ -238,6 +256,9 @@ fi
 # Checked up front so a broken key setup fails before mysqldump starts. The
 # recipient file is inspected with grep -q only: its content is never printed.
 STAGE="encrypt"
+if [[ "$ACCOUNTS" == "1" && "$ENCRYPTION_MODE" != "age" ]]; then
+  fail "MYSQL_BACKUP_ACCOUNTS=1 needs age encryption (the accounts dump holds password hashes); unset MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE"
+fi
 if [[ "$ENCRYPTION_MODE" == "age" ]]; then
   if [[ ! -r "$AGE_RECIPIENT_FILE" || ! -s "$AGE_RECIPIENT_FILE" ]]; then
     fail "age recipient file missing, unreadable or empty: ${AGE_RECIPIENT_FILE} (set MYSQL_BACKUP_AGE_RECIPIENT_FILE)"
@@ -253,6 +274,7 @@ if [[ "$ENCRYPTION_MODE" == "age" ]]; then
   fi
   FIFO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/backup-mysql.XXXXXX")"
   mkfifo -m 600 "${FIFO_DIR}/gz"
+  if [[ "$ACCOUNTS" == "1" ]]; then mkfifo -m 600 "${FIFO_DIR}/gz-accounts"; fi
 fi
 
 # ── Pre-flight ────────────────────────────────────────────────
@@ -402,6 +424,71 @@ echo "[INFO] $(date -Iseconds) Backup complete — ${SIZE} written to ${OUT_FILE
 STAGE="health"
 record_health "success"
 
+# ── Accounts and grants (opt-in; age only, see header) ─────────
+# Runs inside the container with the same defaults-file credential handling as
+# run_mysqldump. Output: CREATE USER IF NOT EXISTS (hashes printed as hex via
+# print_identified_with_as_hex, so binary caching_sha2 salts survive), then
+# every GRANT, then SET DEFAULT ROLE (after the grants, so CREATE USER never
+# names a role that does not exist yet). Replaying it twice is harmless.
+ACCOUNTS_SH=$(cat <<'SH'
+umask 077
+f=$(mktemp /tmp/.backup-mysql.XXXXXX) || exit 1
+trap 'rm -f "$f"' EXIT
+cat > "$f"
+m() { mysql --defaults-extra-file="$f" --batch --raw --skip-column-names "$@"; }
+accts=$(m -e "SELECT CONCAT(QUOTE(user), '@', QUOTE(host)) FROM mysql.user
+  WHERE user NOT IN ('root', 'mysql.sys', 'mysql.session', 'mysql.infoschema')
+    AND user NOT LIKE 'mysql.%' ORDER BY user, host") || exit 1
+creates=""; grants=""
+if [ -n "$accts" ]; then
+  creates=$(printf '%s\n' "$accts" | { echo "SET SESSION print_identified_with_as_hex = ON;"; while IFS= read -r a; do echo "SHOW CREATE USER $a;"; done; } | m) || exit 1
+  grants=$(printf '%s\n' "$accts" | while IFS= read -r a; do echo "SHOW GRANTS FOR $a;"; done | m) || exit 1
+fi
+echo "-- OmniBioAI MySQL accounts and grants. Contains password hashes: keep encrypted."
+echo "-- Apply after the data restore, as root over the socket."
+echo "-- accounts: $(printf '%s' "$accts" | grep -c .)"
+[ -z "$accts" ] && exit 0
+printf '%s\n' "$creates" | sed -E 's/^CREATE USER /CREATE USER IF NOT EXISTS /; s/ DEFAULT ROLE [^ ]+ REQUIRE / REQUIRE /; s/$/;/'
+printf '%s\n' "$grants" | sed 's/$/;/'
+printf '%s\n' "$creates" | sed -En 's/^CREATE USER ([^ ]+) .* DEFAULT ROLE ([^ ]+) REQUIRE .*/SET DEFAULT ROLE \2 TO \1;/p'
+SH
+)
+run_accounts_dump() {
+  {
+    printf '[client]\nuser=%s\npassword=' "${BACKUP_USER}"
+    if [[ -n "$PASSWORD_FILE" ]]; then cat -- "$PASSWORD_FILE"; else printf '%s' "${MYSQL_ROOT_PASSWORD}"; fi
+    printf '\n'
+  } | docker exec -i "${CONTAINER}" sh -c "$ACCOUNTS_SH"
+  local status=("${PIPESTATUS[@]}")
+  return "${status[1]}"
+}
+
+if [[ "$ACCOUNTS" == "1" ]]; then
+  STAGE="accounts"
+  set +e
+  trap - ERR
+  gzip -t < "${FIFO_DIR}/gz-accounts" &
+  GZIP_TEST_PID=$!
+  run_accounts_dump | gzip | tee -- "${FIFO_DIR}/gz-accounts" | age -R "$AGE_RECIPIENT_FILE" > "${ACCOUNTS_TMP}"
+  PIPE_STATUS=("${PIPESTATUS[@]}")
+  wait "$GZIP_TEST_PID"
+  GZIP_TEST_STATUS=$?
+  set -e
+  trap 'fail "unexpected command failure" "$?"' ERR
+  [[ "${PIPE_STATUS[3]}" -eq 0 ]] || fail "age encryption of the accounts dump failed (exit ${PIPE_STATUS[3]})"
+  [[ "${PIPE_STATUS[0]}" -eq 0 ]] || fail "accounts dump exited ${PIPE_STATUS[0]} (does ${BACKUP_USER} have SELECT on mysql.*?)"
+  [[ "${PIPE_STATUS[1]}" -eq 0 && "${PIPE_STATUS[2]}" -eq 0 ]] || fail "compressing the accounts dump failed"
+  [[ "$GZIP_TEST_STATUS" -eq 0 ]] || fail "accounts dump failed integrity check (gzip -t)"
+  AGE_HEADER=""
+  if ! IFS= read -r AGE_HEADER < "${ACCOUNTS_TMP}" || [[ "$AGE_HEADER" != "age-encryption.org/v1" ]]; then
+    fail "encrypted accounts dump has no age header"
+  fi
+  ACCOUNTS_SHA256="$(sha256sum "${ACCOUNTS_TMP}" | cut -d' ' -f1)"
+  mv -f "${ACCOUNTS_TMP}" "${ACCOUNTS_FILE}"
+  echo "${ACCOUNTS_SHA256}  $(basename "${ACCOUNTS_FILE}")" > "${ACCOUNTS_FILE}.sha256"
+  echo "[INFO] $(date -Iseconds) Accounts dump written to ${ACCOUNTS_FILE} (sha256 ${ACCOUNTS_SHA256:0:12}...)"
+fi
+
 # ── Retention (only reachable after a successful, published backup) ─
 # Never deletes the last remaining backup regardless of its age —
 # retention must not be able to leave zero recovery points.
@@ -410,7 +497,10 @@ STAGE="retention"
 # artifact names -- a deployment may have a mix of historical plaintext
 # backups and newer encrypted ones after encryption is turned on, and all
 # must still be subject to the same retention window.
-BACKUP_NAMES=(\( -name "omnibioai_*.sql.gz" -o -name "omnibioai_*.sql.gz.age" -o -name "omnibioai_*.sql.gz.gpg" \))
+# Accounts dumps (omnibioai_accounts_<ts>...) are not data backups: they are
+# excluded here (so they never count as "the last remaining backup") and are
+# rotated together with the data dump of the same timestamp below.
+BACKUP_NAMES=(\( -name "omnibioai_*.sql.gz" -o -name "omnibioai_*.sql.gz.age" -o -name "omnibioai_*.sql.gz.gpg" \) ! -name "omnibioai_accounts_*")
 mapfile -t ALL_BACKUPS < <(find "${BACKUP_DIR}" -maxdepth 1 "${BACKUP_NAMES[@]}" | sort)
 mapfile -t CANDIDATES < <(find "${BACKUP_DIR}" -maxdepth 1 "${BACKUP_NAMES[@]}" -mtime "+${RETAIN_DAYS}" | sort)
 TOTAL_COUNT="${#ALL_BACKUPS[@]}"
@@ -422,6 +512,8 @@ for f in "${CANDIDATES[@]}"; do
     break
   fi
   rm -f -- "$f" "${f}.sha256"
+  ts="$(basename "$f")"; ts="${ts#omnibioai_}"; ts="${ts%%.*}"
+  rm -f -- "${BACKUP_DIR}/omnibioai_accounts_${ts}.sql.gz.age" "${BACKUP_DIR}/omnibioai_accounts_${ts}.sql.gz.age.sha256"
   DELETED=$((DELETED + 1))
   echo "[INFO] $(date -Iseconds) Rotated $(basename "$f")"
 done
