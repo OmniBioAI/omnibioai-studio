@@ -57,6 +57,24 @@ Run `crontab -e` and add:
 | BACKUP_DIR       | work/backups/mysql         | Where backups are stored |
 | RETAIN_DAYS      | 7                          | Days to keep backups     |
 | MYSQL_CONTAINER  | omnibioai-studio-mysql-1   | Container name           |
+| MYSQL_BACKUP_AGE_RECIPIENT_FILE | ~/.config/omnibioai/backup-age.pub | age public key the dump is encrypted to |
+| MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE | (unset) | Legacy: GPG symmetric instead of age |
+
+### Encryption (always on)
+Backups are written as `omnibioai_<ts>.sql.gz.age` (`mysqldump | gzip | age -R
+<recipient file>`); the `.sha256` sidecar covers the ciphertext. The host keeps
+only the public key. The private key is generated once off the host, kept in
+the password manager, and used only to decrypt (`age -d -i <identity>`). A
+missing, empty or malformed recipient file, a recipient file that holds a
+private key, or a failing `age` fails the backup with no artifact; there is no
+plaintext mode.
+
+Generate a key pair (on the operator's own machine, not the backup host):
+
+    age-keygen -o backup-age.key          # private: store in the password manager, then delete
+    age-keygen -y backup-age.key > backup-age.pub
+
+Install `backup-age.pub` (mode 644) at the recipient path on the backup host.
 
 ## check-env.sh
 Validates .env before starting the stack. Run before `docker compose up`.

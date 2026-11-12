@@ -56,6 +56,23 @@ exit 1
 # any test (like the encryption round-trip below) that checks it.
 
 
+def _make_age_keypair(tmp_path: Path, name: str = "age") -> tuple[Path, Path]:
+    """Generates a throwaway age identity under tmp_path; returns (identity, recipient)."""
+    keys = tmp_path / f"{name}-keys"
+    keys.mkdir(mode=0o700)
+    identity, recipient = keys / "backup-age.key", keys / "backup-age.pub"
+    subprocess.run(["age-keygen", "-o", str(identity)], check=True, capture_output=True, timeout=10)
+    pub = subprocess.run(["age-keygen", "-y", str(identity)], check=True, capture_output=True,
+                         text=True, timeout=10).stdout
+    recipient.write_text(pub, encoding="utf-8")
+    return identity, recipient
+
+
+def _age_decrypt(artifact: Path, identity: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(["age", "-d", "-i", str(identity), str(artifact)],
+                          capture_output=True, timeout=20, check=False)
+
+
 class Sandbox:
     """Isolated synthetic sandbox for running backup-mysql.sh: a throwaway backup dir,
     health file and .env under tmp_path plus a fake docker shim on PATH (never the real
@@ -97,6 +114,10 @@ class Sandbox:
         fake_stat.write_text(f'#!/usr/bin/env bash\n{stat_behaviors[stat_mode]}\n', encoding="utf-8")
         fake_stat.chmod(fake_stat.stat().st_mode | stat.S_IEXEC)
 
+        # Throwaway age key pair (real age, never a real key): the script only
+        # ever sees the public half, the tests decrypt with the identity.
+        self.age_identity, self.age_recipient = _make_age_keypair(tmp_path)
+
     def run(self, extra_env: dict | None = None) -> subprocess.CompletedProcess:
         """Runs backup-mysql.sh as a subprocess with PATH, OMNIBIOAI_ENV_FILE,
         BACKUP_DIR and the health file redirected into the sandbox."""
@@ -106,6 +127,8 @@ class Sandbox:
         env["BACKUP_DIR"] = str(self.backup_dir)
         env["BACKUP_HEALTH_FILE"] = str(self.health_file)
         env["MYSQL_CONTAINER"] = "fake-mysql-1"
+        env["MYSQL_BACKUP_AGE_RECIPIENT_FILE"] = str(self.age_recipient)
+        env.pop("MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE", None)
         env.setdefault("RETAIN_DAYS", "7")
         if extra_env:
             env.update(extra_env)
@@ -114,13 +137,20 @@ class Sandbox:
         )
 
     def artifacts(self):
+        """Published dumps that are not GPG: age (the default) or plaintext."""
+        return self.age_artifacts() + self.plaintext_artifacts()
+
+    def age_artifacts(self):
+        return sorted(self.backup_dir.glob("omnibioai_*.sql.gz.age"))
+
+    def plaintext_artifacts(self):
         return sorted(self.backup_dir.glob("omnibioai_*.sql.gz"))
 
     def encrypted_artifacts(self):
         return sorted(self.backup_dir.glob("omnibioai_*.sql.gz.gpg"))
 
     def partials(self):
-        return sorted(self.backup_dir.glob("*.partial")) + sorted(self.backup_dir.glob("*.partial.gpg"))
+        return sorted(self.backup_dir.glob("*.partial*"))
 
     def health(self) -> dict:
         """Parses the KEY=VALUE health file into a dict, or returns an empty dict when
@@ -202,18 +232,20 @@ def test_failed_run_never_leaves_a_partial_at_the_final_name(tmp_path):
     sb = Sandbox(tmp_path, mysqldump_exit=1)
     sb.run()
     for f in sb.backup_dir.iterdir():
-        assert not f.name.endswith(".sql.gz"), f"partial dump published as final artifact: {f}"
+        assert not f.name.endswith((".sql.gz", ".sql.gz.age")), f"partial dump published as final artifact: {f}"
 
 
 # 7. success produces a completed artifact (with checksum sidecar)
 def test_successful_run_produces_completed_checksummed_artifact(tmp_path):
-    """A successful run publishes exactly one non-empty .sql.gz artifact together with a
-    .sha256 sidecar."""
+    """A successful run publishes exactly one non-empty .sql.gz.age artifact together with a
+    .sha256 sidecar, and no plaintext."""
     sb = Sandbox(tmp_path)
     result = sb.run()
     assert result.returncode == 0, result.stderr
     artifacts = sb.artifacts()
     assert len(artifacts) == 1
+    assert artifacts[0].name.endswith(".sql.gz.age")
+    assert not sb.plaintext_artifacts()
     sidecar = artifacts[0].with_suffix(artifacts[0].suffix + ".sha256")
     assert sidecar.exists()
     assert artifacts[0].stat().st_size > 0
@@ -262,7 +294,7 @@ def test_backup_metadata_contains_checksum_size_and_published_path(tmp_path):
     assert health["LAST_ARTIFACT_SIZE_BYTES"].isdigit()
     assert int(health["LAST_ARTIFACT_SIZE_BYTES"]) > 0
     assert len(health["LAST_ARTIFACT_SHA256"]) == 64
-    assert health["LAST_ARTIFACT_ENCRYPTED"] == "false"
+    assert health["LAST_ARTIFACT_ENCRYPTED"] == "true"
 
 
 # 12. last-success state updates only after actual successful backup
@@ -382,15 +414,21 @@ def _make_passphrase_file(tmp_path: Path, content: str = "correct-horse-battery-
     return f
 
 
-def test_unconfigured_deployment_still_produces_plaintext_unchanged(tmp_path):
-    """No passphrase file, REQUIRE unset -> byte-identical rollout behavior
-    to before Track E4 (the live nightly cron job must not break)."""
-    sb = Sandbox(tmp_path)
+@pytest.mark.parametrize("setup", ["missing", "empty"])
+def test_missing_age_recipient_fails_closed_with_no_plaintext(tmp_path, setup):
+    """No passphrase file and no usable recipient file: there is no plaintext mode any
+    more, so the run fails before the dump and leaves no artifact of any kind."""
+    sb, argv_file, _ = _recording_sandbox(tmp_path)
+    if setup == "missing":
+        sb.age_recipient.unlink()
+    else:
+        sb.age_recipient.write_text("", encoding="utf-8")
     result = sb.run()
-    assert result.returncode == 0, result.stderr
-    assert len(sb.artifacts()) == 1
-    assert not sb.encrypted_artifacts()
-    assert sb.health()["LAST_ARTIFACT_ENCRYPTED"] == "false"
+    assert result.returncode != 0
+    assert "MYSQL_BACKUP_AGE_RECIPIENT_FILE" in result.stderr
+    assert not argv_file.exists(), "mysqldump must not run"
+    assert list(sb.backup_dir.iterdir()) == []
+    assert sb.health()["LAST_STAGE"] == "encrypt"
 
 
 def test_passphrase_file_configured_encrypts_automatically(tmp_path):
@@ -492,16 +530,13 @@ def test_corrupted_ciphertext_fails_closed_on_decrypt(tmp_path):
     assert decrypt.returncode != 0, "decryption of corrupted ciphertext must fail, not silently produce garbage"
 
 
-def test_require_encryption_true_without_passphrase_file_fails_closed(tmp_path):
-    """MYSQL_BACKUP_REQUIRE_ENCRYPTION=true with no passphrase file fails naming the
-    missing variable and leaves no plaintext, encrypted or .partial artifact."""
+def test_require_encryption_flag_is_ignored_age_is_always_on(tmp_path):
+    """MYSQL_BACKUP_REQUIRE_ENCRYPTION=false cannot turn encryption off."""
     sb = Sandbox(tmp_path)
-    result = sb.run(extra_env={"MYSQL_BACKUP_REQUIRE_ENCRYPTION": "true"})
-    assert result.returncode != 0
-    assert "MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE" in result.stderr
-    assert not sb.artifacts()
-    assert not sb.encrypted_artifacts()
-    assert not sb.partials(), "no plaintext .partial may survive an encryption-required failure"
+    result = sb.run(extra_env={"MYSQL_BACKUP_REQUIRE_ENCRYPTION": "false"})
+    assert result.returncode == 0, result.stderr
+    assert len(sb.age_artifacts()) == 1
+    assert not sb.plaintext_artifacts()
 
 
 def test_missing_passphrase_file_fails_closed_no_plaintext_fallback(tmp_path):
@@ -746,3 +781,140 @@ def test_bad_password_file_fails_closed_before_any_dump(tmp_path, setup):
     assert sb.artifacts() == []
     assert sb.health()["LAST_RESULT"] == "failure"
     assert sb.health()["LAST_STAGE"] == "credentials"
+
+
+# ---------------------------------------------------------------------------
+# age encryption (2026-11-12): real age with throwaway keys, never a real key
+# ---------------------------------------------------------------------------
+
+def _shim(sb, name, body):
+    f = sb.bin_dir / name
+    f.write_text(f"#!/usr/bin/env bash\n{body}\n", encoding="utf-8")
+    f.chmod(0o755)
+
+
+def test_age_round_trip_recovers_the_dump_with_the_identity_only(tmp_path):
+    """The published .age decrypts with the matching identity to exactly what mysqldump
+    emitted; the artifact is age ciphertext (age header), not gzip."""
+    dump_body = "-- fake sql dump\\nCREATE TABLE t (id INT);\\nINSERT INTO t VALUES (1);\\n"
+    sb = Sandbox(tmp_path, mysqldump_output=dump_body)
+    result = sb.run()
+    assert result.returncode == 0, result.stderr
+    artifact = sb.age_artifacts()[0]
+    raw = artifact.read_bytes()
+    assert raw.startswith(b"age-encryption.org/v1\n")
+    assert raw[:2] != b"\x1f\x8b"
+    dec = _age_decrypt(artifact, sb.age_identity)
+    assert dec.returncode == 0, dec.stderr
+    import gzip as gzip_module
+    assert gzip_module.decompress(dec.stdout).decode() == dump_body.replace("\\n", "\n")
+    assert sb.health()["LAST_ARTIFACT"] == str(artifact)
+
+
+def test_age_artifact_does_not_decrypt_with_another_identity(tmp_path):
+    sb = Sandbox(tmp_path)
+    assert sb.run().returncode == 0
+    other_identity, _ = _make_age_keypair(tmp_path, "other")
+    assert _age_decrypt(sb.age_artifacts()[0], other_identity).returncode != 0
+
+
+def test_age_checksum_covers_the_ciphertext(tmp_path):
+    sb = Sandbox(tmp_path)
+    assert sb.run().returncode == 0
+    artifact = sb.age_artifacts()[0]
+    check = subprocess.run(["sha256sum", "-c", artifact.name + ".sha256"], cwd=artifact.parent,
+                           capture_output=True, text=True, timeout=10, check=False)
+    assert check.returncode == 0, check.stdout + check.stderr
+
+
+def test_private_key_in_recipient_file_is_refused_and_never_printed(tmp_path):
+    """Installing the identity instead of the public key must fail closed before the
+    dump, and the key material must not reach any output."""
+    sb, argv_file, _ = _recording_sandbox(tmp_path)
+    secret = sb.age_identity.read_text(encoding="utf-8")
+    sb.age_recipient.write_text(secret, encoding="utf-8")
+    result = sb.run()
+    assert result.returncode != 0
+    assert "private key" in result.stderr
+    assert not argv_file.exists(), "mysqldump must not run"
+    assert list(sb.backup_dir.iterdir()) == []
+    key_line = next(line for line in secret.splitlines() if line.startswith("AGE-SECRET-KEY-"))
+    assert key_line not in result.stdout + result.stderr
+    assert key_line not in sb.health_file.read_text(encoding="utf-8")
+
+
+def test_recipient_file_without_age1_key_fails_closed(tmp_path):
+    sb = Sandbox(tmp_path)
+    sb.age_recipient.write_text("# no key here\nnot-a-recipient\n", encoding="utf-8")
+    result = sb.run()
+    assert result.returncode != 0
+    assert "no age1" in result.stderr
+    assert list(sb.backup_dir.iterdir()) == []
+
+
+def test_age_failure_fails_closed_with_no_artifact_and_a_distinct_alert(tmp_path):
+    """age exiting non-zero: no plaintext, no ciphertext, no .partial, stage encrypt,
+    alert backup_encryption_failed."""
+    sb = Sandbox(tmp_path)
+    _shim(sb, "age", "cat > /dev/null; echo 'fake age failure' >&2; exit 3")
+    result = sb.run()
+    assert result.returncode != 0
+    assert "age encryption failed" in result.stderr
+    assert list(sb.backup_dir.iterdir()) == []
+    h = sb.health()
+    assert h["LAST_RESULT"] == "failure" and h["LAST_STAGE"] == "encrypt"
+    line = next(line for line in result.stdout.splitlines() if line.startswith("[SECURITY-ALERT] "))
+    assert json.loads(line[len("[SECURITY-ALERT] "):])["condition"] == "backup_encryption_failed"
+
+
+def test_age_that_dies_immediately_does_not_hang_or_publish(tmp_path):
+    """age exiting before reading anything (SIGPIPE upstream) still fails closed."""
+    sb = Sandbox(tmp_path, mysqldump_output="-- x\\n" * 2000)
+    _shim(sb, "age", "exit 1")
+    result = sb.run()
+    assert result.returncode != 0
+    assert sb.health()["LAST_STAGE"] == "encrypt"
+    assert list(sb.backup_dir.iterdir()) == []
+
+
+def test_output_without_age_header_is_not_published(tmp_path):
+    sb = Sandbox(tmp_path)
+    _shim(sb, "age", "cat")   # "succeeds" but writes the gzip stream unencrypted
+    result = sb.run()
+    assert result.returncode != 0
+    assert "no age header" in result.stderr
+    assert list(sb.backup_dir.iterdir()) == []
+
+
+def test_corrupt_compressed_stream_fails_the_integrity_check(tmp_path):
+    """gzip -t runs on the same bytes age encrypts; a corrupt stream is not published."""
+    sb = Sandbox(tmp_path)
+    real_gzip = subprocess.run(["bash", "-c", "command -v gzip"], capture_output=True,
+                               text=True, check=True).stdout.strip()
+    _shim(sb, "gzip", f'if [[ "${{1:-}}" == -t ]]; then exec {real_gzip} "$@"; fi\n'
+                      f'{real_gzip} | head -c 20; cat > /dev/null')
+    result = sb.run()
+    assert result.returncode != 0
+    assert "integrity check" in result.stderr
+    assert sb.health()["LAST_STAGE"] == "verify"
+    assert list(sb.backup_dir.iterdir()) == []
+
+
+def test_mysqldump_failure_in_age_mode_reports_the_dump_stage(tmp_path):
+    sb = Sandbox(tmp_path, mysqldump_exit=2)
+    result = sb.run()
+    assert result.returncode != 0
+    assert sb.health()["LAST_STAGE"] == "dump"
+    assert list(sb.backup_dir.iterdir()) == []
+
+
+def test_retention_rotates_age_artifacts_too(tmp_path):
+    sb = Sandbox(tmp_path)
+    old = sb.backup_dir / "omnibioai_20200103_000000.sql.gz.age"
+    old.write_bytes(b"age-encryption.org/v1\n" + b"0" * 50)
+    old.with_suffix(old.suffix + ".sha256").write_text("deadbeef  fake\n")
+    os.utime(old, (1_000_000, 1_000_000))
+    result = sb.run(extra_env={"RETAIN_DAYS": "7"})
+    assert result.returncode == 0, result.stderr
+    assert not old.exists()
+    assert len(sb.age_artifacts()) == 1

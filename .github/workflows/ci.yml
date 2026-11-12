@@ -51,6 +51,10 @@ jobs:
         run: python3 -m pytest tests/test_p1_admin_proxy_security.py tests/test_canonical_admin_route_security.py -q
       - name: Validate isolated MySQL recovery drill contract
         run: python3 -m pytest tests/test_mysql_recovery_drill.py -q
+      - name: MySQL backup script tests (age encryption)
+        run: |
+          command -v age >/dev/null || { sudo apt-get update && sudo apt-get install -y --no-install-recommends age; }
+          python3 -m pytest tests/test_backup_mysql.py tests/test_backup_health_check.py -q
       - name: Create .env for compose validation
         run: |
           cat > .env << 'ENVEOF'

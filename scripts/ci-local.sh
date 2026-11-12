@@ -105,6 +105,7 @@ step "Compose security regression tests" ci_step lint "Compose security regressi
 step "P0 admin route authorization tests" ci_step lint "P0 admin route authorization tests"
 step "P1 admin proxy authorization tests" ci_step lint "P1 admin proxy authorization tests"
 step "MySQL recovery drill contract" ci_step lint "Validate isolated MySQL recovery drill contract"
+step "MySQL backup script tests" ci_step lint "MySQL backup script tests (age encryption)"
 step "Create .env for compose validation" ci_step lint "Create .env for compose validation"
 step "Validate docker-compose" ci_step lint "Validate docker-compose"
 step "Service catalog (check-docs)" ci_step lint "Validate system service catalog"

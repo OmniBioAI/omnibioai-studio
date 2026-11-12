@@ -35,16 +35,20 @@
 # audit evidence itself (omnibioai_audit.audit_events), so mixing its
 # key with the general credentials-backup key would mean one passphrase
 # compromise exposes both. See MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE
-# and MYSQL_BACKUP_REQUIRE_ENCRYPTION below.
+# below. Kept for deployments that already set it.
 #
-# Rollout, matching this codebase's established opt-in convention
-# (Track E3's WRITER_DATABASE_URL/READER_DATABASE_URL): an unconfigured
-# deployment behaves exactly as before this change (plaintext .sql.gz)
-# -- the live nightly cron job is not broken by this. Encryption
-# activates the moment a passphrase file is configured, or is required
-# outright via MYSQL_BACKUP_REQUIRE_ENCRYPTION=true. Once either signal
-# is present, there is no plaintext fallback: a missing/unreadable key
-# or a failing gpg command fails the whole backup closed.
+# --- age encryption (2026-11-12): the default, always required ---
+# Without a passphrase file the dump is encrypted to an age recipient:
+#   mysqldump | gzip | age -R <recipient file> > omnibioai_<ts>.sql.gz.age
+# The host holds only the PUBLIC key (MYSQL_BACKUP_AGE_RECIPIENT_FILE,
+# default ~/.config/omnibioai/backup-age.pub); the private key lives off the
+# host, so a stolen backup or a compromised host cannot read old dumps. The
+# plaintext never touches the disk: gzip -t runs on a copy of the compressed
+# stream (tee into a FIFO) before age sees it. There is no plaintext mode any
+# more: a missing, empty or malformed recipient file, a recipient file that
+# holds a private key, a missing age binary or a failing age run all fail the
+# backup closed with no artifact. MYSQL_BACKUP_REQUIRE_ENCRYPTION is no longer
+# read (encryption is always required).
 
 set -euo pipefail
 
@@ -85,7 +89,9 @@ TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 # (unlike backup-config.sh's hardcoded PASSPHRASE_FILE) -- this must be
 # an explicit, dedicated operator decision, never silently inherited.
 ENCRYPTION_PASSPHRASE_FILE="${MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE:-}"
-REQUIRE_ENCRYPTION="${MYSQL_BACKUP_REQUIRE_ENCRYPTION:-false}"
+# age recipient (public key) file: used whenever no passphrase file is set.
+AGE_RECIPIENT_FILE="${MYSQL_BACKUP_AGE_RECIPIENT_FILE:-${HOME:-}/.config/omnibioai/backup-age.pub}"
+if [[ -n "$ENCRYPTION_PASSPHRASE_FILE" ]]; then ENCRYPTION_MODE="gpg"; else ENCRYPTION_MODE="age"; fi
 DUMP_FILE="${BACKUP_DIR}/omnibioai_${TIMESTAMP}.sql.gz"
 DUMP_TMP="${DUMP_FILE}.partial"
 STAGE="init"
@@ -96,6 +102,9 @@ ENCRYPTED="false"
 # before that stage operates on DUMP_FILE/DUMP_TMP unconditionally.
 OUT_FILE=""
 TMP_FILE=""
+# Private (local, not NAS) directory for the gzip -t FIFO in age mode.
+FIFO_DIR=""
+trap 'if [[ -n "$FIFO_DIR" ]]; then rm -rf -- "$FIFO_DIR"; fi' EXIT
 
 mkdir -p "$BACKUP_DIR" "$(dirname "$HEALTH_FILE")"
 
@@ -180,7 +189,7 @@ fail() {
   local msg="$1" code="${2:-1}"
   echo "[ERROR] $(date -Iseconds) ${msg} (stage: ${STAGE})" >&2
   record_health "failure"
-  rm -f "${DUMP_TMP}" "${DUMP_TMP}.gpg" "${TMP_FILE}" 2>/dev/null || true
+  rm -f "${DUMP_TMP}" "${DUMP_TMP}.gpg" "${DUMP_TMP}.age" "${TMP_FILE}" 2>/dev/null || true
   # A failure after the atomic rename must not leave a final-looking artifact
   # or checksum from a run whose metadata/health publication never completed.
   if [[ "$STAGE" == "publish" && -n "$OUT_FILE" ]]; then
@@ -225,15 +234,64 @@ if [[ -n "$BACKUP_DATABASES" ]]; then
   DUMP_SCOPE=(--databases ${BACKUP_DATABASES//,/ })
 fi
 
+# ── Encryption pre-flight (age: before any dump runs) ─────────────
+# Checked up front so a broken key setup fails before mysqldump starts. The
+# recipient file is inspected with grep -q only: its content is never printed.
+STAGE="encrypt"
+if [[ "$ENCRYPTION_MODE" == "age" ]]; then
+  if [[ ! -r "$AGE_RECIPIENT_FILE" || ! -s "$AGE_RECIPIENT_FILE" ]]; then
+    fail "age recipient file missing, unreadable or empty: ${AGE_RECIPIENT_FILE} (set MYSQL_BACKUP_AGE_RECIPIENT_FILE)"
+  fi
+  if grep -q 'AGE-SECRET-KEY-' -- "$AGE_RECIPIENT_FILE"; then
+    fail "age recipient file holds a private key; only the public key (age1...) belongs on this host: ${AGE_RECIPIENT_FILE}"
+  fi
+  if ! grep -Eq '^age1[0-9a-z]+[[:space:]]*$' -- "$AGE_RECIPIENT_FILE"; then
+    fail "age recipient file has no age1... public key line: ${AGE_RECIPIENT_FILE}"
+  fi
+  if ! command -v age >/dev/null 2>&1; then
+    fail "age is required for backup encryption but is not on PATH"
+  fi
+  FIFO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/backup-mysql.XXXXXX")"
+  mkfifo -m 600 "${FIFO_DIR}/gz"
+fi
+
 # ── Pre-flight ────────────────────────────────────────────────
 STAGE="preflight"
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
   fail "MySQL container '${CONTAINER}' not running"
 fi
 
-# ── Dump + compress (to a .partial file — never the final name) ─
+# ── Dump + compress (+ encrypt) to a .partial file — never the final name ─
 STAGE="dump"
 echo "[INFO] $(date -Iseconds) Starting MySQL backup → ${DUMP_FILE}"
+
+# The credential travels on stdin as a [client] defaults file that the
+# container-side shell writes to a private temp file and removes afterwards;
+# the host-side password source is a builtin printf or a `cat` of the password
+# file, so the value never appears in any argv or in `docker inspect`.
+# Returns mysqldump's (docker exec's) status; the credential printf group may
+# see EPIPE when the dump fails early, so it never decides.
+run_mysqldump() {
+  {
+    printf '[client]\nuser=%s\npassword=' "${BACKUP_USER}"
+    if [[ -n "$PASSWORD_FILE" ]]; then cat -- "$PASSWORD_FILE"; else printf '%s' "${MYSQL_ROOT_PASSWORD}"; fi
+    printf '\n'
+  } \
+  | docker exec -i "${CONTAINER}" sh -c '
+      umask 077
+      f=$(mktemp /tmp/.backup-mysql.XXXXXX) || exit 1
+      trap "rm -f \"$f\"" EXIT
+      cat > "$f"
+      mysqldump --defaults-extra-file="$f" "$@"
+    ' sh \
+      --single-transaction \
+      --quick \
+      --lock-tables=false \
+      --no-tablespaces \
+      "${DUMP_SCOPE[@]}"
+  local status=("${PIPESTATUS[@]}")
+  return "${status[1]}"
+}
 
 # errexit and the ERR trap are two independent mechanisms — `set +e`
 # alone only suppresses errexit's auto-exit, it does NOT stop the ERR
@@ -243,63 +301,66 @@ echo "[INFO] $(date -Iseconds) Starting MySQL backup → ${DUMP_FILE}"
 # status). So both errexit AND the trap are suspended around the pipe,
 # PIPESTATUS is captured immediately, then both are restored before we
 # make our own stage-specific decision from PIPESTATUS.
-# The credential travels on stdin as a [client] defaults file that the
-# container-side shell writes to a private temp file and removes afterwards;
-# the host-side password source is a builtin printf or a `cat` of the password
-# file, so the value never appears in any argv or in `docker inspect`.
+#
+# age mode: tee copies the compressed stream into a FIFO that gzip -t reads,
+# so the integrity check sees exactly the bytes age encrypts and no plaintext
+# is ever written to disk.
+GZIP_TEST_STATUS=0
 set +e
 trap - ERR
-{
-  printf '[client]\nuser=%s\npassword=' "${BACKUP_USER}"
-  if [[ -n "$PASSWORD_FILE" ]]; then cat -- "$PASSWORD_FILE"; else printf '%s' "${MYSQL_ROOT_PASSWORD}"; fi
-  printf '\n'
-} \
-| docker exec -i "${CONTAINER}" sh -c '
-    umask 077
-    f=$(mktemp /tmp/.backup-mysql.XXXXXX) || exit 1
-    trap "rm -f \"$f\"" EXIT
-    cat > "$f"
-    mysqldump --defaults-extra-file="$f" "$@"
-  ' sh \
-    --single-transaction \
-    --quick \
-    --lock-tables=false \
-    --no-tablespaces \
-    "${DUMP_SCOPE[@]}" \
-| gzip > "${DUMP_TMP}"
-PIPE_STATUS=("${PIPESTATUS[@]}")
+if [[ "$ENCRYPTION_MODE" == "age" ]]; then
+  gzip -t < "${FIFO_DIR}/gz" &
+  GZIP_TEST_PID=$!
+  run_mysqldump | gzip | tee -- "${FIFO_DIR}/gz" | age -R "$AGE_RECIPIENT_FILE" > "${DUMP_TMP}.age"
+  PIPE_STATUS=("${PIPESTATUS[@]}")
+  wait "$GZIP_TEST_PID"
+  GZIP_TEST_STATUS=$?
+else
+  run_mysqldump | gzip > "${DUMP_TMP}"
+  PIPE_STATUS=("${PIPESTATUS[@]}")
+fi
 set -e
 trap 'fail "unexpected command failure" "$?"' ERR
 
-# PIPE_STATUS[0] is the credential printf group; it may see EPIPE when the dump
-# fails early, so only the dump and compress stages decide.
-if [[ "${PIPE_STATUS[1]}" -ne 0 ]]; then
-  STAGE="dump"
-  fail "mysqldump exited ${PIPE_STATUS[1]}"
-fi
-if [[ "${PIPE_STATUS[2]}" -ne 0 ]]; then
-  STAGE="compress"
-  fail "gzip exited ${PIPE_STATUS[2]}"
-fi
-
-# ── Integrity verification (of the plaintext dump) ──────────────
-STAGE="verify"
-gzip -t "${DUMP_TMP}" || fail "compressed archive failed integrity check (gzip -t)"
-[[ -s "${DUMP_TMP}" ]] || fail "backup archive is empty"
-
-# ── Encryption at rest (Track E4) ────────────────────────────────
-# Opt-in by either signal: MYSQL_BACKUP_REQUIRE_ENCRYPTION=true (an
-# explicit "this deployment must never produce a plaintext backup"),
-# or simply configuring a passphrase file (encrypt automatically once
-# a key exists -- no separate flag needed to "turn on" what an
-# operator already provisioned). Absent both signals, behavior is
-# unchanged from before this feature: a plaintext .sql.gz, matching
-# the live nightly cron job that already depends on that shape.
-STAGE="encrypt"
-if [[ -n "$ENCRYPTION_PASSPHRASE_FILE" || "$REQUIRE_ENCRYPTION" == "true" ]]; then
-  if [[ -z "$ENCRYPTION_PASSPHRASE_FILE" ]]; then
-    fail "MYSQL_BACKUP_REQUIRE_ENCRYPTION=true but MYSQL_BACKUP_ENCRYPTION_PASSPHRASE_FILE is not set"
+# A failing age makes everything upstream die of SIGPIPE, so age decides
+# first; a failing mysqldump ends the stream early and age still succeeds.
+if [[ "$ENCRYPTION_MODE" == "age" ]]; then
+  if [[ "${PIPE_STATUS[3]}" -ne 0 ]]; then
+    STAGE="encrypt"
+    fail "age encryption failed (exit ${PIPE_STATUS[3]})"
   fi
+  if [[ "${PIPE_STATUS[2]}" -ne 0 ]]; then
+    STAGE="verify"
+    fail "copying the compressed stream to the integrity check failed (tee exit ${PIPE_STATUS[2]})"
+  fi
+fi
+if [[ "${PIPE_STATUS[0]}" -ne 0 ]]; then
+  STAGE="dump"
+  fail "mysqldump exited ${PIPE_STATUS[0]}"
+fi
+if [[ "${PIPE_STATUS[1]}" -ne 0 ]]; then
+  STAGE="compress"
+  fail "gzip exited ${PIPE_STATUS[1]}"
+fi
+
+STAGE="verify"
+if [[ "$ENCRYPTION_MODE" == "age" ]]; then
+  # ── Integrity verification (of the compressed stream, before age) ─
+  [[ "$GZIP_TEST_STATUS" -eq 0 ]] || fail "compressed stream failed integrity check (gzip -t)"
+  AGE_HEADER=""
+  if ! IFS= read -r AGE_HEADER < "${DUMP_TMP}.age" || [[ "$AGE_HEADER" != "age-encryption.org/v1" ]]; then
+    fail "encrypted archive has no age header"
+  fi
+  TMP_FILE="${DUMP_TMP}.age"
+  OUT_FILE="${DUMP_FILE}.age"
+  ENCRYPTED="true"
+else
+  # ── Integrity verification (of the plaintext dump) ──────────────
+  gzip -t "${DUMP_TMP}" || fail "compressed archive failed integrity check (gzip -t)"
+  [[ -s "${DUMP_TMP}" ]] || fail "backup archive is empty"
+
+  # ── Legacy GPG encryption (Track E4; only with a passphrase file) ─
+  STAGE="encrypt"
   if [[ ! -s "$ENCRYPTION_PASSPHRASE_FILE" ]]; then
     fail "encryption passphrase file missing or empty: ${ENCRYPTION_PASSPHRASE_FILE}"
   fi
@@ -320,10 +381,6 @@ if [[ -n "$ENCRYPTION_PASSPHRASE_FILE" || "$REQUIRE_ENCRYPTION" == "true" ]]; th
   TMP_FILE="${DUMP_TMP}.gpg"
   OUT_FILE="${DUMP_FILE}.gpg"
   ENCRYPTED="true"
-else
-  TMP_FILE="${DUMP_TMP}"
-  OUT_FILE="${DUMP_FILE}"
-  ENCRYPTED="false"
 fi
 
 ARTIFACT_SHA256="$(sha256sum "${TMP_FILE}" | cut -d' ' -f1)"
@@ -349,12 +406,13 @@ record_health "success"
 # Never deletes the last remaining backup regardless of its age —
 # retention must not be able to leave zero recovery points.
 STAGE="retention"
-# Matches both plaintext (.sql.gz) and encrypted (.sql.gz.gpg) artifact
-# names -- a deployment may have a mix of historical plaintext backups
-# and newer encrypted ones after encryption is turned on, and both
+# Matches plaintext (.sql.gz) and encrypted (.sql.gz.age, .sql.gz.gpg)
+# artifact names -- a deployment may have a mix of historical plaintext
+# backups and newer encrypted ones after encryption is turned on, and all
 # must still be subject to the same retention window.
-mapfile -t ALL_BACKUPS < <(find "${BACKUP_DIR}" -maxdepth 1 \( -name "omnibioai_*.sql.gz" -o -name "omnibioai_*.sql.gz.gpg" \) | sort)
-mapfile -t CANDIDATES < <(find "${BACKUP_DIR}" -maxdepth 1 \( -name "omnibioai_*.sql.gz" -o -name "omnibioai_*.sql.gz.gpg" \) -mtime "+${RETAIN_DAYS}" | sort)
+BACKUP_NAMES=(\( -name "omnibioai_*.sql.gz" -o -name "omnibioai_*.sql.gz.age" -o -name "omnibioai_*.sql.gz.gpg" \))
+mapfile -t ALL_BACKUPS < <(find "${BACKUP_DIR}" -maxdepth 1 "${BACKUP_NAMES[@]}" | sort)
+mapfile -t CANDIDATES < <(find "${BACKUP_DIR}" -maxdepth 1 "${BACKUP_NAMES[@]}" -mtime "+${RETAIN_DAYS}" | sort)
 TOTAL_COUNT="${#ALL_BACKUPS[@]}"
 DELETED=0
 for f in "${CANDIDATES[@]}"; do
