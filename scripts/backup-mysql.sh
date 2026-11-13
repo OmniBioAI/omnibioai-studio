@@ -65,6 +65,15 @@
 # table-level SELECT on mysql.user/db/tables_priv is not enough for
 # SHOW CREATE USER).
 
+# --- per-job extra mysqldump flags (2026-11-12, MYSQL_BACKUP_DUMP_EXTRA_ARGS) ---
+# Space-separated flags appended to the fixed mysqldump flags, for a second
+# cron job with its own BACKUP_DIR (the omnibioai_audit ledger dump uses
+# --skip-triggers: its append-only triggers are re-created by migrations on
+# restore). Only an allow-list is accepted: --skip-triggers,
+# --single-transaction, --routines, --events, --no-tablespaces. Anything else
+# (including NAME=VALUE forms) fails the run at stage "config" before any dump.
+# Unset or empty: the flags are exactly as before.
+
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────
@@ -98,6 +107,7 @@ CONTAINER="${MYSQL_CONTAINER:-omnibioai-studio-mysql-1}"
 BACKUP_USER="${MYSQL_BACKUP_USER:-root}"
 PASSWORD_FILE="${MYSQL_BACKUP_PASSWORD_FILE:-}"
 BACKUP_DATABASES="${MYSQL_BACKUP_DATABASES:-}"
+DUMP_EXTRA_ARGS_RAW="${MYSQL_BACKUP_DUMP_EXTRA_ARGS:-}"
 HEALTH_FILE="${BACKUP_HEALTH_FILE:-${BACKUP_DIR}/../mysql-backup-health.env}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 # Encryption config: no default passphrase-file path is baked in here
@@ -252,6 +262,20 @@ if [[ -n "$BACKUP_DATABASES" ]]; then
   DUMP_SCOPE=(--databases ${BACKUP_DATABASES//,/ })
 fi
 
+# Extra mysqldump flags: split with read -a (no glob expansion), each token
+# checked against the allow-list. A rejected token is not echoed: fail() sends
+# its message to the log and the security alert, and a mistyped
+# --password=... must not land there.
+STAGE="config"
+DUMP_EXTRA_ARGS=()
+read -r -a DUMP_EXTRA_ARGS <<< "$DUMP_EXTRA_ARGS_RAW" || true
+for arg in "${DUMP_EXTRA_ARGS[@]}"; do
+  case "$arg" in
+    --skip-triggers|--single-transaction|--routines|--events|--no-tablespaces) ;;
+    *) fail "MYSQL_BACKUP_DUMP_EXTRA_ARGS holds a flag that is not allowed (allowed: --skip-triggers --single-transaction --routines --events --no-tablespaces)" ;;
+  esac
+done
+
 # ── Encryption pre-flight (age: before any dump runs) ─────────────
 # Checked up front so a broken key setup fails before mysqldump starts. The
 # recipient file is inspected with grep -q only: its content is never printed.
@@ -310,6 +334,7 @@ run_mysqldump() {
       --quick \
       --lock-tables=false \
       --no-tablespaces \
+      "${DUMP_EXTRA_ARGS[@]}" \
       "${DUMP_SCOPE[@]}"
   local status=("${PIPESTATUS[@]}")
   return "${status[1]}"

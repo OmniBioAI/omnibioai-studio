@@ -784,6 +784,66 @@ def test_bad_password_file_fails_closed_before_any_dump(tmp_path, setup):
 
 
 # ---------------------------------------------------------------------------
+# Per-job extra mysqldump flags (MYSQL_BACKUP_DUMP_EXTRA_ARGS, audit ledger job)
+# ---------------------------------------------------------------------------
+
+FIXED_DUMP_FLAGS = ["--single-transaction", "--quick", "--lock-tables=false", "--no-tablespaces"]
+
+
+def _dump_flags(argv_file):
+    """mysqldump flags from the recorded docker exec argv: everything after the
+    `sh -c <script> sh` wrapper."""
+    argv = argv_file.read_text(encoding="utf-8").splitlines()
+    return argv[argv.index("sh", argv.index("-c") + 2) + 1:]
+
+
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_unset_or_empty_extra_args_leave_the_dump_flags_unchanged(tmp_path, value):
+    sb, argv_file, _ = _recording_sandbox(tmp_path)
+    result = sb.run(None if value is None else {"MYSQL_BACKUP_DUMP_EXTRA_ARGS": value})
+    assert result.returncode == 0, result.stderr
+    assert _dump_flags(argv_file) == FIXED_DUMP_FLAGS + ["--all-databases"]
+
+
+def test_skip_triggers_is_passed_through_before_the_dump_scope(tmp_path):
+    sb, argv_file, _ = _recording_sandbox(tmp_path)
+    result = sb.run({"MYSQL_BACKUP_DUMP_EXTRA_ARGS": "--skip-triggers",
+                     "MYSQL_BACKUP_DATABASES": "omnibioai_audit"})
+    assert result.returncode == 0, result.stderr
+    assert _dump_flags(argv_file) == FIXED_DUMP_FLAGS + ["--skip-triggers", "--databases", "omnibioai_audit"]
+    assert sb.health()["LAST_RESULT"] == "success"
+
+
+def test_every_allow_listed_flag_is_accepted(tmp_path):
+    sb, argv_file, _ = _recording_sandbox(tmp_path)
+    flags = ["--skip-triggers", "--single-transaction", "--routines", "--events", "--no-tablespaces"]
+    result = sb.run({"MYSQL_BACKUP_DUMP_EXTRA_ARGS": "  ".join(flags)})
+    assert result.returncode == 0, result.stderr
+    assert _dump_flags(argv_file) == FIXED_DUMP_FLAGS + flags + ["--all-databases"]
+
+
+@pytest.mark.parametrize("value", [
+    "--where=1=1",
+    "--skip-triggers --result-file=/tmp/x",
+    "--password=leaked-not-real",
+    "--skip-triggers=1",
+    "-x",
+    "--routines;rm",
+    "*",
+])
+def test_disallowed_extra_arg_fails_closed_before_any_dump(tmp_path, value):
+    sb, argv_file, _ = _recording_sandbox(tmp_path)
+    result = sb.run({"MYSQL_BACKUP_DUMP_EXTRA_ARGS": value})
+    assert result.returncode != 0
+    assert not argv_file.exists(), "mysqldump must not run"
+    assert sb.artifacts() == [] and sb.partials() == []
+    assert sb.health()["LAST_RESULT"] == "failure"
+    assert sb.health()["LAST_STAGE"] == "config"
+    assert "MYSQL_BACKUP_DUMP_EXTRA_ARGS" in result.stderr
+    assert "leaked-not-real" not in result.stdout + result.stderr
+
+
+# ---------------------------------------------------------------------------
 # age encryption (2026-11-12): real age with throwaway keys, never a real key
 # ---------------------------------------------------------------------------
 
