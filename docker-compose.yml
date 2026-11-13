@@ -173,6 +173,9 @@ services:
       secrets:
         - github_token      # required: repo/Contents:Read on private omnibioai-iam-client
     restart: on-failure
+    # never root (omnibioai-tes docs/security/tes-container-non-root.md): the image's
+    # tes-submit user; the host account and both state dirs below use the same ids
+    user: "${TES_UID:-2001}:${TES_GID:-2001}"
     ports:
       - "${HOST_IP:-0.0.0.0}:8081:8081"
       - "${HOST_IP:-0.0.0.0}:5177:5177"
@@ -213,7 +216,8 @@ services:
       TES_TOOLSERVER_CLIENT_SECRET: ${TES_TOOLSERVER_CLIENT_SECRET:?}
       TES_TOOLS: /workspace/configs/tools
       TES_SERVERS: /workspace/configs/servers
-      TMPDIR: /tmp/omnibioai_tes_runs
+      # container-local temp files (this pointed at the old /tmp/omnibioai_tes_runs bind)
+      TMPDIR: /tmp
       IAM_URL: http://auth-service:8001
       # TES IAM integration: HS256 fallback secret for the shared IAM
       # client's local decode -- same var name/value already wired into
@@ -242,10 +246,22 @@ services:
       SINGULARITY_TMPDIR: /tmp/singularity_tmp
     volumes:
       - ${MACHINE_DIR}/omnibioai-tes:/workspace
-      # Slurm executes on the host and writes the configured absolute
-      # work_root there; keep the identical path visible to TES so its
-      # adapter can collect stdout/stderr after terminal completion.
-      - /tmp/omnibioai_tes_runs:/tmp/omnibioai_tes_runs
+      # TES runs as tes-submit (2001:2001); both state dirs live on the host's
+      # internal NVMe (not /tmp: emptied at boot; not the NAS), are owned by
+      # tes-submit, and fail closed when absent. NOT backed up.
+      # Slurm work root (0711, per-tenant 0700): Slurm executes on the host and
+      # writes there, so the path is identical in TES and on the host.
+      - type: bind
+        source: /var/lib/omnibioai/tes-runs
+        target: /var/lib/omnibioai/tes-runs
+        bind:
+          create_host_path: false
+      # AWS Batch / GCP Batch local state (0700): job index, materialized outputs.
+      - type: bind
+        source: /var/lib/omnibioai/tes-cloud
+        target: /var/lib/omnibioai/tes-cloud
+        bind:
+          create_host_path: false
       # Regression-safe workflow fixture root, also covered by the
       # Docker Socket Proxy's approved WORK_DIR prefix.
       # Fail closed if the 26 TB work volume is absent instead of letting
@@ -323,16 +339,18 @@ services:
         read_only: true
         bind:
           create_host_path: false
+    # the TES image runs as tes-submit; its entrypoint starts nginx without root
+    # (replaces `service nginx start && omnibioai-tes serve ...`, which needs root)
     command:
-      - bash
-      - -lc
-      - |
-        service nginx start && \
-        omnibioai-tes serve \
-          --host 0.0.0.0 \
-          --port 8081 \
-          --tools /workspace/configs/tools \
-          --servers /workspace/configs/servers
+      - /app/scripts/tes-entrypoint.sh
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8081"
+      - --tools
+      - /workspace/configs/tools
+      - --servers
+      - /workspace/configs/servers
     depends_on:
       docker-socket-proxy:
         condition: service_started
