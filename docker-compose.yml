@@ -2225,14 +2225,13 @@ services:
       # omnibioai_audit -- unreachable from inside this container. The
       # write-side routes (/health, /audit/test) never hit this and so
       # never surfaced it.
-      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
+      # No root AUDIT_DATABASE_URL here (ecosystem#69): runtime uses only the
+      # least-privilege URL below, and migrations/provisioning pass an
+      # explicit admin URL at run time. The old root URL held a stale password.
       # HIPAA-V2-003 application redeploy (2026-09-16): this service's
       # get_db() (db/session.py) binds to AUDIT_READER_DATABASE_URL when
       # set, so read routes now run as the least-privilege audit_reader
-      # identity (SELECT only) instead of falling back to AUDIT_DATABASE_URL
-      # above (root). AUDIT_DATABASE_URL is kept as-is for any future
-      # admin/migration path in this container; it is no longer used for
-      # this service's actual read traffic once this var is set.
+      # identity (SELECT only).
       AUDIT_READER_DATABASE_URL: mysql+pymysql://audit_reader:${AUDIT_READER_DB_PASSWORD}@mysql:3306/omnibioai_audit
     depends_on:
       redis:
@@ -2268,15 +2267,28 @@ services:
       # harmless while no producer signs, but would misclassify a real
       # producer's valid signature as "invalid" once one does.
       JWT_SECRET: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY must be set}
-      AUDIT_DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-omnibioai}@mysql:3306/omnibioai_audit
+      # No root AUDIT_DATABASE_URL here (ecosystem#69): runtime uses only the
+      # least-privilege URL below, and migrations/provisioning pass an
+      # explicit admin URL at run time. The old root URL held a stale password.
       # HIPAA-V2-003 application redeploy (2026-09-16): worker/main.py's
       # SessionLocal (db/session.py) binds to AUDIT_WRITER_DATABASE_URL
       # when set, so the only runtime path that ever INSERTs into
       # audit_events / quarantined_audit_events now runs as the
       # least-privilege audit_writer identity (SELECT, INSERT only on
-      # those two tables) instead of falling back to AUDIT_DATABASE_URL
-      # above (root).
+      # those two tables).
       AUDIT_WRITER_DATABASE_URL: mysql+pymysql://audit_writer:${AUDIT_WRITER_DB_PASSWORD}@mysql:3306/omnibioai_audit
+      # Record-integrity HMAC key for audit_events / quarantined rows
+      # (consumers/sink.py, consumers/quarantine.py). Without these the
+      # worker rejects every message and nothing reaches the ledger
+      # (ecosystem#69). Values already live in .env; nothing to generate.
+      AUDIT_RECORD_INTEGRITY_KEY: ${AUDIT_RECORD_INTEGRITY_KEY:?AUDIT_RECORD_INTEGRITY_KEY must be set}
+      AUDIT_RECORD_INTEGRITY_KEY_ID: ${AUDIT_RECORD_INTEGRITY_KEY_ID:?AUDIT_RECORD_INTEGRITY_KEY_ID must be set}
+    # Retry loops have written millions of log lines with no limit.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     depends_on:
       redis:
         condition: service_healthy
