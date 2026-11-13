@@ -460,3 +460,11 @@ def test_dev_compose_devhub_ui_port_is_loopback_bound_but_api_port_unchanged():
     assert "127.0.0.1:5173:5173" in published
     assert "${HOST_IP:-0.0.0.0}:5173:5173" not in published
     assert "${HOST_IP:-0.0.0.0}:8082:8082" in published
+
+
+def test_dev_compose_security_audit_is_loopback_bound():
+    """Host-side health checks use 127.0.0.1:8004; everything else goes
+    through nginx /_svc/audit."""
+    dev = _load(DEV_COMPOSE)
+    published = dev["services"]["security-audit"].get("ports") or []
+    assert published == ["127.0.0.1:8004:8004"]

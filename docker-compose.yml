@@ -2196,7 +2196,9 @@ services:
   security-audit:
     image: ghcr.io/omnibioai/omnibioai-security-audit:latest
     ports:
-      - "${HOST_IP:-0.0.0.0}:8004:8004"
+      # Loopback only: host-side health checks use 127.0.0.1:8004; browser
+      # and API access goes through nginx /_svc/audit.
+      - "127.0.0.1:8004:8004"
     environment:
       PYTHONUNBUFFERED: "1"
       # Redis P1-5: this API container's only Redis consumer is

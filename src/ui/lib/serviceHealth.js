@@ -15,7 +15,7 @@ export const HEALTH_ENDPOINTS = Object.freeze({
   "auth-service": "/_svc/auth",
   "policy-engine": "/_svc/policy",
   "hpc-policy-engine": "/_svc/hpc",
-  "security-audit": "/_svc/audit",
+  "security-audit": "/_svc/audit/health",
   workbench: "/_svc/workbench",
   tes: "/_svc/tes",
   toolserver: "/_svc/toolserver",
