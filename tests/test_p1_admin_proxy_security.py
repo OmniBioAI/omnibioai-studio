@@ -79,11 +79,19 @@ def test_public_gateway_api_is_not_admin_gated():
     assert "proxy_pass http://$gateway_upstream;" in block
 
 
-def test_security_audit_data_proxy_is_not_blanket_gated():
+def test_security_audit_proxy_is_gated_except_health():
     text = ROUTER.read_text()
-    block = _location(text, "location ^~ /_svc/audit  {")
-    assert "auth_request" not in block
-    assert "proxy_pass http://$audit_upstream;" in block
+    _assert_gate(_location(text, "location ^~ /_svc/audit {"), "manage_all_orgs")
+    health = _location(text, "location = /_svc/audit/health {")
+    assert "auth_request" not in health
+    assert "proxy_pass http://$audit_upstream;" in health
+
+
+def test_security_audit_test_route_is_never_proxied():
+    text = ROUTER.read_text()
+    block = _location(text, "location ^~ /_svc/audit/audit/test {")
+    assert "return 404;" in block
+    assert "proxy_pass" not in block
 
 
 def test_policy_hpc_and_toolserver_mutations_cannot_bypass_permission_gate():
