@@ -344,6 +344,14 @@ services:
         condition: service_started
       deploy-verify:
         condition: service_completed_successfully
+    healthcheck:
+      # Through the in-container nginx (5177) to the API (8081): checks both processes. No curl in the image.
+      test: ["CMD", "python3", "-c", "import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=5)", "http://127.0.0.1:5177/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   model-registry:
     build:
@@ -391,6 +399,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # Through the in-container nginx (5176) to the API (8095): checks both processes. No curl in the image.
+      test: ["CMD", "python3", "-c", "import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=5)", "http://127.0.0.1:5176/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   billing-service:
     build:
@@ -443,6 +459,14 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_started
+    healthcheck:
+      # /health is liveness-only.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   billing-worker:
     build:
@@ -474,6 +498,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # PID 1 is the worker itself, so a process check proves nothing; instead require an open connection to Redis (6379 = 0x18EB) from /proc/net/tcp. 3 x 60s rides out a reconnect.
+      test: ["CMD", "python3", "-c", "import os, sys; rows = [l.split() for f in ('/proc/net/tcp', '/proc/net/tcp6') if os.path.exists(f) for l in open(f)]; sys.exit(0 if any(len(r) > 3 and r[3] == '01' and r[2].endswith(':18EB') for r in rows) else 1)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   lims:
     build:
@@ -554,6 +586,14 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    healthcheck:
+      # `ollama list` talks to the local server API; no curl/wget in the image.
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   neo4j:
     image: neo4j:5.15
@@ -580,6 +620,14 @@ services:
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
+    healthcheck:
+      # HTTP discovery endpoint; no curl in the image.
+      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://127.0.0.1:7474/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+      start_interval: 5s
 
   rag:
     build:
@@ -826,6 +874,14 @@ services:
           create_host_path: false
       - ${MACHINE_DIR}/omnibioai-workbench:${MACHINE_DIR}/omnibioai-workbench:ro
       - ${MACHINE_DIR}/omnibioai-tool-images/sif:${MACHINE_DIR}/omnibioai-tool-images/sif:ro
+    healthcheck:
+      # GET /_ping through the proxy socket (allowlisted): checks the proxy and the real docker.sock. Each call logs one ALLOW line, hence 60s.
+      test: ["CMD", "python3", "-c", "import socket; s = socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect('/var/run/proxy-socket/docker.sock'); s.sendall(b'GET /_ping HTTP/1.1\\r\\nHost: docker\\r\\nConnection: close\\r\\n\\r\\n'); assert s.recv(64).startswith(b'HTTP/1.1 200')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   workbench:
     build:
@@ -1484,6 +1540,14 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+    healthcheck:
+      # /health is unauthenticated; startup pip-installs test deps first, hence the long start_period.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:7070/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+      start_interval: 5s
 
   # PR14.7B: control-center's Stage 3 (nginx) -- serves both frontend
   # bundles (dist-control/dist-admin, host-based split by Host header,
@@ -1510,6 +1574,14 @@ services:
       - "127.0.0.1:5174:5174"
     depends_on:
       - control-center
+    healthcheck:
+      # Static nginx. Not /health: that is proxied to control-center.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:5174/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   dev-hub:
     # Optional workload: only activate with --profile devhub. This allows
@@ -1572,6 +1644,14 @@ services:
     depends_on:
       - ollama
     restart: on-failure
+    healthcheck:
+      # Through the in-container nginx (5173) to the API (8082): checks both processes.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:5173/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   launcher:
     build:
@@ -1623,6 +1703,14 @@ services:
         condition: service_started
       workbench:
         condition: service_started
+    healthcheck:
+      # Through nginx (5190) to the node API (3001): checks both processes. No curl in the image.
+      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://127.0.0.1:5190/api/launcher/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   jupyter:
     image: ghcr.io/omnibioai/omnibioai-jupyter:1.0
@@ -1691,6 +1779,14 @@ services:
     depends_on:
       workbench:
         condition: service_started
+    healthcheck:
+      # Login page; no curl in the image.
+      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://127.0.0.1:8787/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+      start_interval: 5s
 
   vscode:
     image: ghcr.io/omnibioai/omnibioai-vscode:1.0
@@ -1716,6 +1812,14 @@ services:
     depends_on:
       workbench:
         condition: service_started
+    healthcheck:
+      # code-server's unauthenticated /healthz.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   # #54: deliberately NOT put behind docker-socket-proxy, unlike the
   # other 4 services this issue covers. api/server.py's own execution_
@@ -1819,6 +1923,14 @@ services:
       redis:
         condition: service_healthy
     restart: on-failure
+    healthcheck:
+      # Through the in-container nginx (5178) to the API (8098): checks both processes. No curl in the image.
+      test: ["CMD", "python3", "-c", "import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=5)", "http://127.0.0.1:5178/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   tool-images:
     build:
@@ -1836,6 +1948,14 @@ services:
       - ${MACHINE_DIR}/omnibioai-tool-images/sif:/app/sif:ro
       - ${MACHINE_DIR}/omnibioai-tool-images/build_logs:/app/build_logs:ro
     restart: on-failure
+    healthcheck:
+      # Through the in-container nginx (5179) to the API (8097): checks both processes. No curl in the image.
+      test: ["CMD", "python3", "-c", "import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=5)", "http://127.0.0.1:5179/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   videos:
     image: ghcr.io/omnibioai/omnibioai-videos:latest
@@ -1850,6 +1970,13 @@ services:
       - "8086:8086"
     volumes:
       - ${VIDEO_DIR}:/videos:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   opa:
     image: openpolicyagent/opa:latest
@@ -2007,6 +2134,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # PID 1 is the worker itself, so a process check proves nothing; instead require an open connection to Redis (6379 = 0x18EB) from /proc/net/tcp. 3 x 60s rides out a reconnect.
+      test: ["CMD", "python3", "-c", "import os, sys; rows = [l.split() for f in ('/proc/net/tcp', '/proc/net/tcp6') if os.path.exists(f) for l in open(f)]; sys.exit(0 if any(len(r) > 3 and r[3] == '01' and r[2].endswith(':18EB') for r in rows) else 1)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   policy-engine:
     build:
@@ -2024,6 +2159,13 @@ services:
       redis:
         condition: service_healthy
     restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   hpc-policy-engine:
     build:
@@ -2043,6 +2185,13 @@ services:
       mysql:
         condition: service_healthy
     restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   security-audit:
     image: ghcr.io/omnibioai/omnibioai-security-audit:latest
@@ -2131,6 +2280,14 @@ services:
         condition: service_healthy
       mysql:
         condition: service_healthy
+    healthcheck:
+      # PID 1 is the worker itself, so a process check proves nothing; instead require an open connection to Redis (6379 = 0x18EB) from /proc/net/tcp. 3 x 60s rides out a reconnect.
+      test: ["CMD", "python3", "-c", "import os, sys; rows = [l.split() for f in ('/proc/net/tcp', '/proc/net/tcp6') if os.path.exists(f) for l in open(f)]; sys.exit(0 if any(len(r) > 3 and r[3] == '01' and r[2].endswith(':18EB') for r in rows) else 1)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   api-gateway:
     image: ghcr.io/omnibioai/omnibioai-api-gateway:latest
@@ -2208,6 +2365,13 @@ services:
       - '--web.external-url=http://localhost/_svc/prometheus'
       - '--web.route-prefix=/'
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://127.0.0.1:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   # ── grafana ──────────────────────────────────────────────────────────────
   grafana:
@@ -2274,6 +2438,13 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   license-server:
     build:
@@ -2311,6 +2482,14 @@ services:
     restart: unless-stopped
     networks:
       - default
+    healthcheck:
+      # No curl in the image.
+      test: ["CMD", "python3", "-c", "import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=5)", "http://127.0.0.1:8099/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -2363,6 +2542,14 @@ services:
       # needed for node_processes_pids/threads (processes_total/threads_total)
       - '--collector.processes'
     restart: unless-stopped
+    healthcheck:
+      # network_mode: host, so this is the host's 127.0.0.1:9100. No curl in the image.
+      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://127.0.0.1:9100/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   # OmniBioAI Studio web SPA — served as static files behind nginx-router
   # (see docker/nginx-router.conf's `web-ui` upstream / `location /`).
@@ -2377,6 +2564,14 @@ services:
       OMNIBIOAI_TOOL_RUNS_TEMPORARILY_UNAVAILABLE: ${OMNIBIOAI_TOOL_RUNS_TEMPORARILY_UNAVAILABLE:-true}
     # image: ghcr.io/omnibioai/omnibioai-web:latest
     restart: unless-stopped
+    healthcheck:
+      # Static nginx (SPA).
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
   nginx-router:
     image: nginx:latest
@@ -2429,6 +2624,14 @@ services:
       - cadvisor
       - redis-exporter
     restart: unless-stopped
+    healthcheck:
+      # Not the default server's /health: that is proxied to workbench, and the router must not go unhealthy with it. The docs vhost answers /health from nginx itself.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "5", "-H", "Host: docs.omnibioai.org", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 5s
 
 networks:
   # nginx-router and rstudio only. A plain bridge (not internal), so RStudio
