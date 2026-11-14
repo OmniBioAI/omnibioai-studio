@@ -267,13 +267,12 @@ services:
         read_only: true
         bind:
           create_host_path: false
-      - type: bind
-        source: /usr/bin/singularity
-        target: /usr/bin/singularity
-        read_only: true
-        bind:
-          create_host_path: false
-      - /etc/slurm:/etc/slurm:ro
+      # No /etc/slurm, /var/run/munge or Singularity binds (/usr/bin/singularity,
+      # /etc/singularity, /usr/lib/aarch64-linux-gnu/singularity, /var/lib/singularity):
+      # TES only writes job scripts and calls sbatch/squeue/sacct/scancel/sinfo, and
+      # Slurm must stay invisible to TES until the Slurm hardening (TES #67-#70,
+      # #80-#82) is deployed and TES runs as the non-root submit user
+      # (ops/HANDOFF.md; omnibioai-tes docs/security/slurm-non-root-tes.md).
       - type: bind
         source: /usr/bin/unsquashfs
         target: /usr/bin/unsquashfs
@@ -303,10 +302,6 @@ services:
       - /lib/aarch64-linux-gnu/liblzo2.so.2.0.0:/lib/aarch64-linux-gnu/liblzo2.so.2.0.0:ro
       - /lib/aarch64-linux-gnu/libfuse3.so.3:/lib/aarch64-linux-gnu/libfuse3.so.3:ro
       - /lib/aarch64-linux-gnu/libfuse3.so.3.14.0:/lib/aarch64-linux-gnu/libfuse3.so.3.14.0:ro
-      - /usr/lib/aarch64-linux-gnu/singularity:/usr/lib/aarch64-linux-gnu/singularity:ro
-      - /var/lib/singularity:/var/lib/singularity:rw
-      - /var/run/munge:/var/run/munge:ro
-      - /etc/singularity:/etc/singularity:ro
       - ${MACHINE_DIR}/omnibioai-workflow-bundles:${MACHINE_DIR}/omnibioai-workflow-bundles:ro
       - ${MACHINE_DIR}/omnibioai:${MACHINE_DIR}/omnibioai:rw
       - ${MACHINE_DIR}/omnibioai-tool-images:${MACHINE_DIR}/omnibioai-tool-images:ro
