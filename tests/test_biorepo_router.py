@@ -46,3 +46,9 @@ def test_drs_is_read_only_and_uploads_stream_in_bounded_chunks():
     api = _block("/api/biorepo/")
     assert "client_max_body_size 65m;" in api
     assert "proxy_request_buffering off;" in api and "proxy_buffering off;" in api
+
+
+def test_the_internal_ownership_check_is_never_routed():
+    text = ROUTER.read_text()
+    for prefix in ("/api/biorepo/v1/internal/", "/_svc/workbench/api/biorepo/v1/internal/"):
+        assert f"location ^~ {prefix} {{ return 404; }}" in text
