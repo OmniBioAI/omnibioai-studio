@@ -2,7 +2,7 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import DatasetCatalogRenderer from "../../src/ui/components/workbench/DatasetCatalogRenderer";
+import DatasetCatalogRenderer, { isReadOnly } from "../../src/ui/components/workbench/DatasetCatalogRenderer";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
@@ -84,5 +84,37 @@ describe("Dataset Catalog React renderer", () => {
     await user.click(within(addedRow).getByRole("button", { name: "Delete" }));
     expect(window.confirm).toHaveBeenCalled();
     await waitFor(() => expect(fetch.mock.calls.some(([url, options]) => String(url).includes("/api/delete/custom_panel/") && options.method === "POST")).toBe(true));
+  });
+
+  it("shows reference-manifest rows as read-only, with no Delete button", async () => {
+    const refRow = { id: "ref:homo_sapiens:GRCh38", name: "Homo sapiens GRCh38", category: "reference", type: "reference_assembly",
+      version: "GRCh38", status: "present", root_path: "/data/reference/organisms/homo_sapiens/GRCh38", size_human: "880 GB",
+      size_bytes: 1, age_days: 1, is_stale: false, source: "reference_manifest", read_only: true, tags: ["reference"] };
+    const fetch = vi.fn(async url => {
+      if (String(url).includes("/api/list/")) return response({ ...catalog, datasets: [refRow, catalog.datasets[0]] });
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+    vi.stubGlobal("fetch", fetch);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<DatasetCatalogRenderer />);
+
+    const ref = await screen.findByRole("row", { name: "Inspect Homo sapiens GRCh38" });
+    expect(within(ref).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(within(ref).getByText("read-only")).toBeInTheDocument();
+    expect(within(ref).getByRole("button", { name: "Inspect" })).toBeInTheDocument();
+    const user = screen.getByRole("row", { name: "Inspect Human reference" });
+    expect(within(user).getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    expect(within(user).queryByText("read-only")).not.toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(fetch.mock.calls.some(([url]) => String(url).includes("/api/delete/"))).toBe(false);
+  });
+
+  it("treats ref: ids as read-only even without the flag", () => {
+    expect(isReadOnly({ id: "ref:mus_musculus:GRCm39" })).toBe(true);
+    expect(isReadOnly({ id: " REF:x " })).toBe(true);
+    expect(isReadOnly({ id: "reference_hg38" })).toBe(false);
+    expect(isReadOnly({ id: "custom", read_only: true })).toBe(true);
+    expect(isReadOnly({ id: "custom", read_only: "yes" })).toBe(false);
+    expect(isReadOnly(null)).toBe(false);
   });
 });

@@ -11,6 +11,12 @@ function staleWindow() {
   return Number.isInteger(value) && value > 0 && value <= 3650 ? value : DEFAULT_STALE_DAYS;
 }
 
+// Rows from the reference organism manifests are read-only: the Workbench
+// rejects create/delete for ref: ids, so the UI offers neither.
+export function isReadOnly(dataset) {
+  return dataset?.read_only === true || String(dataset?.id ?? "").trim().toLowerCase().startsWith("ref:");
+}
+
 function formatJson(value) {
   return JSON.stringify(value ?? {}, null, 2);
 }
@@ -116,6 +122,7 @@ export default function DatasetCatalogRenderer() {
 
   async function deleteDataset(event, dataset) {
     event.stopPropagation();
+    if (isReadOnly(dataset)) return;
     if (!window.confirm(`Delete '${dataset.id}' from the catalog?`)) return;
     setDeletingId(dataset.id); setError("");
     try { await datasetCatalogApi.remove(dataset.id); await refresh({ quiet: true }); }
@@ -204,9 +211,11 @@ export default function DatasetCatalogRenderer() {
                 <td><strong>{item.last_updated_display || "—"}</strong><small>Age: {item.age_days ?? "—"} days</small></td>
                 <td><div className="dataset-catalog-row-actions">
                   <button type="button" className="omni-btn omni-btn--secondary omni-btn--sm" onClick={event => { event.stopPropagation(); openIntelligence(item); }}>Inspect</button>
-                  <button type="button" className="omni-btn omni-btn--danger omni-btn--sm" disabled={deletingId === item.id} onClick={event => deleteDataset(event, item)}>
-                    {deletingId === item.id ? "Deleting…" : "Delete"}
-                  </button>
+                  {isReadOnly(item)
+                    ? <span className="dataset-catalog-status is-neutral" title="Listed from the reference manifests; change it there, not in the catalog">read-only</span>
+                    : <button type="button" className="omni-btn omni-btn--danger omni-btn--sm" disabled={deletingId === item.id} onClick={event => deleteDataset(event, item)}>
+                      {deletingId === item.id ? "Deleting…" : "Delete"}
+                    </button>}
                 </div></td>
               </tr>)}
             </tbody>
