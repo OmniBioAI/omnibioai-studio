@@ -17,6 +17,51 @@ export function isReadOnly(dataset) {
   return dataset?.read_only === true || String(dataset?.id ?? "").trim().toLowerCase().startsWith("ref:");
 }
 
+// Keep the tail (the file or directory name) and as much of the head as fits.
+export function middleTruncate(value, max = 36) {
+  const text = String(value ?? "");
+  if (text.length <= max) return text;
+  const head = Math.ceil((max - 1) * 0.4);
+  return `${text.slice(0, head)}…${text.slice(text.length - (max - 1 - head))}`;
+}
+
+// Manifest child rows (genome, index, annotation) name their assembly row in
+// parent_id. A child whose parent is not in the list is treated as top-level
+// so that it is never hidden.
+export function groupByParent(datasets) {
+  const ids = new Set(datasets.map(item => item.id));
+  const children = new Map();
+  const roots = [];
+  for (const item of datasets) {
+    if (item.parent_id && item.parent_id !== item.id && ids.has(item.parent_id)) {
+      if (!children.has(item.parent_id)) children.set(item.parent_id, []);
+      children.get(item.parent_id).push(item);
+    } else roots.push(item);
+  }
+  return { roots, children };
+}
+
+function PathCell({ path }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  if (!path) return "—";
+  async function copy(event) {
+    event.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(path);
+      setCopied(true);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 1500);
+    } catch { setCopied(false); }
+  }
+  return <div className="dataset-catalog-path">
+    <code title={path}>{middleTruncate(path)}</code>
+    <button type="button" className="dataset-catalog-copy" onClick={copy}
+      aria-label={copied ? "Path copied" : "Copy path"} title={copied ? "Copied" : "Copy full path"}>{copied ? "Copied" : "Copy"}</button>
+  </div>;
+}
+
 function formatJson(value) {
   return JSON.stringify(value ?? {}, null, 2);
 }
@@ -37,6 +82,8 @@ export default function DatasetCatalogRenderer() {
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [intel, setIntel] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  const [toggled, setToggled] = useState(() => new Map());
   const intelRequest = useRef(null);
 
   const refresh = useCallback(async ({ signal, quiet = false } = {}) => {
@@ -81,18 +128,38 @@ export default function DatasetCatalogRenderer() {
   useEffect(() => () => intelRequest.current?.abort(), []);
 
   const categories = useMemo(() => [...new Set(datasets.map(item => (item.category || "other").trim()).filter(Boolean))].sort(), [datasets]);
-  const filtered = useMemo(() => {
+  const matches = useCallback(item => {
     const needle = query.trim().toLowerCase();
-    return datasets.filter(item => {
-      if (category && (item.category || "other") !== category) return false;
-      if (freshness === "stale" && !item.is_stale) return false;
-      if (freshness === "fresh" && item.is_stale) return false;
-      if (!needle) return true;
-      const haystack = [item.id, item.name, item.category, item.type, (item.tags || []).join(","), item.root_path]
-        .map(value => String(value || "").toLowerCase()).join(" | ");
-      return haystack.includes(needle);
-    });
-  }, [datasets, query, category, freshness]);
+    if (category && (item.category || "other") !== category) return false;
+    if (freshness === "stale" && !item.is_stale) return false;
+    if (freshness === "fresh" && item.is_stale) return false;
+    if (!needle) return true;
+    const haystack = [item.id, item.name, item.category, item.type, (item.tags || []).join(","), item.root_path]
+      .map(value => String(value || "").toLowerCase()).join(" | ");
+    return haystack.includes(needle);
+  }, [query, category, freshness]);
+  const grouped = useMemo(() => groupByParent(datasets), [datasets]);
+  // Rows to render, in order. In the grouped view an assembly is shown when it
+  // or any of its children match; it opens by itself when only children match.
+  const visibleRows = useMemo(() => {
+    if (showAll) return datasets.filter(matches).map(item => ({ item, depth: 0 }));
+    const rows = [];
+    for (const item of grouped.roots) {
+      const kids = (grouped.children.get(item.id) || []).filter(matches);
+      const self = matches(item);
+      if (!self && !kids.length) continue;
+      const open = toggled.has(item.id) ? toggled.get(item.id) : !self;
+      const total = grouped.children.get(item.id)?.length || 0;
+      rows.push({ item, depth: 0, kids: kids.length, total, open });
+      if (open) kids.forEach(kid => rows.push({ item: kid, depth: 1 }));
+    }
+    return rows;
+  }, [datasets, grouped, matches, showAll, toggled]);
+
+  function toggleChildren(event, id, open) {
+    event.stopPropagation();
+    setToggled(previous => new Map(previous).set(id, !open));
+  }
 
   function closeAdd() {
     setAddOpen(false);
@@ -185,6 +252,7 @@ export default function DatasetCatalogRenderer() {
           <select id="dataset-freshness" value={freshness} onChange={event => setFreshness(event.target.value)}>
             <option value="">All freshness</option><option value="stale">Stale only</option><option value="fresh">Fresh only</option>
           </select>
+          <label className="dataset-catalog-check"><input type="checkbox" checked={showAll} onChange={event => setShowAll(event.target.checked)} />Show all rows</label>
           <div className="dataset-catalog-filter-spacer" />
           <button type="button" className="omni-btn omni-btn--secondary" onClick={() => refresh()} disabled={loading}>Refresh</button>
           <button type="button" className="omni-btn omni-btn--secondary" onClick={clearFilters}>Clear</button>
@@ -195,20 +263,27 @@ export default function DatasetCatalogRenderer() {
             <thead><tr><th>Dataset</th><th>Category / Type</th><th>Version / Status</th><th>Path</th><th>Size</th><th>Updated</th><th>Actions</th></tr></thead>
             <tbody>
               {loading && !datasets.length ? <tr><td colSpan="7" role="status">Loading catalog…</td></tr> : null}
-              {!loading && !filtered.length ? <tr><td colSpan="7" className="dataset-catalog-empty">No datasets in catalog.</td></tr> : null}
-              {filtered.map(item => <tr key={item.id} onClick={() => openIntelligence(item)} onKeyDown={event => {
+              {!loading && !visibleRows.length ? <tr><td colSpan="7" className="dataset-catalog-empty">No datasets in catalog.</td></tr> : null}
+              {visibleRows.map(({ item, depth, kids, total, open }) => <tr key={item.id} className={depth ? "is-child" : undefined} onClick={() => openIntelligence(item)} onKeyDown={event => {
+                if (event.target !== event.currentTarget) return;
                 if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openIntelligence(item); }
               }} tabIndex={0} aria-label={`Inspect ${item.name || item.id}`}>
-                <td><strong>{item.name || item.id}</strong><code>{item.id}</code><div className="dataset-catalog-tags">
+                <td><div className="dataset-catalog-name">
+                  {total ? <button type="button" className="dataset-catalog-expander" aria-expanded={open}
+                    aria-label={`${open ? "Hide" : "Show"} ${kids === total ? total : `${kids} of ${total}`} child rows of ${item.name || item.id}`}
+                    onClick={event => toggleChildren(event, item.id, open)}>
+                    <span aria-hidden="true">{open ? "▾" : "▸"}</span>{kids === total ? total : `${kids}/${total}`}
+                  </button> : null}
+                  <strong>{item.name || item.id}</strong></div><code>{item.id}</code><div className="dataset-catalog-tags">
                   <span className={`dataset-catalog-status ${item.is_stale ? "is-stale" : "is-ok"}`}>{item.is_stale ? "stale" : "ok"}</span>
                   {item.source && <span className="dataset-catalog-status is-neutral">{item.source}</span>}
                   {(item.tags || []).map(tag => <span className="dataset-catalog-tag" key={tag}>{tag}</span>)}
                 </div></td>
                 <td><strong>{item.category || "other"}</strong><small>{item.type || "dataset"}</small></td>
                 <td><strong>{item.version || "—"}</strong><span className={`dataset-catalog-status ${item.status === "failed" ? "is-bad" : "is-ok"}`}>{item.status || "ready"}</span></td>
-                <td>{item.root_path ? <code>{item.root_path}</code> : "—"}</td>
-                <td><strong>{item.size_human || "—"}</strong><small>{item.size_bytes ?? "—"} bytes</small></td>
-                <td><strong>{item.last_updated_display || "—"}</strong><small>Age: {item.age_days ?? "—"} days</small></td>
+                <td className="dataset-catalog-path-cell"><PathCell path={item.root_path} /></td>
+                <td className="dataset-catalog-nowrap"><strong>{item.size_human || "—"}</strong><small>{item.size_bytes ?? "—"} bytes</small></td>
+                <td className="dataset-catalog-nowrap"><strong>{item.last_updated_display || "—"}</strong><small>Age: {item.age_days ?? "—"} days</small></td>
                 <td><div className="dataset-catalog-row-actions">
                   <button type="button" className="omni-btn omni-btn--secondary omni-btn--sm" onClick={event => { event.stopPropagation(); openIntelligence(item); }}>Inspect</button>
                   {isReadOnly(item)

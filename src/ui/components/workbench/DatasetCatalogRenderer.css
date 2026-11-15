@@ -25,6 +25,17 @@
 .dataset-catalog-table td > strong,.dataset-catalog-table td > small,.dataset-catalog-table td > code { display:block; }
 .dataset-catalog-table td > strong { margin-bottom:4px; font-size:.82rem; }
 .dataset-catalog-table code { max-width:330px; overflow-wrap:anywhere; color:var(--color-muted, #94a3b8); font-family:var(--font-mono, ui-monospace, monospace); font-size:.7rem; }
+.dataset-catalog-path-cell { min-width:280px; }
+.dataset-catalog-nowrap > strong { white-space:nowrap; }
+.dataset-catalog-path { display:flex; align-items:center; gap:6px; }
+.dataset-catalog-table .dataset-catalog-path code { min-width:0; max-width:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; overflow-wrap:normal; }
+.dataset-catalog-copy,.dataset-catalog-expander { flex:none; display:inline-flex; align-items:center; gap:4px; min-height:24px; padding:2px 7px; border:1px solid var(--border2, #34445c); border-radius:7px; background:transparent; color:var(--color-muted, #a8b5c5); font:inherit; font-size:.68rem; font-weight:700; cursor:pointer; }
+.dataset-catalog-copy:hover,.dataset-catalog-copy:focus-visible,.dataset-catalog-expander:hover,.dataset-catalog-expander:focus-visible { border-color:var(--color-accent, #68d4c4); color:var(--color-text, #e6edf5); }
+.dataset-catalog-name { display:flex; align-items:center; gap:7px; margin-bottom:4px; }
+.dataset-catalog-name strong { min-width:0; font-size:.82rem; overflow-wrap:anywhere; }
+.dataset-catalog-table tbody tr.is-child { background:color-mix(in srgb, var(--bg, #0b1220) 45%, transparent); }
+.dataset-catalog-table tbody tr.is-child > td:first-child { padding-left:38px; border-left:3px solid color-mix(in srgb, var(--color-accent, #68d4c4) 35%, transparent); }
+.dataset-catalog-check { display:inline-flex; align-items:center; gap:6px; color:var(--color-muted, #94a3b8); font-size:.8rem; white-space:nowrap; cursor:pointer; }
 .dataset-catalog-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
 .dataset-catalog-status,.dataset-catalog-tag { display:inline-flex; align-items:center; padding:3px 8px; border:1px solid transparent; border-radius:999px; font-size:.67rem; font-weight:700; white-space:nowrap; }
 .dataset-catalog-status.is-ok { border-color:#16a34a38; background:#16a34a15; color:#4ade80; }
