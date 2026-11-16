@@ -4,26 +4,43 @@ OmniBioAI Studio v0.9.0-beta is an evaluation release. It moves literature searc
 
 ### 📦 Downloads
 
-| Platform | Architecture | File | Notes |
-|---|---|---|---|
-| Linux | ARM64 | `OmniBioAI.Studio-0.9.0-arm64.AppImage` | DGX/Graviton, qualified |
-| Linux | ARM64 | `omnibioai-studio_0.9.0_arm64.deb` | Ubuntu/Debian ARM64, qualified |
+| Platform | Architecture | File |
+|---|---|---|
+| Linux | x64 | `OmniBioAI.Studio-0.9.0.AppImage` |
+| Linux | x64 | `omnibioai-studio_0.9.0_amd64.deb` |
+| Linux | x64 | `omnibioai-studio-0.9.0.x86_64.rpm` |
+| Linux | ARM64 | `OmniBioAI.Studio-0.9.0-arm64.AppImage` |
+| Linux | ARM64 | `omnibioai-studio_0.9.0_arm64.deb` |
+| Linux | ARM64 | `omnibioai-studio-0.9.0.aarch64.rpm` |
+| macOS | Intel | `OmniBioAI.Studio-0.9.0.dmg` |
+| macOS | Apple Silicon | `OmniBioAI.Studio-0.9.0-arm64.dmg` |
+| Windows | x64 | `OmniBioAI.Studio.Setup.0.9.0.exe` |
 
-Check every download against `SHA256SUMS-v0.9.0-beta.txt`. x64 Linux, macOS and Windows installers are not part of this beta.
+All nine installers are built by GitHub Actions from the `v0.9.0-beta` tag. Check every download against `SHA256SUMS-v0.9.0-beta.txt`. The macOS and Windows installers are unsigned and not notarized.
 
 ### 🚀 Quick Start
 
 **Linux (DEB - Ubuntu/Debian):**
 ```bash
-sudo dpkg -i omnibioai-studio_0.9.0_arm64.deb
+sudo dpkg -i omnibioai-studio_0.9.0_*.deb
+omnibioai-studio
+```
+
+**Linux (RPM - RHEL/Fedora):**
+```bash
+sudo rpm -i omnibioai-studio-0.9.0.*.rpm
 omnibioai-studio
 ```
 
 **Linux (AppImage):**
 ```bash
-chmod +x OmniBioAI.Studio-0.9.0-arm64.AppImage
-./OmniBioAI.Studio-0.9.0-arm64.AppImage --no-sandbox
+chmod +x OmniBioAI.Studio-0.9.0*.AppImage
+./OmniBioAI.Studio-0.9.0*.AppImage --no-sandbox
 ```
+
+**macOS:** open the DMG, drag the app to Applications, then right-click → Open (the app is not notarized).
+
+**Windows:** run the installer and launch from the Start menu (the installer is unsigned).
 
 ### 📋 Requirements
 - Docker (auto-prompted on first launch)

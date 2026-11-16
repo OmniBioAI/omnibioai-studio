@@ -200,12 +200,19 @@ and the [changelog](docs/CHANGELOG.md).
 
 | Platform | Published v0.9.0-beta file | Requirements |
 |----------|------------------------------|--------------|
+| Linux x64 AppImage | `OmniBioAI.Studio-0.9.0.AppImage` | x86_64, Ubuntu 20.04+ |
+| Linux x64 DEB | `omnibioai-studio_0.9.0_amd64.deb` | Ubuntu / Debian x64 |
+| Linux x64 RPM | `omnibioai-studio-0.9.0.x86_64.rpm` | RHEL / Fedora x64 |
 | Linux ARM64 AppImage | `OmniBioAI.Studio-0.9.0-arm64.AppImage` | aarch64, Ubuntu 20.04+ |
 | Linux ARM64 DEB | `omnibioai-studio_0.9.0_arm64.deb` | Ubuntu / Debian ARM64 |
+| Linux ARM64 RPM | `omnibioai-studio-0.9.0.aarch64.rpm` | RHEL / Fedora ARM64 |
+| macOS Intel | `OmniBioAI.Studio-0.9.0.dmg` | macOS, unsigned / not notarized |
+| macOS Apple Silicon | `OmniBioAI.Studio-0.9.0-arm64.dmg` | macOS, unsigned / not notarized |
+| Windows x64 | `OmniBioAI.Studio.Setup.0.9.0.exe` | Windows 10/11, unsigned |
 
 Download and verify checksums from the
 [v0.9.0-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.9.0-beta).
-RPM, x64 Linux, macOS, and Windows packages are not part of this qualified beta artifact set.
+All nine installers are built by GitHub Actions from the release tag.
 
 ---
 

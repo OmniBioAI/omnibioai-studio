@@ -47,9 +47,9 @@ These are restricted at the router until each one has per-user authentication:
 
 ## Packaging and platform support
 
-- Only the ARM64 AppImage (`OmniBioAI.Studio-0.9.0-arm64.AppImage`) and ARM64 DEB (`omnibioai-studio_0.9.0_arm64.deb`) are qualified.
-- `SHA256SUMS-v0.9.0-beta.txt` lists the published installers so you can check your download. A file being listed there does not mean it is qualified.
-- RPM, x64 Linux, macOS and Windows installers are not part of this beta.
+- All nine installers (Linux x64 and ARM64 AppImage, DEB and RPM; macOS Intel and Apple Silicon DMG; Windows x64 installer) are built by GitHub Actions from the `v0.9.0-beta` tag. Installation and launch have not been independently qualified on every platform.
+- `SHA256SUMS-v0.9.0-beta.txt` lists all nine published installers so you can check your download.
+- The macOS and Windows installers are unsigned and not notarized.
 - Installation, upgrade, uninstall and rollback procedures have not all been independently verified.
 - Automatic-update metadata has not been qualified; use only explicitly published, checksum-verified artifacts.
 
