@@ -15,7 +15,24 @@
 
 ---
 
-## ✨ What's New in v0.8.2-beta
+## ✨ What's New in v0.9.0-beta
+
+**Literature on RAG v6, Plugin Correctness & Hardening.** This evaluation beta
+moves literature search to the PubMed RAG v6 indexes, fixes plugin correctness
+issues found by the plugin testkit, and continues the platform hardening since
+v0.8.2-beta.
+
+- 📚 **Literature search on PubMed RAG v6** — per-study search on the v6 indexes from the Lit AI page, the API Gateway and the Bio Agent; a study is now required for every search
+- 🧪 **Plugin correctness** — plugins report missing inputs and failed container steps as failures instead of placeholder results; statistical fixes (Benjamini–Hochberg, outlier detection, imputation) with regression tests on testkit data
+- 🛡 **Router restrictions** — plugin and integration APIs without per-user authentication are read-only or closed at the router (format converter, workflow builder, orchestrator, Benchling, ServiceNow, genome viewer tracks, audit routes)
+- 🔑 **Key rotation** — platform signing keys were rotated; everyone signs in again once
+- 🗂 **All services, Tools and Dataset Catalog** — grouped service directory with live status, redesigned Tools page with runnable badges, reference-manifest rows in the Dataset Catalog, My files on Membership & storage
+- 💾 **Backups** — MySQL dumps encrypted to an age recipient, optional encrypted accounts/grants dump
+
+See [Known Issues](security/release-qualification/KNOWN_ISSUES_V0.9.0_BETA.md)
+and the [changelog](docs/CHANGELOG.md).
+
+### v0.8.2-beta ✅
 
 **Edge Hardening, IDE Access & Stability.** This beta tightens admin and
 edge routes, puts the IDEs behind the Studio session, and fixes service
@@ -27,8 +44,7 @@ stability issues found since v0.8.1-beta.
 - 🧭 **Navigation redesign** — new home and navigation, a runtime tool-outage notice, "Run analyses" mode and 44px touch targets
 - ⚙️ **Service stability** — Workbench on gunicorn with healthchecks, celery-worker bio-agent credentials, TES 401 refresh-and-retry
 
-See [Known Issues](security/release-qualification/KNOWN_ISSUES_V0.8.2_BETA.md)
-and the [changelog](docs/CHANGELOG.md).
+See [Known Issues](security/release-qualification/KNOWN_ISSUES_V0.8.2_BETA.md).
 
 ### v0.8.1-beta ✅
 
@@ -182,13 +198,13 @@ and the [changelog](docs/CHANGELOG.md).
 
 ## 📦 Downloads
 
-| Platform | Published v0.8.2-beta file | Requirements |
+| Platform | Published v0.9.0-beta file | Requirements |
 |----------|------------------------------|--------------|
-| Linux ARM64 AppImage | `OmniBioAI.Studio-0.8.2-arm64.AppImage` | aarch64, Ubuntu 20.04+ |
-| Linux ARM64 DEB | `omnibioai-studio_0.8.2_arm64.deb` | Ubuntu / Debian ARM64 |
+| Linux ARM64 AppImage | `OmniBioAI.Studio-0.9.0-arm64.AppImage` | aarch64, Ubuntu 20.04+ |
+| Linux ARM64 DEB | `omnibioai-studio_0.9.0_arm64.deb` | Ubuntu / Debian ARM64 |
 
 Download and verify checksums from the
-[v0.8.2-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.8.2-beta).
+[v0.9.0-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.9.0-beta).
 RPM, x64 Linux, macOS, and Windows packages are not part of this qualified beta artifact set.
 
 ---
@@ -455,7 +471,7 @@ Also required: `jq` (`sudo apt install jq`), Docker Compose v2 (included with En
 
 ### Beta Cloud (no Docker needed)
 
-1. Download a supported installer from the [v0.8.2-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.8.2-beta)
+1. Download a supported installer from the [v0.9.0-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.9.0-beta)
 2. Launch OmniBioAI Studio and enter your license key
 3. Select **Beta Cloud** on the Mode page
 4. Click through the setup wizard (Steps 1–5)
@@ -535,10 +551,10 @@ changing one requires a full stack restart.
 - `docker-compose.yml`'s `volumes:` block for each service is the ground
   truth for its exact mount paths (verified against commit `48c858d`).
 
-### About (v0.8.2)
+### About (v0.9.0)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.8.2 |
+| Studio Version | v0.9.0 |
 | Electron | Electron + Vite |
 | Node.js | See `package.json` toolchain |
 | Platform | Runtime-dependent (Linux, macOS, or Windows) |
@@ -622,10 +638,10 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 
 v0.9.0 onward are gated on the stated exit criteria below, not dates.
 Each ships only once its required capabilities are independently
-verifiable, not merely built. v0.8.2-beta is the current edge-hardening and
-IDE-access beta; remaining Trusted Tool Catalog,
-multi-tenancy, and technical-readiness closure work is carried forward
-to v0.9.0. Earlier roadmap language promising specific feature counts or
+verifiable, not merely built. v0.9.0-beta is the current evaluation beta
+(literature on RAG v6, plugin correctness, router hardening). It does not
+meet the v0.9.0 exit criteria: the Trusted Tool Catalog, multi-tenancy and
+technical-readiness closure work remains open for v0.9.0. Earlier roadmap language promising specific feature counts or
 unverified compliance/SSO claims has been superseded by this table.
 
 | Version         | Status        | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -640,7 +656,8 @@ unverified compliance/SSO claims has been superseded by this table.
 | v0.7.1          | ✅ Released    | **Security & Integrity Hardening** — closed SSRF exposure in toolserver (routed through authenticated gateway); closed info-disclosure surface in Control Center; hardened Neo4j (credential rotation, network restriction, Access-gated remote entry); fixed recurring nginx proxy bugs affecting RAG/Jupyter/RStudio/VS Code; shipped Compliance Center, Audit Explorer, Audit Logs, API Keys & Service Accounts, Security Posture, and Billing (Usage/Overview) admin views; found and fixed real correctness bugs in the plugin execution layer; rewrote documentation for 28+ plugins and core services to reflect verified, not assumed, behavior |
 | v0.8.0-beta | ✅ Released | **Platform Consolidation & Security Hardening** — ecosystem consolidation, authentication/authorization controls, delegated-execution security, Redis and audit hardening, per-user isolation, and release stabilization |
 | v0.8.1-beta | ✅ Released | **Desktop Authentication & Electron Hardening** — main-process-owned desktop sessions, protected refresh persistence without plaintext fallback, HTTPS-only packaged Auth, narrow sender-validated IPC, trusted-destination bearer policy, packaged runtime-path repair, and checksum-verified Linux ARM64 AppImage/DEB artifacts. Staging login, real OS-keychain behavior, packaged lifecycle, RPM, Node.js 20, and updater metadata remain unqualified beta limitations |
-| **v0.8.2-beta** | ✅ **Current** | **Edge Hardening, IDE Access & Stability** — P0/P1/P2 admin and operator route gates, router deny rules for the agent-run API, Workbench self-signup/email pages and OPA, docker-socket-proxy create-request hardening, Studio-session-gated JupyterLab/RStudio/VS Code with persistent homes, navigation redesign, Workbench gunicorn and healthchecks, and celery-worker bio-agent credentials. v0.8.1 packaging and authentication limitations still apply |
+| v0.8.2-beta | ✅ Released | **Edge Hardening, IDE Access & Stability** — P0/P1/P2 admin and operator route gates, router deny rules for the agent-run API, Workbench self-signup/email pages and OPA, docker-socket-proxy create-request hardening, Studio-session-gated JupyterLab/RStudio/VS Code with persistent homes, navigation redesign, Workbench gunicorn and healthchecks, and celery-worker bio-agent credentials. v0.8.1 packaging and authentication limitations still apply |
+| **v0.9.0-beta** | ✅ **Current** | **Literature on RAG v6, Plugin Correctness & Hardening** — PubMed RAG v6 per-study literature search (Lit AI, API Gateway, Bio Agent), plugin testkit fixes (missing inputs and failed container steps reported as failures, corrected Benjamini–Hochberg, outlier detection, imputation and matching), router restrictions for APIs without per-user authentication, rotated platform signing keys, All services/Tools/Dataset Catalog updates and encrypted MySQL backups. An evaluation beta: the v0.9.0 exit criteria below are not yet met |
 | **v0.9.0**      | 🔜 Planned — gated on exit criteria | **Trusted Catalog, Multi-Tenancy & Technical-Readiness Closure.** *Trusted Tool Catalog* — requires an audited, verified usable subset of the catalog with confirmed I/O contracts and accurate documentation; explicit disclosure for illustrative/placeholder methods; public counts that distinguish verified tools/models from the full registry. *Multi-tenancy* — requires genuine multi-org testing, verified multi-user workspaces and team/role management, G1/G2/G4 production isolation evidence, synthetic cross-tenant/per-user testing, and realistic load testing. *HIPAA-aligned technical-readiness closure* — requires all default/placeholder secrets rotated with a documented rotation process, plus the remaining technical-readiness evidence tracked in [#100](https://github.com/OmniBioAI/omnibioai-studio/issues/100) |
 | **v1.0.0**      | 🔜 Planned — gated on exit criteria | **Enterprise Verification.** Goal: make enterprise/security claims only when independently supportable. Requires real SAML IdP validation, mature multi-tenancy, completion of the verified catalog foundation, current verified model/tool portfolio reporting, and appropriately supported HIPAA-related control/evidence claims |
 
