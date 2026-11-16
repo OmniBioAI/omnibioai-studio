@@ -52,3 +52,11 @@ def test_the_internal_ownership_check_is_never_routed():
     text = ROUTER.read_text()
     for prefix in ("/api/biorepo/v1/internal/", "/_svc/workbench/api/biorepo/v1/internal/"):
         assert f"location ^~ {prefix} {{ return 404; }}" in text
+
+
+def test_the_internal_ownership_check_is_denied_on_the_workbench_host():
+    text = ROUTER.read_text()
+    start = text.index("server_name workbench.omnibioai.org;")
+    end = text.find("\nserver {", start)
+    block = text[start:end if end != -1 else len(text)]
+    assert "location ^~ /api/biorepo/v1/internal/ { return 404; }" in block
