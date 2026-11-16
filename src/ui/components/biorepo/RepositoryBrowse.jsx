@@ -49,6 +49,20 @@ export default function RepositoryBrowse({ onOpen, onNew, canWrite }) {
   const results = Array.isArray(data?.results) ? data.results : [];
   const total = Number(data?.total) || 0;
 
+  // Workbench answers search with 403 when the user lacks biorepo.read: say so
+  // plainly instead of offering a search, filters or a retry that can't work.
+  if (state.status === "error" && state.error?.status === 403) {
+    return <section className="biorepo" aria-labelledby="biorepo-browse-heading">
+      <header className="biorepo__header">
+        <div><h2 id="biorepo-browse-heading">Repository</h2></div>
+      </header>
+      <div className="account-state" role="status">
+        <strong>You don’t have access to the repository</strong>
+        <span>Ask an organization admin for BioRepository access (the biorepo.read permission).</span>
+      </div>
+    </section>;
+  }
+
   return <section className="biorepo" aria-labelledby="biorepo-browse-heading">
     <header className="biorepo__header">
       <div><h2 id="biorepo-browse-heading">Repository</h2>

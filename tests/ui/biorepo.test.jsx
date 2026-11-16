@@ -162,6 +162,19 @@ describe("Repository browse", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByText("No datasets match.")).toBeInTheDocument();
   });
+
+  it("says plainly when the user has no repository access (403), with no search or retry", async () => {
+    session.perms = [];
+    on("GET", url => url.startsWith(`${API}/search?`),
+      () => reply({ error: { code: "FORBIDDEN", message: "biorepo.read is required" } }, 403));
+    render(<BioRepository />);
+    expect(await screen.findByText("You don’t have access to the repository")).toBeInTheDocument();
+    expect(screen.getByText(/Ask an organization admin for BioRepository access/)).toBeInTheDocument();
+    expect(screen.queryByRole("search")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "New dataset" })).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
 });
 
 describe("Dataset detail", () => {
