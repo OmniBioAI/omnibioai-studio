@@ -78,6 +78,7 @@ These are the exact Compose keys, grouped by responsibility.
 | `rag` | Scientific retrieval-augmented generation |
 | `workbench` | Main Django workbench and plugin platform |
 | `celery-worker` | Workbench background tasks |
+| `celery-beat` | Schedules Workbench periodic jobs (BioRepository mirror, seal sweep, purge, drift, re-hash, backup manifest); one instance only |
 | `workflow-bundles` | Workflow bundle catalog |
 | `tool-images` | Container and SIF image catalog |
 | `videos` | Tutorial content service |
