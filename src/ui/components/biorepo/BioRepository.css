@@ -1,0 +1,83 @@
+.biorepo { display: grid; gap: 16px; min-width: 0; max-width: 100%; }
+.biorepo, .biorepo__form, .biorepo__version, .biorepo__lineage, .biorepo__form fieldset { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.biorepo__form label:has(input[type="radio"]) span, .biorepo__form p { overflow-wrap: anywhere; }
+.biorepo h2, .biorepo h3, .biorepo h4, .biorepo p { margin: 0; }
+.biorepo__header, .biorepo__subheader { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.biorepo__subheader { align-items: center; }
+.biorepo__muted { color: var(--color-text-muted); }
+.biorepo__error { color: var(--color-danger, #c0392b); }
+.biorepo__search { display: flex; gap: 8px; }
+.biorepo__search input { flex: 1; min-width: 0; }
+.biorepo__browse { display: grid; grid-template-columns: minmax(180px, 220px) 1fr; gap: 16px; align-items: start; }
+.biorepo__facets { display: grid; gap: 12px; }
+.biorepo__facet { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.biorepo__facet legend { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; color: var(--color-text-muted); }
+.biorepo__facet-value { font: inherit; font-size: 0.85rem; padding: 3px 8px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--color-border, rgba(127, 127, 127, 0.3)); background: none; color: inherit; }
+.biorepo__facet-value[aria-pressed="true"] { border-color: var(--accent2); background: color-mix(in srgb, var(--accent2) 15%, transparent); }
+.biorepo__facet-value span { color: var(--color-text-muted); }
+.biorepo__results { min-width: 0; display: grid; gap: 10px; }
+.biorepo__table-wrap { position: relative; overflow-x: auto; border: 1px solid var(--color-border, rgba(127, 127, 127, 0.25)); border-radius: 10px; }
+.biorepo__table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.biorepo__table th, .biorepo__table td { padding: 8px 12px; text-align: left; vertical-align: middle;
+  border-bottom: 1px solid var(--color-border, rgba(127, 127, 127, 0.18)); }
+.biorepo__table tbody tr:last-child th, .biorepo__table tbody tr:last-child td { border-bottom: 0; }
+.biorepo__table thead th { font-weight: 600; color: var(--color-text-muted); white-space: nowrap; }
+.biorepo__table code, .biorepo__facts code, .biorepo__regen code { font-size: 0.8rem; overflow-wrap: anywhere; }
+.biorepo__path { font-weight: 500; overflow-wrap: anywhere; max-width: 32ch; }
+.biorepo__link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent2); cursor: pointer; text-align: left; }
+.biorepo__link:focus-visible, .biorepo__facet-value:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+.biorepo__pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+.biorepo__pager span { margin-right: auto; color: var(--color-text-muted); }
+.biorepo__badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 0.75rem;
+  border: 1px solid var(--color-border, rgba(127, 127, 127, 0.35)); }
+.biorepo__badge--derived { border-color: var(--color-warning, #b7791f); }
+.biorepo__badge--warn { border-color: var(--color-danger, #c0392b); }
+.biorepo__versions { display: flex; flex-wrap: wrap; gap: 6px; }
+.biorepo__versions button { font: inherit; padding: 4px 10px; border-radius: 8px; cursor: pointer; background: none; color: inherit;
+  border: 1px solid var(--color-border, rgba(127, 127, 127, 0.3)); }
+.biorepo__versions button[aria-pressed="true"] { border-color: var(--accent2); }
+.biorepo__versions span { color: var(--color-text-muted); font-size: 0.8rem; }
+.biorepo__version, .biorepo__lineage, .biorepo__form { display: grid; gap: 12px; padding: 14px 16px; border-radius: 10px;
+  border: 1px solid var(--color-border, rgba(127, 127, 127, 0.25)); }
+.biorepo__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; margin: 0; }
+.biorepo__facts dt { font-size: 0.8rem; color: var(--color-text-muted); }
+.biorepo__facts dd { margin: 0; overflow-wrap: anywhere; }
+.biorepo__issues { margin: 0; padding-left: 18px; }
+.biorepo__issue--error strong { color: var(--color-danger, #c0392b); }
+.biorepo__regen { padding: 10px 12px; border-left: 3px solid var(--color-warning, #b7791f); display: grid; gap: 6px; }
+.biorepo__regen ul { margin: 0; padding-left: 18px; }
+.biorepo__json { max-height: 320px; overflow: auto; font-size: 0.8rem; }
+.biorepo__runs { margin: 0; padding-left: 18px; display: grid; gap: 10px; }
+.biorepo__run-io { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+.biorepo__run-io > div > span { font-size: 0.8rem; color: var(--color-text-muted); }
+.biorepo__run-io ul { margin: 0; padding-left: 18px; }
+.biorepo__form fieldset { display: grid; gap: 10px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.biorepo__form :is(input:not([type="radio"]):not([type="file"]), textarea, select),
+.biorepo__search input, .biorepo__subheader select { box-sizing: border-box; width: 100%; max-width: 100%; padding: 8px 10px;
+  color: var(--text); border: 1px solid var(--border2, rgba(127, 127, 127, 0.35)); border-radius: var(--radius-sm, 6px);
+  background: var(--bg3, transparent); font: inherit; }
+.biorepo__subheader select { width: auto; padding: 4px 8px; }
+.biorepo__form textarea { resize: vertical; min-height: 72px; }
+.biorepo__form :is(input, textarea, select):focus-visible, .biorepo__search input:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+.biorepo__form input[type="file"] { max-width: 100%; }
+.biorepo__form h3 { font-size: 1.1rem; font-weight: 600; }
+.biorepo__header h2 { font-size: 1.25rem; font-weight: 600; }
+.biorepo__progress { display: grid; gap: 4px; }
+.biorepo__form legend { font-weight: 600; margin-bottom: 4px; }
+.biorepo__form label { display: grid; gap: 4px; min-width: 0; font-weight: 500; }
+.biorepo__form label:has(input[type="radio"]) { display: flex; gap: 6px; align-items: center; }
+.biorepo__uploads { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 0.9rem; }
+.biorepo__uploads li { overflow-wrap: anywhere; }
+.biorepo__form-actions { display: flex; gap: 8px; }
+.biorepo__backup { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--color-border, rgba(127, 127, 127, 0.25)); display: grid; gap: 4px; }
+.biorepo__backup--alert { border-color: var(--color-danger, #c0392b); }
+.biorepo__level--warning, .biorepo__level--critical { color: var(--color-warning, #b7791f); }
+.biorepo__level--hard_stop { color: var(--color-danger, #c0392b); font-weight: 600; }
+.biorepo__sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 720px) {
+  .biorepo__table { min-width: 640px; }
+  .biorepo__path { max-width: 22ch; }
+  .biorepo__browse, .biorepo__run-io { grid-template-columns: 1fr; }
+  .biorepo__facets { grid-auto-flow: row; }
+}
