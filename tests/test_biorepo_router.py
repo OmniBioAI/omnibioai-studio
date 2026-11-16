@@ -60,3 +60,21 @@ def test_the_internal_ownership_check_is_denied_on_the_workbench_host():
     end = text.find("\nserver {", start)
     block = text[start:end if end != -1 else len(text)]
     assert "location ^~ /api/biorepo/v1/internal/ { return 404; }" in block
+
+
+def _server(name):
+    text = ROUTER.read_text()
+    start = text.index(f"server_name {name};")
+    end = text.find("\nserver {", start)
+    return text[start:end if end != -1 else len(text)]
+
+
+def test_the_drs_host_serves_only_the_read_only_drs_api():
+    block = _server("drs.omnibioai.org")
+    locations = re.findall(r"location ([^{]+)\{", block)
+    assert [l.strip() for l in locations] == ["= /health", "^~ /ga4gh/drs/", "/"]
+    drs = block[block.index("location ^~ /ga4gh/drs/"):]
+    assert "limit_except GET OPTIONS { deny all; }" in drs
+    assert 'proxy_set_header Cookie            "";' in drs
+    assert "proxy_pass http://$workbench_upstream;" in drs
+    assert re.search(r"location / \{\s*return 404;\s*\}", block)
