@@ -7,8 +7,9 @@ ROUTER = Path(__file__).parents[1] / "docker/nginx-router.conf"
 
 
 def _block(prefix):
+    """The location block in the default server (other hosts may reuse a prefix)."""
     text = ROUTER.read_text()
-    start = text.index(f"location ^~ {prefix} {{")
+    start = text.index(f"location ^~ {prefix} {{", text.index("server_name _;"))
     depth, i = 0, text.index("{", start)
     for j in range(i, len(text)):
         depth += {"{": 1, "}": -1}.get(text[j], 0)
@@ -77,4 +78,6 @@ def test_the_drs_host_serves_only_the_read_only_drs_api():
     assert "limit_except GET OPTIONS { deny all; }" in drs
     assert 'proxy_set_header Cookie            "";' in drs
     assert "proxy_pass http://$workbench_upstream;" in drs
+    # ALLOWED_HOSTS has no drs.omnibioai.org: the main host is presented upstream.
+    assert "proxy_set_header Host              webstudio.omnibioai.org;" in drs
     assert re.search(r"location / \{\s*return 404;\s*\}", block)
