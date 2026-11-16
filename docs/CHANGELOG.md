@@ -9,7 +9,42 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
-## v0.8.2-beta (unreleased) — Edge Hardening, IDE Access & Stability
+## v0.9.0-beta (unreleased) — Literature on RAG v6, Plugin Correctness & Hardening
+
+### Security
+- Router: format converter and workflow builder APIs read-only (#282); multi-agent orchestrator plugin read-only (#280); Benchling API closed and ServiceNow API GET-only (#290); genome viewer `api/tracks` denied (#292), all until each has per-user authentication.
+- Router: restrict the audit service routes (#277); deny the dataset_catalog intelligence API until it is authenticated, later lifted once it was (#287, #288).
+- Pass the record-integrity key and key id to the audit worker, required at compose time, and cap its logs (#261).
+- Platform signing keys rotated (2026-11-16); every user signs in again once.
+- Elsewhere in the platform: deployment tooling redacts secret values from output and logs (omnibioai-ecosystem#111); the Bio Agent no longer logs query text (omnibioai-workbench#923, #926).
+
+### Literature search
+- Literature search moves to the PubMed RAG v6 per-study indexes: Lit AI page (omnibioai-rag#48, #51), API Gateway `/v1/literature/*` routes (omnibioai-api-gateway#37) and the Bio Agent literature mode (omnibioai-workbench#926). A study is required for every search; legacy ingest, embed, benchmark and RAG+LLM answer paths are disabled.
+
+### Plugins
+- Plugins report missing inputs and failed container steps as failures instead of placeholder results; corrected Benjamini–Hochberg adjustment, outlier detection, imputation, matching and run manifests, each with a regression test on its testkit data (omnibioai-workbench#927, #931).
+
+### Studio UI
+- All services: grouped directory with search, live status and single-link cards, pinned above Settings in the sidebar (#270, #271, #272).
+- Tools: redesigned page with a tool detail page and run form, Runnable badges from TES verification, unavailable tools hidden by default (#265, #268, #269).
+- Dataset Catalog: reference-manifest rows shown read-only and grouped under assemblies (#289, #291).
+- Account: My files on Membership & storage; storage usage never shows 0% or rounds sizes up (#263, #264).
+
+### Services and compose
+- Healthchecks for the 26 services that had none (#275).
+- Pass `SKILLS_SHADOW_VALIDATION` to celery-worker, default off (#262).
+
+### Backups
+- MySQL dumps are encrypted to an age recipient, with no plaintext mode (#273); optional encrypted accounts and grants dump (#274); per-job extra mysqldump flags (#279); dump the live MySQL instance with a read-only account and a password file (#266).
+
+### Docs
+- v0.8.2 known issues: only the two ARM64 builds are qualified (#259); architecture diagram in the README.
+
+### Release metadata
+- Bump the Studio application version and Sentry release identifiers to 0.9.0.
+
+---
+## v0.8.2-beta — Edge Hardening, IDE Access & Stability
 
 ### Security
 - Enforce P0 admin route gates, gate P1 operator proxies and guard P2 operator pages (#238, #240).
