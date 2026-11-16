@@ -307,7 +307,7 @@ services:
       TOOLSERVER_BASE_URL: http://toolserver:9090
       TES_TOOLS: /workspace/configs/tools.example.yaml
       TES_SERVERS: /workspace/configs/servers.example.yaml
-      TMPDIR: /tmp/omnibioai_tes_runs
+      TMPDIR: /tmp
       IAM_URL: http://auth-service:8001
       POLICY_URL: http://policy-engine:8002
       HPC_POLICY_URL: http://hpc-policy-engine:8003
@@ -326,16 +326,18 @@ services:
       # needs to *connect to* this socket file, never write to it.
       - docker-proxy-socket:/var/run/proxy-socket:ro
       - /usr/bin/docker:/usr/bin/docker:ro
+    # the TES image runs as tes-submit; its entrypoint starts nginx without root
+    # (replaces `service nginx start && omnibioai-tes serve ...`, which needs root)
     command:
-      - bash
-      - -lc
-      - |
-        service nginx start && \
-        omnibioai-tes serve \
-          --host 0.0.0.0 \
-          --port 8081 \
-          --tools /workspace/configs/tools.example.yaml \
-          --servers /workspace/configs/servers.example.yaml
+      - /app/scripts/tes-entrypoint.sh
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8081"
+      - --tools
+      - /workspace/configs/tools.example.yaml
+      - --servers
+      - /workspace/configs/servers.example.yaml
     depends_on:
       docker-socket-proxy:
         condition: service_started
