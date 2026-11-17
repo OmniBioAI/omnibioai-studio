@@ -43,7 +43,7 @@ export default function LineageView({ graph, datasetId, depth, onDepth, onOpenDa
         <span className="biorepo__muted"> {run.workflow_id || "unknown workflow"}
           {run.workflow_version ? ` @ ${run.workflow_version}` : ""} · {run.pinned ? "pinned" : "not pinned"}</span>
         <div className="biorepo__run-io">
-          <div><span>Read</span><ul>{inputs.length ? inputs.map(item) : <li className="biorepo__muted">no repository inputs</li>}</ul></div>
+          <div><span>Read</span><ul>{inputs.length ? inputs.map(item) : <li className="biorepo__muted">no BioRepository inputs</li>}</ul></div>
           <div><span>Wrote</span><ul>{outputs.map(item)}</ul></div>
         </div>
       </li>)}</ol>}

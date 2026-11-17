@@ -54,10 +54,10 @@ export default function RepositoryBrowse({ onOpen, onNew, canWrite }) {
   if (state.status === "error" && state.error?.status === 403) {
     return <section className="biorepo" aria-labelledby="biorepo-browse-heading">
       <header className="biorepo__header">
-        <div><h2 id="biorepo-browse-heading">Repository</h2></div>
+        <div><h2 id="biorepo-browse-heading">BioRepository</h2></div>
       </header>
       <div className="account-state" role="status">
-        <strong>You don’t have access to the repository</strong>
+        <strong>You don’t have access to BioRepository</strong>
         <span>Ask an organization admin for BioRepository access (the biorepo.read permission).</span>
       </div>
     </section>;
@@ -65,7 +65,7 @@ export default function RepositoryBrowse({ onOpen, onNew, canWrite }) {
 
   return <section className="biorepo" aria-labelledby="biorepo-browse-heading">
     <header className="biorepo__header">
-      <div><h2 id="biorepo-browse-heading">Repository</h2>
+      <div><h2 id="biorepo-browse-heading">BioRepository</h2>
         <p>Versioned datasets in your organization, with checksums, lineage and DRS ids.</p></div>
       {canWrite && <button type="button" className="omni-btn omni-btn--primary omni-btn--sm" onClick={onNew}>New dataset</button>}
     </header>
@@ -82,7 +82,7 @@ export default function RepositoryBrowse({ onOpen, onNew, canWrite }) {
       </aside>
       <div className="biorepo__results">
         {state.status === "error" ? <div className="account-state account-state--error" role="alert">
-          <strong>Couldn’t search the repository</strong><span>{errorText(state.error)}</span>
+          <strong>Couldn’t search BioRepository</strong><span>{errorText(state.error)}</span>
           <button type="button" onClick={() => setFilters(current => ({ ...current }))}>Retry</button>
         </div> : state.status === "loading" && !data ? <p role="status"><Spinner size="sm" /> Searching…</p>
           : results.length === 0 ? <p role="status" className="biorepo__muted">No datasets match.</p>
