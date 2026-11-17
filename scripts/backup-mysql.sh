@@ -70,8 +70,14 @@
 # cron job with its own BACKUP_DIR (the omnibioai_audit ledger dump uses
 # --skip-triggers: its append-only triggers are re-created by migrations on
 # restore). Only an allow-list is accepted: --skip-triggers,
-# --single-transaction, --routines, --events, --no-tablespaces. Anything else
-# (including NAME=VALUE forms) fails the run at stage "config" before any dump.
+# --single-transaction, --routines, --events, --no-tablespaces, and exactly
+# --source-data=2 (2026-11-14: records the binary log position as a comment,
+# so a point-in-time restore replays the hourly binlog copies from the exact
+# position; ecosystem docs/ops/RESTIC_BACKUP_DISK_PLAN.md. The dump account
+# then also needs FLUSH_TABLES and REPLICATION CLIENT). Any other value,
+# including --source-data=1, which writes an active CHANGE MASTER statement,
+# and every other NAME=VALUE form fails the run at stage "config" before any
+# dump.
 # Unset or empty: the flags are exactly as before.
 
 set -euo pipefail
@@ -271,8 +277,8 @@ DUMP_EXTRA_ARGS=()
 read -r -a DUMP_EXTRA_ARGS <<< "$DUMP_EXTRA_ARGS_RAW" || true
 for arg in "${DUMP_EXTRA_ARGS[@]}"; do
   case "$arg" in
-    --skip-triggers|--single-transaction|--routines|--events|--no-tablespaces) ;;
-    *) fail "MYSQL_BACKUP_DUMP_EXTRA_ARGS holds a flag that is not allowed (allowed: --skip-triggers --single-transaction --routines --events --no-tablespaces)" ;;
+    --skip-triggers|--single-transaction|--routines|--events|--no-tablespaces|--source-data=2) ;;
+    *) fail "MYSQL_BACKUP_DUMP_EXTRA_ARGS holds a flag that is not allowed (allowed: --skip-triggers --single-transaction --routines --events --no-tablespaces --source-data=2)" ;;
   esac
 done
 

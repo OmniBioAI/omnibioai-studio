@@ -814,9 +814,18 @@ def test_skip_triggers_is_passed_through_before_the_dump_scope(tmp_path):
     assert sb.health()["LAST_RESULT"] == "success"
 
 
+def test_source_data_2_records_the_binlog_position_for_point_in_time_restores(tmp_path):
+    sb, argv_file, _ = _recording_sandbox(tmp_path)
+    result = sb.run({"MYSQL_BACKUP_DUMP_EXTRA_ARGS": "--source-data=2"})
+    assert result.returncode == 0, result.stderr
+    assert _dump_flags(argv_file) == FIXED_DUMP_FLAGS + ["--source-data=2", "--all-databases"]
+    assert sb.health()["LAST_RESULT"] == "success"
+
+
 def test_every_allow_listed_flag_is_accepted(tmp_path):
     sb, argv_file, _ = _recording_sandbox(tmp_path)
-    flags = ["--skip-triggers", "--single-transaction", "--routines", "--events", "--no-tablespaces"]
+    flags = ["--skip-triggers", "--single-transaction", "--routines", "--events", "--no-tablespaces",
+             "--source-data=2"]
     result = sb.run({"MYSQL_BACKUP_DUMP_EXTRA_ARGS": "  ".join(flags)})
     assert result.returncode == 0, result.stderr
     assert _dump_flags(argv_file) == FIXED_DUMP_FLAGS + flags + ["--all-databases"]
@@ -830,6 +839,10 @@ def test_every_allow_listed_flag_is_accepted(tmp_path):
     "-x",
     "--routines;rm",
     "*",
+    "--source-data",
+    "--source-data=1",
+    "--source-data=2x",
+    "--master-data=2",
 ])
 def test_disallowed_extra_arg_fails_closed_before_any_dump(tmp_path, value):
     sb, argv_file, _ = _recording_sandbox(tmp_path)
