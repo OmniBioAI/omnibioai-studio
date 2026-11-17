@@ -126,14 +126,14 @@ export default function DatasetDetail({ datasetId, onBack, onOpenDataset, canWri
 
   const refresh = () => { setNewVersion(false); setReload(value => value + 1); };
   if (state.status === "error") return <section className="biorepo">
-    <button type="button" className="biorepo__link" onClick={onBack}>← Repository</button>
+    <button type="button" className="biorepo__link" onClick={onBack}>← BioRepository</button>
     <div className="account-state account-state--error" role="alert"><strong>Couldn’t open this dataset</strong>
       <span>{errorText(state.error)}</span></div></section>;
   const d = state.dataset;
   if (!d) return <p role="status"><Spinner size="sm" /> Loading dataset…</p>;
   const ingesting = state.versions.some(v => v.status === "ingesting");
   return <section className="biorepo" aria-labelledby="biorepo-dataset-heading">
-    <button type="button" className="biorepo__link" onClick={onBack}>← Repository</button>
+    <button type="button" className="biorepo__link" onClick={onBack}>← BioRepository</button>
     <header className="biorepo__header">
       <div><h2 id="biorepo-dataset-heading">{d.title}</h2>
         <p className="biorepo__muted">{d.type} · {d.visibility} · <code>{d.id}</code> · created <time dateTime={d.created_at}>{formatDate(d.created_at)}</time></p></div>

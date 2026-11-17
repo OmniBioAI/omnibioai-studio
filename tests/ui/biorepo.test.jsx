@@ -124,7 +124,7 @@ describe("biorepoApi", () => {
   });
 });
 
-describe("Repository browse", () => {
+describe("BioRepository browse", () => {
   it("lists datasets with facets, filters by a facet and opens a dataset", async () => {
     on("GET", url => url.startsWith(`${API}/search?`), url => reply({
       total: 1, page: 1, page_size: 25, results: [dataset()],
@@ -146,7 +146,7 @@ describe("Repository browse", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Liver RNA-seq" }));
     expect(await screen.findByRole("heading", { name: "Liver RNA-seq" })).toBeInTheDocument();
     expect(window.location.search).toBe(`?dataset=${DS}`);
-    fireEvent.click(screen.getByRole("button", { name: "← Repository" }));
+    fireEvent.click(screen.getByRole("button", { name: "← BioRepository" }));
     expect(await screen.findByRole("search")).toBeInTheDocument();
     expect(window.location.search).toBe("");
   });
@@ -156,7 +156,7 @@ describe("Repository browse", () => {
     let fail = true;
     on("GET", () => true, () => (fail ? reply({}, 503) : reply({ total: 0, results: [], facets: {} })));
     render(<BioRepository />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn’t search the repository");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn’t search BioRepository");
     expect(screen.queryByRole("button", { name: "New dataset" })).toBeNull();
     fail = false;
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
@@ -168,7 +168,7 @@ describe("Repository browse", () => {
     on("GET", url => url.startsWith(`${API}/search?`),
       () => reply({ error: { code: "FORBIDDEN", message: "biorepo.read is required" } }, 403));
     render(<BioRepository />);
-    expect(await screen.findByText("You don’t have access to the repository")).toBeInTheDocument();
+    expect(await screen.findByText("You don’t have access to BioRepository")).toBeInTheDocument();
     expect(screen.getByText(/Ask an organization admin for BioRepository access/)).toBeInTheDocument();
     expect(screen.queryByRole("search")).toBeNull();
     expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
@@ -321,9 +321,9 @@ describe("Admin capacity and the Data page", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("don’t have permission");
   });
 
-  it("adds a Repository tab, and a Capacity tab only for biorepo.admin", async () => {
+  it("adds a BioRepository tab, and a Capacity tab only for biorepo.admin", async () => {
     render(<DataHub />);
-    expect(screen.getByRole("tab", { name: "Repository" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "BioRepository" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Capacity" })).toBeNull();
     expect(screen.getByText("plugin dataset_catalog")).toBeInTheDocument();
     cleanup();
@@ -333,7 +333,7 @@ describe("Admin capacity and the Data page", () => {
     on("GET", () => false, () => reply({}));
     render(<DataHub />);
     expect(screen.getByRole("tab", { name: "Capacity" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Repository" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "BioRepository" })).toHaveAttribute("aria-selected", "true");
   });
 });
 

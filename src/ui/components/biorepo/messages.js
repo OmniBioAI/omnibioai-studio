@@ -1,21 +1,21 @@
 // User-facing text for BioRepository API error codes. The server message is
 // shown only for validation codes, where it says what to fix.
 const TEXT = {
-  unauthorized: "Sign in again to use the repository.",
+  unauthorized: "Sign in again to use BioRepository.",
   forbidden: "You don’t have permission for this. Ask an organization admin for BioRepository access.",
   FORBIDDEN: "You don’t have permission for this. Ask an organization admin for BioRepository access.",
   ORGANIZATION_REQUIRED: "Choose an active organization first.",
-  ORIGIN_NOT_ALLOWED: "Repository changes can only be made from Studio.",
+  ORIGIN_NOT_ALLOWED: "BioRepository changes can only be made from Studio.",
   DATASET_NOT_FOUND: "This dataset doesn’t exist or isn’t shared with you.",
   VERSION_NOT_FOUND: "This version doesn’t exist.",
   not_found: "Not found.",
   STORAGE_QUOTA_EXCEEDED: "This upload would exceed your storage allowance.",
-  REPOSITORY_CAPACITY_HARD_STOP: "The repository volume is nearly full; new uploads are paused. Reads still work.",
+  REPOSITORY_CAPACITY_HARD_STOP: "The BioRepository volume is nearly full; new uploads are paused. Reads still work.",
   VERSION_IN_PROGRESS: "This dataset already has a version being prepared. Seal or delete it first.",
   UPLOAD_IN_PROGRESS: "Finish or cancel the open uploads first.",
   PATH_NOT_ALLOWED: "You can only register data inside your own tenant or organization folders.",
   PATH_NOT_FOUND: "Nothing found at that path.",
-  unavailable: "The repository is unavailable right now. Please retry.",
+  unavailable: "BioRepository is unavailable right now. Please retry.",
   stale: "Your session changed. Reload to continue.",
 };
 const SHOW_SERVER_MESSAGE = new Set(["INVALID_FIELD", "UNKNOWN_FIELD", "UNKNOWN_TYPE", "FILE_EXISTS", "PATH_EMPTY",
