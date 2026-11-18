@@ -16,4 +16,4 @@ Desktop is 1400 px wide, mobile is 390 px wide.
 On mobile the files table scrolls sideways; accepted for Phase 1.
 
 These screenshots predate the label rename (Studio, 2026-11-17): the Data tab, heading and back link that read
-"Repository" here are now "BioRepository". Layout and behaviour are unchanged.
+"Repository" here are now "Biorepository" (Studio #298, then the 2026-11-17 casing change). Layout and behaviour are unchanged.

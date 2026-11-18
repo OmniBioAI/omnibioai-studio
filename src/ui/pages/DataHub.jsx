@@ -6,13 +6,13 @@ import "./NavigationRedesign.css";
 
 // [label, plugin slug or null for a native view, admin only]
 const TABS = [
-  ["BioRepository", null, false], ["Catalog", "dataset_catalog", false], ["Data manager", "data_manager", false],
+  ["Biorepository", null, false], ["Catalog", "dataset_catalog", false], ["Data manager", "data_manager", false],
   ["Ingest", "dataset_ingest", false], ["Capacity", null, true],
 ];
 
 export default function DataHub() {
   const linked = new URLSearchParams(window.location.search).has("dataset");
-  const [active, setActive] = useState(linked ? "BioRepository" : "Catalog");
+  const [active, setActive] = useState(linked ? "Biorepository" : "Catalog");
   const tabs = TABS.filter(([, , admin]) => !admin || hasPermission("biorepo.admin"));
   const [, slug] = tabs.find(([label]) => label === active) || tabs[0];
   return <section className="data-hub"><header><h1>Data</h1><p>Find, manage, and import governed datasets.</p></header>
