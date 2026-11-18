@@ -31,14 +31,14 @@ export default function AdminCapacity() {
   const backup = d.backup || {};
   const protectedNow = backup.state === "protected";
   return <section className="biorepo" aria-labelledby="biorepo-capacity-heading">
-    <header className="biorepo__header"><div><h2 id="biorepo-capacity-heading">BioRepository capacity</h2>
+    <header className="biorepo__header"><div><h2 id="biorepo-capacity-heading">Biorepository capacity</h2>
       <p>All sizes in TiB. Uploads warn at {(d.thresholds_pct?.warn || []).join(" % and ")} % and stop at {d.thresholds_pct?.hard_stop} %.</p></div>
       <button type="button" className="omni-btn omni-btn--secondary omni-btn--sm" onClick={() => setReload(n => n + 1)}>Refresh</button>
     </header>
     <div className="biorepo__table-wrap"><table className="biorepo__table">
       <caption className="biorepo__sr-only">Storage volumes</caption>
       <thead><tr><th scope="col">Volume</th><th scope="col">Class</th><th scope="col">Used</th><th scope="col">Free</th>
-        <th scope="col">Capacity</th><th scope="col">Used %</th><th scope="col">BioRepository uploads</th><th scope="col">State</th></tr></thead>
+        <th scope="col">Capacity</th><th scope="col">Used %</th><th scope="col">Biorepository uploads</th><th scope="col">State</th></tr></thead>
       <tbody>{(d.volumes || []).map(v => <tr key={v.id}>
         <th scope="row">{v.id}</th><td>{v.class}</td><td>{tib(v.used_tib)}</td><td>{tib(v.free_tib)}</td>
         <td>{tib(v.capacity_tib)}</td><td>{v.used_pct === null || v.used_pct === undefined ? "unknown" : `${v.used_pct} %`}</td>
