@@ -15,7 +15,23 @@
 
 ---
 
-## ✨ What's New in v0.9.0-beta
+## ✨ What's New in v0.9.1-beta
+
+**BioRepository, Plugin Correctness & Log Hygiene.** This evaluation beta adds
+the BioRepository — versioned datasets with checksums, lineage, GA4GH DRS
+identifiers and signed downloads — and continues the plugin correctness work
+from v0.9.0-beta.
+
+- 🗄 **BioRepository (Phase 1)** — versioned datasets, a SHA-256 checksum per file verified on ingest, typed datasets, lineage back to the run that produced a version, GA4GH DRS v1 identifiers, signed expiring downloads, uploads and register-in-place, with projects and project membership as the access boundary
+- 🔁 **Backups and restore drills** — hourly binary-log copies and a drill that replays a backup into a throwaway container, optionally stopping at an exact log position
+- 🧪 **Plugin correctness** — four plugins that returned output not derived from their input now compute from it or fail; the ADMET and toxicity plugins no longer issue safety verdicts and report rule outcomes and matched structural alerts instead; a workflow bundle whose predictions were not reproducible is disabled
+- 🔒 **Log hygiene** — signed-download tokens are redacted from the router access log, and router logs are rotated
+
+See [Known Issues](security/release-qualification/KNOWN_ISSUES_V0.9.1_BETA.md)
+and the [changelog](docs/CHANGELOG.md). **The BioRepository is not ready for
+protected health information in this release.**
+
+### v0.9.0-beta ✅
 
 **Literature on RAG v6, Plugin Correctness & Hardening.** This evaluation beta
 moves literature search to the PubMed RAG v6 indexes, fixes plugin correctness
@@ -29,8 +45,7 @@ v0.8.2-beta.
 - 🗂 **All services, Tools and Dataset Catalog** — grouped service directory with live status, redesigned Tools page with runnable badges, reference-manifest rows in the Dataset Catalog, My files on Membership & storage
 - 💾 **Backups** — MySQL dumps encrypted to an age recipient, optional encrypted accounts/grants dump
 
-See [Known Issues](security/release-qualification/KNOWN_ISSUES_V0.9.0_BETA.md)
-and the [changelog](docs/CHANGELOG.md).
+See [Known Issues](security/release-qualification/KNOWN_ISSUES_V0.9.0_BETA.md).
 
 ### v0.8.2-beta ✅
 
@@ -198,20 +213,20 @@ and the [changelog](docs/CHANGELOG.md).
 
 ## 📦 Downloads
 
-| Platform | Published v0.9.0-beta file | Requirements |
+| Platform | Published v0.9.1-beta file | Requirements |
 |----------|------------------------------|--------------|
-| Linux x64 AppImage | `OmniBioAI.Studio-0.9.0.AppImage` | x86_64, Ubuntu 20.04+ |
-| Linux x64 DEB | `omnibioai-studio_0.9.0_amd64.deb` | Ubuntu / Debian x64 |
-| Linux x64 RPM | `omnibioai-studio-0.9.0.x86_64.rpm` | RHEL / Fedora x64 |
-| Linux ARM64 AppImage | `OmniBioAI.Studio-0.9.0-arm64.AppImage` | aarch64, Ubuntu 20.04+ |
-| Linux ARM64 DEB | `omnibioai-studio_0.9.0_arm64.deb` | Ubuntu / Debian ARM64 |
-| Linux ARM64 RPM | `omnibioai-studio-0.9.0.aarch64.rpm` | RHEL / Fedora ARM64 |
-| macOS Intel | `OmniBioAI.Studio-0.9.0.dmg` | macOS, unsigned / not notarized |
-| macOS Apple Silicon | `OmniBioAI.Studio-0.9.0-arm64.dmg` | macOS, unsigned / not notarized |
-| Windows x64 | `OmniBioAI.Studio.Setup.0.9.0.exe` | Windows 10/11, unsigned |
+| Linux x64 AppImage | `OmniBioAI.Studio-0.9.1.AppImage` | x86_64, Ubuntu 20.04+ |
+| Linux x64 DEB | `omnibioai-studio_0.9.1_amd64.deb` | Ubuntu / Debian x64 |
+| Linux x64 RPM | `omnibioai-studio-0.9.1.x86_64.rpm` | RHEL / Fedora x64 |
+| Linux ARM64 AppImage | `OmniBioAI.Studio-0.9.1-arm64.AppImage` | aarch64, Ubuntu 20.04+ |
+| Linux ARM64 DEB | `omnibioai-studio_0.9.1_arm64.deb` | Ubuntu / Debian ARM64 |
+| Linux ARM64 RPM | `omnibioai-studio-0.9.1.aarch64.rpm` | RHEL / Fedora ARM64 |
+| macOS Intel | `OmniBioAI.Studio-0.9.1.dmg` | macOS, unsigned / not notarized |
+| macOS Apple Silicon | `OmniBioAI.Studio-0.9.1-arm64.dmg` | macOS, unsigned / not notarized |
+| Windows x64 | `OmniBioAI.Studio.Setup.0.9.1.exe` | Windows 10/11, unsigned |
 
 Download and verify checksums from the
-[v0.9.0-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.9.0-beta).
+[v0.9.1-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.9.1-beta).
 All nine installers are built by GitHub Actions from the release tag.
 
 ---
@@ -478,7 +493,7 @@ Also required: `jq` (`sudo apt install jq`), Docker Compose v2 (included with En
 
 ### Beta Cloud (no Docker needed)
 
-1. Download a supported installer from the [v0.9.0-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.9.0-beta)
+1. Download a supported installer from the [v0.9.1-beta release](https://github.com/OmniBioAI/omnibioai-studio/releases/tag/v0.9.1-beta)
 2. Launch OmniBioAI Studio and enter your license key
 3. Select **Beta Cloud** on the Mode page
 4. Click through the setup wizard (Steps 1–5)
@@ -558,10 +573,10 @@ changing one requires a full stack restart.
 - `docker-compose.yml`'s `volumes:` block for each service is the ground
   truth for its exact mount paths (verified against commit `48c858d`).
 
-### About (v0.9.0)
+### About (v0.9.1)
 | Field | Value |
 |-------|-------|
-| Studio Version | v0.9.0 |
+| Studio Version | v0.9.1 |
 | Electron | Electron + Vite |
 | Node.js | See `package.json` toolchain |
 | Platform | Runtime-dependent (Linux, macOS, or Windows) |
@@ -645,8 +660,8 @@ Reports are sent to our dashboard. Response within 24 hours during beta. Disable
 
 v0.9.0 onward are gated on the stated exit criteria below, not dates.
 Each ships only once its required capabilities are independently
-verifiable, not merely built. v0.9.0-beta is the current evaluation beta
-(literature on RAG v6, plugin correctness, router hardening). It does not
+verifiable, not merely built. v0.9.1-beta is the current evaluation beta
+(BioRepository, plugin correctness, log hygiene). It does not
 meet the v0.9.0 exit criteria: the Trusted Tool Catalog, multi-tenancy and
 technical-readiness closure work remains open for v0.9.0. Earlier roadmap language promising specific feature counts or
 unverified compliance/SSO claims has been superseded by this table.
@@ -664,7 +679,8 @@ unverified compliance/SSO claims has been superseded by this table.
 | v0.8.0-beta | ✅ Released | **Platform Consolidation & Security Hardening** — ecosystem consolidation, authentication/authorization controls, delegated-execution security, Redis and audit hardening, per-user isolation, and release stabilization |
 | v0.8.1-beta | ✅ Released | **Desktop Authentication & Electron Hardening** — main-process-owned desktop sessions, protected refresh persistence without plaintext fallback, HTTPS-only packaged Auth, narrow sender-validated IPC, trusted-destination bearer policy, packaged runtime-path repair, and checksum-verified Linux ARM64 AppImage/DEB artifacts. Staging login, real OS-keychain behavior, packaged lifecycle, RPM, Node.js 20, and updater metadata remain unqualified beta limitations |
 | v0.8.2-beta | ✅ Released | **Edge Hardening, IDE Access & Stability** — P0/P1/P2 admin and operator route gates, router deny rules for the agent-run API, Workbench self-signup/email pages and OPA, docker-socket-proxy create-request hardening, Studio-session-gated JupyterLab/RStudio/VS Code with persistent homes, navigation redesign, Workbench gunicorn and healthchecks, and celery-worker bio-agent credentials. v0.8.1 packaging and authentication limitations still apply |
-| **v0.9.0-beta** | ✅ **Current** | **Literature on RAG v6, Plugin Correctness & Hardening** — PubMed RAG v6 per-study literature search (Lit AI, API Gateway, Bio Agent), plugin testkit fixes (missing inputs and failed container steps reported as failures, corrected Benjamini–Hochberg, outlier detection, imputation and matching), router restrictions for APIs without per-user authentication, rotated platform signing keys, All services/Tools/Dataset Catalog updates and encrypted MySQL backups. An evaluation beta: the v0.9.0 exit criteria below are not yet met |
+| v0.9.0-beta | ✅ Released | **Literature on RAG v6, Plugin Correctness & Hardening** — PubMed RAG v6 per-study literature search (Lit AI, API Gateway, Bio Agent), plugin testkit fixes (missing inputs and failed container steps reported as failures, corrected Benjamini–Hochberg, outlier detection, imputation and matching), router restrictions for APIs without per-user authentication, rotated platform signing keys, All services/Tools/Dataset Catalog updates and encrypted MySQL backups. An evaluation beta: the v0.9.0 exit criteria below are not yet met |
+| **v0.9.1-beta** | ✅ **Current** | **BioRepository, Plugin Correctness & Log Hygiene** — BioRepository Phase 1 (versioned datasets with per-file SHA-256 checksums, typed datasets, lineage to the producing run, GA4GH DRS v1 identifiers, signed expiring downloads, uploads and register-in-place, projects and membership as the access boundary), binary-log backups with a point-in-time restore drill, plugin correctness fixes (four plugins now compute from their input or fail; the ADMET and toxicity plugins report rule outcomes and structural alerts instead of safety verdicts; a non-reproducible workflow bundle disabled), and signed-download tokens redacted from the router log with log rotation. An evaluation beta: the BioRepository is not ready for protected health information, and the v0.9.0 exit criteria below are not yet met |
 | **v0.9.0**      | 🔜 Planned — gated on exit criteria | **Trusted Catalog, Multi-Tenancy & Technical-Readiness Closure.** *Trusted Tool Catalog* — requires an audited, verified usable subset of the catalog with confirmed I/O contracts and accurate documentation; explicit disclosure for illustrative/placeholder methods; public counts that distinguish verified tools/models from the full registry. *Multi-tenancy* — requires genuine multi-org testing, verified multi-user workspaces and team/role management, G1/G2/G4 production isolation evidence, synthetic cross-tenant/per-user testing, and realistic load testing. *HIPAA-aligned technical-readiness closure* — requires all default/placeholder secrets rotated with a documented rotation process, plus the remaining technical-readiness evidence tracked in [#100](https://github.com/OmniBioAI/omnibioai-studio/issues/100) |
 | **v1.0.0**      | 🔜 Planned — gated on exit criteria | **Enterprise Verification.** Goal: make enterprise/security claims only when independently supportable. Requires real SAML IdP validation, mature multi-tenancy, completion of the verified catalog foundation, current verified model/tool portfolio reporting, and appropriately supported HIPAA-related control/evidence claims |
 
