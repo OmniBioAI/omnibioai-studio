@@ -2645,6 +2645,14 @@ services:
     image: nginx:latest
     ports:
       - "127.0.0.1:80:80"
+    # Every public request is one access-log line on stdout; without a limit
+    # the json-file log grows forever. Download tokens are redacted in the
+    # config (log_format obai_main), but the log is still request history.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     # ide-rstudio: the router is rstudio's only peer (see the rstudio service).
     networks:
       - default
