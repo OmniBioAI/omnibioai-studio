@@ -6,7 +6,9 @@ DBS = ['omnibioai','limsdb','model_registry','omnibioai_billing','omnibioai_audi
 CONTAINER = 'omnibioai-studio-mysql-1'
 def query(sql):
     p = subprocess.run(['docker','exec','-i',CONTAINER,'sh','-c',
-        'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot --batch --raw --skip-column-names'],
+        # secret file first (compose secret), environment as the fallback
+        'MYSQL_PWD="$(cat /run/secrets/mysql-root-password 2>/dev/null || printf %s "$MYSQL_ROOT_PASSWORD")" '
+        'mysql -uroot --batch --raw --skip-column-names'],
         input=sql, text=True, capture_output=True)
     if p.returncode:
         raise RuntimeError('mysql_collection_failed')

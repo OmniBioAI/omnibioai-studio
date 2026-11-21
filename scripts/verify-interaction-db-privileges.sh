@@ -6,11 +6,12 @@ set -euo pipefail
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.release.yml}"
 COMPOSE=(docker compose -f "$COMPOSE_FILE")
-: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}"
 : "${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}"
 
 root_mysql() {
-  "${COMPOSE[@]}" exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --protocol=socket -uroot "$@"' sh "$@"
+  # Root password from the container's own secret file (compose secret), or
+  # its environment on a deployment that has not moved to the file yet.
+  "${COMPOSE[@]}" exec -T mysql sh -c 'MYSQL_PWD="$(cat /run/secrets/mysql-root-password 2>/dev/null || printf %s "$MYSQL_ROOT_PASSWORD")" mysql --protocol=socket -uroot "$@"' sh "$@"
 }
 
 worker_mysql() {
