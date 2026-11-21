@@ -357,9 +357,9 @@ function buildCategories(BASE) {
       name: "Drug Discovery & ML",
       color: "var(--accent)",
       links: [
-        workbenchPluginLink("ADMET Prediction", "admet_prediction", "💊", "Predict compound properties"),
+        workbenchPluginLink("ADMET Prediction", "admet_prediction", "💊", "Apply named physicochemical rules"),
         workbenchPluginLink("Molecular Descriptors", "molecular_descriptors", "🧮", "Calculate molecular features"),
-        workbenchPluginLink("Toxicity Prediction", "toxicity_prediction", "⚠️", "Estimate toxicity endpoints"),
+        workbenchPluginLink("Toxicity Prediction", "toxicity_prediction", "⚠️", "Match Brenk and PAINS substructures"),
         workbenchPluginLink("Drug-likeness", "druglikeness_scoring", "🧪", "Score compound suitability"),
         workbenchPluginLink("AutoML Biomarkers", "auto_ml_biomarker_discovery", "🤖", "Discover predictive biomarkers"),
       ]

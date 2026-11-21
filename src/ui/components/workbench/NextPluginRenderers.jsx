@@ -104,10 +104,10 @@ const WORKFLOWS = Object.freeze({
     note: "QC reports preserve the original methylation artifact and sample identifiers.",
   },
   admet_prediction: {
-    eyebrow: "ADMET profiling", summary: "Predict bounded absorption, distribution, metabolism, excretion and toxicity properties.",
-    stages: ["Upload descriptors", "Validate molecules", "Run prediction", "Review flags"],
-    outputs: ["ADMET predictions", "Property flags", "Result artifacts"],
-    note: "Predictions are research-use estimates and not safety determinations.",
+    eyebrow: "ADMET screening rules", summary: "Apply named physicochemical rules (ESOL, Veber, Clark, Didziapetris) to molecular descriptors.",
+    stages: ["Upload descriptors", "Validate molecules", "Apply the rules", "Review rule outcomes"],
+    outputs: ["Per-rule outcomes", "Matched substructures", "Result artifacts"],
+    note: "These are descriptor rules, not trained ADMET models. A rule that does not fire is not evidence that a compound lacks the property.",
   },
   molecular_descriptors: {
     eyebrow: "Molecular features", summary: "Calculate reproducible molecular descriptors from validated compound structures.",
@@ -116,10 +116,10 @@ const WORKFLOWS = Object.freeze({
     note: "Invalid structures are reported explicitly rather than silently discarded.",
   },
   toxicity_prediction: {
-    eyebrow: "Toxicity prediction", summary: "Estimate configured molecular toxicity endpoints from governed compound evidence.",
-    stages: ["Add compounds", "Select endpoints", "Run prediction", "Review risks"],
-    outputs: ["Toxicity predictions", "Endpoint summary", "Model evidence"],
-    note: "Outputs support research triage and do not replace toxicology studies.",
+    eyebrow: "Structural alert screen", summary: "Match representative Brenk and PAINS substructures and apply two named physicochemical rules.",
+    stages: ["Add compounds", "Validate structures", "Match the alert sets", "Review matched alerts"],
+    outputs: ["Matched alerts", "Chemical alert groups", "Review reasons"],
+    note: "A matched alert is a substructure present in the molecule. No toxicity endpoint is predicted, and no alert is not evidence that a compound is safe.",
   },
   druglikeness_scoring: {
     eyebrow: "Compound triage", summary: "Score compounds against interpretable drug-likeness rules and molecular properties.",
