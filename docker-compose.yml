@@ -14,7 +14,12 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-omnibioai}
+      # Root password comes from a compose secret (mode 600 file on the host),
+      # not the environment, so it no longer shows up in `docker inspect`. The
+      # image reads it only to initialise an empty data volume. Same pattern
+      # as omnibioai-full-mac-dev-v1. See docs/MYSQL-ROOT-PASSWORD-FILE.md for
+      # the one-time step that creates the file from the current value.
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql-root-password
       MYSQL_DATABASE: ${MYSQL_DEFAULT_DB:-omnibioai}
       INTERACTION_DB_PASSWORD: ${INTERACTION_DB_PASSWORD:?INTERACTION_DB_PASSWORD must be set}
     ports:
@@ -22,8 +27,19 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d:ro
+    secrets:
+      - mysql-root-password
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      # Liveness over TCP to 127.0.0.1 with no credentials. `mysqladmin ping`
+      # exits 0 whenever the server answers, including with "Access denied",
+      # so no account or password is needed and nothing depends on root.
+      # TCP (not the socket) keeps the entrypoint's init-phase temporary
+      # server, which runs with networking off, from counting as healthy.
+      # The user name matches no account; each probe adds one
+      # Aborted_connects and, only at log_error_verbosity=3, one
+      # "Access denied" note in the error log. --no-defaults: read no
+      # option files.
+      test: ["CMD", "mysqladmin", "--no-defaults", "ping", "--protocol=TCP", "-h", "127.0.0.1", "-P", "3306", "-u", "healthcheck_noauth", "--connect-timeout=2", "--silent"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -2716,6 +2732,10 @@ networks:
   ide-rstudio:
 
 secrets:
+  # Host file: mode 600, owner = the deploy user; holds exactly the current
+  # MySQL root password with no trailing newline. Path comes from .env.
+  mysql-root-password:
+    file: ${MYSQL_ROOT_PASSWORD_SECRET_FILE:?MYSQL_ROOT_PASSWORD_SECRET_FILE must be set (see docs/MYSQL-ROOT-PASSWORD-FILE.md)}
   devhub_internal_proxy_secret:
     # Owner 10001:10001, mode 0400 on the host (dev-hub refuses anything else).
     file: /etc/omnibioai/runtime-secrets/devhub_internal_proxy_secret

@@ -41,6 +41,7 @@ jobs:
           python3 -m pip install --quiet pyyaml pytest
           python3 -m pytest tests/test_compose_network_exposure.py \
                             tests/test_compose_release_config.py \
+                            tests/test_compose_mysql_no_root.py \
                             tests/test_safe_compose_diagnostics.py \
                             tests/test_canonical_compose_path.py \
                             tests/test_workbench_server_compose.py \
@@ -70,6 +71,7 @@ jobs:
           NCBI_API_KEY=placeholder
           NCBI_EMAIL=ci@omnibioai.org
           MYSQL_ROOT_PASSWORD=cipassword
+          MYSQL_ROOT_PASSWORD_SECRET_FILE=/tmp/omnibioai/secrets/mysql-root-password
           AUTH_SECRET_KEY=cikey
           LICENSE_SECRET=cilicense
           GF_ADMIN_PASSWORD=cigrafana
