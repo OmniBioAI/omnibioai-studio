@@ -9,7 +9,38 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
 ---
-## v0.9.0-beta (unreleased) — Literature on RAG v6, Plugin Correctness & Hardening
+## v0.9.1-beta (unreleased) — BioRepository, Plugin Correctness & Log Hygiene
+
+### Added
+- **BioRepository (Phase 1)**: versioned datasets with a SHA-256 checksum per file, verified on ingest; genomics/transcriptomics/generic dataset types that validate their files; lineage from a dataset version back to the run that produced it; GA4GH DRS v1 identifiers and read API on their own host; signed, expiring per-request downloads; uploads and register-in-place for data that should stay where it is; projects and project membership as the access boundary (omnibioai-workbench#905-#912, #937-#943, #946; router host omnibioai-studio#296).
+- BioRepository backups: hourly binary-log copies and a restore drill that replays into a throwaway container, optionally stopping at an exact log position so a point-in-time restore can be verified (omnibioai-workbench#939, #941, #942, #943, #940).
+- Samples follow project membership and the datasets a user can read (omnibioai-workbench#946); `ProjectMember` and a members API (#909).
+
+### Changed
+- **The ADMET and toxicity plugins no longer issue safety verdicts.** The predicted toxicity endpoints (hERG, Ames, drug-induced liver injury, skin sensitisation, carcinogenicity) and the `SAFE`/`REVIEW`/`UNSAFE` and ADMET `PASS`/`REVIEW` flags are removed: checked against a well-characterised reference compound they disagreed with the published facts in both directions. The plugins now report each named physicochemical rule's outcome with the rule stated, and which structural alerts matched, with an explicit note that these are screening heuristics and not a safety assessment. The mechanism-analysis and report plugins were updated with them, and the report has no safety-verdict row (omnibioai-workbench#944; follow-up #953).
+- **Four plugins now compute from their input or fail**, where they previously returned output that did not depend on it: polygenic risk score (real genotype dosages, allele-aware weights, PLINK-style mean imputation), GWAS (per-variant OLS or logistic regression; phenotype file now required), phenotype association (scored only with gene annotations, otherwise reported unscored) and eQTL linking (no built-in example-data fallback) (omnibioai-workbench#944).
+- Studio's ADMET and toxicity plugin cards describe the rules and alerts these plugins produce instead of models and predictions (#302).
+- Statistical and behavioural corrections in six more plugins, each with a regression test on its testkit data: IC50 is reported only when it is identifiable within the tested concentration range; conservation is normalised by the maximum entropy over 20 residues; a binding pocket is called by local density relative to the structure rather than always flagging a fixed fraction; Fst refuses to split samples by column order when population labels are missing (omnibioai-workbench#944).
+- User-facing text calls the feature "Biorepository" (#298, #300); a 403 on the repository says access is missing rather than showing an empty page (#297).
+- `MYSQL_BACKUP_DUMP_EXTRA_ARGS` allows `--source-data=2` for the binary-log backup job (#283).
+
+### Removed
+- One ADMET workflow bundle is disabled: all four of its prediction steps added a pseudo-random term to a formula over computed properties, so its numbers were not reproducible for the same molecule and could fall on either side of a threshold between runs (omnibioai-workflow-bundles#78, #77).
+- The Slurm, munge and Singularity host mounts are gone from the TES and local-runner services (#276, #299).
+
+### Security
+- Router: BioRepository signed-download tokens are redacted from the access log, and router logs are rotated with a size and retention limit (#301).
+- BioRepository reads require the `biorepo.read` permission; search and listings answer 403 without it instead of returning a filtered page (omnibioai-workbench#937).
+- TES runs as a non-root user with its state directories on local storage (#278, omnibioai-tes non-root deploy).
+- The platform signing-key rotation announced in v0.9.0-beta (2026-11-16) remains in effect. No new rotation ships in this release.
+
+### Known issues
+- **The BioRepository is not ready for protected health information**: no encryption at rest, no TLS to the database, no read auditing and no identifier validation (omnibioai-workbench#947).
+- LIMS signing-key rotation, the move to RS256 for platform authentication and rotation of the remaining internal service credentials are scheduled and not yet done.
+- Several plugins still have no runnable published image and cannot reach a verified state until one is built.
+
+---
+## v0.9.0-beta — Literature on RAG v6, Plugin Correctness & Hardening
 
 ### Security
 - Router: format converter and workflow builder APIs read-only (#282); multi-agent orchestrator plugin read-only (#280); Benchling API closed and ServiceNow API GET-only (#290); genome viewer `api/tracks` denied (#292), all until each has per-user authentication.
