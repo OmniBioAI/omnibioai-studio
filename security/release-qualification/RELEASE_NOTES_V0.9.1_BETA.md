@@ -2,6 +2,32 @@
 
 OmniBioAI Studio v0.9.1-beta is an evaluation release. It adds the BioRepository: versioned datasets with checksums, lineage, GA4GH DRS identifiers and signed downloads. It also corrects a group of plugins that were reporting results they had not computed, and removes the drug-safety verdicts from the ADMET and toxicity plugins.
 
+## ⚠️ Breaking changes
+
+Read this before upgrading if anything you run reads plugin output as JSON.
+
+**The ADMET and toxicity plugins no longer return safety verdicts.** `admet_prediction` and `toxicity_prediction` previously reported predicted toxicity endpoints and an overall verdict. These fields are **removed**:
+
+| Removed | Plugin |
+|---|---|
+| the whole `endpoints` block (`herg_risk`, `ames_mutagenic`, `dili_risk`, `skin_sensitisation`, `carcinogenicity_risk`) | `toxicity_prediction` |
+| `safety_flag` (`SAFE` / `REVIEW` / `UNSAFE`) | `toxicity_prediction` |
+| `overall_flag` (`PASS` / `REVIEW`) | `admet_prediction` |
+| `ames_mutagenic`, `ames_alerts` | `admet_prediction` |
+
+In their place both plugins report what they compute: the outcome of each named physicochemical rule, with the rule stated next to it, and the structural alerts that matched, grouped by chemistry. `toxicity_prediction` adds `requires_manual_review` with `review_reasons`, which say whether the screen matched anything and why. Each output carries a note that these are screening heuristics rather than a safety assessment.
+
+**Downstream plugin outputs changed with them.** `drug_report_generator` and `mechanism_analysis` consumed the removed fields:
+
+- `drug_report_generator`'s `report_summary.json` no longer has `admet_flag` or `safety_flag`; it carries `requires_manual_review` and `review_reasons`. The HTML report has no safety-verdict row and prints each source plugin's own note above its table.
+- `mechanism_analysis`'s insight JSON no longer has `admet_flag` or `safety_flag`; it carries `n_structural_alerts` and `requires_manual_review`. Its `key_safety_concerns` list now describes matched chemistry and named rules instead of toxicity endpoints.
+
+**Rule overrides were renamed.** `params.admet_policy` and `params.toxicity_policy` now key on the rule names (for example `herg_logp_basic_n_rule_pass`, `veber_rule_pass`, `lipophilicity_size_rule_pass`). Old endpoint keys are ignored.
+
+**Four plugins now fail on missing input** instead of returning a result: polygenic risk score, GWAS, phenotype association and eQTL linking. A GWAS run requires a phenotype file and a polygenic-score run requires a score-weight file. Pipelines that relied on a result always appearing will now see the missing input as a failure.
+
+**Literature search requires a study** (unchanged since v0.9.0-beta, repeated here because it is still catching people out). `POST /v1/literature/search` without a study returns `400 invalid_request`. There is no "all studies" search.
+
 ### 📦 Downloads
 
 | Platform | Architecture | File |
@@ -92,9 +118,7 @@ Continuing the plugin testkit work from v0.9.0. Each fix below has a regression 
 
 ## Behaviour changes
 
-- **The ADMET and toxicity plugin outputs changed shape.** The `endpoints` block, the `safety_flag` and the ADMET `overall_flag` are gone. Anything reading those fields should read the per-rule outcomes and the matched alert lists instead. The downstream mechanism-analysis and report plugins were updated with them, and the report no longer shows a safety verdict row.
-- **The polygenic-score, GWAS, phenotype-association and eQTL plugins now fail on missing input** where they previously returned a result. A pipeline that depended on those results appearing unconditionally will now surface the missing input as a failure.
-- **A GWAS run requires a phenotype file**, and a polygenic-score run requires a score-weight file.
+- The ADMET and toxicity plugin output changes, the downstream report and mechanism-analysis changes, the renamed rule-override keys and the four plugins that now fail on missing input are listed under **Breaking changes** at the top of this file.
 - Phenotype association accepts an optional gene-annotation input. Without it the run still completes, with the phenotype columns reported as unscored.
 - One ADMET workflow bundle is no longer offered.
 
