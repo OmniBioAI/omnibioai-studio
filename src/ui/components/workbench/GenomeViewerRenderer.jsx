@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { isElectron } from "../../lib/session";
+import { csrfToken } from "../../lib/pluginApi";
 import "./GenomeViewerRenderer.css";
 
 const API = "/_svc/workbench/plugins/genome_viewer/api";
@@ -9,6 +10,12 @@ const TRACK_TYPES = ["bed", "vcf", "bam", "cram", "bigwig", "gff", "gtf"];
 function serviceUrl(path) {
   const origin = isElectron() ? (import.meta.env.DEV ? "http://localhost:5174" : "http://localhost") : "";
   return `${origin}${path}`;
+}
+
+// Workbench returns staged files as /plugins/genome_viewer/api/staged/...; IGV must fetch
+// them through the same /_svc/workbench route (and auth) as the API calls.
+function stagedTrackUrl(url) {
+  return typeof url === "string" && url.startsWith("/plugins/") ? serviceUrl(`/_svc/workbench${url}`) : url;
 }
 
 async function readJson(response) {
@@ -99,7 +106,11 @@ export default function GenomeViewerRenderer() {
         const form = new FormData();
         form.append("file", upload); form.append("organism", organism); form.append("version", version);
         form.append("file_type", fileType); form.append("locus", locus);
-        response = await fetch(serviceUrl(`${API}/tracks/`), { method: "POST", credentials: "same-origin", body: form });
+        response = await fetch(serviceUrl(`${API}/tracks/`), {
+          method: "POST", credentials: "same-origin",
+          headers: { Accept: "application/json", "X-CSRFToken": csrfToken() },
+          body: form,
+        });
       } else {
         const payload = { organism, version, locus, file_type: fileType, input_mode: mode };
         if (mode === "link") payload.url = trackUrl.trim();
@@ -110,11 +121,12 @@ export default function GenomeViewerRenderer() {
         if (mode === "paste" && !pasteText.trim()) throw new Error("Paste BED or VCF content first.");
         response = await fetch(serviceUrl(`${API}/tracks/`), {
           method: "POST", credentials: "same-origin",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRFToken": csrfToken() },
           body: JSON.stringify(payload),
         });
       }
       const data = await readJson(response);
+      const tracks = (data.tracks || []).map(track => ({ ...track, url: stagedTrackUrl(track.url) }));
       const igv = await loadIgv();
       if (!viewerRef.current) throw new Error("The genome viewer is not ready yet.");
       if (browserRef.current && browserGenomeRef.current !== version) {
@@ -125,11 +137,11 @@ export default function GenomeViewerRenderer() {
         browserRef.current = await igv.createBrowser(viewerRef.current, {
           genome: version,
           locus: data.locus || locus || "chr1:3000000-3200000",
-          tracks: data.tracks || [],
+          tracks,
         });
         browserGenomeRef.current = version;
       } else {
-        for (const track of data.tracks || []) await browserRef.current.loadTrack(track);
+        for (const track of tracks) await browserRef.current.loadTrack(track);
         const target = data.locus || locus;
         if (target) await browserRef.current.search(target);
       }
