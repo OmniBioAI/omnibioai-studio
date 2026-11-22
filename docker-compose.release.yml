@@ -529,6 +529,7 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      - ${WORK_DIR}/uploads:/app/work/uploads  # shared with celery-worker (S3)
       # #265: proxy's exposed socket, not the raw host one -- see the
       # docker-socket-proxy service above and DOCKER_HOST in
       # environment: above.
@@ -635,6 +636,7 @@ services:
       - ${WORK_DIR}/workflow_runner_exec:/app/work/workflow_runner_exec
       - ${WORK_DIR}/workflow_runner_runs:/app/work/workflow_runner_runs
       - ${WORK_DIR}/pathway_enrichment_runs:/app/work/pathway_enrichment_runs
+      - ${WORK_DIR}/uploads:/app/work/uploads  # shared with celery-worker (S3)
       # #771: planner status and skills_shadow.json, kept across recreates.
       - ${WORK_DIR}/planner:/app/work/planner
       # #54: proxy's exposed socket, not the raw host one -- see
