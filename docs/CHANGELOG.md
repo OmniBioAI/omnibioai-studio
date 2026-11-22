@@ -8,6 +8,14 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 - 🌐 Public web domain moved from app.omnibioai.org to webstudio.omnibioai.org (old domain kept working during the transition period)
 
+### Security (authorization hardening, track A)
+- **Starting a workflow now needs the `workflow.execute` permission on every path**: the orchestrator, agent graphs, Bio Agent "Execute DAG", workflow builder, workflow runner, the workflow scheduler, and the launch actions of the external engine, CI and cluster integrations (Cromwell, Airflow, Argo, HealthOmics, Terra, Galaxy, DNAnexus, Seven Bridges, Illumina ICA, BaseSpace, KNIME, Kubernetes, Jenkins, dbt, Databricks, Azure DevOps, GitHub/GitLab triggers). Without it the answer is 403 and nothing is started; when omnibioai-auth can't be asked the answer is 503 (omnibioai-workbench#988).
+- **Scheduled runs re-check the owner's permission when they fire.** If the owner no longer holds `workflow.execute`, the run is skipped and the schedule is paused with the reason "permission missing"; resuming it needs the permission again (omnibioai-workbench#988).
+- **API-key callers are checked too.** An API key acts as its user, so an automation account needs a verified primary email and `workflow.execute` to start workflows; otherwise it now gets 403. Grant the role before upgrading (omnibioai-workbench#988).
+- Bearer tokens are checked against omnibioai-auth for revocation (short positive cache, fail closed with 503 when auth can't answer, including a rate-limited answer) (omnibioai-workbench#986, omnibioai-auth#106).
+- Agent and orchestrator runs are readable only by their owner, in the same organization context; staff no longer see other users' runs (omnibioai-workbench#987).
+- "Refresh capabilities" in the catalog is shown only to callers allowed to refresh (#306).
+
 ---
 ## v0.9.1-beta (unreleased) — BioRepository, Plugin Correctness & Log Hygiene
 
