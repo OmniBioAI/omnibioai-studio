@@ -44,6 +44,9 @@ export function CatalogReactRenderer() {
     finally { setBusy(false); }
   }, [tab]);
   useEffect(() => { load(tab); }, [load, tab]);
+  // api_refresh is staff only (Workbench #988); the summary says whether the
+  // caller may use it. Absent or false: no Refresh action.
+  const canRefresh = summary?.can_refresh === true;
   async function refreshCatalog() {
     setBusy(true); setError("");
     try { await nativePluginRequest("/plugins/catalog/api/refresh/", { method: "POST", body: {} }); await load(tab); }
@@ -52,7 +55,7 @@ export function CatalogReactRenderer() {
   }
   return <main className="utility-react" aria-label="Workbench Catalog">
     <header className="utility-react__hero"><div><p>DISCOVERY · REGISTRY</p><h1>Workbench Catalog</h1><span>Browse plugins, tool servers, tools, and workflows from the live Workbench registry.</span></div>
-      <button type="button" onClick={refreshCatalog} disabled={busy}>{busy ? "Refreshing…" : "Refresh capabilities"}</button></header>
+      {canRefresh && <button type="button" onClick={refreshCatalog} disabled={busy}>{busy ? "Refreshing…" : "Refresh capabilities"}</button>}</header>
     {error && <p role="alert" className="utility-react__error">{error}</p>}
     {summary && <div className="utility-react__metrics">{Object.entries(summary).filter(([, value]) => ["string", "number"].includes(typeof value)).slice(0, 6).map(([key, value]) => <div key={key}><span>{key.replaceAll("_", " ")}</span><strong>{value}</strong></div>)}</div>}
     <UtilityPanel title="Catalog inventory">
