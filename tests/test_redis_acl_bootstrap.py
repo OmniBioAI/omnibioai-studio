@@ -56,8 +56,8 @@ class RedisAclBootstrapTests(unittest.TestCase):
     def boot(self):
         return acl.bootstrap(self.data, POLICY_PATH, self.creds)
 
-    def test_policy_is_28_users_with_default_off_and_exact_rag_target_separate(self):
-        self.assertEqual(len(self.policy["users"]), 28)
+    def test_policy_is_29_users_with_default_off_and_exact_rag_target_separate(self):
+        self.assertEqual(len(self.policy["users"]), 29)
         default = next(u for u in self.policy["users"] if u["name"] == "default")
         self.assertFalse(default["enabled"])
         self.assertIsNone(default["credential"])
@@ -83,6 +83,21 @@ class RedisAclBootstrapTests(unittest.TestCase):
         })
         self.assertEqual(writer["selectors"], [])
 
+    def test_audit_stream_producers_have_xadd_and_ping_only_and_no_select(self):
+        """The audit stream lives in db 0 only: SELECT would let a producer's events vanish."""
+        users = {u["name"]: u for u in self.policy["users"]}
+        producer = users["redis_audit_producer"]
+        self.assertEqual(producer["command_rules"], ["-@all", "+xadd", "+ping", "+client|setinfo"])
+        mcp = users["redis_audit_mcp"]
+        self.assertEqual(mcp["credential"], {"env": "REDIS_AUDIT_MCP_PASSWORD"})
+        self.assertEqual(mcp["command_rules"], ["-@all", "+xadd", "+ping"])
+        for user in (producer, mcp):
+            self.assertEqual(user["key_patterns"], ["~audit:events"])
+            self.assertTrue(user["reset_channels"])
+            self.assertEqual(user["channel_patterns"], [])
+            self.assertEqual(user["selectors"], [])
+            self.assertNotIn("+select", user["command_rules"])
+
     def test_empty_volume_bootstraps_acl_and_secret_safe_inspection(self):
         self.assertEqual(self.boot(), "initialized")
         acl_path = self.data / acl.ACL_NAME
@@ -90,7 +105,7 @@ class RedisAclBootstrapTests(unittest.TestCase):
         rendered = acl_path.read_text()
         self.assertNotIn("test-only-", rendered)
         safe = acl.inspect_acl_file(acl_path)
-        self.assertEqual(len(safe), 28)
+        self.assertEqual(len(safe), 29)
         self.assertFalse(next(x for x in safe if x["username"] == "default")["enabled"])
         self.assertTrue(all(x["password_configured"] for x in safe if x["username"] != "default"))
         self.assertNotIn("#", json.dumps(safe))
@@ -363,7 +378,7 @@ class RedisAclBootstrapTests(unittest.TestCase):
             admin_password = self.credentials["redis_admin"]
             runtime_acl = redis_exec("redis_admin", "ACL LIST", admin_password)
             rows = acl.sanitized_acl_metadata(runtime_acl)
-            self.assertEqual(len(rows), 28)
+            self.assertEqual(len(rows), 29)
             self.assertFalse(next(r for r in rows if r["username"] == "default")["enabled"])
             self.assertEqual(redis_exec("redis_admin", "ACL SAVE", admin_password), "OK")
             saved_acl = (self.data / acl.ACL_NAME).read_bytes()
