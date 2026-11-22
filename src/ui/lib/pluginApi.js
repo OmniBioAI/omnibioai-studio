@@ -81,6 +81,60 @@ export function pluginResourceUrl(slug, resourceType, options) {
   return serviceUrl(`/plugins/${slug}/api/ui-resources/${resourceType}/`, options);
 }
 
+// "Use sample data": fixed routes built here, never taken from the descriptor.
+export function pluginSampleRunUrl(slug, options) {
+  if (typeof slug !== "string" || !SLUG.test(slug)) throw new Error("Invalid plugin identifier.");
+  return serviceUrl(`/plugins/${slug}/api/ui-sample/`, options);
+}
+
+export function pluginSampleContentUrl(slug, inputId, options) {
+  if (typeof slug !== "string" || !SLUG.test(slug) || typeof inputId !== "string" || !FIELD_ID.test(inputId)) {
+    throw new Error("Invalid sample input identity.");
+  }
+  return serviceUrl(`/plugins/${slug}/api/ui-sample/${inputId}/`, options);
+}
+
+const MAX_SAMPLE_TEXT = 2000;
+const MAX_SAMPLE_INPUTS = 64;
+
+function boundedText(value, max = MAX_SAMPLE_TEXT) {
+  return typeof value === "string" && value.length <= max;
+}
+
+// The descriptor's optional top-level `sample` section. Every field is
+// checked; a malformed section is dropped (no sample button), so it can
+// never take the run form down with it.
+function sampleDescriptorIsValid(sample, inputs) {
+  try { checkSampleDescriptor(sample, inputs); return true; }
+  catch { return false; }
+}
+
+function checkSampleDescriptor(sample, inputs) {
+  const fail = () => { throw new Error("invalid sample"); };
+  if (!sample || typeof sample !== "object" || Array.isArray(sample)) fail();
+  if (typeof sample.available !== "boolean") fail();
+  if (sample.available ? sample.reason !== null : !boundedText(sample.reason)) fail();
+  if (sample.code !== null && !(typeof sample.code === "string" && FIELD_ID.test(sample.code))) fail();
+  for (const key of ["label", "description", "provenance", "licence"]) if (!boundedText(sample[key])) fail();
+  if (!Array.isArray(sample.runtime_restrictions) || sample.runtime_restrictions.length > 20 ||
+      !sample.runtime_restrictions.every(item => boundedText(item, 500))) fail();
+  if (typeof sample.synthetic_fixture !== "boolean") fail();
+  if (!sample.requires || typeof sample.requires.gpu !== "boolean" || typeof sample.requires.network !== "boolean") fail();
+  if (!Number.isInteger(sample.total_bytes) || sample.total_bytes < 0) fail();
+  if (!sample.inputs || typeof sample.inputs !== "object" || Array.isArray(sample.inputs)) fail();
+  if (!sample.params || typeof sample.params !== "object" || Array.isArray(sample.params)) fail();
+  const fieldIds = new Set(inputs.map(input => input.id));
+  const entries = Object.entries(sample.inputs);
+  if (entries.length > MAX_SAMPLE_INPUTS) fail();
+  for (const [id, item] of entries) {
+    if (!FIELD_ID.test(id) || !fieldIds.has(id) || !item || typeof item !== "object") fail();
+    if (typeof item.pasteable !== "boolean" || !boundedText(item.format, 64) ||
+        !Number.isInteger(item.bytes) || !Number.isInteger(item.file_count) ||
+        !Array.isArray(item.file_names) || !item.file_names.every(name => boundedText(name, 255))) fail();
+  }
+  if (Object.keys(sample.params).some(id => !FIELD_ID.test(id) || !fieldIds.has(id))) fail();
+}
+
 function validateField(field) {
   if (!field || typeof field.id !== "string" || !FIELD_ID.test(field.id) || FORBIDDEN_FIELD_IDS.has(field.id)) throw new PluginDescriptorError("Invalid plugin input schema.");
   const component = field.component ?? field.widget;
@@ -427,6 +481,7 @@ function validateDescriptor(data, slug) {
   }
   data.inputs.forEach(validateField);
   validateConditionalInputs(data.inputs);
+  if (data.sample !== undefined && !sampleDescriptorIsValid(data.sample, data.inputs)) delete data.sample;
   data.inputs.forEach(field => {
     if ((field.component ?? field.widget) !== "resource_select") return;
     if (field.endpoint !== `/plugins/${slug}/api/ui-resources/${field.resource_type}/`) {

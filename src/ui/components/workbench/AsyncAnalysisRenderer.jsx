@@ -4,8 +4,9 @@ import PluginResults from "../PluginResults";
 import PluginForm from "./PluginForm";
 import LogViewer from "./LogViewer";
 import RunStatus from "./RunStatus";
+import SampleDataPanel from "./SampleDataPanel";
 import { descriptorComponent } from "./PluginField";
-import { csrfToken, pluginEndpoint } from "../../lib/pluginApi";
+import { csrfToken, pluginEndpoint, pluginSampleRunUrl } from "../../lib/pluginApi";
 import { validateArtifactPayload } from "../../lib/pluginUiContracts";
 
 const TERMINAL = new Set(["COMPLETED", "COMPLETE", "FAILED", "ERROR", "CANCELED", "CANCELLED"]);
@@ -57,6 +58,9 @@ function transformedInputText(input, value, values) {
 export default function AsyncAnalysisRenderer({ descriptor, parameterFields = [], inputOverrides = {} }) {
   const [values, setValues] = useState({});
   const [files, setFiles] = useState({});
+  // Pasted examples for file inputs: { id: { text, fileName } }. Sent as a
+  // file when no file is chosen for that input.
+  const [pasted, setPasted] = useState({});
   const [runId, setRunId] = useState("");
   const [status, setStatus] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -118,6 +122,53 @@ export default function AsyncAnalysisRenderer({ descriptor, parameterFields = []
     setFiles(previous => ({ ...previous, [id]: Array.from(fileList || []) }));
   }
 
+  function pasteExample(id, text, fileName) {
+    const input = inputs.find(candidate => candidate.id === id);
+    if (!input) return;
+    if (descriptorComponent(input) === "file") setPasted(previous => ({ ...previous, [id]: { text, fileName } }));
+    else updateValue(id, text);
+  }
+
+  function fillExampleValues(params) {
+    Object.entries(params).forEach(([id, value]) => {
+      const input = inputs.find(candidate => candidate.id === id);
+      if (!input) return;
+      const component = descriptorComponent(input);
+      if (component === "checkbox" || component === "multiselect") updateValue(id, value);
+      else updateValue(id, value !== null && typeof value === "object" ? JSON.stringify(value, null, 2) : String(value));
+    });
+  }
+
+  function removePasted(id) {
+    setPasted(previous => { const next = { ...previous }; delete next[id]; return next; });
+  }
+
+  async function startRun(url, body) {
+    setSubmitting(true);
+    setRunId(""); setStatus(null); setLogs([]); setArtifacts([]); setRenderedResult(null);
+    try {
+      const response = await fetch(url, {
+        method: "POST", body, credentials: "same-origin",
+        headers: { Accept: "application/json", "X-CSRFToken": csrfToken() },
+      });
+      let payload = {};
+      try { payload = await response.json(); } catch (_) { /* handled below */ }
+      if (!response.ok) throw new Error(payload.error || `Unable to start run (${response.status}).`);
+      if (!payload.run_id) throw new Error("Workbench did not return a run ID.");
+      setRunId(payload.run_id);
+      setStatus({ state: payload.status || "RUNNING" });
+    } catch (submitError) {
+      setError(submitError.message || "Unable to start run.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function runSample() {
+    setError("");
+    startRun(pluginSampleRunUrl(descriptor.plugin.slug), undefined);
+  }
+
   async function submit(event) {
     event.preventDefault();
     setError("");
@@ -130,7 +181,7 @@ export default function AsyncAnalysisRenderer({ descriptor, parameterFields = []
     }
     for (const input of inputs) {
       if (!input.required) continue;
-      if (descriptorComponent(input) === "file" && !(files[input.id] || []).length) {
+      if (descriptorComponent(input) === "file" && !(files[input.id] || []).length && !pasted[input.id]) {
         setError(`${input.label} is required.`);
         return;
       }
@@ -182,7 +233,11 @@ export default function AsyncAnalysisRenderer({ descriptor, parameterFields = []
         }
         return;
       }
-      if (component === "file") (files[input.id] || []).forEach(file => formData.append(inputName(input), file));
+      if (component === "file") {
+        const chosen = files[input.id] || [];
+        if (chosen.length) chosen.forEach(file => formData.append(inputName(input), file));
+        else if (pasted[input.id]) formData.append(inputName(input), new File([pasted[input.id].text], pasted[input.id].fileName, { type: "text/plain" }));
+      }
       else if (component === "checkbox") formData.append(inputName(input), value ? "true" : "false");
       else if (component === "multiselect") formData.append(inputName(input), JSON.stringify(value));
       else if (value !== "" && value !== null && value !== undefined) formData.append(inputName(input), value);
@@ -197,24 +252,7 @@ export default function AsyncAnalysisRenderer({ descriptor, parameterFields = []
       return;
     }
     if (customParameterFields.length) formData.append("param_parameters", JSON.stringify(customParameters));
-    setSubmitting(true);
-    setRunId(""); setStatus(null); setLogs([]); setArtifacts([]); setRenderedResult(null);
-    try {
-      const response = await fetch(pluginEndpoint(descriptor.endpoints.submit), {
-        method: "POST", body: formData, credentials: "same-origin",
-        headers: { Accept: "application/json", "X-CSRFToken": csrfToken() },
-      });
-      let payload = {};
-      try { payload = await response.json(); } catch (_) { /* handled below */ }
-      if (!response.ok) throw new Error(payload.error || `Unable to start run (${response.status}).`);
-      if (!payload.run_id) throw new Error("Workbench did not return a run ID.");
-      setRunId(payload.run_id);
-      setStatus({ state: payload.status || "RUNNING" });
-    } catch (submitError) {
-      setError(submitError.message || "Unable to start run.");
-    } finally {
-      setSubmitting(false);
-    }
+    await startRun(pluginEndpoint(descriptor.endpoints.submit), formData);
   }
 
   async function cancelRun() {
@@ -238,10 +276,39 @@ export default function AsyncAnalysisRenderer({ descriptor, parameterFields = []
       <Panel>
         <PanelHeader title="Inputs" />
         <PanelBody>
+          {descriptor.sample ? (
+            <SampleDataPanel
+              slug={descriptor.plugin.slug}
+              sample={descriptor.sample}
+              inputs={inputs}
+              busy={submitting}
+              onUseSample={runSample}
+              onPaste={pasteExample}
+              onFillParams={fillExampleValues}
+            />
+          ) : null}
+          {Object.entries(pasted).map(([id, item]) => {
+            const label = inputs.find(input => input.id === id)?.label || id;
+            return (
+              <div key={id} className="plugin-sample__pasted">
+                <label htmlFor={`pasted-${id}`}>{`Pasted example for ${label} (${item.fileName})`}</label>
+                <textarea
+                  id={`pasted-${id}`}
+                  value={item.text}
+                  rows={6}
+                  onChange={event => setPasted(previous => ({ ...previous, [id]: { ...item, text: event.target.value } }))}
+                />
+                <button type="button" className="omni-btn omni-btn--secondary omni-btn--sm" onClick={() => removePasted(id)}>
+                  {`Remove pasted example for ${label}`}
+                </button>
+              </div>
+            );
+          })}
           <PluginForm
             inputs={inputs}
             values={values}
             files={files}
+            satisfiedInputs={Object.keys(pasted)}
             onValueChange={updateValue}
             onFilesChange={updateFiles}
             onSubmit={submit}
