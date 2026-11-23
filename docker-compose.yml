@@ -1132,6 +1132,19 @@ services:
         target: /app/work/pathway_enrichment_runs
         bind:
           create_host_path: false
+      # Workbench#990 S3: browser uploads (plugin_ui._upload_dir and the plugin
+      # views that write BASE_DIR/work/uploads/<slug>/) were on the container's
+      # overlay filesystem: lost on recreate and invisible to celery-worker,
+      # which runs the tasks those views queue (vcf_liftover,
+      # bedtools_intersect, ...). Same host dir and same path in both
+      # services, so /app/work/uploads also maps to $OMNIBIOAI_WORK_DIR/uploads
+      # for sibling Docker jobs (ml_utils.to_host_path). Containers run as
+      # root; the NAS squashes their writes to 1000:0, like runs/.
+      - type: bind
+        source: ${WORK_DIR}/uploads
+        target: /app/work/uploads
+        bind:
+          create_host_path: false
       # #529: Workflow Planner's and BioQueryAI's async (Celery) modes write
       # their status.json/.ask_index here; this workbench container's own
       # planner_ask_status/BioQueryAI polling handlers read from the same
@@ -1364,6 +1377,13 @@ services:
       - type: bind
         source: ${WORK_DIR}/pathway_enrichment_runs
         target: /app/work/pathway_enrichment_runs
+        bind:
+          create_host_path: false
+      # Workbench#990 S3: the uploads the workbench container stores; see the
+      # matching comment on workbench's volumes above.
+      - type: bind
+        source: ${WORK_DIR}/uploads
+        target: /app/work/uploads
         bind:
           create_host_path: false
       # #529: this is where the Celery tasks that actually run in THIS
