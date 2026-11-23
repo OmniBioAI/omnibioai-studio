@@ -14,8 +14,12 @@ export default function SampleDataPanel({ slug, sample, inputs, busy, onUseSampl
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
   const labels = new Map(inputs.map(input => [input.id, input.label || input.id]));
-  const pasteable = Object.entries(sample.inputs).filter(([id, item]) => item.pasteable && labels.has(id));
-  const params = Object.keys(sample.params).filter(id => labels.has(id));
+  // Paste and fill belong to the same sample: offered only when it may run
+  // (the server refuses the paste route otherwise, with the same reason).
+  const pasteable = sample.available
+    ? Object.entries(sample.inputs).filter(([id, item]) => item.pasteable && labels.has(id))
+    : [];
+  const params = sample.available ? Object.keys(sample.params).filter(id => labels.has(id)) : [];
 
   async function paste(id) {
     setError(""); setLoading(id);

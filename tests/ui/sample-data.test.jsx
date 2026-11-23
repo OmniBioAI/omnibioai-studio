@@ -117,6 +117,14 @@ describe("Use sample data", () => {
     expect(button).toHaveAccessibleDescription(reason);
   });
 
+  it("offers no paste or fill when the sample cannot run", () => {
+    const reason = "The sample run has not passed testing on this release (testkit verdict: fail-real-bug (UNFIXED, enabled)).";
+    render(<AsyncAnalysisRenderer descriptor={descriptorWith({ sample: { ...sample, available: false, reason, code: "verdict_blocked" } })} />);
+    expect(screen.queryByRole("button", { name: /Paste example/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Fill example values" })).toBeNull();
+    expect(screen.getByText(reason)).toBeInTheDocument();
+  });
+
   it("renders no sample controls without a sample section", () => {
     render(<AsyncAnalysisRenderer descriptor={descriptorWith({ sample: undefined })} />);
     expect(screen.queryByRole("button", { name: "Use sample data" })).toBeNull();
