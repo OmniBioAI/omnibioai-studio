@@ -62,6 +62,8 @@ export default function PluginForm({
   inputs = [],
   values = {},
   files = {},
+  // File inputs filled another way (a pasted sample example) count as present.
+  satisfiedInputs = [],
   onValueChange,
   onFilesChange,
   onSubmit,
@@ -101,7 +103,7 @@ export default function PluginForm({
       const control = controls.find(element => element.closest(".plugin-field")?.dataset.fieldId === input.id);
       const component = input.component ?? input.widget;
       const present = component === "file"
-        ? (files[input.id] || []).length > 0
+        ? (files[input.id] || []).length > 0 || satisfiedInputs.includes(input.id)
         : component === "checkbox"
           ? currentValue(input, values) === true
           : component === "multiselect"
