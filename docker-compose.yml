@@ -65,9 +65,16 @@ services:
     # for that documented-but-unresolved deployment prerequisite.
     # The ACL file is initialized and validated by redis-acl-init before
     # Redis can start; the default identity is disabled from first use.
-    command: redis-server --appendonly yes --appendfsync everysec --aclfile /data/users.acl
+    # aof-load-truncated: start despite a final command cut short (the default; explicit).
+    # aof-timestamp-enabled: timestamp annotations in the AOF, so a later repair can use
+    # redis-check-aof --truncate-to-timestamp. The wrapper repairs exactly one known
+    # power-loss failure (a malformed tail on the last incr file) once, with a backup and
+    # an alert; see scripts/redis-start-guarded.sh (2026-11-21 outage).
+    entrypoint: ["/bin/sh", "/usr/local/bin/redis-start-guarded.sh"]
+    command: redis-server --appendonly yes --appendfsync everysec --aof-load-truncated yes --aof-timestamp-enabled yes --aclfile /data/users.acl
     volumes:
       - redis_data:/data
+      - ./scripts/redis-start-guarded.sh:/usr/local/bin/redis-start-guarded.sh:ro
     environment:
       REDIS_HEALTHCHECK_PASSWORD: ${REDIS_HEALTHCHECK_PASSWORD:?REDIS_HEALTHCHECK_PASSWORD must be set}
     healthcheck:
