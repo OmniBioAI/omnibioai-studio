@@ -18,7 +18,7 @@ afterEach(() => { cleanup(); nativePluginRequest.mockReset(); });
 describe("catalog legacy React workflow", () => {
   it("loads live catalog records, switches inventory tabs, and refreshes capabilities", async () => {
     nativePluginRequest.mockImplementation(async path => {
-      if (path.endsWith("/summary/")) return { plugins: 4, tools: 2 };
+      if (path.endsWith("/summary/")) return { plugins: 4, tools: 2, can_refresh: true };
       if (path.endsWith("/plugins/")) return { plugins: [{ slug: "qc", name: "QC" }] };
       if (path.endsWith("/servers/")) return { servers: [{ name: "TES" }] };
       if (path.endsWith("/refresh/")) return { refreshed: true };
@@ -31,6 +31,22 @@ describe("catalog legacy React workflow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Refresh capabilities" }));
     await waitFor(() => expect(nativePluginRequest).toHaveBeenCalledWith("/plugins/catalog/api/refresh/", { method: "POST", body: {} }));
   });
+});
+
+describe("catalog refresh is offered only when the API allows it", () => {
+  for (const [label, summary] of [["non-staff", { plugins: 4, can_refresh: false }], ["older Workbench", { plugins: 4 }]]) {
+    it(`hides Refresh capabilities for ${label}`, async () => {
+      nativePluginRequest.mockImplementation(async path => {
+        if (path.endsWith("/summary/")) return summary;
+        if (path.endsWith("/plugins/")) return { plugins: [{ slug: "qc", name: "QC" }] };
+        return {};
+      });
+      render(<CatalogReactRenderer />);
+      expect(await screen.findByText("qc")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Refresh capabilities" })).toBeNull();
+      expect(nativePluginRequest).not.toHaveBeenCalledWith("/plugins/catalog/api/refresh/", expect.anything());
+    });
+  }
 });
 
 describe("schema registry legacy React workflow", () => {
