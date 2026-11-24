@@ -369,8 +369,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      # ToolServer must be healthy before TES registers its HTTP tools on it. This
+      # orders `docker compose up`; after a host reboot Docker restarts containers by
+      # restart policy without this ordering, so TES also retries the registration
+      # itself (omnibioai-tes #94).
       toolserver:
-        condition: service_started
+        condition: service_healthy
       deploy-verify:
         condition: service_completed_successfully
     healthcheck:
