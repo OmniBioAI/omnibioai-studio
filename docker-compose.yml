@@ -584,7 +584,7 @@ services:
       LIMS_SSO_CLIENT_SECRET: ${LIMS_SSO_CLIENT_SECRET}
       DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,lims,0.0.0.0,lims-staging.omnibioai.org,*"
       DJANGO_CSRF_TRUSTED_ORIGINS: "https://lims-staging.omnibioai.org"
-      CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://lims-staging.omnibioai.org,https://omnibioai.org"
+      CORS_ALLOWED_ORIGINS: "https://webstudio.omnibioai.org,https://lims.omnibioai.org,https://lims-staging.omnibioai.org,https://omnibioai.org"
       # Redis P1-5 residual cutover: settings.py's CACHES["default"]
       # LOCATION reads this var directly (backs cache_page on 7
       # reference-data ReadOnlyModelViewSets + DRF's login/SSO
@@ -2119,7 +2119,7 @@ services:
       REDIS_URL: redis://redis_auth:${REDIS_AUTH_PASSWORD}@redis:6379
       INTERACTION_REDIS_URL: redis://redis_interaction_producer:${REDIS_INTERACTION_PRODUCER_PASSWORD}@redis:6379
 
-      CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ORIGINS:-http://localhost:5174,http://127.0.0.1:5174,https://webstudio.omnibioai.org,https://app.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org}
+      CORS_ALLOWED_ORIGINS: ${AUTH_CORS_ORIGINS:-http://localhost:5174,http://127.0.0.1:5174,https://webstudio.omnibioai.org,https://lims.omnibioai.org,https://omnibioai.org}
 
       # Encrypts GlobalConfig's LLM/cloud credential fields at rest
       # (app/core/crypto.py). Deliberately empty by default, NOT a
